@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Fundamentos</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3346F0}a:hover{color:#14112B}
+button{font-family:inherit}
+@keyframes giro{to{transform:rotate(360deg)}}
+@keyframes laser{0%{transform:translateY(0)}100%{transform:translateY(94px)}}
+nav[aria-label="Navegação principal"] button:focus-visible{outline:2px solid #3346F0;outline-offset:2px;border-radius:12px}
+nav[aria-label="Navegação principal"] button.btn-vender:focus-visible{outline:2px solid #3346F0;outline-offset:3px;border-radius:999px}
+.btn-vender:active{background:#F2B200 !important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}}
+</style>
+</helmet>
+<div lang="pt-BR" style="width:1440px;height:7360px;overflow:hidden;position:relative;box-sizing:border-box;padding:80px;background:#FFFFFF;font-family:'Inter',system-ui,sans-serif;color:#14112B;display:flex;flex-direction:column;gap:112px;">
+
+<!-- ============ 1. CABEÇALHO ============ -->
+<section style="display:flex;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;height:36px;">
+    <div style="display:flex;align-items:baseline;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:30px;line-height:36px;letter-spacing:-0.02em;color:#14112B;">[nome]<span style="display:inline-block;width:10px;height:10px;border-radius:999px;background:#FFC933;margin-left:3px;"></span></div>
+    <div style="display:flex;gap:8px;">
+      <span style="height:32px;box-sizing:border-box;padding:0 14px;border:1px solid #E2DED6;border-radius:999px;font-size:13px;line-height:30px;font-weight:600;color:#4A4766;">Fundamentos</span>
+      <span style="height:32px;box-sizing:border-box;padding:0 14px;border:1px solid #E2DED6;border-radius:999px;font-size:13px;line-height:30px;font-weight:600;color:#4A4766;">Mobile-first</span>
+      <span style="height:32px;box-sizing:border-box;padding:0 14px;border:1px solid #E2DED6;border-radius:999px;font-size:13px;line-height:30px;font-weight:600;color:#4A4766;">pt-BR</span>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:56px;height:280px;">
+    <div style="display:flex;flex-direction:column;gap:24px;">
+      <h1 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:112px;line-height:104px;letter-spacing:-0.035em;color:#14112B;">Design System<br>Balcão — v0.1</h1>
+      <p style="margin:0;font-size:28px;line-height:36px;font-weight:500;color:#4A4766;">PDV mobile-first para mercadinhos. Android primeiro.</p>
+    </div>
+    <dc-import name="Ilustra" kind="cesta" size="280" hint-size="280px,280px"></dc-import>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;margin-top:56px;">
+    <div style="background:#F4F2EE;border-radius:24px;padding:28px;display:flex;flex-direction:column;">
+      <div style="width:52px;height:52px;border-radius:999px;background:#FFC933;color:#14112B;display:flex;align-items:center;justify-content:center;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="3"></rect><path d="M10.5 18h3"></path></svg>
+      </div>
+      <div style="margin-top:24px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;color:#14112B;">Uma mão, um polegar</div>
+      <p style="margin:10px 0 0;font-size:15px;line-height:22px;color:#4A4766;">Alvos de toque com 48px ou mais. Ações principais na metade de baixo da tela.</p>
+    </div>
+    <div style="background:#F4F2EE;border-radius:24px;padding:28px;display:flex;flex-direction:column;">
+      <div style="width:52px;height:52px;border-radius:999px;background:#FFC933;color:#14112B;display:flex;align-items:center;justify-content:center;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10.5 8v8M14 8v8M17 8v8"></path></svg>
+      </div>
+      <div style="margin-top:24px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;color:#14112B;">Rápido como leitor a laser</div>
+      <p style="margin:10px 0 0;font-size:15px;line-height:22px;color:#4A4766;">Bip e vibração a cada leitura. Anti-duplicidade evita somar o mesmo código sem querer.</p>
+    </div>
+    <div style="background:#F4F2EE;border-radius:24px;padding:28px;display:flex;flex-direction:column;">
+      <div style="width:52px;height:52px;border-radius:999px;background:#FFC933;color:#14112B;display:flex;align-items:center;justify-content:center;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 9.5v.01M18 14.5v.01"></path></svg>
+      </div>
+      <div style="margin-top:24px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;color:#14112B;">Dinheiro grande e claro</div>
+      <p style="margin:10px 0 0;font-size:15px;line-height:22px;color:#4A4766;">Totais em tipografia display, sempre no formato R$ 1.284,50. Nunca um valor ambíguo.</p>
+    </div>
+    <div style="background:#F4F2EE;border-radius:24px;padding:28px;display:flex;flex-direction:column;">
+      <div style="width:52px;height:52px;border-radius:999px;background:#FFC933;color:#14112B;display:flex;align-items:center;justify-content:center;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18h10.5a3.5 3.5 0 0 0 .9-6.9A5.5 5.5 0 0 0 8 9.2 4.5 4.5 0 0 0 7 18z"></path><path d="M3 3l18 18"></path></svg>
+      </div>
+      <div style="margin-top:24px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;color:#14112B;">Funciona sem internet</div>
+      <p style="margin:10px 0 0;font-size:15px;line-height:22px;color:#4A4766;">Offline-first: a venda nunca para. A fila de sincronização envia tudo quando a rede volta.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. CORES ============ -->
+<section style="display:flex;flex-direction:column;">
+  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:40px;">
+    <div style="display:flex;align-items:center;gap:12px;"><span style="height:28px;padding:0 12px;border-radius:999px;background:#FFC933;color:#14112B;font-size:13px;line-height:28px;font-weight:700;">02</span><span style="font-size:13px;line-height:18px;font-weight:600;color:#6B6883;letter-spacing:0.04em;text-transform:uppercase;">Fundamentos</span></div>
+    <h2 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:72px;line-height:72px;letter-spacing:-0.03em;color:#14112B;">Cores</h2>
+    <p style="margin:0;font-size:17px;line-height:24px;color:#4A4766;max-width:960px;">Tinta escura, muito branco e um acento só: manga. Status sempre com ícone ou texto, nunca só cor.</p>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:40px;">
+    <!-- Base -->
+    <div>
+      <div style="font-size:13px;line-height:18px;font-weight:600;color:#6B6883;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:16px;">Base</div>
+      <div style="display:flex;gap:24px;align-items:flex-start;">
+        <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#14112B;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">ink</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#14112B</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Texto principal, botão secundário, ícones</div></div>
+        <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#4A4766;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">ink-2</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#4A4766</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Texto secundário</div></div>
+        <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#6B6883;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">ink-3</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#6B6883</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Labels, legendas, placeholders</div></div>
+        <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#FFFFFF;border:1px solid #E2DED6;box-sizing:border-box;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">bg</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#FFFFFF</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Fundo de tela</div></div>
+        <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#F4F2EE;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">surface</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#F4F2EE</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Cards, inputs, listas agrupadas</div></div>
+        <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#EAE7E1;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">surface-2</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#EAE7E1</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Pressed, trilhos, divisores fortes</div></div>
+        <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#E2DED6;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">line</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#E2DED6</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Bordas 1px, divisores</div></div>
+      </div>
+    </div>
+
+    <!-- Acento / Interação / Câmera -->
+    <div style="display:flex;gap:56px;align-items:flex-start;">
+      <div>
+        <div style="font-size:13px;line-height:18px;font-weight:600;color:#6B6883;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:16px;">Acento</div>
+        <div style="display:flex;gap:24px;align-items:flex-start;">
+          <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#FFC933;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">manga</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#FFC933</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Acento único: CTA primário, último item bipado</div></div>
+          <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#F2B200;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">manga-strong</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#F2B200</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Pressed do primário</div></div>
+          <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#FFF3CC;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">manga-soft</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#FFF3CC</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Fundo de destaque suave</div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:13px;line-height:18px;font-weight:600;color:#6B6883;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:16px;">Interação</div>
+        <div style="display:flex;gap:24px;align-items:flex-start;">
+          <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#3346F0;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">anil</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#3346F0</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Foco, links, seleção, progresso</div></div>
+          <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#E6E9FF;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">anil-soft</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#E6E9FF</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Fundo de seleção</div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:13px;line-height:18px;font-weight:600;color:#6B6883;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:16px;">Câmera</div>
+        <div style="display:flex;gap:24px;align-items:flex-start;">
+          <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#0D0B1A;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">noite</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#0D0B1A</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Fundo do visor da câmera</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div style="display:flex;gap:56px;align-items:flex-start;">
+      <div>
+        <div style="font-size:13px;line-height:18px;font-weight:600;color:#6B6883;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:16px;">Status</div>
+        <div style="display:flex;gap:24px;align-items:flex-start;">
+          <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#0E7A40;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">folha</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#0E7A40</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Sucesso, Pago, Pix pago</div></div>
+          <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#DDF5E7;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">folha-soft</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#DDF5E7</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Fundo de status positivo</div></div>
+          <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#A65400;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">ambar</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#A65400</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Atenção: offline, pendente</div></div>
+          <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#FFEFD9;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">ambar-soft</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#FFEFD9</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Fundo de atenção</div></div>
+          <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#C8102E;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">pitanga</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#C8102E</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Erro, remover, cancelado</div></div>
+          <div style="width:144px;display:flex;flex-direction:column;"><div style="width:120px;height:88px;border-radius:16px;background:#FDE3E6;"></div><div style="margin-top:12px;font-size:15px;line-height:20px;font-weight:700;">pitanga-soft</div><div style="font-size:13px;line-height:18px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">#FDE3E6</div><div style="margin-top:4px;font-size:12px;line-height:16px;color:#6B6883;">Fundo de erro</div></div>
+        </div>
+      </div>
+      <div style="flex:1;margin-top:34px;background:#F4F2EE;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:15px;line-height:22px;font-weight:700;">Regras</div>
+        <div style="font-size:13px;line-height:18px;color:#4A4766;">Manga nunca carrega texto branco: no primário, o texto é ink.</div>
+        <div style="font-size:13px;line-height:18px;color:#4A4766;">Cor de status sempre com ícone ou texto. Texto de UI com contraste de 4.5:1 ou mais.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. TIPOGRAFIA ============ -->
+<section style="display:flex;flex-direction:column;">
+  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:40px;">
+    <div style="display:flex;align-items:center;gap:12px;"><span style="height:28px;padding:0 12px;border-radius:999px;background:#FFC933;color:#14112B;font-size:13px;line-height:28px;font-weight:700;">03</span><span style="font-size:13px;line-height:18px;font-weight:600;color:#6B6883;letter-spacing:0.04em;text-transform:uppercase;">Fundamentos</span></div>
+    <h2 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:72px;line-height:72px;letter-spacing:-0.03em;color:#14112B;">Tipografia</h2>
+    <p style="margin:0;font-size:17px;line-height:24px;color:#4A4766;max-width:960px;">Bricolage Grotesque para títulos e valores; Inter para o resto. Dinheiro sempre com números tabulares.</p>
+  </div>
+
+  <div style="display:flex;flex-direction:column;border-bottom:1px solid #E2DED6;">
+    <div style="display:grid;grid-template-columns:200px minmax(0,1fr) 360px;gap:32px;align-items:center;min-height:88px;box-sizing:border-box;padding:16px 0;border-top:1px solid #E2DED6;">
+      <div><div style="font-size:15px;line-height:22px;font-weight:700;">Display</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Totais de venda, hero</div></div>
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:44px;line-height:44px;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;">R$ 1.284,50</div>
+      <div><div style="font-size:15px;line-height:22px;font-weight:500;color:#4A4766;">Bricolage Grotesque · 44/44 · 800</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">tracking −0.02em · tabular-nums</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:200px minmax(0,1fr) 360px;gap:32px;align-items:center;min-height:88px;box-sizing:border-box;padding:16px 0;border-top:1px solid #E2DED6;">
+      <div><div style="font-size:15px;line-height:22px;font-weight:700;">Título XL</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Título de tela</div></div>
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:32px;line-height:34px;">Vender</div>
+      <div><div style="font-size:15px;line-height:22px;font-weight:500;color:#4A4766;">Bricolage Grotesque · 32/34 · 800</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:200px minmax(0,1fr) 360px;gap:32px;align-items:center;min-height:88px;box-sizing:border-box;padding:16px 0;border-top:1px solid #E2DED6;">
+      <div><div style="font-size:15px;line-height:22px;font-weight:700;">Título L</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Seções, sheets</div></div>
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Valor avulso</div>
+      <div><div style="font-size:15px;line-height:22px;font-weight:500;color:#4A4766;">Bricolage Grotesque · 24/28 · 700</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:200px minmax(0,1fr) 360px;gap:32px;align-items:center;min-height:88px;box-sizing:border-box;padding:16px 0;border-top:1px solid #E2DED6;">
+      <div><div style="font-size:15px;line-height:22px;font-weight:700;">Título M</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Card, item em destaque</div></div>
+      <div style="font-size:18px;line-height:24px;font-weight:700;">Café torrado 500g</div>
+      <div><div style="font-size:15px;line-height:22px;font-weight:500;color:#4A4766;">Inter · 18/24 · 700</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:200px minmax(0,1fr) 360px;gap:32px;align-items:center;min-height:88px;box-sizing:border-box;padding:16px 0;border-top:1px solid #E2DED6;">
+      <div><div style="font-size:15px;line-height:22px;font-weight:700;">Corpo L</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Texto principal</div></div>
+      <div style="font-size:17px;line-height:24px;font-weight:400;">Toque para ativar o leitor.</div>
+      <div><div style="font-size:15px;line-height:22px;font-weight:500;color:#4A4766;">Inter · 17/24 · 400</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:200px minmax(0,1fr) 360px;gap:32px;align-items:center;min-height:88px;box-sizing:border-box;padding:16px 0;border-top:1px solid #E2DED6;">
+      <div><div style="font-size:15px;line-height:22px;font-weight:700;">Corpo</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Listas</div></div>
+      <div style="font-size:15px;line-height:22px;"><span style="font-weight:500;">Arroz tipo 1 5kg</span><span style="font-weight:400;color:#4A4766;"> · Feijão carioca 1kg</span></div>
+      <div><div style="font-size:15px;line-height:22px;font-weight:500;color:#4A4766;">Inter · 15/22 · 400/500</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:200px minmax(0,1fr) 360px;gap:32px;align-items:center;min-height:88px;box-sizing:border-box;padding:16px 0;border-top:1px solid #E2DED6;">
+      <div><div style="font-size:15px;line-height:22px;font-weight:700;">Label</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Labels de campo, chips</div></div>
+      <div style="font-size:13px;line-height:18px;font-weight:600;">Código de barras</div>
+      <div><div style="font-size:15px;line-height:22px;font-weight:500;color:#4A4766;">Inter · 13/18 · 600</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:200px minmax(0,1fr) 360px;gap:32px;align-items:center;min-height:88px;box-sizing:border-box;padding:16px 0;border-top:1px solid #E2DED6;">
+      <div><div style="font-size:15px;line-height:22px;font-weight:700;">Legenda</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Metadados</div></div>
+      <div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;font-variant-numeric:tabular-nums;">7890000000017 · Mercadinho Bom Preço</div>
+      <div><div style="font-size:15px;line-height:22px;font-weight:500;color:#4A4766;">Inter · 12/16 · 500</div></div>
+    </div>
+  </div>
+  <p style="margin:24px 0 0;font-size:15px;line-height:22px;color:#4A4766;font-variant-numeric:tabular-nums;">Valores monetários: <span style="font-weight:600;color:#14112B;">font-variant-numeric: tabular-nums</span> e formato BR — R$ 27,90 · R$ 8,49 · R$ 56,05 · R$ 1.284,50.</p>
+</section>
+
+<!-- ============ 4. ESPAÇO, RAIOS E ELEVAÇÃO ============ -->
+<section style="display:flex;flex-direction:column;">
+  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:40px;">
+    <div style="display:flex;align-items:center;gap:12px;"><span style="height:28px;padding:0 12px;border-radius:999px;background:#FFC933;color:#14112B;font-size:13px;line-height:28px;font-weight:700;">04</span><span style="font-size:13px;line-height:18px;font-weight:600;color:#6B6883;letter-spacing:0.04em;text-transform:uppercase;">Fundamentos</span></div>
+    <h2 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:72px;line-height:72px;letter-spacing:-0.03em;color:#14112B;">Espaço, raios e elevação</h2>
+    <p style="margin:0;font-size:17px;line-height:24px;color:#4A4766;max-width:960px;">Base 4 e superfícies quase planas. Sombra só para o que flutua: sheet e toast.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:520px minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:start;">
+    <!-- Espaçamento -->
+    <div>
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Espaçamento</div>
+      <div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">Base 4 · barras em escala 6× · margem lateral de tela 20px</div>
+      <div style="margin-top:24px;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;gap:16px;height:24px;"><span style="width:40px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;font-variant-numeric:tabular-nums;">4</span><span style="display:block;height:24px;width:24px;border-radius:8px;background:#FFC933;"></span></div>
+        <div style="display:flex;align-items:center;gap:16px;height:24px;"><span style="width:40px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;font-variant-numeric:tabular-nums;">8</span><span style="display:block;height:24px;width:48px;border-radius:8px;background:#FFC933;"></span></div>
+        <div style="display:flex;align-items:center;gap:16px;height:24px;"><span style="width:40px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;font-variant-numeric:tabular-nums;">12</span><span style="display:block;height:24px;width:72px;border-radius:8px;background:#FFC933;"></span></div>
+        <div style="display:flex;align-items:center;gap:16px;height:24px;"><span style="width:40px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;font-variant-numeric:tabular-nums;">16</span><span style="display:block;height:24px;width:96px;border-radius:8px;background:#FFC933;"></span></div>
+        <div style="display:flex;align-items:center;gap:16px;height:24px;"><span style="width:40px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;font-variant-numeric:tabular-nums;">24</span><span style="display:block;height:24px;width:144px;border-radius:8px;background:#FFC933;"></span></div>
+        <div style="display:flex;align-items:center;gap:16px;height:24px;"><span style="width:40px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;font-variant-numeric:tabular-nums;">32</span><span style="display:block;height:24px;width:192px;border-radius:8px;background:#FFC933;"></span></div>
+        <div style="display:flex;align-items:center;gap:16px;height:24px;"><span style="width:40px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;font-variant-numeric:tabular-nums;">48</span><span style="display:block;height:24px;width:288px;border-radius:8px;background:#FFC933;"></span></div>
+        <div style="display:flex;align-items:center;gap:16px;height:24px;"><span style="width:40px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;font-variant-numeric:tabular-nums;">64</span><span style="display:block;height:24px;width:384px;border-radius:8px;background:#FFC933;"></span></div>
+      </div>
+    </div>
+
+    <!-- Raios -->
+    <div>
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Raios</div>
+      <div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">4 raios, nada além</div>
+      <div style="margin-top:24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;">
+        <div><div style="height:72px;border-radius:8px;background:#F4F2EE;border:2px solid #14112B;box-sizing:border-box;"></div><div style="margin-top:8px;font-size:15px;line-height:20px;font-weight:600;">r-sm · 8</div><div style="font-size:12px;line-height:16px;color:#6B6883;">Tags, monogramas</div></div>
+        <div><div style="height:72px;border-radius:16px;background:#F4F2EE;border:2px solid #14112B;box-sizing:border-box;"></div><div style="margin-top:8px;font-size:15px;line-height:20px;font-weight:600;">r-md · 16</div><div style="font-size:12px;line-height:16px;color:#6B6883;">Inputs, cards, linhas</div></div>
+        <div><div style="height:72px;border-radius:24px;background:#F4F2EE;border:2px solid #14112B;box-sizing:border-box;"></div><div style="margin-top:8px;font-size:15px;line-height:20px;font-weight:600;">r-lg · 24</div><div style="font-size:12px;line-height:16px;color:#6B6883;">Sheets, cards grandes</div></div>
+        <div><div style="height:72px;border-radius:999px;background:#F4F2EE;border:2px solid #14112B;box-sizing:border-box;"></div><div style="margin-top:8px;font-size:15px;line-height:20px;font-weight:600;">r-pill · 999</div><div style="font-size:12px;line-height:16px;color:#6B6883;">Botões, chips</div></div>
+      </div>
+    </div>
+
+    <!-- Elevação -->
+    <div>
+      <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Elevação</div>
+      <div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">Cards comuns: sem sombra</div>
+      <div style="margin-top:24px;display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <div style="height:110px;border-radius:16px;background:#F4F2EE;position:relative;overflow:hidden;">
+            <div style="position:absolute;left:20px;right:20px;bottom:0;height:64px;background:#FFFFFF;border-radius:24px 24px 0 0;box-shadow:0 -8px 32px rgba(20,17,43,.12);display:flex;justify-content:center;padding-top:10px;box-sizing:border-box;"><span style="display:block;width:36px;height:4px;border-radius:999px;background:#E2DED6;"></span></div>
+          </div>
+          <div style="margin-top:8px;font-size:13px;line-height:18px;color:#4A4766;font-variant-numeric:tabular-nums;">Sheet · 0 −8px 32px · ink 12%</div>
+        </div>
+        <div>
+          <div style="height:110px;border-radius:16px;background:#F4F2EE;display:flex;align-items:center;justify-content:center;">
+            <div style="background:#14112B;color:#FFFFFF;border-radius:16px;padding:12px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(20,17,43,.24);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>
+              <span style="font-size:15px;line-height:22px;font-weight:500;">Venda salva.</span>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:13px;line-height:18px;color:#4A4766;font-variant-numeric:tabular-nums;">Toast · 0 8px 24px · ink 24%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. COMPONENTES ============ -->
+<section style="display:flex;flex-direction:column;">
+  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:40px;">
+    <div style="display:flex;align-items:center;gap:12px;"><span style="height:28px;padding:0 12px;border-radius:999px;background:#FFC933;color:#14112B;font-size:13px;line-height:28px;font-weight:700;">05</span><span style="font-size:13px;line-height:18px;font-weight:600;color:#6B6883;letter-spacing:0.04em;text-transform:uppercase;">Fundamentos</span></div>
+    <h2 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:72px;line-height:72px;letter-spacing:-0.03em;color:#14112B;">Componentes</h2>
+    <p style="margin:0;font-size:17px;line-height:24px;color:#4A4766;max-width:960px;">Peças do PDV em tamanho real, para telas de 390px, uma mão e um polegar.</p>
+  </div>
+
+  <!-- Botões -->
+  <div style="border:1px solid #E2DED6;border-radius:24px;padding:32px;">
+    <div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Botões</div>
+    <div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">Pill · L 56 (CTA, largura total) · M 48 · S 36 · desabilitado com opacidade .4 · ghost sublinhado ao focar</div>
+    <div style="margin-top:24px;display:grid;grid-template-columns:128px 208px 168px 128px 168px 168px 168px;column-gap:12px;row-gap:12px;align-items:center;">
+      <div></div>
+      <div style="font-size:12px;line-height:16px;font-weight:600;color:#6B6883;">L · 56</div>
+      <div style="font-size:12px;line-height:16px;font-weight:600;color:#6B6883;">M · 48</div>
+      <div style="font-size:12px;line-height:16px;font-weight:600;color:#6B6883;">S · 36</div>
+      <div style="font-size:12px;line-height:16px;font-weight:600;color:#6B6883;">Pressed</div>
+      <div style="font-size:12px;line-height:16px;font-weight:600;color:#6B6883;">Desabilitado</div>
+      <div style="font-size:12px;line-height:16px;font-weight:600;color:#6B6883;">Carregando</div>
+
+      <!-- primário -->
+      <div style="height:56px;display:flex;flex-direction:column;justify-content:center;"><div style="font-size:15px;line-height:22px;font-weight:600;">Primário</div><div style="font-size:12px;line-height:16px;color:#6B6883;">manga / ink</div></div>
+      <button type="button" style="width:208px;height:56px;border:0;border-radius:999px;background:#FFC933;color:#14112B;font-size:17px;line-height:24px;font-weight:700;padding:0 20px;cursor:pointer;font-variant-numeric:tabular-nums;">Cobrar R$ 56,05</button>
+      <button type="button" style="width:168px;height:48px;border:0;border-radius:999px;background:#FFC933;color:#14112B;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;cursor:pointer;">Cobrar</button>
+      <button type="button" style="justify-self:start;height:36px;border:0;border-radius:999px;background:#FFC933;color:#14112B;font-size:14px;line-height:20px;font-weight:600;padding:0 16px;cursor:pointer;">Cobrar</button>
+      <button type="button" style="width:168px;height:48px;border:0;border-radius:999px;background:#F2B200;color:#14112B;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;cursor:pointer;">Cobrar</button>
+      <button type="button" aria-disabled="true" style="width:168px;height:48px;border:0;border-radius:999px;background:#FFC933;color:#14112B;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;opacity:.4;cursor:not-allowed;">Cobrar</button>
+      <button type="button" aria-label="Carregando" style="width:168px;height:48px;border:0;border-radius:999px;background:#FFC933;color:#14112B;padding:0;display:flex;align-items:center;justify-content:center;cursor:progress;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" style="animation:giro .9s linear infinite;"><circle cx="12" cy="12" r="9" opacity="0.25"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg></button>
+
+      <!-- secundário -->
+      <div style="height:56px;display:flex;flex-direction:column;justify-content:center;"><div style="font-size:15px;line-height:22px;font-weight:600;">Secundário</div><div style="font-size:12px;line-height:16px;color:#6B6883;">ink / branco</div></div>
+      <button type="button" style="width:208px;height:56px;border:0;border-radius:999px;background:#14112B;color:#FFFFFF;font-size:17px;line-height:24px;font-weight:700;padding:0 20px;cursor:pointer;">Bipar produto</button>
+      <button type="button" style="width:168px;height:48px;border:0;border-radius:999px;background:#14112B;color:#FFFFFF;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;cursor:pointer;">Bipar</button>
+      <button type="button" style="justify-self:start;height:36px;border:0;border-radius:999px;background:#14112B;color:#FFFFFF;font-size:14px;line-height:20px;font-weight:600;padding:0 16px;cursor:pointer;">Bipar</button>
+      <button type="button" style="width:168px;height:48px;border:0;border-radius:999px;background:#4A4766;color:#FFFFFF;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;cursor:pointer;">Bipar</button>
+      <button type="button" aria-disabled="true" style="width:168px;height:48px;border:0;border-radius:999px;background:#14112B;color:#FFFFFF;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;opacity:.4;cursor:not-allowed;">Bipar</button>
+      <button type="button" aria-label="Carregando" style="width:168px;height:48px;border:0;border-radius:999px;background:#14112B;color:#FFFFFF;padding:0;display:flex;align-items:center;justify-content:center;cursor:progress;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" style="animation:giro .9s linear infinite;"><circle cx="12" cy="12" r="9" opacity="0.25"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg></button>
+
+      <!-- terciário -->
+      <div style="height:56px;display:flex;flex-direction:column;justify-content:center;"><div style="font-size:15px;line-height:22px;font-weight:600;">Terciário</div><div style="font-size:12px;line-height:16px;color:#6B6883;">surface / ink</div></div>
+      <button type="button" style="width:208px;height:56px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;font-size:17px;line-height:24px;font-weight:700;padding:0 20px;cursor:pointer;">Buscar produto</button>
+      <button type="button" style="width:168px;height:48px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;cursor:pointer;">Buscar</button>
+      <button type="button" style="justify-self:start;height:36px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;font-size:14px;line-height:20px;font-weight:600;padding:0 16px;cursor:pointer;">Buscar</button>
+      <button type="button" style="width:168px;height:48px;border:0;border-radius:999px;background:#EAE7E1;color:#14112B;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;cursor:pointer;">Buscar</button>
+      <button type="button" aria-disabled="true" style="width:168px;height:48px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;opacity:.4;cursor:not-allowed;">Buscar</button>
+      <button type="button" aria-label="Carregando" style="width:168px;height:48px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;padding:0;display:flex;align-items:center;justify-content:center;cursor:progress;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" style="animation:giro .9s linear infinite;"><circle cx="12" cy="12" r="9" opacity="0.25"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg></button>
+
+      <!-- ghost -->
+      <div style="height:56px;display:flex;flex-direction:column;justify-content:center;"><div style="font-size:15px;line-height:22px;font-weight:600;">Ghost</div><div style="font-size:12px;line-height:16px;color:#6B6883;">transparente / ink</div></div>
+      <button type="button" style="width:208px;height:56px;border:0;border-radius:999px;background:transparent;color:#14112B;font-size:17px;line-height:24px;font-weight:700;padding:0 20px;cursor:pointer;">Cancelar venda</button>
+      <button type="button" style="width:168px;height:48px;border:0;border-radius:999px;background:transparent;color:#14112B;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;cursor:pointer;">Cancelar</button>
+      <button type="button" style="justify-self:start;height:36px;border:0;border-radius:999px;background:transparent;color:#14112B;font-size:14px;line-height:20px;font-weight:600;padding:0 16px;cursor:pointer;">Cancelar</button>
+      <button type="button" style="width:168px;height:48px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;cursor:pointer;text-decoration:underline;text-underline-offset:4px;">Cancelar</button>
+      <button type="button" aria-disabled="true" style="width:168px;height:48px;border:0;border-radius:999px;background:transparent;color:#14112B;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;opacity:.4;cursor:not-allowed;">Cancelar</button>
+      <button type="button" aria-label="Carregando" style="width:168px;height:48px;border:0;border-radius:999px;background:transparent;color:#14112B;padding:0;display:flex;align-items:center;justify-content:center;cursor:progress;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" style="animation:giro .9s linear infinite;"><circle cx="12" cy="12" r="9" opacity="0.25"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg></button>
+
+      <!-- perigo -->
+      <div style="height:56px;display:flex;flex-direction:column;justify-content:center;"><div style="font-size:15px;line-height:22px;font-weight:600;">Perigo</div><div style="font-size:12px;line-height:16px;color:#6B6883;">pitanga-soft / pitanga</div></div>
+      <button type="button" style="width:208px;height:56px;border:0;border-radius:999px;background:#FDE3E6;color:#C8102E;font-size:17px;line-height:24px;font-weight:700;padding:0 20px;cursor:pointer;">Remover item</button>
+      <button type="button" style="width:168px;height:48px;border:0;border-radius:999px;background:#FDE3E6;color:#C8102E;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;cursor:pointer;">Remover</button>
+      <button type="button" style="justify-self:start;height:36px;border:0;border-radius:999px;background:#FDE3E6;color:#C8102E;font-size:14px;line-height:20px;font-weight:600;padding:0 16px;cursor:pointer;">Remover</button>
+      <button type="button" style="width:168px;height:48px;border:0;border-radius:999px;background:#C8102E;color:#FFFFFF;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;cursor:pointer;">Remover</button>
+      <button type="button" aria-disabled="true" style="width:168px;height:48px;border:0;border-radius:999px;background:#FDE3E6;color:#C8102E;font-size:16px;line-height:22px;font-weight:600;padding:0 20px;opacity:.4;cursor:not-allowed;">Remover</button>
+      <button type="button" aria-label="Carregando" style="width:168px;height:48px;border:0;border-radius:999px;background:#FDE3E6;color:#C8102E;padding:0;display:flex;align-items:center;justify-content:center;cursor:progress;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" style="animation:giro .9s linear infinite;"><circle cx="12" cy="12" r="9" opacity="0.25"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg></button>
+    </div>
+  </div>
+
+  <!-- Masonry 3 colunas -->
+  <div style="margin-top:24px;display:flex;gap:24px;align-items:flex-start;">
+
+    <!-- ===== Coluna A ===== -->
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:24px;">
+
+      <!-- Campos -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Campos</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">Label acima · caixa 56 · surface · r-md · sem borda</div></div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:13px;line-height:18px;font-weight:600;">Nome do produto</div>
+            <div style="height:56px;border-radius:16px;background:#F4F2EE;display:flex;align-items:center;padding:0 16px;font-size:17px;line-height:24px;">Arroz tipo 1 5kg</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:13px;line-height:18px;font-weight:600;">Código de barras <span style="font-weight:500;color:#6B6883;">· foco</span></div>
+            <div style="height:56px;border-radius:16px;background:#F4F2EE;box-shadow:0 0 0 2px #3346F0;display:flex;align-items:center;padding:0 16px;font-size:17px;line-height:24px;font-variant-numeric:tabular-nums;">7890000000017<span style="display:inline-block;width:2px;height:24px;background:#3346F0;margin-left:2px;"></span><span style="margin-left:auto;color:#4A4766;display:flex;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10.5 8v8M14 8v8M17 8v8"></path></svg></span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:13px;line-height:18px;font-weight:600;">Preço de venda <span style="font-weight:500;color:#6B6883;">· erro</span></div>
+            <div style="height:56px;border-radius:16px;background:#F4F2EE;box-shadow:0 0 0 2px #C8102E;display:flex;align-items:center;padding:0 16px;font-size:17px;line-height:24px;font-variant-numeric:tabular-nums;">R$ 0,00</div>
+            <div style="display:flex;align-items:center;gap:6px;color:#C8102E;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 4.2L2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"></path><path d="M12 9.5v4M12 17h.01"></path></svg><span style="font-size:13px;line-height:18px;font-weight:600;">Informe um preço maior que zero.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Campo de dinheiro + Teclado -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Dinheiro e teclado numérico</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">Valor em Display, prefixo menor · teclas 64, Inter 24/600</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:13px;line-height:18px;font-weight:600;">Valor recebido</div>
+          <div style="height:80px;border-radius:16px;background:#F4F2EE;box-shadow:0 0 0 2px #3346F0;display:flex;align-items:center;padding:0 20px;">
+            <div style="display:flex;align-items:baseline;gap:8px;"><span style="font-size:20px;line-height:24px;font-weight:600;color:#4A4766;">R$</span><span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:44px;line-height:44px;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;">4,50</span></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
+          <button type="button" style="height:64px;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;font-size:24px;line-height:28px;font-weight:600;cursor:pointer;">1</button>
+          <button type="button" style="height:64px;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;font-size:24px;line-height:28px;font-weight:600;cursor:pointer;">2</button>
+          <button type="button" style="height:64px;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;font-size:24px;line-height:28px;font-weight:600;cursor:pointer;">3</button>
+          <button type="button" style="height:64px;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;font-size:24px;line-height:28px;font-weight:600;cursor:pointer;">4</button>
+          <button type="button" style="height:64px;border:0;border-radius:16px;background:#EAE7E1;color:#14112B;font-size:24px;line-height:28px;font-weight:600;cursor:pointer;">5</button>
+          <button type="button" style="height:64px;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;font-size:24px;line-height:28px;font-weight:600;cursor:pointer;">6</button>
+          <button type="button" style="height:64px;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;font-size:24px;line-height:28px;font-weight:600;cursor:pointer;">7</button>
+          <button type="button" style="height:64px;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;font-size:24px;line-height:28px;font-weight:600;cursor:pointer;">8</button>
+          <button type="button" style="height:64px;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;font-size:24px;line-height:28px;font-weight:600;cursor:pointer;">9</button>
+          <button type="button" style="height:64px;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;font-size:24px;line-height:28px;font-weight:600;cursor:pointer;">00</button>
+          <button type="button" style="height:64px;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;font-size:24px;line-height:28px;font-weight:600;cursor:pointer;">0</button>
+          <button type="button" aria-label="Apagar" style="height:64px;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7z"></path><path d="M12 9.5l5 5M17 9.5l-5 5"></path></svg></button>
+        </div>
+      </div>
+
+      <!-- Linhas de lista -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Linhas de lista</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">Linha 72 · miniatura 44 · valor tabular à direita</div></div>
+        <div style="background:#F4F2EE;border-radius:16px;overflow:hidden;">
+          <div style="height:72px;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 16px;background:#FFF3CC;">
+            <div style="width:44px;height:44px;flex:none;border-radius:16px;background:#FFC933;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:16px;line-height:20px;">AR</div>
+            <div style="flex:1;min-width:0;"><div style="font-size:15px;line-height:22px;font-weight:500;">Arroz tipo 1 5kg</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Último bipado · Em estoque</div></div>
+            <div style="font-size:15px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;">R$ 27,90</div>
+          </div>
+          <div style="height:72px;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #E2DED6;">
+            <div style="width:44px;height:44px;flex:none;border-radius:16px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:16px;line-height:20px;">FE</div>
+            <div style="flex:1;min-width:0;"><div style="font-size:15px;line-height:22px;font-weight:500;">Feijão carioca 1kg</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;font-variant-numeric:tabular-nums;">7890000000024 · <span style="color:#A65400;font-weight:600;">Estoque baixo</span></div></div>
+            <div style="font-size:15px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;">R$ 8,49</div>
+          </div>
+          <div style="height:72px;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #E2DED6;">
+            <div style="width:44px;height:44px;flex:none;border-radius:16px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:16px;line-height:20px;">LE</div>
+            <div style="flex:1;min-width:0;"><div style="font-size:15px;line-height:22px;font-weight:500;">Leite integral 1L</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;font-variant-numeric:tabular-nums;">7890000000031 · Em estoque</div></div>
+            <div style="font-size:15px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;">R$ 5,29</div>
+          </div>
+          <div style="height:72px;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 16px;border-top:1px solid #E2DED6;">
+            <div style="width:44px;height:44px;flex:none;border-radius:16px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:16px;line-height:20px;">CA</div>
+            <div style="flex:1;min-width:0;"><div style="font-size:15px;line-height:22px;font-weight:500;">Café torrado 500g</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;font-variant-numeric:tabular-nums;">7890000000048 · <span style="color:#C8102E;font-weight:600;">Sem estoque</span></div></div>
+            <div style="font-size:15px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;">R$ 19,90</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Coluna B ===== -->
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:24px;">
+
+      <!-- Botão-ícone -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Botão-ícone</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">Redondo 48 · surface ou translúcido sobre a câmera</div></div>
+        <div style="display:flex;gap:12px;">
+          <button type="button" aria-label="Voltar" style="width:48px;height:48px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg></button>
+          <button type="button" aria-label="Buscar" style="width:48px;height:48px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></button>
+          <button type="button" aria-label="Digitar código" style="width:48px;height:48px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"></rect><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"></path></svg></button>
+          <button type="button" aria-label="Fechar" style="width:48px;height:48px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        </div>
+        <div style="height:104px;border-radius:16px;background:radial-gradient(circle at 25% 30%, #2B2550 0%, #0D0B1A 70%);display:flex;align-items:center;gap:12px;padding:0 20px;">
+          <button type="button" aria-label="Ligar lanterna" style="width:48px;height:48px;border:0;border-radius:999px;background:rgba(255,255,255,.16);color:#FFFFFF;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8v4l-2 3v10a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V10L8 7z"></path><path d="M8 7h8M12 13v2"></path></svg></button>
+          <button type="button" aria-label="Fechar leitor" style="width:48px;height:48px;border:0;border-radius:999px;background:rgba(255,255,255,.16);color:#FFFFFF;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          <span style="margin-left:8px;font-size:13px;line-height:18px;font-weight:600;color:#FFFFFF;">Translúcido 16% sobre a câmera</span>
+        </div>
+      </div>
+
+      <!-- Chips e segmentado -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Chips e segmentado</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">Chip pill 36 · ativo ink · segmento ativo branco</div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <button type="button" aria-pressed="true" style="height:36px;border:0;border-radius:999px;background:#14112B;color:#FFFFFF;padding:0 16px;font-size:13px;line-height:18px;font-weight:600;cursor:pointer;">Todos</button>
+          <button type="button" aria-pressed="false" style="height:36px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;padding:0 16px;font-size:13px;line-height:18px;font-weight:600;cursor:pointer;">Mercearia</button>
+          <button type="button" aria-pressed="false" style="height:36px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;padding:0 16px;font-size:13px;line-height:18px;font-weight:600;cursor:pointer;">Bebidas</button>
+          <button type="button" aria-pressed="false" style="height:36px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;padding:0 16px;font-size:13px;line-height:18px;font-weight:600;cursor:pointer;">Padaria</button>
+        </div>
+        <div style="height:48px;box-sizing:border-box;padding:4px;border-radius:999px;background:#F4F2EE;display:flex;gap:4px;">
+          <button type="button" aria-pressed="true" style="flex:1;height:40px;border:0;border-radius:999px;background:#FFFFFF;color:#14112B;box-shadow:0 1px 3px rgba(20,17,43,.12);font-size:15px;line-height:22px;font-weight:600;cursor:pointer;">InfinitePay</button>
+          <button type="button" aria-pressed="false" style="flex:1;height:40px;border:0;border-radius:999px;background:transparent;color:#4A4766;font-size:15px;line-height:22px;font-weight:500;cursor:pointer;">Mercado Pago</button>
+        </div>
+      </div>
+
+      <!-- Stepper -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Stepper de quantidade</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">− e + 48 redondos · número Título M · atalho +5</div></div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button type="button" aria-label="Diminuir" style="width:48px;height:48px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+            <div style="width:40px;text-align:center;font-size:18px;line-height:24px;font-weight:700;font-variant-numeric:tabular-nums;">3</div>
+            <button type="button" aria-label="Aumentar" style="width:48px;height:48px;border:0;border-radius:999px;background:#14112B;color:#FFFFFF;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+            <button type="button" aria-label="Somar 5" style="margin-left:8px;height:48px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;padding:0 20px;font-size:15px;line-height:22px;font-weight:700;cursor:pointer;">+5</button>
+          </div>
+          <div style="font-size:13px;line-height:18px;color:#4A4766;font-variant-numeric:tabular-nums;">Leite integral 1L · 3 × R$ 5,29 = R$ 15,87</div>
+        </div>
+      </div>
+
+      <!-- Status pills -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Status</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">Pill 24 · ícone 14 + texto · nunca só cor</div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <span style="height:24px;display:inline-flex;align-items:center;gap:6px;padding:0 10px 0 8px;border-radius:999px;background:#DDF5E7;color:#14112B;font-size:12px;line-height:16px;font-weight:600;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0E7A40" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>Pago</span>
+          <span style="height:24px;display:inline-flex;align-items:center;gap:6px;padding:0 10px 0 8px;border-radius:999px;background:#FFEFD9;color:#A65400;font-size:12px;line-height:16px;font-weight:600;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Pendente</span>
+          <span style="height:24px;display:inline-flex;align-items:center;gap:6px;padding:0 10px 0 8px;border-radius:999px;background:#FFEFD9;color:#A65400;font-size:12px;line-height:16px;font-weight:600;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18h10.5a3.5 3.5 0 0 0 .9-6.9A5.5 5.5 0 0 0 8 9.2 4.5 4.5 0 0 0 7 18z"></path><path d="M3 3l18 18"></path></svg>Offline</span>
+          <span style="height:24px;display:inline-flex;align-items:center;gap:6px;padding:0 10px 0 8px;border-radius:999px;background:#E6E9FF;color:#3346F0;font-size:12px;line-height:16px;font-weight:600;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.3L4 8.5"></path><path d="M4 4v4.5h4.5"></path><path d="M4 13a8 8 0 0 0 14.3 4.3L20 15.5"></path><path d="M20 20v-4.5h-4.5"></path></svg>Sincronizando</span>
+          <span style="height:24px;display:inline-flex;align-items:center;gap:6px;padding:0 10px 0 8px;border-radius:999px;background:#FDE3E6;color:#C8102E;font-size:12px;line-height:16px;font-weight:600;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>Cancelado</span>
+        </div>
+      </div>
+
+      <!-- Toast -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Toast</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">Fundo ink · r-md · ícone à esquerda · ação opcional em manga</div></div>
+        <div role="status" style="background:#14112B;color:#FFFFFF;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 24px rgba(20,17,43,.24);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+          <span style="flex:1;font-size:15px;line-height:22px;font-weight:500;">Mesmo código ignorado. Use + para somar.</span>
+          <button type="button" style="flex:none;height:44px;border:0;background:transparent;color:#FFC933;font-size:15px;line-height:22px;font-weight:700;padding:0 4px;cursor:pointer;">Somar</button>
+        </div>
+      </div>
+
+      <!-- Visor do scanner -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Visor do scanner</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">ROI 260×120 · fora escurecido 55% · laser manga</div></div>
+        <div style="width:360px;height:220px;border-radius:24px;background:#0D0B1A;position:relative;overflow:hidden;">
+          <div style="position:absolute;left:-30px;top:-40px;width:210px;height:170px;border-radius:999px;background:#3B2F6B;filter:blur(36px);opacity:.9;"></div>
+          <div style="position:absolute;right:-40px;top:50px;width:220px;height:180px;border-radius:999px;background:#6B4A1F;filter:blur(40px);opacity:.75;"></div>
+          <div style="position:absolute;left:110px;bottom:-70px;width:210px;height:150px;border-radius:999px;background:#1F4A5C;filter:blur(36px);opacity:.8;"></div>
+          <div style="position:absolute;left:105px;top:92px;width:150px;height:56px;border-radius:8px;background:#F4F2EE;opacity:.85;filter:blur(.6px);display:flex;align-items:center;justify-content:center;">
+            <div style="width:118px;height:34px;background:repeating-linear-gradient(90deg,#14112B 0px,#14112B 2px,transparent 2px,transparent 5px,#14112B 5px,#14112B 6px,transparent 6px,transparent 9px);"></div>
+          </div>
+          <div style="position:absolute;left:50px;top:60px;width:260px;height:120px;border-radius:12px;box-shadow:0 0 0 400px rgba(13,11,26,.55);">
+            <div style="position:absolute;left:-2px;top:-2px;width:28px;height:28px;box-sizing:border-box;border-top:4px solid #FFFFFF;border-left:4px solid #FFFFFF;border-top-left-radius:12px;"></div>
+            <div style="position:absolute;right:-2px;top:-2px;width:28px;height:28px;box-sizing:border-box;border-top:4px solid #FFFFFF;border-right:4px solid #FFFFFF;border-top-right-radius:12px;"></div>
+            <div style="position:absolute;left:-2px;bottom:-2px;width:28px;height:28px;box-sizing:border-box;border-bottom:4px solid #FFFFFF;border-left:4px solid #FFFFFF;border-bottom-left-radius:12px;"></div>
+            <div style="position:absolute;right:-2px;bottom:-2px;width:28px;height:28px;box-sizing:border-box;border-bottom:4px solid #FFFFFF;border-right:4px solid #FFFFFF;border-bottom-right-radius:12px;"></div>
+            <div style="position:absolute;left:16px;right:16px;top:12px;height:2px;border-radius:999px;background:#FFC933;box-shadow:0 0 12px 2px rgba(255,201,51,.7);animation:laser 1.6s ease-in-out infinite alternate;"></div>
+          </div>
+          <button type="button" aria-label="Ligar lanterna" style="position:absolute;left:8px;top:8px;width:48px;height:48px;border:0;border-radius:999px;background:rgba(255,255,255,.16);color:#FFFFFF;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8v4l-2 3v10a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V10L8 7z"></path><path d="M8 7h8M12 13v2"></path></svg></button>
+          <button type="button" aria-label="Fechar leitor" style="position:absolute;right:8px;top:8px;width:48px;height:48px;border:0;border-radius:999px;background:rgba(255,255,255,.16);color:#FFFFFF;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          <div style="position:absolute;left:0;right:0;bottom:12px;text-align:center;font-size:13px;line-height:18px;font-weight:600;color:#FFFFFF;">Aponte para o código de barras</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Coluna C ===== -->
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:24px;">
+
+      <!-- Tiles de pagamento -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Meios de pagamento</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">Linha 72 · monograma 40 r-sm · sem logos reais</div></div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <button type="button" style="height:72px;width:100%;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;align-items:center;gap:14px;padding:0 16px;text-align:left;cursor:pointer;">
+            <span style="width:40px;height:40px;flex:none;border-radius:8px;background:#14112B;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:15px;line-height:20px;font-weight:700;">IP</span>
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column;"><span style="font-size:15px;line-height:22px;font-weight:600;">Pix InfinitePay</span><span style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Pix na tela</span></span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6B6883" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+          </button>
+          <button type="button" style="height:72px;width:100%;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;align-items:center;gap:14px;padding:0 16px;text-align:left;cursor:pointer;">
+            <span style="width:40px;height:40px;flex:none;border-radius:8px;background:#3346F0;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:15px;line-height:20px;font-weight:700;">MP</span>
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column;"><span style="font-size:15px;line-height:22px;font-weight:600;">Aproximação Mercado Pago</span><span style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Aproximação no celular</span></span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6B6883" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+          </button>
+          <button type="button" style="height:72px;width:100%;border:0;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;align-items:center;gap:14px;padding:0 16px;text-align:left;cursor:pointer;">
+            <span style="width:40px;height:40px;flex:none;border-radius:8px;background:#DDF5E7;color:#0E7A40;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 9.5v.01M18 14.5v.01"></path></svg></span>
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column;"><span style="font-size:15px;line-height:22px;font-weight:600;">Dinheiro</span><span style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Calcula o troco na hora</span></span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6B6883" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Banners -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Banners</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">Info, atenção e erro · r-md · ícone + texto + ação</div></div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="background:#E6E9FF;border-radius:16px;padding:16px;display:flex;gap:12px;align-items:flex-start;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3346F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;"><span style="font-size:15px;line-height:22px;color:#14112B;">Leitor pausado para economizar bateria.</span><button type="button" style="align-self:flex-start;border:0;background:transparent;padding:0;color:#14112B;font-size:14px;line-height:20px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer;">Retomar leitor</button></div>
+          </div>
+          <div style="background:#FFEFD9;border-radius:16px;padding:16px;display:flex;gap:12px;align-items:flex-start;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#A65400" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;"><path d="M7 18h10.5a3.5 3.5 0 0 0 .9-6.9A5.5 5.5 0 0 0 8 9.2 4.5 4.5 0 0 0 7 18z"></path><path d="M3 3l18 18"></path></svg>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;"><span style="font-size:15px;line-height:22px;color:#14112B;">Você está offline. As vendas sobem quando a rede voltar.</span><button type="button" style="align-self:flex-start;border:0;background:transparent;padding:0;color:#14112B;font-size:14px;line-height:20px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer;">Ver fila</button></div>
+          </div>
+          <div style="background:#FDE3E6;border-radius:16px;padding:16px;display:flex;gap:12px;align-items:flex-start;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;"><path d="M10.3 4.2L2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"></path><path d="M12 9.5v4M12 17h.01"></path></svg>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;"><span style="font-size:15px;line-height:22px;color:#14112B;">Aproximação não concluída. Peça para tentar de novo.</span><button type="button" style="align-self:flex-start;border:0;background:transparent;padding:0;color:#14112B;font-size:14px;line-height:20px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer;">Tentar de novo</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra inferior -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Barra inferior</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">4 abas + Vender central em pill 104×56 com rótulo dentro, elevado</div></div>
+        <div style="height:112px;position:relative;">
+          <nav aria-label="Navegação principal" style="position:absolute;left:0;right:0;bottom:0;height:88px;box-sizing:border-box;background:#FFFFFF;border:1px solid #E2DED6;border-radius:16px;display:grid;grid-template-columns:1fr 1fr 128px 1fr 1fr;align-items:start;padding:8px 4px env(safe-area-inset-bottom,0px);">
+            <button type="button" aria-current="page" style="min-width:48px;min-height:56px;border:0;background:transparent;padding:0;color:#14112B;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5L12 4l8 6.5V19a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"></path></svg><span style="font-size:12px;line-height:16px;font-weight:600;">Início</span><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;background:#FFC933;"></span></button>
+            <button type="button" style="min-width:48px;min-height:56px;border:0;background:transparent;padding:0;color:#4A4766;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8.5 4.5v9L12 21l-8.5-4.5v-9z"></path><path d="M3.5 7.5L12 12l8.5-4.5M12 12v9"></path></svg><span style="font-size:12px;line-height:16px;font-weight:600;">Produtos</span></button>
+            <button type="button" class="btn-vender" style="box-sizing:border-box;min-width:104px;padding:0 14px;white-space:nowrap;height:56px;margin-top:-22px;justify-self:center;gap:8px;padding:0;border:4px solid #FFFFFF;border-radius:999px;background:#FFC933;color:#14112B;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(20,17,43,.18);cursor:pointer;font:700 16px/20px Inter,sans-serif;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10.5 8v8M14 8v8M17 8v8"></path></svg><span>Vender</span></button>
+            <button type="button" style="min-width:48px;min-height:56px;border:0;background:transparent;padding:0;color:#4A4766;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11V5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v6"></path><path d="M8.5 7.5h7"></path><rect x="3" y="11" width="18" height="9" rx="2"></rect><path d="M10 15.5h4"></path></svg><span style="font-size:12px;line-height:16px;font-weight:600;">Caixa</span></button>
+            <button type="button" style="min-width:48px;min-height:56px;border:0;background:transparent;padding:0;color:#4A4766;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><circle cx="12" cy="12" r="7"></circle><path d="M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"></path></svg><span style="font-size:12px;line-height:16px;font-weight:600;">Ajustes</span></button>
+          </nav>
+        </div>
+      </div>
+
+      <!-- Bottom sheet -->
+      <div style="border:1px solid #E2DED6;border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+        <div><div style="font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Bottom sheet</div><div style="margin-top:4px;font-size:13px;line-height:18px;color:#6B6883;">r-lg no topo · alça 36×4 · título em Título L</div></div>
+        <div style="height:340px;border-radius:16px;background:rgba(20,17,43,.4);position:relative;overflow:hidden;">
+          <div role="dialog" aria-label="Valor avulso" style="position:absolute;left:0;right:0;bottom:0;background:#FFFFFF;border-radius:24px 24px 0 0;box-shadow:0 -8px 32px rgba(20,17,43,.12);padding:12px 20px 20px;display:flex;flex-direction:column;">
+            <span style="display:block;align-self:center;width:36px;height:4px;border-radius:999px;background:#E2DED6;"></span>
+            <div style="margin-top:16px;font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:24px;line-height:28px;">Valor avulso</div>
+            <div style="margin-top:4px;font-size:13px;line-height:18px;color:#4A4766;">Para itens sem código, como o saco de gelo.</div>
+            <div style="margin-top:16px;font-size:13px;line-height:18px;font-weight:600;">Valor</div>
+            <div style="margin-top:8px;height:72px;border-radius:16px;background:#F4F2EE;box-shadow:0 0 0 2px #3346F0;display:flex;align-items:center;padding:0 16px;">
+              <div style="display:flex;align-items:baseline;gap:8px;"><span style="font-size:20px;line-height:24px;font-weight:600;color:#4A4766;">R$</span><span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:44px;line-height:44px;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;">12,00</span></div>
+            </div>
+            <button type="button" style="margin-top:16px;width:100%;height:56px;border:0;border-radius:999px;background:#FFC933;color:#14112B;font-size:17px;line-height:24px;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums;">Adicionar R$ 12,00</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. ÍCONES ============ -->
+<section style="display:flex;flex-direction:column;">
+  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:40px;">
+    <div style="display:flex;align-items:center;gap:12px;"><span style="height:28px;padding:0 12px;border-radius:999px;background:#FFC933;color:#14112B;font-size:13px;line-height:28px;font-weight:700;">06</span><span style="font-size:13px;line-height:18px;font-weight:600;color:#6B6883;letter-spacing:0.04em;text-transform:uppercase;">Fundamentos</span></div>
+    <h2 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:72px;line-height:72px;letter-spacing:-0.03em;color:#14112B;">Ícones</h2>
+    <p style="margin:0;font-size:17px;line-height:24px;color:#4A4766;max-width:960px;">SVG inline, traço 2px, pontas arredondadas, 24px, cor currentColor. Nunca emoji.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:16px;">
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10.5 8v8M14 8v8M17 8v8"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">código de barras</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8v4l-2 3v10a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V10L8 7z"></path><path d="M8 7h8M12 13v2"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">lanterna</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 9h6v2.5l-1 1.5v7a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-7l-1-1.5z"></path><path d="M9 11.5h6M12 2v3M5.6 4.6l2.1 2.1M18.4 4.6l-2.1 2.1"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">lanterna-ligada</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">busca</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6.2"></path><circle cx="9" cy="20" r="1.5"></circle><circle cx="17" cy="20" r="1.5"></circle></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">carrinho</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">mais</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">menos</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">fechar</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">voltar</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">check</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 4.2L2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"></path><path d="M12 9.5v4M12 17h.01"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">alerta</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18h10.5a3.5 3.5 0 0 0 .9-6.9A5.5 5.5 0 0 0 8 9.2 4.5 4.5 0 0 0 7 18z"></path><path d="M3 3l18 18"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">nuvem-off</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.3L4 8.5"></path><path d="M4 4v4.5h4.5"></path><path d="M4 13a8 8 0 0 0 14.3 4.3L20 15.5"></path><path d="M20 20v-4.5h-4.5"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">sincronizar</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"></path><path d="M12 8.5l3.5 3.5-3.5 3.5-3.5-3.5z"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">pix</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4.5" cy="12" r="1"></circle><path d="M8 8.5a5 5 0 0 1 0 7M11.5 6a8.5 8.5 0 0 1 0 12M15 3.5a12 12 0 0 1 0 17"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">aproximação</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 9.5v.01M18 14.5v.01"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">dinheiro</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.5"></circle><circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="19" r="2.5"></circle><path d="M8.2 10.8l7.6-4.6M8.2 13.2l7.6 4.6"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">compartilhar</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"></rect><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">teclado</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><circle cx="12" cy="12" r="7"></circle><path d="M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">engrenagem</span></div>
+    <div style="height:112px;border-radius:16px;background:#F4F2EE;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 6px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11V5a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v6"></path><path d="M8.5 7.5h7"></path><rect x="3" y="11" width="18" height="9" rx="2"></rect><path d="M10 15.5h4"></path></svg><span style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;text-align:center;">caixa</span></div>
+  </div>
+</section>
+
+<!-- ============ 7. ILUSTRAÇÕES ============ -->
+<section style="display:flex;flex-direction:column;">
+  <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:40px;">
+    <div style="display:flex;align-items:center;gap:12px;"><span style="height:28px;padding:0 12px;border-radius:999px;background:#FFC933;color:#14112B;font-size:13px;line-height:28px;font-weight:700;">07</span><span style="font-size:13px;line-height:18px;font-weight:600;color:#6B6883;letter-spacing:0.04em;text-transform:uppercase;">Fundamentos</span></div>
+    <h2 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:72px;line-height:72px;letter-spacing:-0.03em;color:#14112B;">Ilustrações</h2>
+    <p style="margin:0;font-size:17px;line-height:24px;color:#4A4766;max-width:960px;">Componente Ilustra, com as props kind e size. Uma ilustração por tela, no máximo.</p>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:24px;">
+    <div style="display:flex;flex-direction:column;align-items:flex-start;"><dc-import name="Ilustra" kind="scanner" size="180" hint-size="180px,180px"></dc-import><div style="margin-top:12px;font-size:15px;line-height:22px;font-weight:600;">Leitor de código</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">kind="scanner"</div></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;"><dc-import name="Ilustra" kind="cesta" size="180" hint-size="180px,180px"></dc-import><div style="margin-top:12px;font-size:15px;line-height:22px;font-weight:600;">Cesta</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">kind="cesta"</div></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;"><dc-import name="Ilustra" kind="pix" size="180" hint-size="180px,180px"></dc-import><div style="margin-top:12px;font-size:15px;line-height:22px;font-weight:600;">Pix</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">kind="pix"</div></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;"><dc-import name="Ilustra" kind="tap" size="180" hint-size="180px,180px"></dc-import><div style="margin-top:12px;font-size:15px;line-height:22px;font-weight:600;">Aproximação</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">kind="tap"</div></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;"><dc-import name="Ilustra" kind="check" size="180" hint-size="180px,180px"></dc-import><div style="margin-top:12px;font-size:15px;line-height:22px;font-weight:600;">Sucesso</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">kind="check"</div></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;"><dc-import name="Ilustra" kind="offline" size="180" hint-size="180px,180px"></dc-import><div style="margin-top:12px;font-size:15px;line-height:22px;font-weight:600;">Sem internet</div><div style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">kind="offline"</div></div>
+  </div>
+  <p style="margin:32px 0 0;font-size:17px;line-height:24px;color:#14112B;font-weight:500;">Aquarela digital abstrata, volume 3D suave, sem contorno, sobre branco puro.</p>
+</section>
+
+<!-- Rodapé -->
+<div style="position:absolute;left:80px;right:80px;bottom:48px;border-top:1px solid #E2DED6;padding-top:20px;display:flex;justify-content:space-between;font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">
+  <span>[nome] · Design System Balcão v0.1</span>
+  <span>Dados fictícios: Mercadinho Bom Preço · Operadora Ana · Celular do balcão</span>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":7360}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

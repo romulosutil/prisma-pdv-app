@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Cadastro pela câmera</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3346F0}a:hover{color:#14112B}
+sc-for,sc-if{display:contents}
+.campo:focus-within{box-shadow:0 0 0 2px #3346F0 !important}
+button:focus-visible,a:focus-visible{outline:2px solid #3346F0;outline-offset:2px}
+input::placeholder{color:#6B6883;opacity:1}
+.semBarra{scrollbar-width:none}
+.semBarra::-webkit-scrollbar{display:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ghostBranco:focus-visible{text-decoration:underline}
+.laser{top:14px;animation:laser 1.8s ease-in-out infinite alternate}
+.spin{animation:spin .8s linear infinite}
+.skel{background:linear-gradient(90deg,#EAE7E1 0,#F4F2EE 50%,#EAE7E1 100%);background-size:400px 100%;animation:shimmer 1.2s linear infinite}
+.toast{animation:toastIn .25s ease-out}
+.sheet{animation:sheetIn .28s ease-out}
+.bipFlash{animation:bip .45s ease-out}
+@keyframes laser{0%{top:14px}100%{top:112px}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+@keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes sheetIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes bip{0%{opacity:0;transform:scale(.96)}35%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion: reduce){
+  .laser{animation:none;top:64px}
+  .spin,.skel,.toast,.sheet,.bipFlash{animation:none}
+}
+nav[aria-label="Navegação principal"] a:focus-visible{outline:2px solid #3346F0;outline-offset:2px;border-radius:12px}
+.btn-vender:focus-visible{outline:2px solid #3346F0;outline-offset:3px;border-radius:999px}
+nav[aria-label="Navegação principal"] a.btn-vender:focus-visible{outline:2px solid #3346F0;outline-offset:3px;border-radius:999px}
+.btn-vender:active{background:#F2B200 !important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;box-sizing:border-box;background:#FFFFFF;font-family:'Inter',system-ui,sans-serif;color:#14112B;-webkit-font-smoothing:antialiased;">
+
+<sc-if value="{{ isLista }}" hint-placeholder-val="{{ true }}">
+<div style="position:absolute;inset:0;display:flex;flex-direction:column;">
+  <div style="padding:24px 20px 0;flex:none;">
+    <h1 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:34px;font-weight:800;letter-spacing:-0.01em;">Produtos</h1>
+    <p style="margin:4px 0 0;font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">{{ legendaLista }}</p>
+    <label class="campo" style="margin-top:16px;display:flex;align-items:center;gap:10px;height:52px;padding:0 16px;background:#F4F2EE;border-radius:16px;color:#6B6883;box-sizing:border-box;">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <span class="sr">Buscar produto</span>
+      <input type="text" enterkeyhint="search" value="{{ busca }}" onInput="{{ aoBuscar }}" placeholder="Buscar por nome ou código" autocomplete="off" style="flex:1;min-width:0;height:100%;border:0;background:transparent;outline:none;font:500 15px/22px 'Inter',sans-serif;color:#14112B;">
+    </label>
+  </div>
+
+  <div class="semBarra" role="group" aria-label="Filtros" style="flex:none;display:flex;gap:8px;overflow-x:auto;padding:12px 20px 4px;">
+    <sc-for list="{{ chips }}" as="item" hint-placeholder-count="4">
+      <button type="button" aria-pressed="{{ item.ativo }}" onClick="{{ item.escolher }}" style="flex:none;height:36px;padding:0 14px;border:0;border-radius:999px;background:{{ item.fundo }};color:{{ item.cor }};font:600 13px/18px 'Inter',sans-serif;white-space:nowrap;cursor:pointer;">{{ item.rotulo }}</button>
+    </sc-for>
+  </div>
+
+  <div class="semBarra" style="flex:1;min-height:0;overflow-y:auto;padding:8px 20px 188px;">
+    <div style="display:flex;gap:12px;align-items:flex-start;background:#F4F2EE;border-radius:16px;padding:14px 16px;margin-bottom:4px;">
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4A4766" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px;"><path d="M4 6v12"></path><path d="M8 6v8"></path><path d="M12 6v4"></path><path d="M3 3l18 18"></path><path d="M16 14v4"></path><path d="M20 6v12"></path></svg>
+      <div style="flex:1;min-width:0;">
+        <p style="margin:0;font-size:14px;line-height:20px;font-weight:500;color:#14112B;">Itens sem código de barras — crie botões rápidos para pão, gelo e hortifruti</p>
+        <button type="button" onClick="{{ irAtalhos }}" style="margin:6px 0 0 -2px;padding:0 2px;height:32px;border:0;background:transparent;color:#3346F0;font:600 14px/20px 'Inter',sans-serif;display:inline-flex;align-items:center;gap:6px;cursor:pointer;">Criar atalhos<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg></button>
+      </div>
+    </div>
+
+    <sc-for list="{{ produtosVis }}" as="item" hint-placeholder-count="6">
+      <div style="display:flex;align-items:center;gap:12px;min-height:68px;border-bottom:1px solid #E2DED6;">
+        <sc-if value="{{ item.ilustra }}" hint-placeholder-val="{{ false }}">
+          <div aria-hidden="true" style="width:44px;height:44px;flex:none;border-radius:16px;overflow:hidden;background:#FFFFFF;"><dc-import name="Ilustra" kind="produto" size="44" hint-size="44px,44px"></dc-import></div>
+        </sc-if>
+        <sc-if value="{{ item.semIlustra }}" hint-placeholder-val="{{ true }}">
+          <div aria-hidden="true" style="width:44px;height:44px;flex:none;border-radius:16px;background:{{ item.monoFundo }};color:#4A4766;display:flex;align-items:center;justify-content:center;font:700 13px/18px 'Inter',sans-serif;">{{ item.mono }}</div>
+        </sc-if>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;line-height:22px;font-weight:500;color:#14112B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item.nome }}</div>
+          <div style="display:flex;align-items:center;gap:4px;font-size:12px;line-height:16px;font-weight:500;color:{{ item.legCor }};">
+            <sc-if value="{{ item.baixo }}" hint-placeholder-val="{{ false }}">
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 2.8 19.5h18.4z"></path><path d="M12 10v4"></path><path d="M12 17h.01"></path></svg>
+            </sc-if>
+            <span>{{ item.legenda }}</span>
+          </div>
+        </div>
+        <div style="flex:none;text-align:right;font-size:15px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums;color:#14112B;">{{ item.precoTxt }}<span style="font-size:12px;font-weight:500;color:#6B6883;">{{ item.sufixo }}</span></div>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{ semResultados }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:32px 0;text-align:center;">
+        <p style="margin:0;font-size:15px;line-height:22px;font-weight:600;color:#14112B;">Nenhum produto encontrado</p>
+        <p style="margin:4px 0 0;font-size:13px;line-height:18px;color:#6B6883;">Tente outro nome ou cadastre bipando.</p>
+        <button type="button" onClick="{{ limparFiltros }}" style="margin-top:12px;height:36px;padding:0 16px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;font:600 13px/18px 'Inter',sans-serif;cursor:pointer;">Limpar busca</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="position:absolute;left:0;right:0;bottom:84px;padding:28px 20px 12px;background:linear-gradient(rgba(255,255,255,0),#FFFFFF 45%);z-index:4;">
+    <button type="button" onClick="{{ irScanner }}" style="width:100%;height:56px;border:0;border-radius:999px;background:#FFC933;color:#14112B;font:700 17px/24px 'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;box-shadow:0 8px 24px rgba(20,17,43,.16);">
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14"></path><path d="M6.5 5v14"></path><path d="M9.5 5v14"></path><path d="M13 5v14"></path><path d="M16.5 5v14"></path><path d="M21 5v14"></path></svg>
+      Cadastrar bipando
+    </button>
+  </div>
+
+  <nav aria-label="Navegação principal" style="position:absolute;left:0;right:0;bottom:0;height:88px;background:#FFFFFF;border-top:1px solid #E2DED6;display:grid;grid-template-columns:1fr 1fr 128px 1fr 1fr;align-items:start;padding-top:8px;padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box;z-index:5;">
+    <a href="AppInicio.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; min-height: 56px; color: #4A4766; text-decoration: none; font-size: 12px; line-height: 16px; font-weight: 600;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20h14V9.5"></path><path d="M10 20v-6h4v6"></path></svg>Início</a>
+    <a href="#" aria-current="page" onClick="{{ irLista }}" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; min-height: 56px; color: #14112B; text-decoration: none; font-size: 12px; line-height: 16px; font-weight: 600;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"></path><path d="M3 7.5 12 12l9-4.5"></path><path d="M12 12v9"></path></svg>Produtos<span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;background:#FFC933;"></span></a>
+    <a href="AppVender.dc.html" class="btn-primario btn-vender" style="box-sizing:border-box;min-width:104px;padding:0 14px;white-space:nowrap;height:56px;margin-top:-22px;justify-self:center;gap:8px;border:4px solid #FFFFFF;border-radius:999px;background:#FFC933;color:#14112B;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(20,17,43,.18);text-decoration:none;font:700 16px/20px Inter,sans-serif;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6v12"></path><path d="M7.5 6v12"></path><path d="M10.5 6v12"></path><path d="M14 6v12"></path><path d="M17 6v12"></path><path d="M20 6v12"></path></svg><span>Vender</span></a>
+    <a href="AppCaixa.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; min-height: 56px; color: #4A4766; text-decoration: none; font-size: 12px; line-height: 16px; font-weight: 600;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"></rect><path d="M3 10h18"></path><path d="M16 14.5h2"></path></svg>Caixa</a>
+    <a href="AppCaixa.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; min-height: 56px; color: #4A4766; text-decoration: none; font-size: 12px; line-height: 16px; font-weight: 600;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10"></path><path d="M18 7h2"></path><path d="M4 17h4"></path><path d="M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>Ajustes</a>
+  </nav>
+</div>
+</sc-if>
+
+<sc-if value="{{ emCamera }}" hint-placeholder-val="{{ false }}">
+<div aria-hidden="true" style="position:absolute;inset:0;background:#0D0B1A;overflow:hidden;">
+  <div style="position:absolute;left:-70px;top:110px;width:270px;height:270px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(46,196,182,.34),rgba(51,70,240,.10) 70%);filter:blur(38px);"></div>
+  <div style="position:absolute;right:-50px;top:250px;width:230px;height:320px;border-radius:50%;background:radial-gradient(circle at 40% 30%,rgba(255,122,89,.30),rgba(232,64,122,.10) 70%);filter:blur(42px);"></div>
+  <div style="position:absolute;left:50px;bottom:110px;width:300px;height:200px;border-radius:50%;background:radial-gradient(circle at 50% 40%,rgba(255,201,51,.18),rgba(255,201,51,0) 70%);filter:blur(40px);"></div>
+  <div style="position:absolute;right:10px;top:-50px;width:210px;height:210px;border-radius:50%;background:radial-gradient(circle at 40% 40%,rgba(123,92,255,.26),rgba(123,92,255,0) 70%);filter:blur(36px);"></div>
+  <div style="position:absolute;left:95px;top:250px;width:200px;height:230px;border-radius:22px;background:rgba(244,242,238,.10);filter:blur(10px);"></div>
+  <sc-if value="{{ lanterna }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(255,255,255,.22),rgba(255,255,255,0) 60%);"></div>
+  </sc-if>
+  <div style="position:absolute;left:55px;top:300px;width:280px;height:130px;border-radius:12px;box-shadow:0 0 0 900px rgba(13,11,26,.55);">
+    <div style="position:absolute;left:56px;right:56px;top:30px;bottom:30px;border-radius:4px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.24) 0 3px,transparent 3px 6px,rgba(255,255,255,.24) 6px 7px,transparent 7px 11px);filter:blur(1.2px);"></div>
+    <div style="position:absolute;left:-2px;top:-2px;width:30px;height:30px;border-top:4px solid #FFFFFF;border-left:4px solid #FFFFFF;border-top-left-radius:12px;"></div>
+    <div style="position:absolute;right:-2px;top:-2px;width:30px;height:30px;border-top:4px solid #FFFFFF;border-right:4px solid #FFFFFF;border-top-right-radius:12px;"></div>
+    <div style="position:absolute;left:-2px;bottom:-2px;width:30px;height:30px;border-bottom:4px solid #FFFFFF;border-left:4px solid #FFFFFF;border-bottom-left-radius:12px;"></div>
+    <div style="position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-bottom:4px solid #FFFFFF;border-right:4px solid #FFFFFF;border-bottom-right-radius:12px;"></div>
+    <sc-if value="{{ mostrarLaser }}" hint-placeholder-val="{{ true }}">
+      <div class="laser" style="position:absolute;left:14px;right:14px;height:2px;border-radius:2px;background:#FFC933;box-shadow:0 0 12px 2px rgba(255,201,51,.7);"></div>
+    </sc-if>
+    <sc-if value="{{ bip }}" hint-placeholder-val="{{ false }}">
+      <div class="bipFlash" style="position:absolute;inset:0;border-radius:12px;background:rgba(19,138,75,.35);box-shadow:inset 0 0 0 3px #0E7A40;"></div>
+      <div class="bipFlash" style="position:absolute;left:50%;top:-18px;margin-left:-32px;width:64px;height:32px;border-radius:999px;background:#0E7A40;color:#FFFFFF;display:flex;align-items:center;justify-content:center;font:700 15px/20px 'Inter',sans-serif;">Bip!</div>
+    </sc-if>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isScanner }}" hint-placeholder-val="{{ false }}">
+  <button type="button" aria-label="Simular leitura" onClick="{{ simular }}" style="position:absolute;left:0;right:0;top:80px;bottom:120px;padding:0;border:0;background:transparent;cursor:pointer;z-index:2;"></button>
+
+  <div style="position:absolute;top:16px;left:20px;right:20px;display:flex;align-items:center;justify-content:space-between;z-index:3;">
+    <button type="button" aria-label="Fechar câmera e voltar aos produtos" onClick="{{ irLista }}" style="width:48px;height:48px;border-radius:999px;border:0;background:rgba(255,255,255,.16);color:#FFFFFF;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12"></path><path d="M18 6 6 18"></path></svg>
+    </button>
+    <span style="height:32px;padding:0 14px;border-radius:999px;background:rgba(255,255,255,.16);color:#FFFFFF;display:inline-flex;align-items:center;gap:8px;font:600 13px/18px 'Inter',sans-serif;">
+      <span aria-hidden="true" style="width:8px;height:8px;border-radius:999px;background:#FFC933;"></span>
+      Cadastro
+    </span>
+    <button type="button" aria-label="Lanterna" aria-pressed="{{ lanterna }}" onClick="{{ alternarLanterna }}" style="width:48px;height:48px;border-radius:999px;border:0;background:{{ lanternaFundo }};color:{{ lanternaCor }};display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <sc-if value="{{ lanterna }}" hint-placeholder-val="{{ false }}">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7h8l-2 3v11h-4V10z"></path><path d="M8 3h8v4H8z"></path><path d="M12 14v2"></path></svg>
+      </sc-if>
+      <sc-if value="{{ lanternaDesligada }}" hint-placeholder-val="{{ true }}">
+        <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7h8l-2 3v11h-4V10z"></path><path d="M8 3h8v4H8z"></path><path d="M4 4l16 16"></path></svg>
+      </sc-if>
+    </button>
+  </div>
+
+  <div role="status" aria-live="polite" style="position:absolute;top:80px;left:20px;right:20px;z-index:4;pointer-events:none;">
+    <sc-if value="{{ temToast }}" hint-placeholder-val="{{ false }}">
+      <div class="toast" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:16px;background:#14112B;color:#FFFFFF;border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 24px rgba(20,17,43,.24);">
+        <span aria-hidden="true" style="width:28px;height:28px;flex:none;border-radius:999px;background:#DDF5E7;color:#0E7A40;display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+        </span>
+        <span style="font:600 14px/20px 'Inter',sans-serif;">{{ toast }}</span>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="position:absolute;left:20px;right:20px;top:458px;text-align:center;z-index:1;pointer-events:none;">
+    <p style="margin:0;color:#FFFFFF;font-size:17px;line-height:24px;font-weight:600;">Aponte para o código do produto</p>
+    <p style="margin:6px 0 0;color:rgba(255,255,255,.72);font-size:13px;line-height:18px;font-weight:500;">Toque no visor para simular</p>
+  </div>
+
+  <div style="position:absolute;left:20px;right:20px;bottom:40px;display:flex;justify-content:center;z-index:3;">
+    <button type="button" class="ghostBranco" onClick="{{ abrirDigitar }}" style="height:48px;padding:0 20px;border:0;border-radius:999px;background:transparent;color:#FFFFFF;font:600 15px/22px 'Inter',sans-serif;display:inline-flex;align-items:center;gap:8px;cursor:pointer;">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"></rect><path d="M6 10h.01"></path><path d="M10 10h.01"></path><path d="M14 10h.01"></path><path d="M18 10h.01"></path><path d="M7 14h10"></path></svg>
+      Digitar código
+    </button>
+  </div>
+
+  <sc-if value="{{ digitandoCodigo }}" hint-placeholder-val="{{ false }}">
+    <div aria-hidden="true" style="position:absolute;inset:0;background:rgba(13,11,26,.6);z-index:5;"></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="dig-titulo" style="position:absolute;left:0;right:0;bottom:0;background:#FFFFFF;border-radius:24px 24px 0 0;box-shadow:0 -8px 32px rgba(20,17,43,.12);padding:12px 20px 24px;box-sizing:border-box;z-index:6;">
+      <div aria-hidden="true" style="width:36px;height:4px;border-radius:999px;background:#E2DED6;margin:0 auto 16px;"></div>
+      <h2 id="dig-titulo" style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:24px;line-height:28px;font-weight:700;">Digitar código</h2>
+      <label for="dig-codigo" style="display:block;margin:16px 0 6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Código de barras</label>
+      <div class="campo" style="height:56px;background:#F4F2EE;border-radius:16px;display:flex;align-items:center;gap:10px;padding:0 16px;color:#6B6883;">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6v12"></path><path d="M7.5 6v12"></path><path d="M10.5 6v12"></path><path d="M14 6v12"></path><path d="M17 6v12"></path><path d="M20 6v12"></path></svg>
+        <input id="dig-codigo" inputmode="numeric" autocomplete="off" maxlength="14" value="{{ codigoDigitado }}" onInput="{{ aoCodigoDigitado }}" placeholder="13 dígitos" style="flex:1;min-width:0;height:100%;border:0;background:transparent;outline:none;font:600 18px/24px 'Inter',sans-serif;font-variant-numeric:tabular-nums;letter-spacing:.02em;color:#14112B;">
+      </div>
+      <p style="margin:8px 0 0;font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Para testar: 7890000000048 (Café) ou um código novo</p>
+      <button type="button" onClick="{{ buscarDigitado }}" disabled="{{ semCodigoDigitado }}" style="margin-top:20px;width:100%;height:56px;border:0;border-radius:999px;background:#FFC933;color:#14112B;font:700 17px/24px 'Inter',sans-serif;cursor:pointer;opacity:{{ opBuscar }};">Buscar</button>
+      <button type="button" onClick="{{ fecharDigitar }}" style="margin-top:8px;width:100%;height:48px;border:0;border-radius:999px;background:transparent;color:#14112B;font:600 15px/22px 'Inter',sans-serif;cursor:pointer;">Cancelar</button>
+    </div>
+  </sc-if>
+</sc-if>
+
+<sc-if value="{{ isBuscando }}" hint-placeholder-val="{{ false }}">
+  <div aria-hidden="true" style="position:absolute;inset:0;background:rgba(13,11,26,.6);z-index:5;"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="busc-titulo" style="position:absolute;left:0;right:0;bottom:0;background:#FFFFFF;border-radius:24px 24px 0 0;box-shadow:0 -8px 32px rgba(20,17,43,.12);padding:12px 20px 24px;box-sizing:border-box;z-index:6;">
+    <div aria-hidden="true" style="width:36px;height:4px;border-radius:999px;background:#E2DED6;margin:0 auto 8px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <p style="margin:0;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;font-variant-numeric:tabular-nums;">{{ codigoTxt }}</p>
+      <button type="button" aria-label="Cancelar e voltar à câmera" onClick="{{ irScanner }}" style="width:44px;height:44px;border-radius:999px;border:0;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12"></path><path d="M18 6 6 18"></path></svg>
+      </button>
+    </div>
+    <div role="status" aria-live="polite" style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+      <span aria-hidden="true" style="width:48px;height:48px;flex:none;border-radius:999px;background:#E6E9FF;color:#3346F0;display:flex;align-items:center;justify-content:center;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      </span>
+      <h2 id="busc-titulo" style="flex:1;margin:0;font-size:18px;line-height:24px;font-weight:700;">Procurando no catálogo nacional…</h2>
+      <span class="spin" aria-hidden="true" style="width:24px;height:24px;flex:none;border-radius:999px;border:3px solid #E6E9FF;border-top-color:#3346F0;box-sizing:border-box;"></span>
+    </div>
+    <div aria-hidden="true" style="margin-top:20px;display:flex;align-items:center;gap:12px;padding:12px;border-radius:16px;border:1px solid #E2DED6;">
+      <div class="skel" style="width:56px;height:56px;flex:none;border-radius:12px;"></div>
+      <div style="flex:1;">
+        <div class="skel" style="height:14px;width:78%;border-radius:999px;"></div>
+        <div class="skel" style="height:12px;width:46%;border-radius:999px;margin-top:10px;"></div>
+      </div>
+    </div>
+    <button type="button" onClick="{{ irNovo }}" style="margin-top:16px;width:100%;height:48px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;font:600 15px/22px 'Inter',sans-serif;cursor:pointer;">Preencher manualmente</button>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isNovo }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;display:flex;flex-direction:column;background:#FFFFFF;">
+  <div style="flex:none;display:flex;align-items:center;gap:12px;padding:16px 20px 8px;">
+    <button type="button" aria-label="Voltar para a câmera" onClick="{{ irScanner }}" style="width:48px;height:48px;flex:none;border-radius:999px;border:0;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
+    </button>
+    <h1 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:24px;line-height:28px;font-weight:700;">Novo produto</h1>
+  </div>
+
+  <div class="semBarra" style="flex:1;min-height:0;overflow-y:auto;padding:8px 20px 24px;">
+    <div style="display:flex;flex-direction:column;gap:18px;">
+      <div style="display:flex;align-items:center;gap:16px;padding:12px;border-radius:24px;background:#F4F2EE;">
+        <div aria-hidden="true" style="width:120px;height:120px;flex:none;border-radius:16px;background:#FFFFFF;overflow:hidden;"><dc-import name="Ilustra" kind="produto" size="120" hint-size="120px,120px"></dc-import></div>
+        <div style="flex:1;min-width:0;">
+          <span style="height:24px;padding:0 10px;border-radius:999px;background:#DDF5E7;color:#0E7A40;display:inline-flex;align-items:center;gap:6px;font:600 12px/16px 'Inter',sans-serif;">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+            Encontrado no catálogo
+          </span>
+          <p style="margin:8px 0 0;font-size:13px;line-height:18px;font-weight:500;color:#4A4766;">Nome e categoria já vieram. Confira e digite a venda.</p>
+        </div>
+      </div>
+
+      <div>
+        <label for="cad-nome" style="display:block;margin-bottom:6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Nome</label>
+        <div class="campo" style="height:56px;background:#F4F2EE;border-radius:16px;display:flex;align-items:center;padding:0 16px;">
+          <input id="cad-nome" autocomplete="off" value="{{ nome }}" onInput="{{ aoNome }}" style="flex:1;min-width:0;height:100%;border:0;background:transparent;outline:none;font:500 16px/22px 'Inter',sans-serif;color:#14112B;">
+        </div>
+      </div>
+
+      <div>
+        <label for="cad-codigo" style="display:block;margin-bottom:6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Código de barras</label>
+        <div class="campo" style="height:56px;background:#F4F2EE;border-radius:16px;display:flex;align-items:center;gap:10px;padding:0 16px;color:#6B6883;">
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6v12"></path><path d="M7.5 6v12"></path><path d="M10.5 6v12"></path><path d="M14 6v12"></path><path d="M17 6v12"></path><path d="M20 6v12"></path></svg>
+          <input id="cad-codigo" readonly aria-readonly="true" value="{{ codigo }}" style="flex:1;min-width:0;height:100%;border:0;background:transparent;outline:none;font:500 16px/22px 'Inter',sans-serif;font-variant-numeric:tabular-nums;color:#4A4766;">
+          <span style="flex:none;font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Lido pela câmera</span>
+        </div>
+      </div>
+
+      <div>
+        <p style="margin:0 0 6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Categoria</p>
+        <span style="height:36px;padding:0 14px;border-radius:999px;background:#14112B;color:#FFFFFF;display:inline-flex;align-items:center;gap:6px;font:600 13px/18px 'Inter',sans-serif;">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+          Mercearia
+        </span>
+      </div>
+
+      <div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+          <div>
+            <label for="cad-custo" style="display:block;margin-bottom:6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Custo</label>
+            <div class="campo" style="height:64px;background:#F4F2EE;border-radius:16px;display:flex;align-items:center;gap:6px;padding:0 14px;">
+              <span aria-hidden="true" style="font:600 15px/20px 'Inter',sans-serif;color:#4A4766;">R$</span>
+              <input id="cad-custo" inputmode="numeric" autocomplete="off" value="{{ custoFmt }}" onInput="{{ aoCusto }}" placeholder="0,00" style="flex:1;min-width:0;height:100%;border:0;background:transparent;outline:none;font:700 28px/32px 'Bricolage Grotesque',sans-serif;font-variant-numeric:tabular-nums;color:#14112B;">
+            </div>
+          </div>
+          <div>
+            <label for="cad-venda" style="display:block;margin-bottom:6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Venda</label>
+            <div class="campo" style="height:64px;background:#F4F2EE;border-radius:16px;display:flex;align-items:center;gap:6px;padding:0 14px;box-shadow:{{ vendaAnel }};">
+              <span aria-hidden="true" style="font:600 15px/20px 'Inter',sans-serif;color:#4A4766;">R$</span>
+              <input id="cad-venda" inputmode="numeric" autocomplete="off" value="{{ vendaFmt }}" onInput="{{ aoVenda }}" onFocus="{{ vendaFoco }}" onBlur="{{ vendaBlur }}" placeholder="0,00" style="flex:1;min-width:0;height:100%;border:0;background:transparent;outline:none;font:700 28px/32px 'Bricolage Grotesque',sans-serif;font-variant-numeric:tabular-nums;color:#14112B;">
+            </div>
+          </div>
+        </div>
+        <div aria-live="polite" style="margin-top:10px;min-height:20px;">
+          <sc-if value="{{ margemVazia }}" hint-placeholder-val="{{ true }}">
+            <p style="margin:0;font-size:13px;line-height:20px;font-weight:500;color:#6B6883;">Digite a venda para ver a margem</p>
+          </sc-if>
+          <sc-if value="{{ margemOk }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:14px;line-height:20px;font-weight:600;color:#0E7A40;">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path></svg>
+              <span>{{ margemTxt }}</span>
+            </p>
+          </sc-if>
+          <sc-if value="{{ margemAbaixo }}" hint-placeholder-val="{{ false }}">
+            <p style="margin:0;display:flex;align-items:center;gap:6px;font-size:14px;line-height:20px;font-weight:600;color:#A65400;">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M12 4 2.8 19.5h18.4z"></path><path d="M12 10v4"></path><path d="M12 17h.01"></path></svg>
+              <span>{{ margemTxt }}</span>
+            </p>
+          </sc-if>
+        </div>
+      </div>
+
+      <div>
+        <p id="lbl-unid" style="margin:0 0 6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Unidade</p>
+        <div role="group" aria-labelledby="lbl-unid" style="height:52px;padding:4px;box-sizing:border-box;background:#F4F2EE;border-radius:999px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;">
+          <button type="button" aria-pressed="{{ segNovoUn.ativo }}" onClick="{{ novoUn }}" style="border:0;border-radius:999px;background:{{ segNovoUn.fundo }};color:{{ segNovoUn.cor }};box-shadow:{{ segNovoUn.sombra }};font:600 15px/20px 'Inter',sans-serif;cursor:pointer;">un</button>
+          <button type="button" aria-pressed="{{ segNovoKg.ativo }}" onClick="{{ novoKg }}" style="border:0;border-radius:999px;background:{{ segNovoKg.fundo }};color:{{ segNovoKg.cor }};box-shadow:{{ segNovoKg.sombra }};font:600 15px/20px 'Inter',sans-serif;cursor:pointer;">kg</button>
+        </div>
+      </div>
+
+      <div>
+        <p style="margin:0 0 6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Estoque inicial</p>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button type="button" aria-label="Diminuir estoque inicial" onClick="{{ menosEstoque }}" style="width:48px;height:48px;flex:none;border-radius:999px;border:0;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg>
+          </button>
+          <span aria-live="polite" style="min-width:64px;text-align:center;font:700 18px/24px 'Inter',sans-serif;font-variant-numeric:tabular-nums;">{{ estoqueIniTxt }}</span>
+          <button type="button" aria-label="Aumentar estoque inicial" onClick="{{ maisEstoque }}" style="width:48px;height:48px;flex:none;border-radius:999px;border:0;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+          </button>
+          <div style="display:flex;gap:6px;margin-left:auto;">
+            <sc-for list="{{ chipsNovo }}" as="item" hint-placeholder-count="3">
+              <button type="button" aria-label="{{ item.aria }}" onClick="{{ item.somar }}" style="height:36px;min-width:48px;padding:0 10px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;font:600 13px/18px 'Inter',sans-serif;font-variant-numeric:tabular-nums;cursor:pointer;">{{ item.rotulo }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:none;padding:12px 20px 20px;border-top:1px solid #E2DED6;background:#FFFFFF;display:flex;flex-direction:column;gap:8px;">
+    <button type="button" onClick="{{ salvarBipar }}" disabled="{{ semVenda }}" style="width:100%;height:56px;border:0;border-radius:999px;background:#FFC933;color:#14112B;font:700 17px/24px 'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;opacity:{{ opSalvar }};">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6v12"></path><path d="M7.5 6v12"></path><path d="M10.5 6v12"></path><path d="M14 6v12"></path><path d="M17 6v12"></path><path d="M20 6v12"></path></svg>
+      Salvar e bipar o próximo
+    </button>
+    <button type="button" onClick="{{ salvarSair }}" disabled="{{ semVenda }}" style="width:100%;height:48px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;font:600 15px/22px 'Inter',sans-serif;cursor:pointer;opacity:{{ opSalvar }};">Salvar e sair</button>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isRapido }}" hint-placeholder-val="{{ false }}">
+  <div aria-hidden="true" style="position:absolute;inset:0;background:rgba(13,11,26,.6);z-index:5;"></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rap-nome" style="position:absolute;left:0;right:0;bottom:0;background:#FFFFFF;border-radius:24px 24px 0 0;box-shadow:0 -8px 32px rgba(20,17,43,.12);padding:12px 20px 24px;box-sizing:border-box;z-index:6;">
+    <div aria-hidden="true" style="width:36px;height:4px;border-radius:999px;background:#E2DED6;margin:0 auto 16px;"></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div aria-hidden="true" style="width:56px;height:56px;flex:none;"><dc-import name="Ilustra" kind="produto" size="56" hint-size="56px,56px"></dc-import></div>
+      <div style="flex:1;min-width:0;">
+        <h2 id="rap-nome" style="margin:0;font-size:18px;line-height:24px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ rapNome }}</h2>
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:4px;">
+          <span style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;font-variant-numeric:tabular-nums;">{{ rapEan }}</span>
+          <span style="height:24px;padding:0 8px;border-radius:999px;background:#E6E9FF;color:#3346F0;display:inline-flex;align-items:center;gap:4px;font:600 12px/16px 'Inter',sans-serif;">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+            Já cadastrado
+          </span>
+        </div>
+      </div>
+      <button type="button" aria-label="Fechar e voltar à câmera" onClick="{{ irScanner }}" style="width:44px;height:44px;flex:none;align-self:flex-start;border-radius:999px;border:0;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12"></path><path d="M18 6 6 18"></path></svg>
+      </button>
+    </div>
+
+    <label for="rap-preco" style="display:block;margin:20px 0 6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Preço de venda</label>
+    <div class="campo" style="height:80px;background:#F4F2EE;border-radius:16px;display:flex;align-items:center;gap:8px;padding:0 18px;">
+      <span aria-hidden="true" style="font:700 22px/28px 'Bricolage Grotesque',sans-serif;color:#4A4766;">R$</span>
+      <input id="rap-preco" inputmode="numeric" autocomplete="off" value="{{ precoRapFmt }}" onInput="{{ aoPrecoRap }}" placeholder="0,00" style="flex:1;min-width:0;height:100%;border:0;background:transparent;outline:none;font:800 44px/44px 'Bricolage Grotesque',sans-serif;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:#14112B;">
+    </div>
+
+    <p style="margin:16px 0 6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Entrada de estoque</p>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button type="button" aria-label="Diminuir entrada" onClick="{{ menosEntrada }}" style="width:48px;height:48px;flex:none;border-radius:999px;border:0;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path></svg>
+      </button>
+      <span style="min-width:48px;text-align:center;font:700 18px/24px 'Inter',sans-serif;font-variant-numeric:tabular-nums;">{{ entradaTxt }}</span>
+      <button type="button" aria-label="Aumentar entrada" onClick="{{ maisEntrada }}" style="width:48px;height:48px;flex:none;border-radius:999px;border:0;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+      </button>
+      <div style="display:flex;gap:6px;margin-left:auto;">
+        <sc-for list="{{ chipsEntrada }}" as="item" hint-placeholder-count="3">
+          <button type="button" aria-label="{{ item.aria }}" onClick="{{ item.somar }}" style="height:36px;min-width:48px;padding:0 10px;border:0;border-radius:999px;background:#F4F2EE;color:#14112B;font:600 13px/18px 'Inter',sans-serif;font-variant-numeric:tabular-nums;cursor:pointer;">{{ item.rotulo }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div aria-live="polite" style="margin-top:16px;height:48px;padding:0 16px;border-radius:16px;border:1px solid #E2DED6;display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums;">
+      <span style="font-size:14px;line-height:20px;font-weight:600;color:#4A4766;">Estoque</span>
+      <span style="font-size:15px;line-height:22px;font-weight:500;color:#4A4766;">{{ rapAntes }}</span>
+      <svg aria-label="passa para" role="img" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B6883" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+      <span style="font-size:15px;line-height:22px;font-weight:700;color:{{ rapDepoisCor }};">{{ rapDepois }}</span>
+    </div>
+
+    <button type="button" onClick="{{ salvarRapido }}" disabled="{{ semPrecoRap }}" style="margin-top:20px;width:100%;height:56px;border:0;border-radius:999px;background:#FFC933;color:#14112B;font:700 17px/24px 'Inter',sans-serif;cursor:pointer;opacity:{{ opRapido }};">Salvar</button>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isAtalhos }}" hint-placeholder-val="{{ false }}">
+<div style="position:absolute;inset:0;display:flex;flex-direction:column;background:#FFFFFF;">
+  <div style="flex:none;padding:16px 20px 0;">
+    <button type="button" aria-label="Voltar para produtos" onClick="{{ irLista }}" style="width:48px;height:48px;border-radius:999px;border:0;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
+    </button>
+    <h1 style="margin:16px 0 0;font-family:'Bricolage Grotesque',sans-serif;font-size:32px;line-height:34px;font-weight:800;letter-spacing:-0.01em;">Itens sem código</h1>
+    <p style="margin:6px 0 0;font-size:15px;line-height:22px;font-weight:400;color:#4A4766;">Viram botões rápidos na tela de venda.</p>
+  </div>
+
+  <div class="semBarra" style="flex:1;min-height:0;overflow-y:auto;padding:20px 20px 32px;">
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;">
+      <sc-for list="{{ atalhosVis }}" as="item" hint-placeholder-count="3">
+        <div style="min-height:148px;box-sizing:border-box;padding:16px;border-radius:16px;background:#F4F2EE;display:flex;flex-direction:column;gap:4px;">
+          <div aria-hidden="true" style="width:40px;height:40px;border-radius:8px;background:#FFFFFF;color:#4A4766;display:flex;align-items:center;justify-content:center;font:700 13px/18px 'Inter',sans-serif;margin-bottom:6px;">{{ item.mono }}</div>
+          <div style="font-size:15px;line-height:20px;font-weight:600;color:#14112B;">{{ item.nome }}</div>
+          <div style="font-size:17px;line-height:22px;font-weight:700;color:#14112B;font-variant-numeric:tabular-nums;">{{ item.precoTxt }}</div>
+          <span style="align-self:flex-start;margin-top:auto;height:24px;padding:0 8px;border-radius:8px;background:#FFFFFF;color:#4A4766;font:600 12px/24px 'Inter',sans-serif;">{{ item.tipo }}</span>
+        </div>
+      </sc-for>
+
+      <sc-if value="{{ formFechado }}" hint-placeholder-val="{{ true }}">
+        <button type="button" onClick="{{ abrirForm }}" style="min-height:148px;border:1.5px dashed #6B6883;border-radius:16px;background:transparent;color:#14112B;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font:600 15px/20px 'Inter',sans-serif;cursor:pointer;">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+          Novo atalho
+        </button>
+      </sc-if>
+
+      <sc-if value="{{ formAberto }}" hint-placeholder-val="{{ false }}">
+        <div style="grid-column:1 / -1;padding:16px;border-radius:24px;background:#F4F2EE;display:flex;flex-direction:column;gap:14px;">
+          <h2 style="margin:0;font-size:18px;line-height:24px;font-weight:700;">Novo atalho</h2>
+          <div>
+            <label for="at-nome" style="display:block;margin-bottom:6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Nome</label>
+            <div class="campo" style="height:52px;background:#FFFFFF;border-radius:16px;display:flex;align-items:center;padding:0 16px;">
+              <input id="at-nome" autocomplete="off" value="{{ novoNome }}" onInput="{{ aoNovoNome }}" placeholder="Nome do item" style="flex:1;min-width:0;height:100%;border:0;background:transparent;outline:none;font:500 16px/22px 'Inter',sans-serif;color:#14112B;">
+            </div>
+          </div>
+          <div>
+            <label for="at-preco" style="display:block;margin-bottom:6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Preço</label>
+            <div class="campo" style="height:56px;background:#FFFFFF;border-radius:16px;display:flex;align-items:center;gap:6px;padding:0 16px;">
+              <span aria-hidden="true" style="font:600 15px/20px 'Inter',sans-serif;color:#4A4766;">R$</span>
+              <input id="at-preco" inputmode="numeric" autocomplete="off" value="{{ novoPrecoFmt }}" onInput="{{ aoNovoPreco }}" placeholder="0,00" style="flex:1;min-width:0;height:100%;border:0;background:transparent;outline:none;font:700 24px/28px 'Bricolage Grotesque',sans-serif;font-variant-numeric:tabular-nums;color:#14112B;">
+            </div>
+          </div>
+          <div>
+            <p id="lbl-at-unid" style="margin:0 0 6px;font-size:13px;line-height:18px;font-weight:600;color:#4A4766;">Vendido por</p>
+            <div role="group" aria-labelledby="lbl-at-unid" style="height:52px;padding:4px;box-sizing:border-box;background:#EAE7E1;border-radius:999px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;">
+              <button type="button" aria-pressed="{{ segAtUn.ativo }}" onClick="{{ atUn }}" style="border:0;border-radius:999px;background:{{ segAtUn.fundo }};color:{{ segAtUn.cor }};box-shadow:{{ segAtUn.sombra }};font:600 15px/20px 'Inter',sans-serif;cursor:pointer;">un</button>
+              <button type="button" aria-pressed="{{ segAtKg.ativo }}" onClick="{{ atKg }}" style="border:0;border-radius:999px;background:{{ segAtKg.fundo }};color:{{ segAtKg.cor }};box-shadow:{{ segAtKg.sombra }};font:600 15px/20px 'Inter',sans-serif;cursor:pointer;">kg</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button type="button" onClick="{{ criarAtalho }}" disabled="{{ semAtalhoValido }}" style="flex:1;height:48px;border:0;border-radius:999px;background:#FFC933;color:#14112B;font:700 15px/22px 'Inter',sans-serif;cursor:pointer;opacity:{{ opAtalho }};">Criar atalho</button>
+            <button type="button" onClick="{{ fecharForm }}" style="height:48px;padding:0 18px;border:0;border-radius:999px;background:transparent;color:#14112B;font:600 15px/22px 'Inter',sans-serif;cursor:pointer;">Cancelar</button>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tela":{"editor":"enum","options":["lista","scanner","buscando","novo","rapido","atalhos"],"default":"lista"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.timers = [];
+    this.seq = 0;
+    this.toastSeq = 0;
+    this.state = {
+      tela: props.tela ?? 'lista',
+      busca: '', filtro: 'todos', total: 312,
+      produtos: [
+        { id: 'arroz', nome: 'Arroz tipo 1 5kg', ean: '7890000000017', preco: 2790, estoque: 24, unid: 'un', mono: 'AR', fundo: '#FFF3CC' },
+        { id: 'feijao', nome: 'Feijão carioca 1kg', ean: '7890000000024', preco: 849, estoque: 36, unid: 'un', mono: 'FC', fundo: '#FFEFD9' },
+        { id: 'leite', nome: 'Leite integral 1L', ean: '7890000000031', preco: 529, estoque: 48, unid: 'un', mono: 'LI', fundo: '#E6E9FF' },
+        { id: 'cafe', nome: 'Café torrado 500g', ean: '7890000000048', preco: 1990, estoque: 3, unid: 'un', mono: 'CT', fundo: '#FFEFD9', ilustra: true },
+        { id: 'biscoito', nome: 'Biscoito recheado 130g', ean: '7890000000055', preco: 379, estoque: 30, unid: 'un', mono: 'BR', fundo: '#FDE3E6' },
+        { id: 'refri', nome: 'Refrigerante cola 2L', ean: '7890000000062', preco: 999, estoque: 2, unid: 'un', mono: 'RC', fundo: '#FDE3E6' },
+        { id: 'pao', nome: 'Pão francês', ean: null, preco: 1690, estoque: 6.5, unid: 'kg', mono: 'PF', fundo: '#FFF3CC' },
+        { id: 'banana', nome: 'Banana prata', ean: null, preco: 699, estoque: 12, unid: 'kg', mono: 'BP', fundo: '#DDF5E7' },
+        { id: 'gelo', nome: 'Saco de gelo 5kg', ean: null, preco: 1200, estoque: 4, unid: 'un', mono: 'SG', fundo: '#E6E9FF' }
+      ],
+      lanterna: false, leituras: 0, bip: false, toast: null,
+      digitando: false, codigoDigitado: '',
+      codigo: '7896543210987', viaLeitura: false,
+      nome: 'Achocolatado em pó 400g', custo: 620, venda: null, foco: 'venda', unidade: 'un', estoqueIni: 12,
+      rapidoId: 'cafe', precoRapido: 1990, entrada: 0,
+      atalhos: [
+        { nome: 'Pão francês', preco: 1690, unid: 'kg' },
+        { nome: 'Banana prata', preco: 699, unid: 'kg' },
+        { nome: 'Saco de gelo', preco: 1200, unid: 'un' }
+      ],
+      formAberto: false, novoNome: '', novoPreco: null, novoUnid: 'un'
+    };
+  }
+
+  componentWillUnmount() {
+    this.timers.forEach(id => clearTimeout(id));
+    this.timers = [];
+  }
+
+  later(fn, ms) {
+    const id = setTimeout(() => {
+      this.timers = this.timers.filter(x => x !== id);
+      fn();
+    }, ms);
+    this.timers.push(id);
+  }
+
+  num(c) {
+    const neg = c < 0;
+    const v = Math.abs(Math.round(c));
+    const inteiro = String(Math.floor(v / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return (neg ? '-' : '') + inteiro + ',' + String(v % 100).padStart(2, '0');
+  }
+
+  brl(c) { return 'R$ ' + this.num(c); }
+
+  qtd(q, u) {
+    if (u === 'kg') return String(Math.round(q * 10) / 10).replace('.', ',') + ' kg';
+    return q + ' un';
+  }
+
+  centavos(v) {
+    const d = String(v || '').replace(/\D/g, '').replace(/^0+/, '').slice(0, 7);
+    return d ? parseInt(d, 10) : null;
+  }
+
+  curto(nome) {
+    const r = nome.replace(/\s+\d+([.,]\d+)?\s*(g|kg|ml|l)$/i, '').trim();
+    return r || nome;
+  }
+
+  primeira(nome) { return nome.split(/\s+/)[0]; }
+
+  iniciais(nome) {
+    const w = nome.split(/\s+/).filter(x => x.length > 2 && !/^\d/.test(x));
+    const a = (w[0] || nome)[0] || '';
+    const b = (w[1] || '')[0] || '';
+    return (a + b).toUpperCase();
+  }
+
+  irPara(tela) {
+    this.seq++;
+    this.setState({ tela, digitando: false, viaLeitura: false, bip: false });
+  }
+
+  mostrarToast(msg) {
+    const k = ++this.toastSeq;
+    this.seq++;
+    this.setState({ tela: 'scanner', toast: msg, digitando: false, viaLeitura: false, bip: false });
+    this.later(() => { if (this.toastSeq === k) this.setState({ toast: null }); }, 2600);
+  }
+
+  novoEstado(codigo) {
+    return { codigo, nome: 'Achocolatado em pó 400g', custo: 620, venda: null, foco: 'venda', unidade: 'un', estoqueIni: 12 };
+  }
+
+  abrirBuscando(codigo) {
+    const k = ++this.seq;
+    this.toastSeq++;
+    this.setState(Object.assign({ tela: 'buscando', viaLeitura: true, digitando: false, toast: null }, this.novoEstado(codigo)));
+    this.later(() => {
+      if (this.seq === k && this.state.tela === 'buscando' && this.state.viaLeitura) {
+        this.setState({ tela: 'novo', viaLeitura: false });
+      }
+    }, 1200);
+  }
+
+  abrirRapido(id) {
+    const p = this.state.produtos.find(x => x.id === id);
+    if (!p) return;
+    this.seq++;
+    this.toastSeq++;
+    this.setState({ tela: 'rapido', rapidoId: id, precoRapido: p.preco, entrada: 0, digitando: false, toast: null, viaLeitura: false });
+  }
+
+  ler(codigo) {
+    const p = this.state.produtos.find(x => x.ean === codigo);
+    if (p) this.abrirRapido(p.id);
+    else this.abrirBuscando(codigo);
+  }
+
+  simular() {
+    if (this.state.bip || this.state.tela !== 'scanner') return;
+    const n = this.state.leituras;
+    const codigo = n % 2 === 0 ? '7896543210987' : '7890000000048';
+    const k = ++this.seq;
+    this.toastSeq++;
+    this.setState({ bip: true, leituras: n + 1, toast: null });
+    this.later(() => {
+      if (this.seq !== k || this.state.tela !== 'scanner') return;
+      this.setState({ bip: false });
+      this.ler(codigo);
+    }, 500);
+  }
+
+  salvarNovo(bipar) {
+    const s = this.state;
+    if (s.venda == null) return;
+    const nome = (s.nome || '').trim() || 'Produto sem nome';
+    const existia = s.produtos.some(x => x.ean === s.codigo);
+    const p = { id: 'n' + Date.now(), nome, ean: s.codigo, preco: s.venda, estoque: s.estoqueIni, unid: s.unidade, mono: this.iniciais(nome), fundo: '#FFF3CC', ilustra: true };
+    const produtos = [p].concat(s.produtos.filter(x => x.ean !== s.codigo));
+    this.setState({ produtos, total: existia ? s.total : s.total + 1 });
+    if (bipar) this.mostrarToast(this.curto(nome) + ' salvo · Bipe o próximo');
+    else this.irPara('lista');
+  }
+
+  salvarRapido() {
+    const s = this.state;
+    const p = s.produtos.find(x => x.id === s.rapidoId);
+    if (!p || s.precoRapido == null) return;
+    const estoque = p.estoque + s.entrada;
+    const produtos = s.produtos.map(x => x.id === p.id ? Object.assign({}, x, { preco: s.precoRapido, estoque }) : x);
+    this.setState({ produtos });
+    this.mostrarToast(this.primeira(p.nome) + ' atualizado · estoque ' + this.qtd(estoque, p.unid));
+  }
+
+  criarAtalho() {
+    const s = this.state;
+    const nome = (s.novoNome || '').trim();
+    if (!nome || !s.novoPreco) return;
+    this.setState({
+      atalhos: s.atalhos.concat([{ nome, preco: s.novoPreco, unid: s.novoUnid }]),
+      formAberto: false, novoNome: '', novoPreco: null, novoUnid: 'un'
+    });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const t = s.tela;
+    const norm = x => String(x).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const ehBaixo = p => p.unid === 'un' && p.estoque <= 5;
+
+    // ---- lista
+    const q = norm(s.busca.trim());
+    const nBaixo = s.produtos.filter(ehBaixo).length;
+    const filtros = {
+      todos: () => true,
+      baixo: ehBaixo,
+      semcod: p => !p.ean,
+      pesavel: p => p.unid === 'kg'
+    };
+    const f = filtros[s.filtro] || filtros.todos;
+    const produtosVis = s.produtos
+      .filter(p => f(p) && (!q || norm(p.nome).includes(q) || (p.ean || '').includes(q)))
+      .map(p => {
+        const baixo = ehBaixo(p);
+        return {
+          nome: p.nome,
+          ilustra: !!p.ilustra,
+          semIlustra: !p.ilustra,
+          mono: p.mono,
+          monoFundo: p.fundo,
+          baixo,
+          legenda: 'Estoque ' + this.qtd(p.estoque, p.unid) + (baixo ? ' · baixo' : ''),
+          legCor: baixo ? '#A65400' : '#6B6883',
+          precoTxt: this.brl(p.preco),
+          sufixo: p.unid === 'kg' ? '/kg' : ''
+        };
+      });
+    const chips = [
+      ['todos', 'Todos'],
+      ['baixo', 'Estoque baixo · ' + nBaixo],
+      ['semcod', 'Sem código'],
+      ['pesavel', 'Pesáveis']
+    ].map(par => {
+      const id = par[0];
+      const ativo = s.filtro === id;
+      return {
+        rotulo: par[1],
+        ativo,
+        fundo: ativo ? '#14112B' : '#F4F2EE',
+        cor: ativo ? '#FFFFFF' : '#14112B',
+        escolher: () => this.setState({ filtro: ativo && id !== 'todos' ? 'todos' : id })
+      };
+    });
+
+    // ---- novo
+    let margemEstado = 'vazio';
+    let margemTxt = '';
+    if (s.venda != null) {
+      const custo = s.custo || 0;
+      const lucro = s.venda - custo;
+      const por = s.unidade === 'kg' ? 'por kg' : 'por unidade';
+      if (lucro < 0) {
+        margemEstado = 'abaixo';
+        margemTxt = 'Vendendo abaixo do custo · prejuízo de ' + this.brl(-lucro) + ' ' + por;
+      } else {
+        margemEstado = 'ok';
+        const m = custo > 0 ? Math.floor((lucro / custo) * 100) : 100;
+        margemTxt = 'Margem ' + m + '% · lucro ' + this.brl(lucro) + ' ' + por;
+      }
+    }
+    const seg = (atual, v) => atual === v
+      ? { ativo: true, fundo: '#FFFFFF', cor: '#14112B', sombra: '0 1px 3px rgba(20,17,43,.16)' }
+      : { ativo: false, fundo: 'transparent', cor: '#4A4766', sombra: 'none' };
+    const semVenda = s.venda == null;
+    const chipsNovo = [6, 12, 24].map(n => ({
+      rotulo: '+' + n,
+      aria: 'Somar ' + n + ' ao estoque inicial',
+      somar: () => this.setState({ estoqueIni: this.state.estoqueIni + n })
+    }));
+
+    // ---- rápido
+    const pr = s.produtos.find(x => x.id === s.rapidoId) || s.produtos[3];
+    const depois = pr.estoque + s.entrada;
+    const chipsEntrada = [6, 12, 24].map(n => ({
+      rotulo: '+' + n,
+      aria: 'Somar ' + n + ' à entrada',
+      somar: () => this.setState({ entrada: this.state.entrada + n })
+    }));
+    const semPrecoRap = s.precoRapido == null;
+
+    // ---- atalhos
+    const atalhosVis = s.atalhos.map(a => ({
+      nome: a.nome,
+      mono: this.iniciais(a.nome),
+      precoTxt: this.brl(a.preco) + (a.unid === 'kg' ? '/kg' : ''),
+      tipo: a.unid === 'kg' ? 'Pesável' : 'Unidade'
+    }));
+    const semAtalhoValido = !(s.novoNome || '').trim() || !s.novoPreco;
+
+    return {
+      // telas
+      isLista: t === 'lista',
+      isScanner: t === 'scanner',
+      isBuscando: t === 'buscando',
+      isNovo: t === 'novo',
+      isRapido: t === 'rapido',
+      isAtalhos: t === 'atalhos',
+      emCamera: t === 'scanner' || t === 'buscando' || t === 'rapido',
+      mostrarLaser: t === 'scanner' && !s.bip,
+      irLista: () => this.irPara('lista'),
+      irScanner: () => this.irPara('scanner'),
+      irAtalhos: () => this.irPara('atalhos'),
+      irNovo: () => this.irPara('novo'),
+
+      // lista
+      legendaLista: s.total + ' produtos · catálogo atualizado 18:05',
+      busca: s.busca,
+      aoBuscar: e => this.setState({ busca: e.target.value }),
+      chips,
+      produtosVis,
+      semResultados: produtosVis.length === 0,
+      limparFiltros: () => this.setState({ busca: '', filtro: 'todos' }),
+
+      // scanner
+      bip: s.bip,
+      simular: () => this.simular(),
+      lanterna: s.lanterna,
+      lanternaDesligada: !s.lanterna,
+      lanternaFundo: s.lanterna ? '#FFC933' : 'rgba(255,255,255,.16)',
+      lanternaCor: s.lanterna ? '#14112B' : '#FFFFFF',
+      alternarLanterna: () => this.setState({ lanterna: !this.state.lanterna }),
+      toast: s.toast || '',
+      temToast: !!s.toast,
+      digitandoCodigo: s.digitando,
+      abrirDigitar: () => this.setState({ digitando: true, codigoDigitado: '' }),
+      fecharDigitar: () => this.setState({ digitando: false }),
+      codigoDigitado: s.codigoDigitado,
+      aoCodigoDigitado: e => this.setState({ codigoDigitado: String(e.target.value).replace(/\D/g, '').slice(0, 14) }),
+      semCodigoDigitado: s.codigoDigitado.length < 8,
+      opBuscar: s.codigoDigitado.length < 8 ? 0.4 : 1,
+      buscarDigitado: () => { if (this.state.codigoDigitado.length >= 8) this.ler(this.state.codigoDigitado); },
+
+      // buscando / novo
+      codigo: s.codigo,
+      codigoTxt: 'Código ' + s.codigo,
+      nome: s.nome,
+      aoNome: e => this.setState({ nome: e.target.value }),
+      custoFmt: s.custo == null ? '' : this.num(s.custo),
+      aoCusto: e => this.setState({ custo: this.centavos(e.target.value) }),
+      vendaFmt: s.venda == null ? '' : this.num(s.venda),
+      aoVenda: e => this.setState({ venda: this.centavos(e.target.value) }),
+      vendaFoco: () => this.setState({ foco: 'venda' }),
+      vendaBlur: () => this.setState({ foco: null }),
+      vendaAnel: s.foco === 'venda' ? '0 0 0 2px #3346F0' : 'none',
+      margemVazia: margemEstado === 'vazio',
+      margemOk: margemEstado === 'ok',
+      margemAbaixo: margemEstado === 'abaixo',
+      margemTxt,
+      segNovoUn: seg(s.unidade, 'un'),
+      segNovoKg: seg(s.unidade, 'kg'),
+      novoUn: () => this.setState({ unidade: 'un' }),
+      novoKg: () => this.setState({ unidade: 'kg' }),
+      estoqueIniTxt: this.qtd(s.estoqueIni, s.unidade),
+      menosEstoque: () => this.setState({ estoqueIni: Math.max(0, this.state.estoqueIni - 1) }),
+      maisEstoque: () => this.setState({ estoqueIni: this.state.estoqueIni + 1 }),
+      chipsNovo,
+      semVenda,
+      opSalvar: semVenda ? 0.4 : 1,
+      salvarBipar: () => this.salvarNovo(true),
+      salvarSair: () => this.salvarNovo(false),
+
+      // rápido
+      rapNome: pr.nome,
+      rapEan: 'EAN ' + (pr.ean || '—'),
+      precoRapFmt: s.precoRapido == null ? '' : this.num(s.precoRapido),
+      aoPrecoRap: e => this.setState({ precoRapido: this.centavos(e.target.value) }),
+      entradaTxt: String(s.entrada),
+      menosEntrada: () => this.setState({ entrada: Math.max(0, this.state.entrada - 1) }),
+      maisEntrada: () => this.setState({ entrada: this.state.entrada + 1 }),
+      chipsEntrada,
+      rapAntes: this.qtd(pr.estoque, pr.unid),
+      rapDepois: this.qtd(depois, pr.unid),
+      rapDepoisCor: s.entrada > 0 ? '#0E7A40' : '#14112B',
+      semPrecoRap,
+      opRapido: semPrecoRap ? 0.4 : 1,
+      salvarRapido: () => this.salvarRapido(),
+
+      // atalhos
+      atalhosVis,
+      formAberto: s.formAberto,
+      formFechado: !s.formAberto,
+      abrirForm: () => this.setState({ formAberto: true }),
+      fecharForm: () => this.setState({ formAberto: false, novoNome: '', novoPreco: null, novoUnid: 'un' }),
+      novoNome: s.novoNome,
+      aoNovoNome: e => this.setState({ novoNome: e.target.value }),
+      novoPrecoFmt: s.novoPreco == null ? '' : this.num(s.novoPreco),
+      aoNovoPreco: e => this.setState({ novoPreco: this.centavos(e.target.value) }),
+      segAtUn: seg(s.novoUnid, 'un'),
+      segAtKg: seg(s.novoUnid, 'kg'),
+      atUn: () => this.setState({ novoUnid: 'un' }),
+      atKg: () => this.setState({ novoUnid: 'kg' }),
+      semAtalhoValido,
+      opAtalho: semAtalhoValido ? 0.4 : 1,
+      criarAtalho: () => this.criarAtalho()
+    };
+  }
+}
+</script>
+</body>
+</html>

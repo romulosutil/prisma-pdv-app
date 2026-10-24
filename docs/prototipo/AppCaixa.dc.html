@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Caixa</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3346F0}a:hover{color:#14112B}
+button,input{font-family:inherit}
+button{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible{outline:2px solid #3346F0;outline-offset:2px}
+.campo:focus-within{box-shadow:0 0 0 2px #3346F0}
+.campo input::placeholder{color:#6B6883;opacity:1}
+.cta:active{background:#F2B200 !important}
+.rolagem{scrollbar-width:none}
+.rolagem::-webkit-scrollbar{display:none}
+@keyframes encher{from{width:0}to{width:100%}}
+@keyframes girar{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.anim{animation-duration:.01ms !important;animation-iteration-count:1 !important}}
+nav[aria-label="Navegação principal"] a:focus-visible{outline:2px solid #3346F0;outline-offset:2px;border-radius:12px}
+.btn-vender:focus-visible{outline:2px solid #3346F0;outline-offset:3px;border-radius:999px}
+nav[aria-label="Navegação principal"] a.btn-vender:focus-visible{outline:2px solid #3346F0;outline-offset:3px;border-radius:999px}
+.btn-vender:active{background:#F2B200 !important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;box-sizing:border-box;background:#FFFFFF;color:#14112B;font-family:Inter,system-ui,sans-serif;display:flex;flex-direction:column;">
+
+  <!-- Topo -->
+  <header style="flex:none;padding:24px 20px 12px;display:flex;flex-direction:column;gap:16px;">
+    <h1 style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:800;font-size:32px;line-height:34px;color:#14112B;">{{ tituloTela }}</h1>
+    <sc-if value="{{ mostrarSeg }}" hint-placeholder-val="{{ true }}">
+      <div role="group" aria-label="Seções do caixa" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;background:#F4F2EE;border-radius:999px;">
+        <sc-for list="{{ segTopo }}" as="s" hint-placeholder-count="3">
+          <button type="button" onClick="{{ s.escolher }}" aria-pressed="{{ s.pressed }}" style="height:40px;border:0;padding:0 6px;border-radius:999px;background:{{ s.fundo }};box-shadow:{{ s.sombra }};color:{{ s.cor }};font-size:14px;line-height:18px;font-weight:600;cursor:pointer;white-space:nowrap;">{{ s.rotulo }}</button>
+        </sc-for>
+      </div>
+    </sc-if>
+  </header>
+
+  <!-- Conteúdo rolável -->
+  <main class="rolagem" style="flex:1;min-height:0;overflow-y:auto;padding:8px 20px 32px;box-sizing:border-box;">
+
+    <!-- ===================== RESUMO ===================== -->
+    <sc-if value="{{ isResumo }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:24px;">
+
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <p style="margin:0;font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Aberto às 07:30 por Ana · Celular do balcão</p>
+          <p style="margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:800;font-size:44px;line-height:44px;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:#14112B;">{{ totalTxt }}</p>
+          <p style="margin:0;font-size:15px;line-height:22px;font-weight:500;color:#4A4766;">47 vendas hoje</p>
+        </div>
+
+        <!-- Meios de pagamento -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="flex:none;width:40px;height:40px;border-radius:999px;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 10v4"></path><path d="M18 10v4"></path></svg>
+            </span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+                <span style="font-size:15px;line-height:22px;font-weight:500;">Dinheiro</span>
+                <span style="font-size:15px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums;">{{ dinheiroTxt }}</span>
+              </div>
+              <div aria-hidden="true" style="height:8px;border-radius:999px;background:#F4F2EE;overflow:hidden;">
+                <div style="height:8px;border-radius:999px;background:#0E7A40;width:{{ dinheiroPct }};"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="flex:none;width:40px;height:40px;border-radius:999px;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 21 12 12 21 3 12Z"></path><path d="M9 12h6"></path></svg>
+            </span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+                <span style="font-size:15px;line-height:22px;font-weight:500;">Pix</span>
+                <span style="font-size:15px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums;">{{ pixTxt }}</span>
+              </div>
+              <div aria-hidden="true" style="height:8px;border-radius:999px;background:#F4F2EE;overflow:hidden;">
+                <div style="height:8px;border-radius:999px;background:#FFC933;width:{{ pixPct }};"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="flex:none;width:40px;height:40px;border-radius:999px;background:#F4F2EE;color:#14112B;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path><path d="M6 15h4"></path></svg>
+            </span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+                <span style="font-size:15px;line-height:22px;font-weight:500;">Cartão</span>
+                <span style="font-size:15px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums;">{{ cartaoTxt }}</span>
+              </div>
+              <div aria-hidden="true" style="height:8px;border-radius:999px;background:#F4F2EE;overflow:hidden;">
+                <div style="height:8px;border-radius:999px;background:#14112B;width:{{ cartaoPct }};"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conferir gaveta -->
+        <sc-if value="{{ naoFechado }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <section style="background:#F4F2EE;border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:12px;">
+              <h2 style="margin:0;font-size:18px;line-height:24px;font-weight:700;">Conferir gaveta</h2>
+              <div style="display:flex;justify-content:space-between;gap:12px;font-size:15px;line-height:22px;color:#4A4766;">
+                <span>Troco inicial</span>
+                <span style="font-variant-numeric:tabular-nums;font-weight:500;color:#14112B;">{{ trocoTxt }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;gap:12px;font-size:15px;line-height:22px;color:#4A4766;">
+                <span>Dinheiro vendido</span>
+                <span style="font-variant-numeric:tabular-nums;font-weight:500;color:#14112B;">{{ dinheiroTxt }}</span>
+              </div>
+              <div style="height:1px;background:#E2DED6;"></div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
+                <span style="font-size:18px;line-height:24px;font-weight:700;">Esperado na gaveta</span>
+                <span style="font-size:18px;line-height:24px;font-weight:700;font-variant-numeric:tabular-nums;">{{ esperadoTxt }}</span>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+                <label for="valor-contado" style="font-size:13px;line-height:18px;font-weight:600;color:#14112B;">Valor contado</label>
+                <div class="campo" style="display:flex;align-items:center;gap:8px;height:72px;padding:0 16px;background:#FFFFFF;border-radius:16px;box-sizing:border-box;">
+                  <span aria-hidden="true" style="font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:700;font-size:22px;line-height:28px;color:#4A4766;">R$</span>
+                  <input id="valor-contado" type="text" inputmode="decimal" autocomplete="off" maxlength="10" placeholder="0,00" aria-describedby="resultado-gaveta" value="{{ contado }}" onInput="{{ aoDigitar }}" style="flex:1;min-width:0;height:56px;border:0;outline:none;background:transparent;padding:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:800;font-size:40px;line-height:44px;letter-spacing:-0.02em;color:#14112B;font-variant-numeric:tabular-nums;">
+                </div>
+              </div>
+
+              <div id="resultado-gaveta" aria-live="polite" style="min-height:32px;display:flex;align-items:center;">
+                <sc-if value="{{ semValor }}" hint-placeholder-val="{{ false }}">
+                  <p style="margin:0;font-size:12px;line-height:16px;font-weight:500;color:#4A4766;">Conte as notas e moedas da gaveta e digite o total.</p>
+                </sc-if>
+                <sc-if value="{{ bateu }}" hint-placeholder-val="{{ true }}">
+                  <span style="display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;background:#DDF5E7;color:#14112B;font-size:13px;line-height:18px;font-weight:600;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0E7A40" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5 11 15.5 16 9.5"></path></svg>
+                    Bateu certinho
+                  </span>
+                </sc-if>
+                <sc-if value="{{ sobrando }}" hint-placeholder-val="{{ false }}">
+                  <span style="display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;background:#FFEFD9;color:#A65400;font-size:13px;line-height:18px;font-weight:600;font-variant-numeric:tabular-nums;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>
+                    {{ sobrandoTxt }}
+                  </span>
+                </sc-if>
+                <sc-if value="{{ faltando }}" hint-placeholder-val="{{ false }}">
+                  <span style="display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;background:#FDE3E6;color:#C8102E;font-size:13px;line-height:18px;font-weight:600;font-variant-numeric:tabular-nums;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3Z"></path><path d="M12 10v4"></path><path d="M12 17v.01"></path></svg>
+                    {{ faltandoTxt }}
+                  </span>
+                </sc-if>
+              </div>
+            </section>
+
+            <button type="button" class="cta" onClick="{{ fecharCaixa }}" style="height:56px;width:100%;border:0;border-radius:999px;background:#FFC933;color:#14112B;font-size:17px;line-height:24px;font-weight:700;cursor:pointer;">Fechar caixa</button>
+          </div>
+        </sc-if>
+
+        <!-- Caixa fechado -->
+        <sc-if value="{{ fechado }}" hint-placeholder-val="{{ false }}">
+          <section role="status" style="background:#DDF5E7;border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span style="flex:none;width:40px;height:40px;border-radius:999px;background:#0E7A40;color:#FFFFFF;display:flex;align-items:center;justify-content:center;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"></path></svg>
+              </span>
+              <p style="margin:0;font-size:17px;line-height:24px;font-weight:600;color:#14112B;">Caixa fechado às 19:05 · resumo enviado para o celular do dono</p>
+            </div>
+            <button type="button" onClick="{{ abrirNovo }}" style="height:48px;width:100%;border:0;border-radius:999px;background:#14112B;color:#FFFFFF;font-size:15px;line-height:22px;font-weight:600;cursor:pointer;">Abrir novo caixa</button>
+          </section>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ===================== VENDAS ===================== -->
+    <sc-if value="{{ isVendas }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div class="rolagem" role="group" aria-label="Filtrar vendas" style="display:flex;gap:8px;overflow-x:auto;margin:0 -20px;padding:0 20px 4px;">
+          <sc-for list="{{ filtros }}" as="f" hint-placeholder-count="5">
+            <button type="button" onClick="{{ f.escolher }}" aria-pressed="{{ f.pressed }}" style="flex:none;height:36px;padding:0 16px;border:0;border-radius:999px;background:{{ f.fundo }};color:{{ f.cor }};font-size:13px;line-height:18px;font-weight:600;cursor:pointer;white-space:nowrap;">{{ f.rot }}</button>
+          </sc-for>
+        </div>
+        <p style="margin:0;font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">{{ contagemTxt }}</p>
+
+        <sc-if value="{{ naoTemVendas }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#F4F2EE;border-radius:16px;padding:24px 16px;text-align:center;font-size:15px;line-height:22px;color:#4A4766;">Nenhuma venda com esse filtro.</div>
+        </sc-if>
+
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <sc-for list="{{ vendas }}" as="v" hint-placeholder-count="8">
+            <div style="background:#F4F2EE;border-radius:16px;">
+              <button type="button" onClick="{{ v.alternar }}" aria-expanded="{{ v.expandido }}" aria-controls="det-{{ v.id }}" style="width:100%;display:flex;align-items:center;gap:12px;min-height:72px;padding:12px 12px 12px 16px;background:transparent;border:0;border-radius:16px;text-align:left;cursor:pointer;color:#14112B;box-sizing:border-box;">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+                  <div style="display:flex;align-items:baseline;gap:8px;">
+                    <span style="font-size:15px;line-height:22px;font-weight:500;font-variant-numeric:tabular-nums;">{{ v.num }}</span>
+                    <span style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;font-variant-numeric:tabular-nums;">{{ v.hora }} · {{ v.qtdTexto }}</span>
+                  </div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                    <span style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:999px;background:#FFFFFF;color:#4A4766;font-size:12px;line-height:16px;font-weight:600;">
+                      <sc-if value="{{ v.isPix }}" hint-placeholder-val="{{ false }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 21 12 12 21 3 12Z"></path><path d="M9 12h6"></path></svg>
+                      </sc-if>
+                      <sc-if value="{{ v.isCartao }}" hint-placeholder-val="{{ false }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path></svg>
+                      </sc-if>
+                      <sc-if value="{{ v.isDinheiro }}" hint-placeholder-val="{{ true }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle></svg>
+                      </sc-if>
+                      {{ v.metodoTxt }}
+                    </span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:999px;background:{{ v.statusFundo }};color:{{ v.statusCor }};font-size:12px;line-height:16px;font-weight:600;">
+                      <span style="display:inline-flex;color:{{ v.statusIcone }};">
+                        <sc-if value="{{ v.isPago }}" hint-placeholder-val="{{ true }}">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"></path></svg>
+                        </sc-if>
+                        <sc-if value="{{ v.isPendente }}" hint-placeholder-val="{{ false }}">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                        </sc-if>
+                        <sc-if value="{{ v.isFila }}" hint-placeholder-val="{{ false }}">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M8.5 6.4A6 6 0 0 1 17.6 10H18a4 4 0 0 1 2.2 7.3"></path><path d="M16 19H7a5 5 0 0 1-1.6-9.7"></path></svg>
+                        </sc-if>
+                        <sc-if value="{{ v.isCancelada }}" hint-placeholder-val="{{ false }}">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6 6 18"></path></svg>
+                        </sc-if>
+                      </span>
+                      {{ v.statusTxt }}
+                    </span>
+                  </div>
+                </div>
+                <span style="flex:none;font-size:15px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums;color:{{ v.valorCor }};text-decoration:{{ v.valorDeco }};">{{ v.valorTxt }}</span>
+                <span style="flex:none;display:inline-flex;color:#6B6883;transition:transform .2s;transform:{{ v.chevron }};">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+                </span>
+              </button>
+
+              <sc-if value="{{ v.aberta }}" hint-placeholder-val="{{ false }}">
+                <div id="det-{{ v.id }}" style="padding:0 16px 16px;">
+                  <div style="border-top:1px solid #E2DED6;padding-top:12px;display:flex;flex-direction:column;gap:6px;">
+                    <sc-for list="{{ v.linhas }}" as="l" hint-placeholder-count="3">
+                      <div style="display:flex;justify-content:space-between;gap:12px;font-size:13px;line-height:18px;color:#4A4766;">
+                        <span>{{ l.nome }}</span>
+                        <span style="font-variant-numeric:tabular-nums;color:#14112B;">{{ l.valor }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;">
+                    <button type="button" onClick="{{ v.reenviar }}" style="display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:0;border-radius:999px;background:#FFFFFF;color:#14112B;font-size:13px;line-height:18px;font-weight:600;cursor:pointer;">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3 10 14"></path><path d="M21 3 14 21l-4-7-7-4 18-7Z"></path></svg>
+                      Reenviar comprovante
+                    </button>
+                    <sc-if value="{{ v.podeConsultar }}" hint-placeholder-val="{{ false }}">
+                      <button type="button" onClick="{{ v.consultar }}" style="display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:0;border-radius:999px;background:#14112B;color:#FFFFFF;font-size:13px;line-height:18px;font-weight:600;cursor:pointer;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+                        Consultar status
+                      </button>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ v.temAviso }}" hint-placeholder-val="{{ false }}">
+                    <p role="status" style="margin:10px 0 0;font-size:12px;line-height:16px;font-weight:500;color:#4A4766;">{{ v.aviso }}</p>
+                  </sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===================== SINCRONIZAÇÃO ===================== -->
+    <sc-if value="{{ isSync }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <sc-if value="{{ syncNaoOk }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;justify-content:center;">
+            <dc-import name="Ilustra" kind="offline" size="140" hint-size="140px,140px"></dc-import>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ syncOffline }}" hint-placeholder-val="{{ true }}">
+          <div role="status" style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:16px;background:#FFEFD9;color:#14112B;">
+            <span style="flex:none;display:inline-flex;color:#A65400;margin-top:1px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M8.5 6.4A6 6 0 0 1 17.6 10H18a4 4 0 0 1 2.2 7.3"></path><path d="M16 19H7a5 5 0 0 1-1.6-9.7"></path></svg>
+            </span>
+            <p style="margin:0;font-size:15px;line-height:22px;font-weight:500;">Sem internet desde 18:20. Pode continuar vendendo — guardamos tudo aqui.</p>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ syncAndando }}" hint-placeholder-val="{{ false }}">
+          <div role="status" style="display:flex;flex-direction:column;gap:12px;padding:14px 16px;border-radius:16px;background:#E6E9FF;color:#14112B;">
+            <div style="display:flex;gap:12px;align-items:center;">
+              <span style="flex:none;display:inline-flex;color:#3346F0;">
+                <svg class="anim" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="animation:girar .8s linear infinite;"><path d="M20 11a8 8 0 0 0-14.9-3.9"></path><path d="M4 4v4h4"></path><path d="M4 13a8 8 0 0 0 14.9 3.9"></path><path d="M20 20v-4h-4"></path></svg>
+              </span>
+              <p style="margin:0;font-size:15px;line-height:22px;font-weight:600;">Sincronizando… enviando 3 vendas</p>
+            </div>
+            <div role="progressbar" aria-label="Progresso do envio" style="height:8px;border-radius:999px;background:#FFFFFF;overflow:hidden;">
+              <div class="anim" style="height:8px;width:0;border-radius:999px;background:#3346F0;animation:encher 1.5s ease-in-out forwards;"></div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ syncOk }}" hint-placeholder-val="{{ false }}">
+          <div role="status" style="display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:16px;background:#DDF5E7;color:#14112B;">
+            <span style="flex:none;width:32px;height:32px;border-radius:999px;background:#0E7A40;color:#FFFFFF;display:flex;align-items:center;justify-content:center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"></path></svg>
+            </span>
+            <p style="margin:0;font-size:15px;line-height:22px;font-weight:600;">Tudo sincronizado</p>
+          </div>
+        </sc-if>
+
+        <!-- Fila de envio -->
+        <section style="background:#F4F2EE;border-radius:24px;padding:16px 16px 8px;">
+          <h2 style="margin:0 0 4px;font-size:18px;line-height:24px;font-weight:700;">{{ filaTitulo }}</h2>
+          <sc-if value="{{ syncNaoOk }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;">
+              <sc-for list="{{ fila }}" as="q" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:12px;min-height:56px;border-top:{{ q.borda }};">
+                  <span style="flex:none;width:36px;height:36px;border-radius:999px;background:#FFFFFF;color:#A65400;display:flex;align-items:center;justify-content:center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                  </span>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+                    <span style="font-size:15px;line-height:22px;font-weight:500;font-variant-numeric:tabular-nums;">{{ q.num }}</span>
+                    <span style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;font-variant-numeric:tabular-nums;">{{ q.hora }}</span>
+                  </div>
+                  <span style="font-size:15px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums;">{{ q.valor }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ syncOk }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0 12px;">
+              <dc-import name="Ilustra" kind="check" size="96" hint-size="96px,96px"></dc-import>
+              <p style="margin:0;font-size:15px;line-height:22px;color:#4A4766;">Nada esperando para enviar.</p>
+            </div>
+          </sc-if>
+        </section>
+
+        <!-- Status de catálogo e envio -->
+        <div style="display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;gap:12px;min-height:48px;">
+            <span style="flex:none;display:inline-flex;color:#4A4766;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Z"></path><circle cx="7.5" cy="7.5" r="1.5"></circle></svg>
+            </span>
+            <span style="font-size:15px;line-height:22px;color:#4A4766;">Catálogo atualizado às 18:05 · 312 produtos</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;min-height:48px;border-top:1px solid #E2DED6;">
+            <span style="flex:none;display:inline-flex;color:#4A4766;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a5 5 0 0 1-.6-10A6 6 0 0 1 18 9a4 4 0 0 1 0 9H7Z"></path><path d="M9.5 13.5 11.5 15.5 15 12"></path></svg>
+            </span>
+            <span style="font-size:15px;line-height:22px;color:#4A4766;">{{ ultimoEnvio }}</span>
+          </div>
+        </div>
+
+        <sc-if value="{{ syncOffline }}" hint-placeholder-val="{{ true }}">
+          <button type="button" class="cta" onClick="{{ tentarAgora }}" style="display:flex;align-items:center;justify-content:center;gap:8px;height:56px;width:100%;border:0;border-radius:999px;background:#FFC933;color:#14112B;font-size:17px;line-height:24px;font-weight:700;cursor:pointer;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.9-3.9"></path><path d="M4 4v4h4"></path><path d="M4 13a8 8 0 0 0 14.9 3.9"></path><path d="M20 20v-4h-4"></path></svg>
+            Tentar agora
+          </button>
+        </sc-if>
+        <sc-if value="{{ syncAndando }}" hint-placeholder-val="{{ false }}">
+          <button type="button" disabled="{{ true }}" aria-disabled="true" style="display:flex;align-items:center;justify-content:center;gap:8px;height:56px;width:100%;border:0;border-radius:999px;background:#FFC933;color:#14112B;font-size:17px;line-height:24px;font-weight:700;opacity:.4;cursor:default;">
+            <svg class="anim" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true" style="animation:girar .8s linear infinite;"><circle cx="12" cy="12" r="9" opacity=".3"></circle><path d="M21 12a9 9 0 0 0-9-9"></path></svg>
+            Sincronizando…
+          </button>
+        </sc-if>
+        <sc-if value="{{ syncOk }}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{ simularQueda }}" style="align-self:center;height:44px;padding:0 16px;border:0;border-radius:999px;background:transparent;color:#14112B;font-size:15px;line-height:22px;font-weight:600;text-decoration:underline;cursor:pointer;">Simular queda de internet</button>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ===================== AJUSTES ===================== -->
+    <sc-if value="{{ isAjustes }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:28px;">
+
+        <!-- RECEBIMENTOS -->
+        <section style="display:flex;flex-direction:column;gap:8px;">
+          <h2 style="margin:0 0 4px;font-size:13px;line-height:18px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B6883;">Recebimentos</h2>
+
+          <div style="display:flex;align-items:center;gap:12px;min-height:72px;padding:0 16px;background:#F4F2EE;border-radius:16px;">
+            <span aria-hidden="true" style="flex:none;width:40px;height:40px;border-radius:8px;background:#14112B;color:#FFC933;display:flex;align-items:center;justify-content:center;font-size:14px;line-height:18px;font-weight:700;letter-spacing:.02em;">IP</span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+              <span style="font-size:15px;line-height:22px;font-weight:500;">InfinitePay</span>
+              <span style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Pix na tela + InfiniteTap</span>
+            </div>
+            <span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:999px;background:#DDF5E7;color:#14112B;font-size:12px;line-height:16px;font-weight:600;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0E7A40" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"></path></svg>
+              Conectado
+            </span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;min-height:72px;padding:0 16px;background:#F4F2EE;border-radius:16px;">
+            <span aria-hidden="true" style="flex:none;width:40px;height:40px;border-radius:8px;background:#E6E9FF;color:#3346F0;display:flex;align-items:center;justify-content:center;font-size:14px;line-height:18px;font-weight:700;letter-spacing:.02em;">MP</span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+              <span style="font-size:15px;line-height:22px;font-weight:500;">Mercado Pago</span>
+              <span style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Pix na tela + Mercado Pago Tap</span>
+            </div>
+            <span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:999px;background:#DDF5E7;color:#14112B;font-size:12px;line-height:16px;font-weight:600;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0E7A40" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"></path></svg>
+              Conectado
+            </span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;min-height:72px;padding:0 16px;background:#F4F2EE;border-radius:16px;">
+            <span style="flex:none;width:40px;height:40px;border-radius:8px;background:#FFFFFF;color:#14112B;display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 10v4"></path><path d="M18 10v4"></path></svg>
+            </span>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+              <span style="font-size:15px;line-height:22px;font-weight:500;">Dinheiro</span>
+              <span style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Com calculadora de troco</span>
+            </div>
+            <span style="flex:none;display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:999px;background:#DDF5E7;color:#14112B;font-size:12px;line-height:16px;font-weight:600;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0E7A40" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"></path></svg>
+              Ativo
+            </span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+            <span id="rot-pix" style="font-size:13px;line-height:18px;font-weight:600;color:#14112B;">Pix sai por padrão em</span>
+            <div role="group" aria-labelledby="rot-pix" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;background:#F4F2EE;border-radius:999px;">
+              <sc-for list="{{ segPix }}" as="s" hint-placeholder-count="2">
+                <button type="button" onClick="{{ s.escolher }}" aria-pressed="{{ s.pressed }}" style="height:40px;border:0;border-radius:999px;background:{{ s.fundo }};box-shadow:{{ s.sombra }};color:{{ s.cor }};font-size:14px;line-height:18px;font-weight:600;cursor:pointer;">{{ s.rotulo }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </section>
+
+        <!-- LEITOR -->
+        <section style="display:flex;flex-direction:column;gap:8px;">
+          <h2 style="margin:0 0 4px;font-size:13px;line-height:18px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B6883;">Leitor</h2>
+          <div style="background:#F4F2EE;border-radius:16px;padding:0 8px 0 16px;">
+            <sc-for list="{{ interruptores }}" as="w" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:12px;min-height:64px;border-top:{{ w.borda }};">
+                <span id="sw-{{ w.id }}" style="flex:1;min-width:0;font-size:15px;line-height:22px;font-weight:500;">{{ w.nome }}</span>
+                <button type="button" role="switch" aria-checked="{{ w.marcado }}" aria-labelledby="sw-{{ w.id }}" onClick="{{ w.alternar }}" style="flex:none;width:60px;height:48px;padding:0;border:0;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:999px;">
+                  <span style="position:relative;display:block;width:52px;height:32px;border-radius:999px;background:{{ w.trilho }};box-shadow:{{ w.contorno }};transition:background .18s;">
+                    <span style="position:absolute;top:{{ w.topo }};left:{{ w.esq }};width:{{ w.tam }};height:{{ w.tam }};border-radius:999px;background:{{ w.bola }};transition:all .18s;"></span>
+                  </span>
+                </button>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+            <span id="rot-ignorar" style="font-size:13px;line-height:18px;font-weight:600;color:#14112B;">Ignorar o mesmo código por</span>
+            <div role="group" aria-labelledby="rot-ignorar" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;background:#F4F2EE;border-radius:999px;">
+              <sc-for list="{{ segIgnorar }}" as="s" hint-placeholder-count="3">
+                <button type="button" onClick="{{ s.escolher }}" aria-pressed="{{ s.pressed }}" style="height:40px;border:0;border-radius:999px;background:{{ s.fundo }};box-shadow:{{ s.sombra }};color:{{ s.cor }};font-size:14px;line-height:18px;font-weight:600;cursor:pointer;font-variant-numeric:tabular-nums;">{{ s.rotulo }}</button>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+            <span id="rot-pausar" style="font-size:13px;line-height:18px;font-weight:600;color:#14112B;">Pausar a câmera parada após</span>
+            <div role="group" aria-labelledby="rot-pausar" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;background:#F4F2EE;border-radius:999px;">
+              <sc-for list="{{ segPausar }}" as="s" hint-placeholder-count="3">
+                <button type="button" onClick="{{ s.escolher }}" aria-pressed="{{ s.pressed }}" style="height:40px;border:0;border-radius:999px;background:{{ s.fundo }};box-shadow:{{ s.sombra }};color:{{ s.cor }};font-size:14px;line-height:18px;font-weight:600;cursor:pointer;font-variant-numeric:tabular-nums;">{{ s.rotulo }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <p style="margin:0;font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Evita passar o mesmo produto duas vezes e poupa bateria.</p>
+        </section>
+
+        <!-- APARELHO -->
+        <section style="display:flex;flex-direction:column;gap:8px;">
+          <h2 style="margin:0 0 4px;font-size:13px;line-height:18px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B6883;">Aparelho</h2>
+          <div style="background:#F4F2EE;border-radius:16px;padding:0 16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:56px;">
+              <span style="font-size:15px;line-height:22px;color:#4A4766;">Nome do aparelho</span>
+              <span style="font-size:15px;line-height:22px;font-weight:500;">Celular do balcão</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:56px;border-top:1px solid #E2DED6;">
+              <span style="font-size:15px;line-height:22px;color:#4A4766;">Operadora</span>
+              <span style="font-size:15px;line-height:22px;font-weight:500;">Ana</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:56px;border-top:1px solid #E2DED6;">
+              <span style="font-size:15px;line-height:22px;color:#4A4766;">Versão</span>
+              <span style="font-size:15px;line-height:22px;font-weight:500;">0.1 (protótipo)</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+  </main>
+
+  <!-- Barra inferior -->
+  <nav aria-label="Navegação principal" style="flex:none;height:88px;display:grid;grid-template-columns:1fr 1fr 128px 1fr 1fr;align-items:start;padding-top:8px;padding-bottom:env(safe-area-inset-bottom);background:#FFFFFF;border-top:1px solid #E2DED6;box-sizing:border-box;">
+    <a href="AppInicio.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; min-height: 56px; color: #4A4766; text-decoration: none; font-size: 12px; line-height: 16px; font-weight: 600;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20h14V9.5"></path><path d="M10 20v-6h4v6"></path></svg>Início<span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;background:transparent;"></span></a>
+    <a href="AppCadastro.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; min-height: 56px; color: #4A4766; text-decoration: none; font-size: 12px; line-height: 16px; font-weight: 600;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"></path><path d="M3 8l9 5 9-5"></path><path d="M12 13v8"></path></svg>Produtos<span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;background:transparent;"></span></a>
+    <a href="AppVender.dc.html" class="btn-primario btn-vender" style="box-sizing:border-box;min-width:104px;padding:0 14px;white-space:nowrap;height:56px;margin-top:-22px;justify-self:center;gap:8px;border:4px solid #FFFFFF;border-radius:999px;background:#FFC933;color:#14112B;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(20,17,43,.18);text-decoration:none;font:700 16px/20px Inter,sans-serif;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 8v8"></path><path d="M10 8v8"></path><path d="M13 8v8"></path><path d="M17 8v8"></path></svg><span>Vender</span></a>
+    <a href="#" onClick="{{ irCaixa }}" aria-current="{{ caixaAtual }}" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; min-height: 56px; color: {{ caixaCor }}; text-decoration: none; font-size: 12px; line-height: 16px; font-weight: 600;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="9" rx="2"></rect><path d="M6 11V5h8v6"></path><path d="M8 8h4"></path><path d="M7 15h2"></path><path d="M11 15h2"></path><path d="M15 15h2"></path></svg>Caixa<span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;background:{{ caixaPonto }};"></span></a>
+    <a href="#" onClick="{{ irAjustes }}" aria-current="{{ ajustesAtual }}" style="display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 48px; min-height: 56px; color: {{ ajustesCor }}; text-decoration: none; font-size: 12px; line-height: 16px; font-weight: 600;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10"></path><path d="M18 6h2"></path><circle cx="16" cy="6" r="2"></circle><path d="M4 12h4"></path><path d="M12 12h8"></path><circle cx="10" cy="12" r="2"></circle><path d="M4 18h12"></path><circle cx="18" cy="18" r="2"></circle></svg>Ajustes<span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;background:{{ ajustesPonto }};"></span></a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tela":{"editor":"enum","options":["resumo","vendas","sync","ajustes"],"default":"resumo"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      tela: props.tela ?? 'resumo',
+      contado: '',
+      fechado: false,
+      filtro: 'todas',
+      aberta: null,
+      avisos: {},
+      sync: 'offline',
+      pix: 'ip',
+      bipe: true,
+      vibrar: true,
+      lanterna: false,
+      ignorar: '1,5',
+      pausar: '15'
+    };
+    this.timer = null;
+    // Valores em centavos. Itens: [nome, quantidade, valor]
+    this.vendas = [
+      { id: '231', hora: '18:52', metodo: 'dinheiro', status: 'fila', qtd: 6, itens: [['Arroz tipo 1 5kg', '1×', 2790], ['Feijão carioca 1kg', '1×', 849], ['Leite integral 1L', '3×', 1587], ['Biscoito recheado 130g', '1×', 379]] },
+      { id: '230', hora: '18:41', metodo: 'dinheiro', status: 'fila', qtd: 2, itens: [['Refrigerante cola 2L', '1×', 999], ['Saco de gelo 5kg', '1×', 1200]] },
+      { id: '229', hora: '18:27', metodo: 'dinheiro', status: 'fila', qtd: 3, itens: [['Pão francês', '0,500 kg', 845], ['Leite integral 1L', '2×', 1058]] },
+      { id: '228', hora: '18:14', metodo: 'cartao', status: 'pendente', qtd: 3, itens: [['Café torrado 500g', '1×', 1990], ['Biscoito recheado 130g', '2×', 758]] },
+      { id: '227', hora: '17:58', metodo: 'pix', status: 'pago', qtd: 3, itens: [['Arroz tipo 1 5kg', '1×', 2790], ['Feijão carioca 1kg', '2×', 1698]] },
+      { id: '226', hora: '17:46', metodo: 'dinheiro', status: 'cancelada', qtd: 2, itens: [['Refrigerante cola 2L', '2×', 1998]] },
+      { id: '225', hora: '17:31', metodo: 'pix', status: 'pago', qtd: 2, itens: [['Banana prata', '1,200 kg', 839], ['Leite integral 1L', '1×', 529]] },
+      { id: '224', hora: '17:20', metodo: 'cartao', status: 'pago', qtd: 3, itens: [['Saco de gelo 5kg', '1×', 1200], ['Refrigerante cola 2L', '1×', 999], ['Biscoito recheado 130g', '1×', 379]] }
+    ];
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.tela !== this.props.tela && this.props.tela) {
+      this.setState({ tela: this.props.tela });
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+  }
+
+  brl(centavos) {
+    const c = Math.abs(Math.round(centavos));
+    const reais = String(Math.floor(c / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const cent = String(c % 100).padStart(2, '0');
+    return (centavos < 0 ? '-' : '') + 'R$ ' + reais + ',' + cent;
+  }
+
+  parse(txt) {
+    let s = String(txt || '').replace(/[^\d,.]/g, '');
+    if (!s) return null;
+    if (s.indexOf(',') >= 0) {
+      s = s.replace(/\./g, '').replace(',', '.').replace(/,/g, '');
+    } else if (/^\d{1,3}(\.\d{3})+$/.test(s)) {
+      s = s.replace(/\./g, '');
+    }
+    const n = parseFloat(s);
+    if (!isFinite(n)) return null;
+    return Math.round(n * 100);
+  }
+
+  seg(opcoes, atual, aoEscolher) {
+    return opcoes.map((o) => {
+      const ativo = o[0] === atual;
+      return {
+        rotulo: o[1],
+        pressed: ativo ? 'true' : 'false',
+        fundo: ativo ? '#FFFFFF' : 'transparent',
+        sombra: ativo ? '0 1px 3px rgba(20,17,43,.14)' : 'none',
+        cor: ativo ? '#14112B' : '#4A4766',
+        escolher: () => aoEscolher(o[0])
+      };
+    });
+  }
+
+  tentarAgora() {
+    if (this.timer) clearTimeout(this.timer);
+    this.setState({ sync: 'sincronizando' });
+    this.timer = setTimeout(() => {
+      this.timer = null;
+      this.setState({ sync: 'ok' });
+    }, 1500);
+  }
+
+  setAviso(id, texto) {
+    this.setState((p) => {
+      const avisos = Object.assign({}, p.avisos);
+      avisos[id] = texto;
+      return { avisos };
+    });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const t = s.tela;
+    const ajustes = t === 'ajustes';
+
+    // ---------- Resumo ----------
+    const dinheiro = 41230, pix = 59870, cartao = 27350, troco = 10000;
+    const total = dinheiro + pix + cartao;
+    const esperado = troco + dinheiro;
+    const pct = (c) => (Math.round((c / total) * 1000) / 10) + '%';
+    const contadoC = this.parse(s.contado);
+    const temContado = contadoC !== null;
+    const dif = temContado ? contadoC - esperado : 0;
+
+    // ---------- Vendas ----------
+    const syncOk = s.sync === 'ok';
+    const metodoTxt = { pix: 'Pix', cartao: 'Cartão', dinheiro: 'Dinheiro' };
+    const stCfg = {
+      pago: { txt: 'Pago', fundo: '#DDF5E7', cor: '#14112B', icone: '#0E7A40' },
+      pendente: { txt: 'Pendente', fundo: '#FFEFD9', cor: '#A65400', icone: '#A65400' },
+      fila: { txt: 'Na fila', fundo: '#FFEFD9', cor: '#A65400', icone: '#A65400' },
+      cancelada: { txt: 'Cancelada', fundo: '#FDE3E6', cor: '#C8102E', icone: '#C8102E' }
+    };
+    const todas = this.vendas.map((v) => {
+      const st = (v.status === 'fila' && syncOk) ? 'pago' : v.status;
+      const c = stCfg[st];
+      const soma = v.itens.reduce((a, i) => a + i[2], 0);
+      const aberta = s.aberta === v.id;
+      const aviso = s.avisos[v.id] || '';
+      return {
+        id: v.id,
+        num: '#000' + v.id,
+        hora: v.hora,
+        qtdTexto: v.qtd + ' itens',
+        metodo: v.metodo,
+        metodoTxt: metodoTxt[v.metodo],
+        isPix: v.metodo === 'pix',
+        isCartao: v.metodo === 'cartao',
+        isDinheiro: v.metodo === 'dinheiro',
+        st: st,
+        statusTxt: c.txt,
+        statusFundo: c.fundo,
+        statusCor: c.cor,
+        statusIcone: c.icone,
+        isPago: st === 'pago',
+        isPendente: st === 'pendente',
+        isFila: st === 'fila',
+        isCancelada: st === 'cancelada',
+        valorTxt: this.brl(soma),
+        valorCor: st === 'cancelada' ? '#4A4766' : '#14112B',
+        valorDeco: st === 'cancelada' ? 'line-through' : 'none',
+        aberta: aberta,
+        expandido: aberta ? 'true' : 'false',
+        chevron: aberta ? 'rotate(180deg)' : 'none',
+        linhas: v.itens.map((i) => ({ nome: i[1] + ' ' + i[0], valor: this.brl(i[2]) })),
+        podeConsultar: st === 'pendente',
+        temAviso: !!aviso,
+        aviso: aviso,
+        alternar: () => this.setState({ aberta: aberta ? null : v.id }),
+        reenviar: () => {
+          let msg = 'Comprovante reenviado.';
+          if (st === 'fila') msg = 'Sem internet: o comprovante sai assim que a conexão voltar.';
+          if (st === 'cancelada') msg = 'Comprovante de cancelamento reenviado.';
+          this.setAviso(v.id, msg);
+        },
+        consultar: () => this.setAviso(v.id, 'Ainda sem confirmação da maquininha. Confira antes de cobrar de novo.')
+      };
+    });
+    const f = s.filtro;
+    const vendas = todas.filter((v) => {
+      if (f === 'todas') return true;
+      if (f === 'pendentes') return v.st === 'pendente' || v.st === 'fila';
+      return v.metodo === f;
+    });
+    const filtros = [['todas', 'Todas'], ['pix', 'Pix'], ['cartao', 'Cartão'], ['dinheiro', 'Dinheiro'], ['pendentes', 'Pendentes']].map((o) => {
+      const ativo = f === o[0];
+      return {
+        rot: o[1],
+        pressed: ativo ? 'true' : 'false',
+        fundo: ativo ? '#14112B' : '#F4F2EE',
+        cor: ativo ? '#FFFFFF' : '#14112B',
+        escolher: () => this.setState({ filtro: o[0], aberta: null })
+      };
+    });
+    const n = vendas.length;
+    const contagemTxt = (n === 1 ? '1 venda' : n + ' vendas') + (f === 'todas' ? ' · últimas de hoje' : ' neste filtro');
+
+    // ---------- Sincronização ----------
+    const fila = this.vendas
+      .filter((v) => v.status === 'fila')
+      .slice()
+      .reverse()
+      .map((v, i) => ({
+        num: '#000' + v.id,
+        hora: v.hora,
+        valor: this.brl(v.itens.reduce((a, it) => a + it[2], 0)),
+        borda: i === 0 ? 'none' : '1px solid #E2DED6'
+      }));
+
+    // ---------- Ajustes ----------
+    const sw = (id, nome, on) => ({
+      id: id,
+      nome: nome,
+      marcado: on ? 'true' : 'false',
+      trilho: on ? '#3346F0' : '#EAE7E1',
+      contorno: on ? 'none' : 'inset 0 0 0 2px #6B6883',
+      bola: on ? '#FFFFFF' : '#6B6883',
+      tam: on ? '24px' : '16px',
+      topo: on ? '4px' : '8px',
+      esq: on ? '24px' : '8px',
+      alternar: () => this.setState((p) => { const o = {}; o[id] = !p[id]; return o; })
+    });
+    const interruptores = [
+      sw('bipe', 'Bipe sonoro', s.bipe),
+      sw('vibrar', 'Vibrar ao ler', s.vibrar),
+      sw('lanterna', 'Lanterna ao abrir a câmera', s.lanterna)
+    ].map((w, i) => Object.assign(w, { borda: i === 0 ? 'none' : '1px solid #E2DED6' }));
+
+    return {
+      // topo
+      tituloTela: ajustes ? 'Ajustes' : 'Caixa',
+      mostrarSeg: !ajustes,
+      segTopo: this.seg([['resumo', 'Resumo'], ['vendas', 'Vendas'], ['sync', 'Sincronização']], t, (v) => this.setState({ tela: v, aberta: null })),
+      isResumo: t === 'resumo',
+      isVendas: t === 'vendas',
+      isSync: t === 'sync',
+      isAjustes: ajustes,
+
+      // resumo
+      totalTxt: this.brl(total),
+      dinheiroTxt: this.brl(dinheiro),
+      pixTxt: this.brl(pix),
+      cartaoTxt: this.brl(cartao),
+      dinheiroPct: pct(dinheiro),
+      pixPct: pct(pix),
+      cartaoPct: pct(cartao),
+      trocoTxt: this.brl(troco),
+      esperadoTxt: this.brl(esperado),
+      contado: s.contado,
+      aoDigitar: (e) => {
+        const v = String(e.target.value || '').replace(/[^\d,.]/g, '').slice(0, 10);
+        this.setState({ contado: v });
+      },
+      semValor: !temContado,
+      bateu: temContado && dif === 0,
+      sobrando: temContado && dif > 0,
+      faltando: temContado && dif < 0,
+      sobrandoTxt: 'Sobrando ' + this.brl(Math.max(dif, 0)),
+      faltandoTxt: 'Faltando ' + this.brl(Math.max(-dif, 0)),
+      fechado: s.fechado,
+      naoFechado: !s.fechado,
+      fecharCaixa: () => this.setState({ fechado: true }),
+      abrirNovo: () => this.setState({ fechado: false, contado: '' }),
+
+      // vendas
+      filtros: filtros,
+      vendas: vendas,
+      naoTemVendas: n === 0,
+      contagemTxt: contagemTxt,
+
+      // sync
+      syncOffline: s.sync === 'offline',
+      syncAndando: s.sync === 'sincronizando',
+      syncOk: syncOk,
+      syncNaoOk: !syncOk,
+      fila: fila,
+      filaTitulo: syncOk ? 'Fila de envio · 0 vendas' : 'Fila de envio · ' + fila.length + ' vendas',
+      ultimoEnvio: syncOk ? 'Último envio completo agora' : 'Último envio completo 18:19',
+      tentarAgora: () => this.tentarAgora(),
+      simularQueda: () => {
+        if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+        this.setState({ sync: 'offline' });
+      },
+
+      // ajustes
+      segPix: this.seg([['ip', 'InfinitePay'], ['mp', 'Mercado Pago']], s.pix, (v) => this.setState({ pix: v })),
+      interruptores: interruptores,
+      segIgnorar: this.seg([['1', '1 s'], ['1,5', '1,5 s'], ['2', '2 s']], s.ignorar, (v) => this.setState({ ignorar: v })),
+      segPausar: this.seg([['10', '10 s'], ['15', '15 s'], ['30', '30 s']], s.pausar, (v) => this.setState({ pausar: v })),
+
+      // barra inferior
+      irCaixa: () => this.setState({ tela: 'resumo', aberta: null }),
+      irAjustes: () => this.setState({ tela: 'ajustes', aberta: null }),
+      caixaAtual: ajustes ? 'false' : 'page',
+      ajustesAtual: ajustes ? 'page' : 'false',
+      caixaCor: ajustes ? '#4A4766' : '#14112B',
+      ajustesCor: ajustes ? '#14112B' : '#4A4766',
+      caixaPonto: ajustes ? 'transparent' : '#FFC933',
+      ajustesPonto: ajustes ? '#FFC933' : 'transparent'
+    };
+  }
+}
+</script>
+</body>
+</html>

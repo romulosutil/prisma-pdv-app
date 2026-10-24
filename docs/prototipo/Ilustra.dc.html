@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Ilustra</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{px}}; height: {{px}}">
+
+<sc-if value="{{ isScanner }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Etiqueta de código de barras com feixe de luz" style="display: block">
+<defs>
+<radialGradient id="g-scanner-1" cx="0.36" cy="0.3" r="0.85" fx="0.24" fy="0.18"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset="0.45" stop-color="#FFF3CC"></stop><stop offset="1" stop-color="#FFB79E"></stop></radialGradient>
+<radialGradient id="g-scanner-2" cx="0.36" cy="0.3" r="0.85" fx="0.24" fy="0.18"><stop offset="0" stop-color="#FFB08F"></stop><stop offset="0.6" stop-color="#FF7A59"></stop><stop offset="1" stop-color="#E8407A"></stop></radialGradient>
+<linearGradient id="g-scanner-3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3346F0"></stop><stop offset="1" stop-color="#7B5CFF"></stop></linearGradient>
+<linearGradient id="g-scanner-4" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFC933" stop-opacity="0"></stop><stop offset="0.2" stop-color="#FFC933"></stop><stop offset="0.5" stop-color="#FFE58A"></stop><stop offset="0.8" stop-color="#FF7A59"></stop><stop offset="1" stop-color="#FF7A59" stop-opacity="0"></stop></linearGradient>
+<clipPath id="c-scanner-1"><rect x="40" y="56" width="120" height="88" rx="20"></rect></clipPath>
+<filter id="f-wet-scanner" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="8" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-scanner" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="8"></feGaussianBlur></filter>
+<filter id="f-sh-scanner" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="102" cy="166" rx="58" ry="7" fill="#3346F0" opacity="0.18" filter="url(#f-sh-scanner)"></ellipse>
+<g filter="url(#f-wet-scanner)">
+<g transform="rotate(-8 100 100)">
+<rect x="45" y="62" width="120" height="88" rx="20" fill="url(#g-scanner-2)"></rect>
+<rect x="40" y="56" width="120" height="88" rx="20" fill="url(#g-scanner-1)"></rect>
+<g clip-path="url(#c-scanner-1)"><ellipse cx="82" cy="74" rx="48" ry="24" fill="#FFFFFF" opacity="0.65" filter="url(#f-blur-scanner)"></ellipse></g>
+<circle cx="57" cy="74" r="6" fill="#FF9B7F" opacity="0.55"></circle>
+<g fill="url(#g-scanner-3)" opacity="0.72">
+<rect x="72" y="84" width="4" height="42" rx="1.6"></rect>
+<rect x="79" y="84" width="2" height="42" rx="1"></rect>
+<rect x="84" y="84" width="6" height="42" rx="1.6"></rect>
+<rect x="93" y="84" width="3" height="42" rx="1.4"></rect>
+<rect x="99" y="84" width="2" height="42" rx="1"></rect>
+<rect x="104" y="84" width="5" height="42" rx="1.6"></rect>
+<rect x="112" y="84" width="2" height="42" rx="1"></rect>
+<rect x="117" y="84" width="4" height="42" rx="1.6"></rect>
+<rect x="124" y="84" width="6" height="42" rx="1.6"></rect>
+<rect x="133" y="84" width="2" height="42" rx="1"></rect>
+<rect x="138" y="84" width="3" height="42" rx="1.4"></rect>
+<rect x="144" y="84" width="4" height="42" rx="1.6"></rect>
+</g>
+<ellipse cx="80" cy="63" rx="14" ry="3.2" fill="#FFFFFF" opacity="0.9"></ellipse>
+</g>
+<ellipse cx="100" cy="106" rx="84" ry="9" fill="#FFC933" opacity="0.55" filter="url(#f-blur-scanner)"></ellipse>
+<rect x="14" y="103" width="172" height="6" rx="3" fill="url(#g-scanner-4)"></rect>
+<rect x="44" y="105" width="112" height="2" rx="1" fill="#FFFFFF" opacity="0.8"></rect>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isCesta }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Cesta de compras com pão, garrafa e fruta" style="display: block">
+<defs>
+<radialGradient id="g-cesta-1" cx="0.34" cy="0.25" r="0.9" fx="0.22" fy="0.14"><stop offset="0" stop-color="#FFC2A8"></stop><stop offset="0.5" stop-color="#FF7A59"></stop><stop offset="1" stop-color="#E8407A"></stop></radialGradient>
+<radialGradient id="g-cesta-2" cx="0.3" cy="0.2" r="0.9" fx="0.2" fy="0.1"><stop offset="0" stop-color="#C9B8FF"></stop><stop offset="0.55" stop-color="#7B5CFF"></stop><stop offset="1" stop-color="#3346F0"></stop></radialGradient>
+<radialGradient id="g-cesta-3" cx="0.35" cy="0.3" r="0.85" fx="0.25" fy="0.2"><stop offset="0" stop-color="#FFF1B8"></stop><stop offset="0.5" stop-color="#FFC933"></stop><stop offset="1" stop-color="#FF7A59"></stop></radialGradient>
+<radialGradient id="g-cesta-4" cx="0.32" cy="0.28" r="0.85" fx="0.2" fy="0.18"><stop offset="0" stop-color="#C8F7F1"></stop><stop offset="0.5" stop-color="#2EC4B6"></stop><stop offset="1" stop-color="#3346F0"></stop></radialGradient>
+<radialGradient id="g-cesta-5" cx="0.35" cy="0.3" r="0.8" fx="0.24" fy="0.2"><stop offset="0" stop-color="#F0FFC2"></stop><stop offset="0.45" stop-color="#B6E83A"></stop><stop offset="1" stop-color="#1FAF5F"></stop></radialGradient>
+<clipPath id="c-cesta-1"><path d="M36 98 H164 Q171 98 169 106 L155 158 Q152 168 142 168 H58 Q48 168 45 158 L31 106 Q29 98 36 98 Z"></path></clipPath>
+<filter id="f-wet-cesta" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="5" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="11" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-cesta" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="8"></feGaussianBlur></filter>
+<filter id="f-sh-cesta" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="100" cy="174" rx="62" ry="7" fill="#E8407A" opacity="0.18" filter="url(#f-sh-cesta)"></ellipse>
+<g filter="url(#f-wet-cesta)">
+<path d="M56 102 C56 44 144 44 144 102 L132 102 C132 60 68 60 68 102 Z" fill="url(#g-cesta-2)"></path>
+<g transform="rotate(-24 74 76)">
+<ellipse cx="74" cy="76" rx="14" ry="36" fill="url(#g-cesta-3)"></ellipse>
+<ellipse cx="74" cy="58" rx="6" ry="2.2" fill="#FFF6D6" opacity="0.75"></ellipse>
+<ellipse cx="74" cy="74" rx="6" ry="2.2" fill="#FFF6D6" opacity="0.75"></ellipse>
+<ellipse cx="70" cy="52" rx="4" ry="9" fill="#FFFFFF" opacity="0.45" filter="url(#f-blur-cesta)"></ellipse>
+</g>
+<g transform="rotate(10 128 70)">
+<rect x="119.5" y="26" width="17" height="9" rx="3.5" fill="#E8407A"></rect>
+<rect x="121" y="32" width="14" height="24" rx="5" fill="url(#g-cesta-4)"></rect>
+<rect x="114" y="50" width="28" height="58" rx="12" fill="url(#g-cesta-4)"></rect>
+<rect x="114" y="70" width="28" height="13" fill="#FFC933" opacity="0.9"></rect>
+<ellipse cx="121" cy="62" rx="3" ry="6" fill="#FFFFFF" opacity="0.8"></ellipse>
+</g>
+<circle cx="100" cy="86" r="20" fill="url(#g-cesta-5)"></circle>
+<ellipse cx="93" cy="78" rx="7" ry="5" fill="#FFFFFF" opacity="0.7"></ellipse>
+<ellipse cx="108" cy="64" rx="8" ry="3.6" transform="rotate(-30 108 64)" fill="#1FAF5F"></ellipse>
+<path d="M36 98 H164 Q171 98 169 106 L155 158 Q152 168 142 168 H58 Q48 168 45 158 L31 106 Q29 98 36 98 Z" fill="url(#g-cesta-1)"></path>
+<g clip-path="url(#c-cesta-1)">
+<ellipse cx="70" cy="118" rx="42" ry="18" fill="#FFFFFF" opacity="0.55" filter="url(#f-blur-cesta)"></ellipse>
+<rect x="30" y="120" width="140" height="6" rx="3" fill="#FFFFFF" opacity="0.22"></rect>
+<rect x="30" y="137" width="140" height="6" rx="3" fill="#FFFFFF" opacity="0.2"></rect>
+<rect x="30" y="153" width="140" height="6" rx="3" fill="#FFFFFF" opacity="0.16"></rect>
+</g>
+<rect x="28" y="94" width="144" height="14" rx="7" fill="#FF8A6B"></rect>
+<ellipse cx="62" cy="98" rx="20" ry="2.5" fill="#FFFFFF" opacity="0.85"></ellipse>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isMoedas }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Pilha de moedas e cédula dobrada" style="display: block">
+<defs>
+<radialGradient id="g-moedas-1" cx="0.34" cy="0.3" r="0.8" fx="0.22" fy="0.18"><stop offset="0" stop-color="#FFF4C2"></stop><stop offset="0.5" stop-color="#FFC933"></stop><stop offset="1" stop-color="#FF7A59"></stop></radialGradient>
+<linearGradient id="g-moedas-2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FF9A6B"></stop><stop offset="0.5" stop-color="#FF7A59"></stop><stop offset="1" stop-color="#E8407A"></stop></linearGradient>
+<radialGradient id="g-moedas-3" cx="0.3" cy="0.25" r="0.9" fx="0.2" fy="0.15"><stop offset="0" stop-color="#F0FFC2"></stop><stop offset="0.5" stop-color="#B6E83A"></stop><stop offset="1" stop-color="#1FAF5F"></stop></radialGradient>
+<radialGradient id="g-moedas-4" cx="0.3" cy="0.25" r="0.9" fx="0.2" fy="0.15"><stop offset="0" stop-color="#BFF5E4"></stop><stop offset="0.5" stop-color="#2EC4B6"></stop><stop offset="1" stop-color="#1FAF5F"></stop></radialGradient>
+<clipPath id="c-moedas-1"><path d="M92 58 Q92 52 98 51 L140 44 L146 120 L104 130 Q98 131 97 125 Z"></path></clipPath>
+<clipPath id="c-moedas-2"><ellipse cx="75" cy="106" rx="34" ry="11"></ellipse></clipPath>
+<filter id="f-wet-moedas" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="13" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-moedas" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="7"></feGaussianBlur></filter>
+<filter id="f-sh-moedas" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="104" cy="164" rx="74" ry="8" fill="#1FAF5F" opacity="0.18" filter="url(#f-sh-moedas)"></ellipse>
+<g filter="url(#f-wet-moedas)">
+<path d="M140 44 L176 54 Q182 56 182 62 L182 124 Q182 130 176 129 L146 120 Z" fill="url(#g-moedas-4)"></path>
+<rect x="152" y="66" width="22" height="5" rx="2.5" fill="#FFFFFF" opacity="0.4"></rect>
+<path d="M92 58 Q92 52 98 51 L140 44 L146 120 L104 130 Q98 131 97 125 Z" fill="url(#g-moedas-3)"></path>
+<g clip-path="url(#c-moedas-1)"><ellipse cx="108" cy="66" rx="26" ry="16" fill="#FFFFFF" opacity="0.6" filter="url(#f-blur-moedas)"></ellipse></g>
+<circle cx="120" cy="88" r="13" fill="#FFFFFF" opacity="0.45"></circle>
+<circle cx="120" cy="88" r="6" fill="#1FAF5F" opacity="0.5"></circle>
+<path d="M38 142 V152 A34 11 0 0 0 106 152 V142 Z" fill="url(#g-moedas-2)"></path>
+<ellipse cx="72" cy="142" rx="34" ry="11" fill="url(#g-moedas-1)"></ellipse>
+<path d="M40 130 V140 A34 11 0 0 0 108 140 V130 Z" fill="url(#g-moedas-2)"></path>
+<ellipse cx="74" cy="130" rx="34" ry="11" fill="url(#g-moedas-1)"></ellipse>
+<path d="M37 118 V128 A34 11 0 0 0 105 128 V118 Z" fill="url(#g-moedas-2)"></path>
+<ellipse cx="71" cy="118" rx="34" ry="11" fill="url(#g-moedas-1)"></ellipse>
+<path d="M41 106 V116 A34 11 0 0 0 109 116 V106 Z" fill="url(#g-moedas-2)"></path>
+<ellipse cx="75" cy="106" rx="34" ry="11" fill="url(#g-moedas-1)"></ellipse>
+<g clip-path="url(#c-moedas-2)"><ellipse cx="62" cy="102" rx="24" ry="8" fill="#FFFFFF" opacity="0.6" filter="url(#f-blur-moedas)"></ellipse></g>
+<ellipse cx="75" cy="106" rx="23" ry="7" fill="#FFE58A" opacity="0.7"></ellipse>
+<ellipse cx="60" cy="102" rx="10" ry="2.4" fill="#FFFFFF" opacity="0.85"></ellipse>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isTap }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Celular recebendo cartão por aproximação" style="display: block">
+<defs>
+<radialGradient id="g-tap-1" cx="0.3" cy="0.22" r="0.95" fx="0.2" fy="0.12"><stop offset="0" stop-color="#B9B0FF"></stop><stop offset="0.5" stop-color="#7B5CFF"></stop><stop offset="1" stop-color="#3346F0"></stop></radialGradient>
+<radialGradient id="g-tap-2" cx="0.3" cy="0.22" r="0.95" fx="0.2" fy="0.12"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset="0.5" stop-color="#CFF7F2"></stop><stop offset="1" stop-color="#7FDCD2"></stop></radialGradient>
+<radialGradient id="g-tap-3" cx="0.3" cy="0.25" r="0.95" fx="0.18" fy="0.14"><stop offset="0" stop-color="#FFE7A3"></stop><stop offset="0.4" stop-color="#FFC933"></stop><stop offset="0.8" stop-color="#FF7A59"></stop><stop offset="1" stop-color="#E8407A"></stop></radialGradient>
+<clipPath id="c-tap-1"><rect x="48" y="28" width="76" height="136" rx="20"></rect></clipPath>
+<clipPath id="c-tap-2"><rect x="56" y="40" width="60" height="112" rx="13"></rect></clipPath>
+<clipPath id="c-tap-3"><rect x="98" y="102" width="80" height="52" rx="10"></rect></clipPath>
+<filter id="f-wet-tap" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="9" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="15" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-tap" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="8"></feGaussianBlur></filter>
+<filter id="f-sh-tap" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="106" cy="174" rx="62" ry="7" fill="#7B5CFF" opacity="0.18" filter="url(#f-sh-tap)"></ellipse>
+<g filter="url(#f-wet-tap)">
+<g transform="rotate(-8 86 96)">
+<rect x="48" y="28" width="76" height="136" rx="20" fill="url(#g-tap-1)"></rect>
+<g clip-path="url(#c-tap-1)"><ellipse cx="62" cy="54" rx="22" ry="42" fill="#FFFFFF" opacity="0.5" filter="url(#f-blur-tap)"></ellipse></g>
+<rect x="56" y="40" width="60" height="112" rx="13" fill="url(#g-tap-2)"></rect>
+<g clip-path="url(#c-tap-2)"><ellipse cx="72" cy="60" rx="26" ry="22" fill="#FFFFFF" opacity="0.7" filter="url(#f-blur-tap)"></ellipse></g>
+<rect x="76" y="32.5" width="20" height="3.5" rx="1.75" fill="#FFFFFF" opacity="0.5"></rect>
+<circle cx="86" cy="92" r="15" fill="#2EC4B6" opacity="0.35"></circle>
+<circle cx="86" cy="92" r="6" fill="#3346F0" opacity="0.6"></circle>
+<ellipse cx="58" cy="44" rx="3" ry="9" fill="#FFFFFF" opacity="0.8"></ellipse>
+</g>
+<g fill="none" stroke-linecap="round" stroke-width="7">
+<path d="M131.5 70.3 A20 20 0 0 1 147.7 86.5" stroke="#2EC4B6" opacity="0.95"></path>
+<path d="M133.7 57.5 A33 33 0 0 1 160.5 84.3" stroke="#3346F0" opacity="0.72"></path>
+<path d="M136 44.7 A46 46 0 0 1 173.3 82" stroke="#7B5CFF" opacity="0.5"></path>
+</g>
+<g transform="rotate(-16 138 128)">
+<rect x="98" y="102" width="80" height="52" rx="10" fill="url(#g-tap-3)"></rect>
+<g clip-path="url(#c-tap-3)"><ellipse cx="118" cy="110" rx="32" ry="13" fill="#FFFFFF" opacity="0.6" filter="url(#f-blur-tap)"></ellipse></g>
+<rect x="108" y="116" width="16" height="12" rx="3" fill="#FFF3CC" opacity="0.9"></rect>
+<rect x="108" y="138" width="46" height="5" rx="2.5" fill="#FFFFFF" opacity="0.55"></rect>
+<ellipse cx="114" cy="106" rx="10" ry="2.2" fill="#FFFFFF" opacity="0.85"></ellipse>
+</g>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isPix }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Bloco de QR code com losango" style="display: block">
+<defs>
+<radialGradient id="g-pix-1" cx="0.32" cy="0.26" r="0.9" fx="0.2" fy="0.14"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset="0.45" stop-color="#E6E9FF"></stop><stop offset="1" stop-color="#A9B4FF"></stop></radialGradient>
+<radialGradient id="g-pix-2" cx="0.32" cy="0.26" r="0.9" fx="0.2" fy="0.14"><stop offset="0" stop-color="#8C98FF"></stop><stop offset="0.6" stop-color="#3346F0"></stop><stop offset="1" stop-color="#7B5CFF"></stop></radialGradient>
+<linearGradient id="g-pix-3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3346F0"></stop><stop offset="1" stop-color="#7B5CFF"></stop></linearGradient>
+<radialGradient id="g-pix-4" cx="0.3" cy="0.3" r="0.85" fx="0.2" fy="0.2"><stop offset="0" stop-color="#D2FBF6"></stop><stop offset="0.5" stop-color="#2EC4B6"></stop><stop offset="1" stop-color="#3346F0"></stop></radialGradient>
+<clipPath id="c-pix-1"><rect x="44" y="40" width="110" height="110" rx="24"></rect></clipPath>
+<filter id="f-wet-pix" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="2" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="17" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-pix" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="8"></feGaussianBlur></filter>
+<filter id="f-sh-pix" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="104" cy="170" rx="60" ry="7" fill="#3346F0" opacity="0.18" filter="url(#f-sh-pix)"></ellipse>
+<g filter="url(#f-wet-pix)">
+<rect x="50" y="48" width="110" height="110" rx="24" fill="url(#g-pix-2)"></rect>
+<rect x="44" y="40" width="110" height="110" rx="24" fill="url(#g-pix-1)"></rect>
+<g clip-path="url(#c-pix-1)"><ellipse cx="74" cy="60" rx="42" ry="22" fill="#FFFFFF" opacity="0.65" filter="url(#f-blur-pix)"></ellipse></g>
+<g fill="url(#g-pix-3)" opacity="0.82">
+<rect x="56" y="52" width="26" height="26" rx="8"></rect>
+<rect x="116" y="52" width="26" height="26" rx="8"></rect>
+<rect x="56" y="112" width="26" height="26" rx="8"></rect>
+</g>
+<g fill="#E6E9FF">
+<rect x="63" y="59" width="12" height="12" rx="4"></rect>
+<rect x="123" y="59" width="12" height="12" rx="4"></rect>
+<rect x="63" y="119" width="12" height="12" rx="4"></rect>
+</g>
+<g fill="url(#g-pix-3)" opacity="0.55">
+<rect x="88" y="52" width="8" height="8" rx="2.5"></rect>
+<rect x="100" y="54" width="8" height="8" rx="2.5"></rect>
+<rect x="58" y="84" width="8" height="8" rx="2.5"></rect>
+<rect x="58" y="98" width="8" height="8" rx="2.5"></rect>
+<rect x="118" y="124" width="8" height="8" rx="2.5"></rect>
+<rect x="130" y="116" width="8" height="8" rx="2.5"></rect>
+<rect x="140" y="128" width="8" height="8" rx="2.5"></rect>
+<rect x="124" y="136" width="8" height="8" rx="2.5"></rect>
+</g>
+<ellipse cx="99" cy="98" rx="34" ry="30" fill="#2EC4B6" opacity="0.35" filter="url(#f-blur-pix)"></ellipse>
+<rect x="81" y="77" width="36" height="36" rx="9" transform="rotate(45 99 95)" fill="url(#g-pix-4)"></rect>
+<ellipse cx="93" cy="84" rx="7" ry="2.6" transform="rotate(-45 93 84)" fill="#FFFFFF" opacity="0.9"></ellipse>
+<ellipse cx="66" cy="45" rx="14" ry="2.4" fill="#FFFFFF" opacity="0.85"></ellipse>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isProduto }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Caixa de produto aberta" style="display: block">
+<defs>
+<radialGradient id="g-produto-1" cx="0.3" cy="0.3" r="0.9" fx="0.2" fy="0.2"><stop offset="0" stop-color="#FFF6D6"></stop><stop offset="0.5" stop-color="#FFE07A"></stop><stop offset="1" stop-color="#FFC933"></stop></radialGradient>
+<radialGradient id="g-produto-2" cx="0.3" cy="0.25" r="0.95" fx="0.18" fy="0.14"><stop offset="0" stop-color="#FFE08A"></stop><stop offset="0.45" stop-color="#FFC933"></stop><stop offset="1" stop-color="#FF7A59"></stop></radialGradient>
+<radialGradient id="g-produto-3" cx="0.3" cy="0.25" r="0.95" fx="0.18" fy="0.14"><stop offset="0" stop-color="#FF9E80"></stop><stop offset="0.5" stop-color="#FF7A59"></stop><stop offset="1" stop-color="#E8407A"></stop></radialGradient>
+<radialGradient id="g-produto-4" cx="0.6" cy="0.6" r="0.8"><stop offset="0" stop-color="#E8407A"></stop><stop offset="1" stop-color="#7B5CFF"></stop></radialGradient>
+<radialGradient id="g-produto-5" cx="0.3" cy="0.3" r="0.9" fx="0.2" fy="0.2"><stop offset="0" stop-color="#CFF7F2"></stop><stop offset="0.55" stop-color="#2EC4B6"></stop><stop offset="1" stop-color="#3346F0"></stop></radialGradient>
+<clipPath id="c-produto-1"><path d="M44 88 L104 104 L104 166 L44 150 Z"></path></clipPath>
+<clipPath id="c-produto-2"><path d="M104 104 L158 86 L158 148 L104 166 Z"></path></clipPath>
+<filter id="f-wet-produto" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="19" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-produto" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="8"></feGaussianBlur></filter>
+<filter id="f-sh-produto" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="104" cy="170" rx="64" ry="8" fill="#FF7A59" opacity="0.18" filter="url(#f-sh-produto)"></ellipse>
+<g filter="url(#f-wet-produto)" stroke-linejoin="round" stroke-width="6">
+<path d="M98 72 L158 86 L164 56 L106 44 Z" fill="url(#g-produto-3)" stroke="url(#g-produto-3)"></path>
+<path d="M44 88 L98 72 L80 54 L28 68 Z" fill="url(#g-produto-2)" stroke="url(#g-produto-2)"></path>
+<path d="M44 88 L98 72 L158 86 L104 104 Z" fill="url(#g-produto-4)" stroke="url(#g-produto-4)"></path>
+<path d="M44 88 L104 104 L104 166 L44 150 Z" fill="url(#g-produto-2)" stroke="url(#g-produto-2)"></path>
+<path d="M104 104 L158 86 L158 148 L104 166 Z" fill="url(#g-produto-3)" stroke="url(#g-produto-3)"></path>
+<g stroke="none">
+<g clip-path="url(#c-produto-1)"><ellipse cx="62" cy="104" rx="30" ry="20" fill="#FFFFFF" opacity="0.55" filter="url(#f-blur-produto)"></ellipse></g>
+<g clip-path="url(#c-produto-2)"><ellipse cx="118" cy="108" rx="18" ry="16" fill="#FFFFFF" opacity="0.3" filter="url(#f-blur-produto)"></ellipse></g>
+<path d="M58 116 L92 125 L92 142 L58 133 Z" fill="url(#g-produto-5)" opacity="0.9"></path>
+<ellipse cx="66" cy="122" rx="4" ry="2" fill="#FFFFFF" opacity="0.8"></ellipse>
+<ellipse cx="70" cy="95" rx="14" ry="2" transform="rotate(15 70 95)" fill="#FFFFFF" opacity="0.85"></ellipse>
+<ellipse cx="48" cy="72" rx="9" ry="2" transform="rotate(-16 48 72)" fill="#FFFFFF" opacity="0.7"></ellipse>
+</g>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isCheck }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Gota verde com sinal de confirmação" style="display: block">
+<defs>
+<radialGradient id="g-check-1" cx="0.36" cy="0.3" r="0.8" fx="0.28" fy="0.22"><stop offset="0" stop-color="#E9FFB0"></stop><stop offset="0.35" stop-color="#B6E83A"></stop><stop offset="0.75" stop-color="#1FAF5F"></stop><stop offset="1" stop-color="#138A4B"></stop></radialGradient>
+<clipPath id="c-check-1"><path d="M104 30 C142 31 170 62 167 101 C164 141 134 169 95 167 C57 165 31 136 34 97 C37 59 66 29 104 30 Z"></path></clipPath>
+<filter id="f-wet-check" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="6" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="21" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-check" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="9"></feGaussianBlur></filter>
+<filter id="f-sh-check" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="100" cy="176" rx="52" ry="7" fill="#1FAF5F" opacity="0.18" filter="url(#f-sh-check)"></ellipse>
+<g filter="url(#f-wet-check)">
+<path d="M104 30 C142 31 170 62 167 101 C164 141 134 169 95 167 C57 165 31 136 34 97 C37 59 66 29 104 30 Z" fill="url(#g-check-1)"></path>
+<g clip-path="url(#c-check-1)">
+<ellipse cx="74" cy="66" rx="42" ry="28" fill="#FFFFFF" opacity="0.6" filter="url(#f-blur-check)"></ellipse>
+<ellipse cx="138" cy="142" rx="28" ry="14" fill="#DFFF9A" opacity="0.35" filter="url(#f-blur-check)"></ellipse>
+<path d="M66 105 C72 99 80 101 86 108 L97 121 C110 99 124 83 139 70 C145 65 153 72 148 79 C133 97 118 118 104 140 C100 146 93 146 89 141 L64 114 C60 109 61 107 66 105 Z" fill="#138A4B" opacity="0.3" filter="url(#f-sh-check)"></path>
+</g>
+<path d="M64 102 C70 96 78 98 84 105 L95 118 C108 96 122 80 137 67 C143 62 151 69 146 76 C131 94 116 115 102 137 C98 143 91 143 87 138 L62 111 C58 106 59 104 64 102 Z" fill="#FFFFFF" opacity="0.96"></path>
+<ellipse cx="70" cy="52" rx="12" ry="4" transform="rotate(-28 70 52)" fill="#FFFFFF" opacity="0.85"></ellipse>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isOffline }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Nuvem partida, sem conexão" style="display: block">
+<defs>
+<radialGradient id="g-offline-1" cx="0.3" cy="0.25" r="0.9" fx="0.2" fy="0.14"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset="0.4" stop-color="#BDEFEA"></stop><stop offset="0.75" stop-color="#6FD3CB"></stop><stop offset="1" stop-color="#7B8CFF"></stop></radialGradient>
+<radialGradient id="g-offline-2" cx="0.3" cy="0.25" r="0.9" fx="0.2" fy="0.14"><stop offset="0" stop-color="#F3F0FF"></stop><stop offset="0.45" stop-color="#C2B5FF"></stop><stop offset="1" stop-color="#7B5CFF"></stop></radialGradient>
+<clipPath id="c-offline-1"><path d="M54 138 C36 138 24 125 26 110 C28 95 41 86 56 89 C59 67 77 53 98 55 C115 57 127 68 131 82 C137 76 147 74 156 78 C170 84 177 99 172 114 C176 128 165 139 150 139 Z"></path></clipPath>
+<clipPath id="c-offline-l"><polygon points="0,0 118,0 74,200 0,200"></polygon></clipPath>
+<clipPath id="c-offline-r"><polygon points="128,0 200,0 200,200 84,200"></polygon></clipPath>
+<filter id="f-wet-offline" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="10" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="23" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-offline" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="8"></feGaussianBlur></filter>
+<filter id="f-sh-offline" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="100" cy="166" rx="62" ry="7" fill="#3346F0" opacity="0.18" filter="url(#f-sh-offline)"></ellipse>
+<g filter="url(#f-wet-offline)">
+<g clip-path="url(#c-offline-l)">
+<path d="M54 138 C36 138 24 125 26 110 C28 95 41 86 56 89 C59 67 77 53 98 55 C115 57 127 68 131 82 C137 76 147 74 156 78 C170 84 177 99 172 114 C176 128 165 139 150 139 Z" fill="url(#g-offline-1)"></path>
+<g clip-path="url(#c-offline-1)"><ellipse cx="72" cy="84" rx="36" ry="22" fill="#FFFFFF" opacity="0.65" filter="url(#f-blur-offline)"></ellipse></g>
+<ellipse cx="80" cy="66" rx="12" ry="3.5" transform="rotate(-20 80 66)" fill="#FFFFFF" opacity="0.9"></ellipse>
+</g>
+<g transform="translate(5 7) rotate(5 140 110)">
+<g clip-path="url(#c-offline-r)">
+<path d="M54 138 C36 138 24 125 26 110 C28 95 41 86 56 89 C59 67 77 53 98 55 C115 57 127 68 131 82 C137 76 147 74 156 78 C170 84 177 99 172 114 C176 128 165 139 150 139 Z" fill="url(#g-offline-2)"></path>
+<g clip-path="url(#c-offline-1)"><ellipse cx="142" cy="92" rx="24" ry="14" fill="#FFFFFF" opacity="0.6" filter="url(#f-blur-offline)"></ellipse></g>
+<ellipse cx="146" cy="83" rx="8" ry="2.6" transform="rotate(-10 146 83)" fill="#FFFFFF" opacity="0.85"></ellipse>
+</g>
+</g>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isRecibo }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Recibo com borda serrilhada" style="display: block">
+<defs>
+<radialGradient id="g-recibo-1" cx="0.3" cy="0.2" r="0.95" fx="0.2" fy="0.1"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset="0.5" stop-color="#FFF3CC"></stop><stop offset="1" stop-color="#FFC9A8"></stop></radialGradient>
+<radialGradient id="g-recibo-2" cx="0.3" cy="0.25" r="0.95" fx="0.2" fy="0.15"><stop offset="0" stop-color="#FFC2A8"></stop><stop offset="0.5" stop-color="#FF7A59"></stop><stop offset="1" stop-color="#E8407A"></stop></radialGradient>
+<linearGradient id="g-recibo-3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3346F0"></stop><stop offset="1" stop-color="#7B5CFF"></stop></linearGradient>
+<clipPath id="c-recibo-1"><path d="M58 46 H142 Q148 98 142 150 L135 158 L128 150 L121 158 L114 150 L107 158 L100 150 L93 158 L86 150 L79 158 L72 150 L65 158 L58 150 Q52 98 58 46 Z"></path></clipPath>
+<filter id="f-wet-recibo" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="12" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="25" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-recibo" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="8"></feGaussianBlur></filter>
+<filter id="f-sh-recibo" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="104" cy="172" rx="52" ry="7" fill="#FF7A59" opacity="0.18" filter="url(#f-sh-recibo)"></ellipse>
+<g filter="url(#f-wet-recibo)">
+<g transform="rotate(6 100 100)">
+<path d="M58 46 H142 Q148 98 142 150 L135 158 L128 150 L121 158 L114 150 L107 158 L100 150 L93 158 L86 150 L79 158 L72 150 L65 158 L58 150 Q52 98 58 46 Z" fill="url(#g-recibo-1)"></path>
+<g clip-path="url(#c-recibo-1)">
+<ellipse cx="80" cy="74" rx="30" ry="32" fill="#FFFFFF" opacity="0.6" filter="url(#f-blur-recibo)"></ellipse>
+<rect x="126" y="40" width="30" height="130" fill="#FF7A59" opacity="0.2" filter="url(#f-blur-recibo)"></rect>
+</g>
+<rect x="68" y="64" width="48" height="6" rx="3" fill="url(#g-recibo-3)" opacity="0.5"></rect>
+<rect x="68" y="78" width="64" height="6" rx="3" fill="url(#g-recibo-3)" opacity="0.5"></rect>
+<rect x="68" y="92" width="40" height="6" rx="3" fill="url(#g-recibo-3)" opacity="0.5"></rect>
+<rect x="68" y="114" width="64" height="10" rx="5" fill="#E8407A" opacity="0.75"></rect>
+<rect x="50" y="32" width="100" height="20" rx="10" fill="url(#g-recibo-2)"></rect>
+<ellipse cx="82" cy="37" rx="22" ry="2.5" fill="#FFFFFF" opacity="0.8"></ellipse>
+</g>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isLanterna }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Lanterna acesa com facho de luz" style="display: block">
+<defs>
+<radialGradient id="g-lanterna-1" cx="0.3" cy="0.2" r="0.9" fx="0.2" fy="0.1"><stop offset="0" stop-color="#C9B8FF"></stop><stop offset="0.5" stop-color="#7B5CFF"></stop><stop offset="1" stop-color="#3346F0"></stop></radialGradient>
+<radialGradient id="g-lanterna-2" cx="0.3" cy="0.22" r="0.9" fx="0.2" fy="0.12"><stop offset="0" stop-color="#FFC2A8"></stop><stop offset="0.5" stop-color="#FF7A59"></stop><stop offset="1" stop-color="#E8407A"></stop></radialGradient>
+<linearGradient id="g-lanterna-3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFE58A" stop-opacity="0.95"></stop><stop offset="0.5" stop-color="#FFC933" stop-opacity="0.6"></stop><stop offset="1" stop-color="#FF7A59" stop-opacity="0"></stop></linearGradient>
+<clipPath id="c-lanterna-1"><rect x="30" y="88" width="62" height="26" rx="13"></rect></clipPath>
+<clipPath id="c-lanterna-2"><path d="M86 84 Q86 80 90 79 L112 72 Q120 70 120 78 V124 Q120 132 112 130 L90 123 Q86 122 86 118 Z"></path></clipPath>
+<filter id="f-wet-lanterna" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="14" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="27" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-lanterna" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="7"></feGaussianBlur></filter>
+<filter id="f-sh-lanterna" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="72" cy="168" rx="52" ry="7" fill="#7B5CFF" opacity="0.18" filter="url(#f-sh-lanterna)"></ellipse>
+<g filter="url(#f-wet-lanterna)">
+<g transform="translate(-6 12) rotate(-28 100 100)">
+<path d="M116 80 L186 52 Q196 101 186 150 L116 122 Z" fill="#FFC933" opacity="0.45" filter="url(#f-blur-lanterna)"></path>
+<path d="M116 80 L186 52 Q196 101 186 150 L116 122 Z" fill="url(#g-lanterna-3)"></path>
+<rect x="30" y="88" width="62" height="26" rx="13" fill="url(#g-lanterna-1)"></rect>
+<g clip-path="url(#c-lanterna-1)"><ellipse cx="56" cy="92" rx="28" ry="7" fill="#FFFFFF" opacity="0.65" filter="url(#f-blur-lanterna)"></ellipse></g>
+<rect x="70" y="89" width="3" height="24" rx="1.5" fill="#FFFFFF" opacity="0.25"></rect>
+<rect x="77" y="89" width="3" height="24" rx="1.5" fill="#FFFFFF" opacity="0.25"></rect>
+<rect x="50" y="83" width="16" height="8" rx="4" fill="#FFC933"></rect>
+<path d="M86 84 Q86 80 90 79 L112 72 Q120 70 120 78 V124 Q120 132 112 130 L90 123 Q86 122 86 118 Z" fill="url(#g-lanterna-2)"></path>
+<g clip-path="url(#c-lanterna-2)"><ellipse cx="98" cy="84" rx="14" ry="10" fill="#FFFFFF" opacity="0.55" filter="url(#f-blur-lanterna)"></ellipse></g>
+<ellipse cx="119" cy="101" rx="5" ry="24" fill="#FFF6D0"></ellipse>
+<ellipse cx="48" cy="93" rx="12" ry="2" fill="#FFFFFF" opacity="0.85"></ellipse>
+</g>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isLoja }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Fachada de loja com toldo listrado" style="display: block">
+<defs>
+<radialGradient id="g-loja-1" cx="0.3" cy="0.2" r="0.95" fx="0.2" fy="0.1"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset="0.45" stop-color="#FFF3CC"></stop><stop offset="1" stop-color="#FFC9A8"></stop></radialGradient>
+<linearGradient id="g-loja-2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9E80"></stop><stop offset="1" stop-color="#E8407A"></stop></linearGradient>
+<linearGradient id="g-loja-3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset="1" stop-color="#FFE9B0"></stop></linearGradient>
+<radialGradient id="g-loja-4" cx="0.3" cy="0.2" r="0.95" fx="0.2" fy="0.1"><stop offset="0" stop-color="#B9B0FF"></stop><stop offset="0.5" stop-color="#7B5CFF"></stop><stop offset="1" stop-color="#3346F0"></stop></radialGradient>
+<radialGradient id="g-loja-5" cx="0.3" cy="0.25" r="0.9" fx="0.2" fy="0.15"><stop offset="0" stop-color="#E6FFFB"></stop><stop offset="0.55" stop-color="#8FE3DA"></stop><stop offset="1" stop-color="#2EC4B6"></stop></radialGradient>
+<clipPath id="c-loja-1"><rect x="42" y="66" width="116" height="98" rx="12"></rect></clipPath>
+<clipPath id="c-loja-2"><path d="M34 62 Q34 52 44 52 H156 Q166 52 166 62 V84 Q155 98 144 84 Q133 98 122 84 Q111 98 100 84 Q89 98 78 84 Q67 98 56 84 Q45 98 34 84 Z"></path></clipPath>
+<filter id="f-wet-loja" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="16" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="29" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-loja" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="8"></feGaussianBlur></filter>
+<filter id="f-sh-loja" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="100" cy="174" rx="66" ry="7" fill="#FF7A59" opacity="0.18" filter="url(#f-sh-loja)"></ellipse>
+<g filter="url(#f-wet-loja)">
+<rect x="38" y="40" width="124" height="16" rx="8" fill="url(#g-loja-4)"></rect>
+<rect x="42" y="66" width="116" height="98" rx="12" fill="url(#g-loja-1)"></rect>
+<g clip-path="url(#c-loja-1)"><ellipse cx="66" cy="96" rx="32" ry="26" fill="#FFFFFF" opacity="0.55" filter="url(#f-blur-loja)"></ellipse></g>
+<rect x="52" y="106" width="30" height="28" rx="7" fill="url(#g-loja-5)"></rect>
+<rect x="118" y="106" width="30" height="28" rx="7" fill="url(#g-loja-5)"></rect>
+<ellipse cx="60" cy="112" rx="5" ry="2" fill="#FFFFFF" opacity="0.8"></ellipse>
+<ellipse cx="126" cy="112" rx="5" ry="2" fill="#FFFFFF" opacity="0.8"></ellipse>
+<path d="M86 164 V122 Q86 110 98 110 H102 Q114 110 114 122 V164 Z" fill="url(#g-loja-4)"></path>
+<circle cx="108" cy="140" r="2.6" fill="#FFC933"></circle>
+<rect x="36" y="158" width="128" height="10" rx="5" fill="#FF9E80"></rect>
+<path d="M34 62 Q34 52 44 52 H156 Q166 52 166 62 V84 Q155 98 144 84 Q133 98 122 84 Q111 98 100 84 Q89 98 78 84 Q67 98 56 84 Q45 98 34 84 Z" fill="url(#g-loja-3)"></path>
+<g clip-path="url(#c-loja-2)">
+<rect x="34" y="50" width="22" height="50" fill="url(#g-loja-2)"></rect>
+<rect x="78" y="50" width="22" height="50" fill="url(#g-loja-2)"></rect>
+<rect x="122" y="50" width="22" height="50" fill="url(#g-loja-2)"></rect>
+<ellipse cx="66" cy="62" rx="32" ry="9" fill="#FFFFFF" opacity="0.55" filter="url(#f-blur-loja)"></ellipse>
+</g>
+<ellipse cx="62" cy="44" rx="14" ry="2.4" fill="#FFFFFF" opacity="0.8"></ellipse>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isPausa }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Lua dormindo, modo economia" style="display: block">
+<defs>
+<radialGradient id="g-pausa-1" cx="0.3" cy="0.35" r="0.85" fx="0.2" fy="0.25"><stop offset="0" stop-color="#FFF6D0"></stop><stop offset="0.5" stop-color="#FFC933"></stop><stop offset="1" stop-color="#FF7A59"></stop></radialGradient>
+<linearGradient id="g-pausa-2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7B5CFF"></stop><stop offset="1" stop-color="#3346F0"></stop></linearGradient>
+<mask id="m-pausa" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200"><rect x="0" y="0" width="200" height="200" fill="#FFFFFF"></rect><circle cx="124" cy="84" r="50" fill="#000000"></circle></mask>
+<clipPath id="c-pausa-1"><circle cx="92" cy="106" r="60"></circle></clipPath>
+<filter id="f-wet-pausa" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="18" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="31" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-pausa" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="9"></feGaussianBlur></filter>
+<filter id="f-sh-pausa" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="92" cy="176" rx="50" ry="7" fill="#7B5CFF" opacity="0.18" filter="url(#f-sh-pausa)"></ellipse>
+<g filter="url(#f-wet-pausa)">
+<g mask="url(#m-pausa)">
+<circle cx="92" cy="106" r="60" fill="url(#g-pausa-1)"></circle>
+<g clip-path="url(#c-pausa-1)">
+<ellipse cx="60" cy="96" rx="22" ry="38" fill="#FFFFFF" opacity="0.55" filter="url(#f-blur-pausa)"></ellipse>
+<ellipse cx="100" cy="156" rx="42" ry="12" fill="#E8407A" opacity="0.3" filter="url(#f-blur-pausa)"></ellipse>
+</g>
+<path d="M52 110 Q61 119 70 110 Q61 114 52 110 Z" fill="#7B5CFF" opacity="0.75"></path>
+<ellipse cx="66" cy="128" rx="7" ry="4" fill="#E8407A" opacity="0.4"></ellipse>
+<ellipse cx="50" cy="82" rx="4" ry="10" transform="rotate(25 50 82)" fill="#FFFFFF" opacity="0.85"></ellipse>
+</g>
+<g fill="url(#g-pausa-2)" stroke="url(#g-pausa-2)" stroke-width="3" stroke-linejoin="round">
+<polygon points="126,108 144,108 144,113 133.6,121 144,121 144,126 126,126 126,121 136.4,113 126,113" opacity="0.6"></polygon>
+<polygon points="146,78 170,78 170,84.7 156.1,95.3 170,95.3 170,102 146,102 146,95.3 159.9,84.7 146,84.7" opacity="0.78"></polygon>
+<polygon points="160,38 188,38 188,45.8 171.8,58.2 188,58.2 188,66 160,66 160,58.2 176.2,45.8 160,45.8" opacity="0.95"></polygon>
+</g>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isBusca }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Lupa sobre embalagem" style="display: block">
+<defs>
+<radialGradient id="g-busca-1" cx="0.3" cy="0.2" r="0.95" fx="0.2" fy="0.1"><stop offset="0" stop-color="#FFF1B8"></stop><stop offset="0.45" stop-color="#FFC933"></stop><stop offset="1" stop-color="#FF7A59"></stop></radialGradient>
+<linearGradient id="g-busca-2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFB39A"></stop><stop offset="1" stop-color="#E8407A"></stop></linearGradient>
+<radialGradient id="g-busca-3" cx="0.3" cy="0.25" r="0.9" fx="0.2" fy="0.15"><stop offset="0" stop-color="#C9B8FF"></stop><stop offset="0.5" stop-color="#7B5CFF"></stop><stop offset="1" stop-color="#3346F0"></stop></radialGradient>
+<radialGradient id="g-busca-4" cx="0.35" cy="0.3" r="0.8" fx="0.25" fy="0.2"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset="0.6" stop-color="#BFF1EC"></stop><stop offset="1" stop-color="#2EC4B6"></stop></radialGradient>
+<linearGradient id="g-busca-5" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFB39A"></stop><stop offset="0.6" stop-color="#E8407A"></stop><stop offset="1" stop-color="#7B5CFF"></stop></linearGradient>
+<clipPath id="c-busca-1"><rect x="34" y="62" width="82" height="102" rx="14"></rect></clipPath>
+<clipPath id="c-busca-2"><circle cx="122" cy="92" r="27"></circle></clipPath>
+<filter id="f-wet-busca" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="20" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="33" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-busca" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="8"></feGaussianBlur></filter>
+<filter id="f-sh-busca" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="104" cy="172" rx="66" ry="7" fill="#7B5CFF" opacity="0.18" filter="url(#f-sh-busca)"></ellipse>
+<g filter="url(#f-wet-busca)">
+<rect x="34" y="62" width="82" height="102" rx="14" fill="url(#g-busca-1)"></rect>
+<g clip-path="url(#c-busca-1)">
+<rect x="34" y="62" width="82" height="22" fill="url(#g-busca-2)"></rect>
+<ellipse cx="56" cy="96" rx="24" ry="28" fill="#FFFFFF" opacity="0.55" filter="url(#f-blur-busca)"></ellipse>
+</g>
+<circle cx="66" cy="124" r="16" fill="#B6E83A" opacity="0.9"></circle>
+<ellipse cx="61" cy="118" rx="5" ry="3" fill="#FFFFFF" opacity="0.7"></ellipse>
+<rect x="52" y="146" width="40" height="5" rx="2.5" fill="#FFFFFF" opacity="0.5"></rect>
+<ellipse cx="50" cy="68" rx="10" ry="2" fill="#FFFFFF" opacity="0.8"></ellipse>
+<rect x="146" y="110" width="44" height="16" rx="8" transform="rotate(45 146 118)" fill="url(#g-busca-5)"></rect>
+<circle cx="122" cy="92" r="27" fill="url(#g-busca-4)" opacity="0.6"></circle>
+<g clip-path="url(#c-busca-2)"><ellipse cx="112" cy="80" rx="14" ry="10" fill="#FFFFFF" opacity="0.7" filter="url(#f-blur-busca)"></ellipse></g>
+<path d="M86 92 A36 36 0 1 0 158 92 A36 36 0 1 0 86 92 Z M95 92 A27 27 0 1 1 149 92 A27 27 0 1 1 95 92 Z" fill-rule="evenodd" fill="url(#g-busca-3)"></path>
+<ellipse cx="100" cy="68" rx="9" ry="3" transform="rotate(-40 100 68)" fill="#FFFFFF" opacity="0.85"></ellipse>
+</g>
+</svg>
+</sc-if>
+
+<sc-if value="{{ isGrafico }}" hint-placeholder-val="{{ false }}">
+<svg viewBox="0 0 200 200" width="100%" height="100%" role="img" aria-label="Gráfico de barras subindo com seta" style="display: block">
+<defs>
+<radialGradient id="g-grafico-1" cx="0.3" cy="0.2" r="0.95" fx="0.2" fy="0.1"><stop offset="0" stop-color="#F0FFC2"></stop><stop offset="0.45" stop-color="#B6E83A"></stop><stop offset="1" stop-color="#1FAF5F"></stop></radialGradient>
+<radialGradient id="g-grafico-2" cx="0.3" cy="0.2" r="0.95" fx="0.2" fy="0.1"><stop offset="0" stop-color="#C8F7F1"></stop><stop offset="0.45" stop-color="#2EC4B6"></stop><stop offset="1" stop-color="#3346F0"></stop></radialGradient>
+<radialGradient id="g-grafico-3" cx="0.3" cy="0.2" r="0.95" fx="0.2" fy="0.1"><stop offset="0" stop-color="#E3DBFF"></stop><stop offset="0.45" stop-color="#7B5CFF"></stop><stop offset="1" stop-color="#E8407A"></stop></radialGradient>
+<linearGradient id="g-grafico-4" gradientUnits="userSpaceOnUse" x1="30" y1="112" x2="156" y2="35"><stop offset="0" stop-color="#FFC933"></stop><stop offset="1" stop-color="#FF7A59"></stop></linearGradient>
+<radialGradient id="g-grafico-5" cx="0.35" cy="0.3" r="0.85" fx="0.25" fy="0.2"><stop offset="0" stop-color="#FFD3A8"></stop><stop offset="0.5" stop-color="#FF7A59"></stop><stop offset="1" stop-color="#E8407A"></stop></radialGradient>
+<clipPath id="c-grafico-1"><rect x="36" y="124" width="32" height="44" rx="11"></rect><rect x="84" y="98" width="32" height="70" rx="11"></rect><rect x="132" y="68" width="32" height="100" rx="11"></rect></clipPath>
+<filter id="f-wet-grafico" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="22" result="n"></feTurbulence><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="35" result="t"></feTurbulence><feColorMatrix in="t" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.32 0 0 0 -0.06" result="ta"></feColorMatrix><feComposite in="ta" in2="d" operator="in" result="tg"></feComposite><feMerge><feMergeNode in="d"></feMergeNode><feMergeNode in="tg"></feMergeNode></feMerge></filter>
+<filter id="f-blur-grafico" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"></feGaussianBlur></filter>
+<filter id="f-sh-grafico" x="-40%" y="-200%" width="180%" height="500%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<ellipse cx="100" cy="174" rx="72" ry="7" fill="#3346F0" opacity="0.18" filter="url(#f-sh-grafico)"></ellipse>
+<g filter="url(#f-wet-grafico)">
+<rect x="36" y="124" width="32" height="44" rx="11" fill="url(#g-grafico-1)"></rect>
+<rect x="84" y="98" width="32" height="70" rx="11" fill="url(#g-grafico-2)"></rect>
+<rect x="132" y="68" width="32" height="100" rx="11" fill="url(#g-grafico-3)"></rect>
+<g clip-path="url(#c-grafico-1)">
+<ellipse cx="48" cy="136" rx="11" ry="18" fill="#FFFFFF" opacity="0.55" filter="url(#f-blur-grafico)"></ellipse>
+<ellipse cx="96" cy="114" rx="11" ry="26" fill="#FFFFFF" opacity="0.55" filter="url(#f-blur-grafico)"></ellipse>
+<ellipse cx="144" cy="88" rx="11" ry="34" fill="#FFFFFF" opacity="0.55" filter="url(#f-blur-grafico)"></ellipse>
+</g>
+<ellipse cx="47" cy="130" rx="6" ry="2.2" fill="#FFFFFF" opacity="0.85"></ellipse>
+<ellipse cx="95" cy="104" rx="6" ry="2.2" fill="#FFFFFF" opacity="0.85"></ellipse>
+<ellipse cx="143" cy="74" rx="6" ry="2.2" fill="#FFFFFF" opacity="0.85"></ellipse>
+<path d="M30 112 C64 106 92 88 116 68 C126 60 134 52 142 46" fill="none" stroke="url(#g-grafico-4)" stroke-width="10" stroke-linecap="round"></path>
+<path d="M156 35 L148.2 57.6 L132.6 36.8 Z" fill="url(#g-grafico-5)" stroke="#FF7A59" stroke-width="4" stroke-linejoin="round"></path>
+<ellipse cx="144" cy="40" rx="4" ry="1.6" transform="rotate(-37 144 40)" fill="#FFFFFF" opacity="0.8"></ellipse>
+</g>
+</svg>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","options":["scanner","cesta","moedas","tap","pix","produto","check","offline","recibo","lanterna","loja","pausa","busca","grafico"],"default":"cesta"},"size":{"editor":"int","default":200,"min":48,"max":480},"$preview":{"width":200,"height":200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const k = this.props.kind ?? 'cesta';
+    const s = this.props.size ?? 200;
+    return {
+      px: `${s}px`,
+      isScanner: k === 'scanner',
+      isCesta: k === 'cesta',
+      isMoedas: k === 'moedas',
+      isTap: k === 'tap',
+      isPix: k === 'pix',
+      isProduto: k === 'produto',
+      isCheck: k === 'check',
+      isOffline: k === 'offline',
+      isRecibo: k === 'recibo',
+      isLanterna: k === 'lanterna',
+      isLoja: k === 'loja',
+      isPausa: k === 'pausa',
+      isBusca: k === 'busca',
+      isGrafico: k === 'grafico'
+    };
+  }
+}
+</script>
+</body>
+</html>

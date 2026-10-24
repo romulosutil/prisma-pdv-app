@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Mapa de telas</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3346F0}a:hover{color:#14112B}
+</style>
+</helmet>
+<div style="width: 3616px; height: 5600px; box-sizing: border-box; padding: 80px; background: #FFFFFF; font-family: Inter, system-ui, sans-serif; color: #14112B; display: flex; flex-direction: column; gap: 96px">
+  <header style="display: flex; flex-direction: column; gap: 12px">
+    <p style="margin: 0; font: 600 13px/18px Inter, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6883">[nome] · protótipo v0.1</p>
+    <h1 style="margin: 0; font: 800 72px/72px 'Bricolage Grotesque', sans-serif; letter-spacing: -0.02em">Mapa de telas</h1>
+    <p style="margin: 0; font: 400 20px/28px Inter, sans-serif; color: #4A4766">Cada tela é interativa. Os fluxos se ligam pela barra inferior e pelos botões de ação.</p>
+  </header>
+  <sc-for list="{{ fluxos }}" as="fluxo" hint-placeholder-count="5">
+    <section style="display: flex; flex-direction: column; gap: 28px">
+      <div style="display: flex; align-items: baseline; gap: 20px">
+        <h2 style="margin: 0; font: 800 40px/44px 'Bricolage Grotesque', sans-serif; letter-spacing: -0.01em">{{ fluxo.titulo }}</h2>
+        <p style="margin: 0; font: 500 17px/24px Inter, sans-serif; color: #6B6883">{{ fluxo.descricao }}</p>
+      </div>
+      <div style="display: flex; gap: 48px; align-items: flex-start">
+        <sc-for list="{{ fluxo.telas }}" as="t" hint-placeholder-count="4">
+          <figure style="margin: 0; display: flex; flex-direction: column; gap: 14px; width: 390px">
+            <div style="width: 390px; height: 844px; border-radius: 32px; overflow: hidden; box-shadow: 0 0 0 1px #E2DED6, 0 16px 40px rgba(20,17,43,.10)">
+              <sc-if value="{{ t.isInicio }}" hint-placeholder-val="{{ false }}"><dc-import name="AppInicio" tela="{{ t.tela }}" hint-size="390px,844px"></dc-import></sc-if>
+              <sc-if value="{{ t.isVender }}" hint-placeholder-val="{{ false }}"><dc-import name="AppVender" tela="{{ t.tela }}" hint-size="390px,844px"></dc-import></sc-if>
+              <sc-if value="{{ t.isPagar }}" hint-placeholder-val="{{ false }}"><dc-import name="AppPagar" tela="{{ t.tela }}" hint-size="390px,844px"></dc-import></sc-if>
+              <sc-if value="{{ t.isCadastro }}" hint-placeholder-val="{{ false }}"><dc-import name="AppCadastro" tela="{{ t.tela }}" hint-size="390px,844px"></dc-import></sc-if>
+              <sc-if value="{{ t.isCaixa }}" hint-placeholder-val="{{ false }}"><dc-import name="AppCaixa" tela="{{ t.tela }}" hint-size="390px,844px"></dc-import></sc-if>
+            </div>
+            <figcaption style="display: flex; gap: 10px; align-items: baseline">
+              <span style="font: 700 15px/20px Inter, sans-serif; color: #6B6883; font-variant-numeric: tabular-nums">{{ t.num }}</span>
+              <span style="font: 600 17px/24px Inter, sans-serif">{{ t.nome }}</span>
+            </figcaption>
+          </figure>
+        </sc-for>
+      </div>
+    </section>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":3616,"height":5600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (app, lista) => lista.map(([tela, nome]) => ({
+      tela, nome,
+      isInicio: app === 'inicio', isVender: app === 'vender', isPagar: app === 'pagar',
+      isCadastro: app === 'cadastro', isCaixa: app === 'caixa'
+    }));
+    const fluxos = [
+      { titulo: 'Primeiro acesso', descricao: 'Do boas-vindas à home em 3 passos', telas: mk('inicio', [
+        ['boasvindas', 'Boas-vindas'], ['loja', 'Nome da loja'], ['pagamentos', 'Como receber'], ['camera', 'Permissão de câmera'], ['home', 'Início']
+      ]) },
+      { titulo: 'Vender', descricao: 'Visor dividido: câmera em cima, carrinho embaixo', telas: mk('vender', [
+        ['scanner', 'Frente de caixa'], ['busca', 'Busca rápida'], ['avulso', 'Valor avulso'], ['pausado', 'Modo economia']
+      ]) },
+      { titulo: 'Cobrar', descricao: 'Pix na tela, aproximação app-to-app, dinheiro e dividido', telas: mk('pagar', [
+        ['checkout', 'Forma de pagamento'], ['dinheiro', 'Dinheiro e troco'], ['dividir', 'Dividir'], ['pix', 'Pix dinâmico'],
+        ['pixpago', 'Pix recebido'], ['tap', 'Aproximação'], ['tapfalha', 'Sem confirmação'], ['sucesso', 'Venda concluída']
+      ]) },
+      { titulo: 'Cadastrar bipando', descricao: 'Apontar, puxar do catálogo, digitar só o preço', telas: mk('cadastro', [
+        ['lista', 'Produtos'], ['scanner', 'Leitor de cadastro'], ['buscando', 'Consultando catálogo'], ['novo', 'Novo produto'],
+        ['rapido', 'Edição rápida'], ['atalhos', 'Itens sem código']
+      ]) },
+      { titulo: 'Caixa e ajustes', descricao: 'Fechamento, vendas, fila offline e leitor', telas: mk('caixa', [
+        ['resumo', 'Fechamento'], ['vendas', 'Vendas do dia'], ['sync', 'Sincronização'], ['ajustes', 'Ajustes']
+      ]) }
+    ];
+    let n = 0;
+    fluxos.forEach(f => f.telas.forEach(t => { n += 1; t.num = String(n).padStart(2, '0'); }));
+    return { fluxos };
+  }
+}
+</script>
+</body>
+</html>

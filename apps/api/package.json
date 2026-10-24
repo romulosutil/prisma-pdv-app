@@ -1,0 +1,29 @@
+{
+  "name": "@pdv/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.11",
+    "@fastify/cors": "^11.3.1",
+    "@pdv/shared": "*",
+    "drizzle-orm": "^0.45.4",
+    "fastify": "^5.12.7",
+    "postgres": "^3.4.9",
+    "tsx": "^4.23.15",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "drizzle-kit": "^0.31.11",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  }
+}

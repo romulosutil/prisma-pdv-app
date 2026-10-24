@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Cobrar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3346F0}a:hover{color:#14112B}
+button{font-family:Inter,system-ui,sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible{outline:2px solid #3346F0;outline-offset:2px}
+button:disabled{opacity:.4;cursor:not-allowed}
+.pr:active:not(:disabled){background:#F2B200 !important}
+.pk:active:not(:disabled){filter:brightness(.94)}
+.gh:focus-visible{text-decoration:underline}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@keyframes girar{to{transform:rotate(360deg)}}
+@keyframes pulsar{0%{box-shadow:0 0 0 0 rgba(51,70,240,.45)}70%{box-shadow:0 0 0 10px rgba(51,70,240,0)}100%{box-shadow:0 0 0 0 rgba(51,70,240,0)}}
+@keyframes subir{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; background: #FFFFFF; color: #14112B; font-family: Inter, system-ui, sans-serif;">
+
+<!-- ===================== CHECKOUT ===================== -->
+<sc-if value="{{ isCheckout }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column;">
+  <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 20px 0 8px;">
+    <a href="AppVender.dc.html" aria-label="Voltar para a venda" style="width: 48px; height: 48px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: #14112B; text-decoration: none;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></a>
+    <h1 style="margin: 0; font: 700 18px/24px Inter, sans-serif;">Cobrar</h1>
+  </div>
+  <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 8px 20px 24px; display: flex; flex-direction: column; gap: 28px;">
+    <section style="display: flex; flex-direction: column; gap: 4px;">
+      <p style="margin: 0; font: 500 12px/16px Inter, sans-serif; color: #6B6883;">Total da venda</p>
+      <p style="margin: 0; font: 800 44px/44px 'Bricolage Grotesque', sans-serif; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">R$ 56,05</p>
+      <button onClick="{{ alternarItens }}" aria-expanded="{{ itensAbertos }}" style="align-self: flex-start; margin: 8px 0 0 -12px; height: 44px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: #3346F0; font: 600 15px/22px Inter, sans-serif; display: flex; align-items: center; gap: 6px;">
+        {{ rotuloItens }}
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform: rotate({{ chevRot }}); transition: transform .2s;"><path d="M6 9l6 6 6-6"></path></svg>
+      </button>
+      <sc-if value="{{ itensAbertos }}" hint-placeholder-val="{{ true }}">
+        <ul style="list-style: none; margin: 4px 0 0; padding: 4px 16px; background: #F4F2EE; border-radius: 16px; font: 400 15px/22px Inter, sans-serif; font-variant-numeric: tabular-nums;">
+          <li style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #E2DED6;"><span><span style="color: #6B6883;">1×</span> Arroz tipo 1 5kg</span><span style="font-weight: 600;">R$ 27,90</span></li>
+          <li style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #E2DED6;"><span><span style="color: #6B6883;">1×</span> Feijão carioca 1kg</span><span style="font-weight: 600;">R$ 8,49</span></li>
+          <li style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #E2DED6;"><span><span style="color: #6B6883;">3×</span> Leite integral 1L</span><span style="font-weight: 600;">R$ 15,87</span></li>
+          <li style="display: flex; justify-content: space-between; gap: 12px; padding: 10px 0;"><span><span style="color: #6B6883;">1×</span> Biscoito recheado 130g</span><span style="font-weight: 600;">R$ 3,79</span></li>
+        </ul>
+      </sc-if>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px;">
+      <h2 style="margin: 0 0 4px; font: 700 24px/28px 'Bricolage Grotesque', sans-serif;">Como o cliente vai pagar?</h2>
+
+      <!-- Pix -->
+      <div style="background: #F4F2EE; border-radius: 16px;">
+        <button onClick="{{ irPix }}" class="pk" style="width: 100%; min-height: 72px; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 0; border-radius: 16px; background: transparent; color: #14112B; text-align: left;">
+          <span aria-hidden="true" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; background: {{ monoPix.bg }}; color: {{ monoPix.cor }}; display: flex; align-items: center; justify-content: center; font: 800 15px/1 'Bricolage Grotesque', sans-serif;">{{ monoPix.txt }}</span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font: 600 16px/22px Inter, sans-serif;">Pix</span>
+            <span style="font: 500 12px/16px Inter, sans-serif; color: #6B6883;">QR Code na tela, confirma sozinho</span>
+          </span>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+        <div role="group" aria-label="Provedor do Pix" style="margin: 0 16px 0 68px; padding-bottom: 12px;">
+          <div style="display: flex; gap: 2px; padding: 3px; background: #EAE7E1; border-radius: 999px;">
+            <button onClick="{{ setPixIP }}" aria-pressed="{{ segPixIP.on }}" style="flex: 1; height: 36px; border: 0; border-radius: 999px; background: {{ segPixIP.bg }}; box-shadow: {{ segPixIP.sombra }}; color: {{ segPixIP.cor }}; font: 600 13px/18px Inter, sans-serif;">InfinitePay</button>
+            <button onClick="{{ setPixMP }}" aria-pressed="{{ segPixMP.on }}" style="flex: 1; height: 36px; border: 0; border-radius: 999px; background: {{ segPixMP.bg }}; box-shadow: {{ segPixMP.sombra }}; color: {{ segPixMP.cor }}; font: 600 13px/18px Inter, sans-serif;">Mercado Pago</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cartão por aproximação -->
+      <div style="background: #F4F2EE; border-radius: 16px;">
+        <button onClick="{{ irTap }}" class="pk" style="width: 100%; min-height: 72px; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 0; border-radius: 16px; background: transparent; color: #14112B; text-align: left;">
+          <span aria-hidden="true" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; background: {{ monoTap.bg }}; color: {{ monoTap.cor }}; display: flex; align-items: center; justify-content: center; font: 800 15px/1 'Bricolage Grotesque', sans-serif;">{{ monoTap.txt }}</span>
+          <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font: 600 16px/22px Inter, sans-serif;">Cartão por aproximação</span>
+            <span style="font: 500 12px/16px Inter, sans-serif; color: #6B6883;">No próprio celular, sem maquininha</span>
+          </span>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+        <div role="group" aria-label="App de aproximação" style="margin: 0 16px 0 68px; padding-bottom: 12px;">
+          <div style="display: flex; gap: 2px; padding: 3px; background: #EAE7E1; border-radius: 999px;">
+            <button onClick="{{ setTapIP }}" aria-pressed="{{ segTapIP.on }}" style="flex: 1; height: 36px; border: 0; border-radius: 999px; background: {{ segTapIP.bg }}; box-shadow: {{ segTapIP.sombra }}; color: {{ segTapIP.cor }}; font: 600 13px/18px Inter, sans-serif;">InfiniteTap</button>
+            <button onClick="{{ setTapMP }}" aria-pressed="{{ segTapMP.on }}" style="flex: 1; height: 36px; border: 0; border-radius: 999px; background: {{ segTapMP.bg }}; box-shadow: {{ segTapMP.sombra }}; color: {{ segTapMP.cor }}; font: 600 13px/18px Inter, sans-serif;">Mercado Pago Tap</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dinheiro -->
+      <button onClick="{{ irDinheiro }}" class="pk" style="width: 100%; min-height: 72px; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 0; border-radius: 16px; background: #F4F2EE; color: #14112B; text-align: left;">
+        <span aria-hidden="true" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; background: #FFFFFF; color: #14112B; display: flex; align-items: center; justify-content: center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 12h.01M18 12h.01"></path></svg></span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+          <span style="font: 600 16px/22px Inter, sans-serif;">Dinheiro</span>
+          <span style="font: 500 12px/16px Inter, sans-serif; color: #6B6883;">Calcula o troco</span>
+        </span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+
+      <!-- Dividir -->
+      <button onClick="{{ irDividir }}" class="pk" style="width: 100%; min-height: 72px; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 0; border-radius: 16px; background: #F4F2EE; color: #14112B; text-align: left;">
+        <span aria-hidden="true" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; background: #FFFFFF; color: #14112B; display: flex; align-items: center; justify-content: center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v5a6 6 0 0 0 6 6v7M18 3v5a6 6 0 0 1-6 6"></path></svg></span>
+        <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+          <span style="font: 600 16px/22px Inter, sans-serif;">Dividir pagamento</span>
+          <span style="font: 500 12px/16px Inter, sans-serif; color: #6B6883;">Ex.: parte em dinheiro, resto no Pix</span>
+        </span>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+      </button>
+    </section>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===================== DINHEIRO ===================== -->
+<sc-if value="{{ isDinheiro }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column;">
+  <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 20px 0 8px;">
+    <button onClick="{{ voltarPag }}" aria-label="Voltar" style="width: 48px; height: 48px; border: 0; border-radius: 999px; background: transparent; color: #14112B; display: flex; align-items: center; justify-content: center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></button>
+    <h1 style="margin: 0; font: 700 18px/24px Inter, sans-serif;">Dinheiro</h1>
+  </div>
+  <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 4px 20px 20px;">
+    <p style="margin: 0; font: 400 17px/24px Inter, sans-serif; color: #4A4766;">A cobrar <strong style="color: #14112B; font-weight: 700; font-variant-numeric: tabular-nums;">{{ valorFmt }}</strong></p>
+    <sc-if value="{{ modoDividido }}" hint-placeholder-val="{{ false }}">
+      <p style="margin: 2px 0 0; font: 500 12px/16px Inter, sans-serif; color: #6B6883;">Restante da venda dividida</p>
+    </sc-if>
+    <p style="margin: 16px 0 4px; font: 600 13px/18px Inter, sans-serif; color: #6B6883;">Valor recebido</p>
+    <p aria-live="polite" style="margin: 0; display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums;">
+      <span style="font: 700 24px/28px 'Bricolage Grotesque', sans-serif; color: #4A4766;">R$</span>
+      <span style="font: 800 44px/44px 'Bricolage Grotesque', sans-serif; letter-spacing: -0.02em;">{{ recebidoNum }}</span>
+    </p>
+    <div role="group" aria-label="Atalhos de cédula" style="display: flex; gap: 8px; margin-top: 16px;">
+      <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+        <button onClick="{{ c.toque }}" aria-pressed="{{ c.on }}" style="height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: {{ c.bg }}; color: {{ c.cor }}; font: 600 13px/18px Inter, sans-serif; white-space: nowrap;">{{ c.rotulo }}</button>
+      </sc-for>
+    </div>
+    <sc-if value="{{ temTroco }}" hint-placeholder-val="{{ true }}">
+      <div role="status" style="margin-top: 16px; min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-radius: 16px; background: #DDF5E7; color: #0E7A40;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>
+        <span style="font: 700 24px/28px 'Bricolage Grotesque', sans-serif; font-variant-numeric: tabular-nums;">Troco {{ trocoFmt }}</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ faltaDinheiro }}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="margin-top: 16px; min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-radius: 16px; background: #FFEFD9; color: #A65400;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9L2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+        <span style="font: 700 24px/28px 'Bricolage Grotesque', sans-serif; font-variant-numeric: tabular-nums;">Faltam {{ faltaFmt }}</span>
+      </div>
+    </sc-if>
+    <div role="group" aria-label="Teclado numérico" style="margin-top: auto; padding-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+      <sc-for list="{{ teclas }}" as="k" hint-placeholder-count="11">
+        <button onClick="{{ k.toque }}" class="pk" style="height: 64px; border: 0; border-radius: 16px; background: #F4F2EE; color: #14112B; font: 600 24px/1 Inter, sans-serif;">{{ k.rot }}</button>
+      </sc-for>
+      <button onClick="{{ apagar }}" class="pk" aria-label="Apagar" style="height: 64px; border: 0; border-radius: 16px; background: #F4F2EE; color: #14112B; display: flex; align-items: center; justify-content: center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 5H9l-6 7 6 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"></path><path d="M17 9l-5 6M12 9l5 6"></path></svg></button>
+    </div>
+    <button onClick="{{ confirmarDinheiro }}" disabled="{{ faltaDinheiro }}" class="pr" style="margin-top: 12px; width: 100%; height: 56px; border: 0; border-radius: 999px; background: #FFC933; color: #14112B; font: 700 17px/24px Inter, sans-serif;">Confirmar recebimento</button>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===================== DIVIDIR ===================== -->
+<sc-if value="{{ isDividir }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column;">
+  <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 20px 0 8px;">
+    <button onClick="{{ voltarCheckout }}" aria-label="Voltar para formas de pagamento" style="width: 48px; height: 48px; border: 0; border-radius: 999px; background: transparent; color: #14112B; display: flex; align-items: center; justify-content: center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></button>
+    <h1 style="margin: 0; font: 700 18px/24px Inter, sans-serif;">Dividir pagamento</h1>
+  </div>
+  <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 8px 20px 24px; display: flex; flex-direction: column; gap: 24px;">
+    <section style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; font-variant-numeric: tabular-nums;">
+        <span style="font: 600 15px/22px Inter, sans-serif;">Pago {{ pagoFmt }}</span>
+        <span style="font: 500 12px/16px Inter, sans-serif; color: #6B6883;">de R$ 56,05</span>
+      </div>
+      <div role="progressbar" aria-label="Valor já pago" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pctNum }}" style="height: 10px; background: #EAE7E1; border-radius: 999px; overflow: hidden;">
+        <div style="height: 100%; width: {{ pctPago }}; background: #3346F0; border-radius: 999px; transition: width .3s;"></div>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 8px;">
+      <h2 style="margin: 0; font: 600 13px/18px Inter, sans-serif; color: #6B6883;">Parcelas</h2>
+      <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;">
+        <sc-for list="{{ parcelasView }}" as="p" hint-placeholder-count="1">
+          <li style="min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: #F4F2EE; border-radius: 16px;">
+            <span aria-hidden="true" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; background: #FFFFFF; color: #14112B; display: flex; align-items: center; justify-content: center;">
+              <sc-if value="{{ p.ehDinheiro }}" hint-placeholder-val="{{ true }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle></svg></sc-if>
+              <sc-if value="{{ p.ehPix }}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"></path><path d="M9 12l3-3 3 3-3 3z"></path></svg></sc-if>
+              <sc-if value="{{ p.ehCartao }}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path></svg></sc-if>
+            </span>
+            <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font: 500 15px/22px Inter, sans-serif;">{{ p.nome }}</span>
+              <span style="display: flex; align-items: center; gap: 4px; font: 600 12px/16px Inter, sans-serif; color: #0E7A40;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>Recebido</span>
+            </span>
+            <span style="font: 600 15px/22px Inter, sans-serif; font-variant-numeric: tabular-nums;">{{ p.valorFmt }}</span>
+          </li>
+        </sc-for>
+      </ul>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px;">
+      <h2 style="margin: 0; font: 700 24px/28px 'Bricolage Grotesque', sans-serif; font-variant-numeric: tabular-nums;">Falta {{ restanteFmt }}</h2>
+      <p style="margin: 0; font: 400 15px/22px Inter, sans-serif; color: #4A4766;">Cobrar o restante com:</p>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+        <button onClick="{{ divPix }}" class="pk" style="height: 96px; border: 0; border-radius: 16px; background: #F4F2EE; color: #14112B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font: 600 15px/20px Inter, sans-serif;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"></path><path d="M9 12l3-3 3 3-3 3z"></path></svg>Pix</button>
+        <button onClick="{{ divTap }}" class="pk" style="height: 96px; border: 0; border-radius: 16px; background: #F4F2EE; color: #14112B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font: 600 15px/20px Inter, sans-serif;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 8.5a5 5 0 0 1 0 7M12 6a8.5 8.5 0 0 1 0 12M15.5 3.5a12 12 0 0 1 0 17"></path><path d="M5 12h.01"></path></svg>Aproximação</button>
+        <button onClick="{{ divDinheiro }}" class="pk" style="height: 96px; border: 0; border-radius: 16px; background: #F4F2EE; color: #14112B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font: 600 15px/20px Inter, sans-serif;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 12h.01M18 12h.01"></path></svg>Dinheiro</button>
+      </div>
+      <p style="margin: 0; font: 500 12px/16px Inter, sans-serif; color: #6B6883;">Cada parte cobra o valor que falta. Quando chegar a zero, a venda é concluída.</p>
+    </section>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===================== PIX ===================== -->
+<sc-if value="{{ isPix }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column;">
+  <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 20px 0 8px;">
+    <button onClick="{{ voltarPag }}" aria-label="Cancelar cobrança e voltar" style="width: 48px; height: 48px; border: 0; border-radius: 999px; background: transparent; color: #14112B; display: flex; align-items: center; justify-content: center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></button>
+    <span aria-hidden="true" style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 8px; background: {{ monoPix.bg }}; color: {{ monoPix.cor }}; display: flex; align-items: center; justify-content: center; font: 800 13px/1 'Bricolage Grotesque', sans-serif;">{{ monoPix.txt }}</span>
+    <h1 style="margin: 0; font: 700 18px/24px Inter, sans-serif;">Pix · {{ provedorPix }}</h1>
+  </div>
+  <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 4px 20px 20px; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+    <div style="align-self: stretch; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 16px; background: #E6E9FF; color: #14112B; font: 500 13px/18px Inter, sans-serif;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3346F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+      Brilho da tela no máximo para facilitar a leitura
+    </div>
+    <div style="padding: 16px; background: #FFFFFF; border: 1px solid #E2DED6; border-radius: 24px;">
+      <div role="img" aria-label="QR Code Pix de {{ valorFmt }}" style="width: 261px; height: 261px; display: grid; grid-template-columns: repeat(29, minmax(0, 1fr)); grid-template-rows: repeat(29, minmax(0, 1fr));">
+        <sc-for list="{{ qrGrande }}" as="q" hint-placeholder-count="841">
+          <div style="background: {{ q.cor }};"></div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+      <p style="margin: 0; font: 800 44px/44px 'Bricolage Grotesque', sans-serif; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">{{ valorFmt }}</p>
+      <sc-if value="{{ pixValido }}" hint-placeholder-val="{{ true }}">
+        <p style="margin: 0; display: flex; align-items: center; gap: 6px; font: 600 13px/18px Inter, sans-serif; color: #4A4766; font-variant-numeric: tabular-nums;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Expira em {{ pixTempo }}</p>
+      </sc-if>
+      <sc-if value="{{ pixExpirado }}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; display: flex; align-items: center; gap: 8px; font: 600 13px/18px Inter, sans-serif; color: #A65400;">Código expirado <button onClick="{{ novoPix }}" style="height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: #FFEFD9; color: #A65400; font: 600 13px/18px Inter, sans-serif;">Gerar novo código</button></p>
+      </sc-if>
+    </div>
+    <button onClick="{{ copiarPix }}" class="pk" style="align-self: stretch; height: 48px; border: 0; border-radius: 999px; background: #14112B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 8px; font: 600 15px/22px Inter, sans-serif;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"></path></svg>Copiar código Pix</button>
+    <p role="status" style="align-self: stretch; margin: 0; display: flex; align-items: flex-start; gap: 10px; font: 400 15px/22px Inter, sans-serif; color: #4A4766;">
+      <span aria-hidden="true" style="width: 10px; height: 10px; margin-top: 6px; flex-shrink: 0; border-radius: 999px; background: #3346F0; animation: pulsar 1.6s ease-out infinite;"></span>
+      <span><strong style="color: #14112B; font-weight: 600;">Aguardando pagamento…</strong> a tela muda sozinha quando cair.</span>
+    </p>
+    <button onClick="{{ voltarPag }}" class="gh" style="height: 48px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: #14112B; font: 600 15px/22px Inter, sans-serif;">Cancelar cobrança</button>
+    <button onClick="{{ pixSimular }}" style="height: 40px; padding: 0 16px; border: 1.5px dashed #6B6883; border-radius: 999px; background: transparent; color: #4A4766; font: 600 13px/18px Inter, sans-serif;">Demo: simular Pix recebido</button>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===================== PIX PAGO ===================== -->
+<sc-if value="{{ isPixPago }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; padding: 0 20px 20px; background: #0E7A40; color: #FFFFFF;">
+  <div role="status" style="flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center;">
+    <dc-import name="Ilustra" kind="check" size="200" hint-size="200px,200px"></dc-import>
+    <h1 style="margin: 0; font: 800 44px/44px 'Bricolage Grotesque', sans-serif; letter-spacing: -0.02em;">Pix recebido!</h1>
+    <p style="margin: 0; font: 700 18px/24px Inter, sans-serif; font-variant-numeric: tabular-nums;">{{ valorFmt }} · {{ provedorPix }} · 18:42</p>
+    <p style="margin: 0; max-width: 300px; font: 500 17px/24px Inter, sans-serif;">Confirmado pelo banco. Não precisa conferir o comprovante do cliente.</p>
+  </div>
+  <button onClick="{{ pixContinuar }}" class="pk" style="width: 100%; height: 56px; flex-shrink: 0; border: 0; border-radius: 999px; background: #FFFFFF; color: #14112B; font: 700 17px/24px Inter, sans-serif;">Continuar</button>
+</div>
+</sc-if>
+
+<!-- ===================== TAP ===================== -->
+<sc-if value="{{ isTap }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column;">
+  <div style="height: 56px; flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 20px 0 8px;">
+    <button onClick="{{ voltarPag }}" aria-label="Voltar" style="width: 48px; height: 48px; border: 0; border-radius: 999px; background: transparent; color: #14112B; display: flex; align-items: center; justify-content: center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg></button>
+    <h1 style="margin: 0; font: 700 18px/24px Inter, sans-serif;">Cartão por aproximação</h1>
+  </div>
+  <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 0 20px 20px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;">
+      <dc-import name="Ilustra" kind="tap" size="200" hint-size="200px,200px"></dc-import>
+      <h2 style="margin: 0; font: 700 24px/28px 'Bricolage Grotesque', sans-serif;">Abrindo o {{ nomeTap }}…</h2>
+      <p style="margin: 0; font: 800 44px/44px 'Bricolage Grotesque', sans-serif; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">{{ valorFmt }}</p>
+    </div>
+    <ol style="list-style: none; margin: 0; padding: 4px 16px; background: #F4F2EE; border-radius: 16px; display: flex; flex-direction: column;">
+      <li style="min-height: 52px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #E2DED6;">
+        <span aria-hidden="true" style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px; background: #DDF5E7; color: #0E7A40; display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span>
+        <span style="font: 500 15px/20px Inter, sans-serif; font-variant-numeric: tabular-nums;"><span class="sr">Concluído: </span>Enviamos {{ valorFmt }} e a referência #000231</span>
+      </li>
+      <li style="min-height: 52px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #E2DED6;">
+        <span aria-hidden="true" style="width: 28px; height: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;"><span style="width: 20px; height: 20px; box-sizing: border-box; border-radius: 999px; border: 2.5px solid #E6E9FF; border-top-color: #3346F0; animation: girar .9s linear infinite;"></span></span>
+        <span style="font: 600 15px/20px Inter, sans-serif;"><span class="sr">Em andamento: </span>O cliente encosta o cartão atrás do celular</span>
+      </li>
+      <li style="min-height: 52px; display: flex; align-items: center; gap: 12px;">
+        <span aria-hidden="true" style="width: 28px; height: 28px; flex-shrink: 0; box-sizing: border-box; border-radius: 999px; border: 2px solid #E2DED6; color: #6B6883; display: flex; align-items: center; justify-content: center; font: 600 12px/1 Inter, sans-serif;">3</span>
+        <span style="font: 400 15px/20px Inter, sans-serif; color: #6B6883;"><span class="sr">Pendente: </span>Você volta para cá com o recibo</span>
+      </li>
+    </ol>
+    <p style="margin: 0; font: 500 12px/16px Inter, sans-serif; color: #6B6883;">Se o app não abrir, confira se o {{ nomeTap }} está instalado e logado.</p>
+    <div style="margin-top: auto; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
+      <button onClick="{{ tapAprovado }}" style="height: 40px; padding: 0 16px; border: 1.5px dashed #6B6883; border-radius: 999px; background: transparent; color: #4A4766; font: 600 13px/18px Inter, sans-serif;">Demo: aprovado</button>
+      <button onClick="{{ tapVoltei }}" style="height: 40px; padding: 0 16px; border: 1.5px dashed #6B6883; border-radius: 999px; background: transparent; color: #4A4766; font: 600 13px/18px Inter, sans-serif;">Demo: voltei sem concluir</button>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===================== TAP FALHA ===================== -->
+<sc-if value="{{ isTapFalha }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column;">
+  <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 40px 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;">
+    <span style="height: 24px; padding: 0 10px; border-radius: 999px; background: #FFEFD9; color: #A65400; display: inline-flex; align-items: center; gap: 4px; font: 600 12px/16px Inter, sans-serif;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Pendente</span>
+    <dc-import name="Ilustra" kind="recibo" size="140" hint-size="140px,140px"></dc-import>
+    <h1 style="margin: 0; font: 800 32px/34px 'Bricolage Grotesque', sans-serif;">Não recebemos a confirmação</h1>
+    <p style="margin: 0; font: 400 15px/22px Inter, sans-serif; color: #4A4766;">Você voltou do {{ nomeTap }} sem um resultado. Antes de cobrar de novo, consulte o status para não cobrar duas vezes.</p>
+    <sc-if value="{{ consultado }}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="align-self: stretch; display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; background: #E6E9FF; text-align: left; font: 500 13px/18px Inter, sans-serif;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3346F0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg>
+        Nenhum pagamento encontrado para #000231. Pode tentar de novo.
+      </div>
+    </sc-if>
+  </div>
+  <div style="flex-shrink: 0; padding: 8px 20px 20px; display: flex; flex-direction: column; gap: 8px;">
+    <button onClick="{{ consultar }}" class="pr" style="width: 100%; height: 56px; border: 0; border-radius: 999px; background: #FFC933; color: #14112B; font: 700 17px/24px Inter, sans-serif;">Consultar status</button>
+    <button onClick="{{ tentarDeNovo }}" disabled="{{ naoConsultado }}" class="pk" style="width: 100%; height: 56px; border: 0; border-radius: 999px; background: {{ tentarBg }}; color: {{ tentarCor }}; font: 700 17px/24px Inter, sans-serif;">Tentar de novo</button>
+    <button onClick="{{ trocarForma }}" class="pk" style="width: 100%; height: 48px; border: 0; border-radius: 999px; background: #F4F2EE; color: #14112B; font: 600 15px/22px Inter, sans-serif;">Trocar forma de pagamento</button>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===================== SUCESSO ===================== -->
+<sc-if value="{{ isSucesso }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column;">
+  <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 24px 20px 16px; display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;">
+      <dc-import name="Ilustra" kind="check" size="160" hint-size="160px,160px"></dc-import>
+      <h1 style="margin: 0; font: 800 32px/34px 'Bricolage Grotesque', sans-serif;">Venda concluída</h1>
+      <p style="margin: 0; font: 800 44px/44px 'Bricolage Grotesque', sans-serif; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">R$ 56,05</p>
+      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 4px;">
+        <span style="height: 24px; padding: 0 10px; border-radius: 999px; background: #F4F2EE; color: #14112B; display: inline-flex; align-items: center; gap: 4px; font: 600 12px/16px Inter, sans-serif; font-variant-numeric: tabular-nums;">
+          <sc-if value="{{ metDinheiro }}" hint-placeholder-val="{{ true }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle></svg></sc-if>
+          <sc-if value="{{ metPix }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 9-9 9-9-9z"></path></svg></sc-if>
+          <sc-if value="{{ metCartao }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path></svg></sc-if>
+          <sc-if value="{{ metDividido }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3v5a6 6 0 0 0 6 6v7M18 3v5a6 6 0 0 1-6 6"></path></svg></sc-if>
+          {{ pilulaMetodo }}
+        </span>
+        <span style="height: 24px; padding: 0 10px; border-radius: 999px; background: #DDF5E7; color: #0E7A40; display: inline-flex; align-items: center; gap: 4px; font: 600 12px/16px Inter, sans-serif;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>Sincronizado</span>
+      </div>
+    </div>
+
+    <section aria-label="Comprovante" style="background: #F4F2EE; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 12px; font-variant-numeric: tabular-nums;">
+      <div>
+        <p style="margin: 0; font: 700 18px/24px Inter, sans-serif;">Mercadinho Bom Preço</p>
+        <p style="margin: 2px 0 0; font: 500 12px/16px Inter, sans-serif; color: #6B6883;">#000231 · 23/10/2026 18:42</p>
+      </div>
+      <ul style="list-style: none; margin: 0; padding: 12px 0; border-top: 1px dashed #6B6883; border-bottom: 1px dashed #6B6883; display: flex; flex-direction: column; gap: 6px; font: 400 15px/22px Inter, sans-serif;">
+        <li style="display: flex; justify-content: space-between; gap: 12px;"><span><span style="color: #6B6883;">1×</span> Arroz tipo 1 5kg</span><span>R$ 27,90</span></li>
+        <li style="display: flex; justify-content: space-between; gap: 12px;"><span><span style="color: #6B6883;">1×</span> Feijão carioca 1kg</span><span>R$ 8,49</span></li>
+        <li style="display: flex; justify-content: space-between; gap: 12px;"><span><span style="color: #6B6883;">3×</span> Leite integral 1L</span><span>R$ 15,87</span></li>
+        <li style="display: flex; justify-content: space-between; gap: 12px;"><span><span style="color: #6B6883;">1×</span> Biscoito recheado 130g</span><span>R$ 3,79</span></li>
+      </ul>
+      <div style="display: flex; justify-content: space-between; font: 700 18px/24px Inter, sans-serif;"><span>Total · 6 itens</span><span>R$ 56,05</span></div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <p style="margin: 0; font: 600 13px/18px Inter, sans-serif; color: #6B6883;">Forma de pagamento</p>
+        <sc-for list="{{ formaLinhas }}" as="f" hint-placeholder-count="2">
+          <div style="display: flex; justify-content: space-between; gap: 12px; font: 400 15px/22px Inter, sans-serif;"><span>{{ f.rotulo }}</span><span>{{ f.valor }}</span></div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ qrComprovante }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 4px;">
+          <div style="padding: 10px; background: #FFFFFF; border-radius: 16px;">
+            <div role="img" aria-label="QR Code do comprovante da venda #000231" style="width: 140px; height: 140px; display: grid; grid-template-columns: repeat(29, minmax(0, 1fr)); grid-template-rows: repeat(29, minmax(0, 1fr));">
+              <sc-for list="{{ qrPequeno }}" as="q" hint-placeholder-count="841">
+                <div style="background: {{ q.cor }};"></div>
+              </sc-for>
+            </div>
+          </div>
+          <p style="margin: 0; font: 500 12px/16px Inter, sans-serif; color: #6B6883;">O cliente aponta a câmera para abrir o comprovante</p>
+        </div>
+      </sc-if>
+    </section>
+
+    <button onClick="{{ enviarWhats }}" class="pk" style="width: 100%; height: 48px; flex-shrink: 0; border: 0; border-radius: 999px; background: #14112B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 8px; font: 600 15px/22px Inter, sans-serif;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"></path></svg>Enviar no WhatsApp</button>
+    <button onClick="{{ alternarQR }}" aria-expanded="{{ qrComprovante }}" class="pk" style="width: 100%; height: 48px; flex-shrink: 0; border: 0; border-radius: 999px; background: #F4F2EE; color: #14112B; display: flex; align-items: center; justify-content: center; gap: 8px; font: 600 15px/22px Inter, sans-serif;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><path d="M14 14h3v3M21 14v.01M14 21h7v-4"></path></svg>{{ rotuloQR }}</button>
+  </div>
+  <div style="flex-shrink: 0; padding: 8px 20px 20px;">
+    <a href="AppVender.dc.html" class="pr" style="width: 100%; height: 56px; box-sizing: border-box; border-radius: 999px; background: #FFC933; color: #14112B; display: flex; align-items: center; justify-content: center; text-decoration: none; font: 700 17px/24px Inter, sans-serif;">Nova venda</a>
+  </div>
+</div>
+</sc-if>
+
+<!-- ===================== TOAST ===================== -->
+<div aria-live="polite" style="position: absolute; left: 20px; right: 20px; bottom: 100px; z-index: 20; pointer-events: none;">
+  <sc-if value="{{ temToast }}" hint-placeholder-val="{{ false }}">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 16px; background: #14112B; color: #FFFFFF; box-shadow: 0 8px 24px rgba(20,17,43,.24); font: 500 15px/22px Inter, sans-serif; animation: subir .2s ease-out;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC933" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M20 6L9 17l-5-5"></path></svg>
+      <span>{{ toast }}</span>
+    </div>
+  </sc-if>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tela":{"editor":"enum","options":["checkout","dinheiro","dividir","pix","pixpago","tap","tapfalha","sucesso"],"default":"checkout"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const t = props.tela ?? 'checkout';
+    this.TOTAL = 5605;
+    this.state = {
+      tela: t,
+      provedorPix: 'InfinitePay',
+      provedorTap: 'InfinitePay',
+      valorACobrar: 5605,
+      recebido: t === 'dinheiro' ? 6000 : 0,
+      parcelas: [{ metodo: 'Dinheiro', nome: 'Dinheiro', valor: 2000 }],
+      modoDividido: false,
+      metodoFinal: 'Dinheiro',
+      nomeFinal: 'Dinheiro',
+      troco: t === 'sucesso' ? 395 : 0,
+      recebidoFinal: t === 'sucesso' ? 6000 : 0,
+      itensAbertos: false,
+      toast: null,
+      pixSeg: 599,
+      consultado: false,
+      qrComprovante: false
+    };
+    this.qrGrande = this.gerarQR(20261023);
+    this.qrPequeno = this.gerarQR(231);
+  }
+
+  componentDidMount() {
+    this.relogio = setInterval(() => {
+      if (this.state.tela === 'pix' && this.state.pixSeg > 0) {
+        this.setState({ pixSeg: this.state.pixSeg - 1 });
+      }
+    }, 1000);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.relogio);
+    clearTimeout(this.toastTimer);
+  }
+
+  gerarQR(seed) {
+    let s = seed >>> 0;
+    const rnd = () => {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let x = s;
+      x = Math.imul(x ^ (x >>> 15), x | 1);
+      x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
+      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    };
+    const N = 29;
+    const loc = (r, c, r0, c0) => {
+      const y = r - r0, x = c - c0;
+      if (y < -1 || y > 7 || x < -1 || x > 7) return null;
+      if (y === -1 || y === 7 || x === -1 || x === 7) return false;
+      if (y === 0 || y === 6 || x === 0 || x === 6) return true;
+      return y >= 2 && y <= 4 && x >= 2 && x <= 4;
+    };
+    const cells = [];
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        let on = loc(r, c, 0, 0);
+        if (on === null) on = loc(r, c, 0, N - 7);
+        if (on === null) on = loc(r, c, N - 7, 0);
+        if (on === null) {
+          if (r === 6) on = c % 2 === 0;
+          else if (c === 6) on = r % 2 === 0;
+          else if (r >= 20 && r <= 24 && c >= 20 && c <= 24) {
+            const y = r - 20, x = c - 20;
+            on = y === 0 || y === 4 || x === 0 || x === 4 || (y === 2 && x === 2);
+          } else on = rnd() < 0.5;
+        }
+        cells.push({ cor: on ? '#14112B' : '#FFFFFF' });
+      }
+    }
+    return cells;
+  }
+
+  fmtNum(c) {
+    const v = Math.abs(Math.round(c));
+    const reais = String(Math.floor(v / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const cent = String(v % 100).padStart(2, '0');
+    return (c < 0 ? '-' : '') + reais + ',' + cent;
+  }
+
+  fmt(c) { return 'R$ ' + this.fmtNum(c); }
+
+  mostrarToast(msg) {
+    clearTimeout(this.toastTimer);
+    this.setState({ toast: msg });
+    this.toastTimer = setTimeout(() => this.setState({ toast: null }), 2500);
+  }
+
+  concluir(metodo, nome, troco, recebido) {
+    const st = this.state;
+    const extra = { troco: troco || 0, recebidoFinal: recebido || 0, qrComprovante: false, toast: null };
+    if (st.modoDividido) {
+      const parcelas = st.parcelas.concat([{ metodo: metodo, nome: nome, valor: st.valorACobrar }]);
+      const pago = parcelas.reduce((a, p) => a + p.valor, 0);
+      if (pago >= this.TOTAL) {
+        this.setState(Object.assign({ parcelas: parcelas, tela: 'sucesso', metodoFinal: 'Dividido', nomeFinal: 'Dividido', modoDividido: false }, extra));
+      } else {
+        this.setState(Object.assign({ parcelas: parcelas, tela: 'dividir', valorACobrar: this.TOTAL - pago }, extra));
+      }
+    } else {
+      this.setState(Object.assign({ tela: 'sucesso', metodoFinal: metodo, nomeFinal: nome }, extra));
+    }
+  }
+
+  renderVals() {
+    const s = this.state;
+    const T = this.TOTAL;
+    const tela = s.tela;
+    const valor = s.valorACobrar;
+    const pago = s.parcelas.reduce((a, p) => a + p.valor, 0);
+    const restante = Math.max(T - pago, 0);
+    const ipPix = s.provedorPix === 'InfinitePay';
+    const ipTap = s.provedorTap === 'InfinitePay';
+    const nomeTap = ipTap ? 'InfiniteTap' : 'Mercado Pago Tap';
+    const mono = (ip) => ip
+      ? { txt: 'IP', bg: '#14112B', cor: '#FFC933' }
+      : { txt: 'MP', bg: '#E6E9FF', cor: '#3346F0' };
+    const seg = (on) => ({
+      on: on,
+      bg: on ? '#FFFFFF' : 'transparent',
+      sombra: on ? '0 1px 3px rgba(20,17,43,.18)' : 'none',
+      cor: on ? '#14112B' : '#4A4766'
+    });
+    const temTroco = s.recebido >= valor;
+    const met = s.metodoFinal || 'Dinheiro';
+
+    const chipsBase = [
+      { rotulo: 'Valor exato', v: valor },
+      { rotulo: 'R$ 60', v: 6000 },
+      { rotulo: 'R$ 70', v: 7000 },
+      { rotulo: 'R$ 100', v: 10000 }
+    ];
+    let marcado = false;
+    const chips = chipsBase.map((c) => {
+      const on = !marcado && s.recebido === c.v;
+      if (on) marcado = true;
+      return {
+        rotulo: c.rotulo,
+        on: on,
+        bg: on ? '#14112B' : '#F4F2EE',
+        cor: on ? '#FFFFFF' : '#14112B',
+        toque: () => this.setState({ recebido: c.v })
+      };
+    });
+
+    const teclas = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0'].map((d) => ({
+      rot: d,
+      toque: () => {
+        const atual = this.state.recebido;
+        const novo = d === '00' ? atual * 100 : atual * 10 + Number(d);
+        if (novo <= 9999999) this.setState({ recebido: novo });
+      }
+    }));
+
+    const parcelasView = s.parcelas.map((p) => ({
+      nome: p.nome,
+      valorFmt: this.fmt(p.valor),
+      ehDinheiro: p.metodo === 'Dinheiro',
+      ehPix: p.metodo === 'Pix',
+      ehCartao: p.metodo === 'Cartão'
+    }));
+
+    const formaLinhas = [];
+    if (met === 'Dividido') {
+      s.parcelas.forEach((p) => formaLinhas.push({ rotulo: p.nome, valor: this.fmt(p.valor) }));
+    } else if (met === 'Dinheiro') {
+      formaLinhas.push({ rotulo: 'Dinheiro', valor: this.fmt(T) });
+      if (s.recebidoFinal > 0) formaLinhas.push({ rotulo: 'Recebido', valor: this.fmt(s.recebidoFinal) });
+    } else {
+      formaLinhas.push({ rotulo: s.nomeFinal, valor: this.fmt(T) });
+    }
+    if (s.troco > 0) formaLinhas.push({ rotulo: 'Troco', valor: this.fmt(s.troco) });
+
+    let pilulaMetodo = met;
+    if ((met === 'Dinheiro' || met === 'Dividido') && s.troco > 0) pilulaMetodo = met + ' · Troco ' + this.fmt(s.troco);
+
+    const pct = Math.min(100, Math.round((pago / T) * 1000) / 10);
+    const seg2 = s.pixSeg;
+    const voltarPag = () => this.setState(this.state.modoDividido ? { tela: 'dividir', toast: null } : { tela: 'checkout', toast: null });
+
+    return {
+      isCheckout: tela === 'checkout',
+      isDinheiro: tela === 'dinheiro',
+      isDividir: tela === 'dividir',
+      isPix: tela === 'pix',
+      isPixPago: tela === 'pixpago',
+      isTap: tela === 'tap',
+      isTapFalha: tela === 'tapfalha',
+      isSucesso: tela === 'sucesso',
+
+      provedorPix: s.provedorPix,
+      nomeTap: nomeTap,
+      monoPix: mono(ipPix),
+      monoTap: mono(ipTap),
+      segPixIP: seg(ipPix),
+      segPixMP: seg(!ipPix),
+      segTapIP: seg(ipTap),
+      segTapMP: seg(!ipTap),
+      setPixIP: () => this.setState({ provedorPix: 'InfinitePay' }),
+      setPixMP: () => this.setState({ provedorPix: 'Mercado Pago' }),
+      setTapIP: () => this.setState({ provedorTap: 'InfinitePay' }),
+      setTapMP: () => this.setState({ provedorTap: 'Mercado Pago' }),
+
+      itensAbertos: s.itensAbertos,
+      rotuloItens: s.itensAbertos ? '6 itens · ocultar itens' : '6 itens · ver itens',
+      chevRot: s.itensAbertos ? '180deg' : '0deg',
+      alternarItens: () => this.setState({ itensAbertos: !this.state.itensAbertos }),
+
+      irPix: () => this.setState({ tela: 'pix', valorACobrar: T, modoDividido: false, pixSeg: 599 }),
+      irTap: () => this.setState({ tela: 'tap', valorACobrar: T, modoDividido: false }),
+      irDinheiro: () => this.setState({ tela: 'dinheiro', valorACobrar: T, modoDividido: false, recebido: 0 }),
+      irDividir: () => this.setState({ tela: 'dividir', modoDividido: false }),
+      voltarPag: voltarPag,
+      voltarCheckout: () => this.setState({ tela: 'checkout', modoDividido: false }),
+
+      valorFmt: this.fmt(valor),
+      modoDividido: s.modoDividido,
+
+      recebidoNum: this.fmtNum(s.recebido),
+      chips: chips,
+      teclas: teclas,
+      apagar: () => this.setState({ recebido: Math.floor(this.state.recebido / 10) }),
+      temTroco: temTroco,
+      faltaDinheiro: !temTroco,
+      trocoFmt: this.fmt(Math.max(s.recebido - valor, 0)),
+      faltaFmt: this.fmt(Math.max(valor - s.recebido, 0)),
+      confirmarDinheiro: () => {
+        const st = this.state;
+        if (st.recebido < st.valorACobrar) return;
+        this.concluir('Dinheiro', 'Dinheiro', st.recebido - st.valorACobrar, st.recebido);
+      },
+
+      pagoFmt: this.fmt(pago),
+      restanteFmt: this.fmt(restante),
+      pctPago: pct + '%',
+      pctNum: pct,
+      parcelasView: parcelasView,
+      divPix: () => this.setState({ tela: 'pix', valorACobrar: restante, modoDividido: true, pixSeg: 599 }),
+      divTap: () => this.setState({ tela: 'tap', valorACobrar: restante, modoDividido: true }),
+      divDinheiro: () => this.setState({ tela: 'dinheiro', valorACobrar: restante, modoDividido: true, recebido: 0 }),
+
+      qrGrande: this.qrGrande,
+      qrPequeno: this.qrPequeno,
+      pixTempo: Math.floor(seg2 / 60) + ':' + String(seg2 % 60).padStart(2, '0'),
+      pixValido: seg2 > 0,
+      pixExpirado: seg2 <= 0,
+      novoPix: () => this.setState({ pixSeg: 599 }),
+      copiarPix: () => this.mostrarToast('Código Pix copiado'),
+      pixSimular: () => this.setState({ tela: 'pixpago', toast: null }),
+      pixContinuar: () => this.concluir('Pix', 'Pix · ' + this.state.provedorPix, 0, 0),
+
+      tapAprovado: () => this.concluir('Cartão', 'Cartão · ' + (this.state.provedorTap === 'InfinitePay' ? 'InfiniteTap' : 'Mercado Pago Tap'), 0, 0),
+      tapVoltei: () => this.setState({ tela: 'tapfalha', consultado: false }),
+
+      consultado: s.consultado,
+      naoConsultado: !s.consultado,
+      tentarBg: s.consultado ? '#14112B' : '#F4F2EE',
+      tentarCor: s.consultado ? '#FFFFFF' : '#14112B',
+      consultar: () => {
+        this.setState({ consultado: true });
+        this.mostrarToast('Nenhum pagamento encontrado para #000231. Pode tentar de novo.');
+      },
+      tentarDeNovo: () => this.setState({ tela: 'tap', consultado: false, toast: null }),
+      trocarForma: () => this.setState({ tela: 'checkout', modoDividido: false, consultado: false, toast: null }),
+
+      metDinheiro: met === 'Dinheiro',
+      metPix: met === 'Pix',
+      metCartao: met === 'Cartão',
+      metDividido: met === 'Dividido',
+      pilulaMetodo: pilulaMetodo,
+      formaLinhas: formaLinhas,
+      qrComprovante: s.qrComprovante,
+      rotuloQR: s.qrComprovante ? 'Ocultar QR do comprovante' : 'Mostrar QR do comprovante',
+      alternarQR: () => this.setState({ qrComprovante: !this.state.qrComprovante }),
+      enviarWhats: () => this.mostrarToast('Abrindo WhatsApp…'),
+
+      temToast: !!s.toast,
+      toast: s.toast || ''
+    };
+  }
+}
+</script>
+</body>
+</html>

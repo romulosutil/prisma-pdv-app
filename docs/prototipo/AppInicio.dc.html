@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>App Início</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3346F0}a:hover{color:#14112B}
+button,a,input{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible{outline:2px solid #3346F0;outline-offset:2px}
+input:focus{outline:none;box-shadow:0 0 0 2px #3346F0}
+.btn-primario:active{background:#F2B200 !important}
+.btn-ghost:focus-visible{text-decoration:underline}
+.btn-terciario:active,.tile:active{background:#EAE7E1 !important}
+.rolagem::-webkit-scrollbar{width:0;height:0}
+nav[aria-label="Navegação principal"] a:focus-visible{outline:2px solid #3346F0;outline-offset:2px;border-radius:12px}
+.btn-vender:focus-visible{outline:2px solid #3346F0;outline-offset:3px;border-radius:999px}
+nav[aria-label="Navegação principal"] a.btn-vender:focus-visible{outline:2px solid #3346F0;outline-offset:3px;border-radius:999px}
+.btn-vender:active{background:#F2B200 !important}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; box-sizing: border-box; background: #FFFFFF; color: #14112B; font-family: Inter, system-ui, sans-serif;">
+
+  <!-- ============ BOAS-VINDAS ============ -->
+  <sc-if value="{{ isBoasvindas }}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; box-sizing: border-box; padding: 20px 20px 24px;">
+      <div style="height: 44px; display: flex; align-items: center;">
+        <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px; line-height: 28px; letter-spacing: -0.02em; color: #14112B;">[nome]</span>
+      </div>
+      <div style="flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;">
+        <dc-import name="Ilustra" kind="cesta" size="260" hint-size="260px,260px"></dc-import>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px;">
+        <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 44px; line-height: 44px; letter-spacing: -0.02em; color: #14112B;">Seu balcão inteiro no celular.</h1>
+        <p style="margin: 0; font-size: 17px; line-height: 24px; font-weight: 400; color: #4A4766;">Cadastre bipando, venda bipando e receba no Pix ou na aproximação.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button type="button" class="btn-primario" onClick="{{ irLoja }}" style="height: 56px; width: 100%; border: none; border-radius: 999px; background: #FFC933; color: #14112B; font-family: Inter, sans-serif; font-size: 17px; font-weight: 700; cursor: pointer;">Começar</button>
+        <button type="button" class="btn-ghost" onClick="{{ irHome }}" style="height: 48px; width: 100%; border: none; border-radius: 999px; background: transparent; color: #14112B; font-family: Inter, sans-serif; font-size: 15px; font-weight: 600; cursor: pointer;">Já tenho conta</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ LOJA (1 de 3) ============ -->
+  <sc-if value="{{ isLoja }}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; box-sizing: border-box; padding: 12px 20px 24px;">
+      <div style="height: 56px; display: flex; align-items: center; gap: 16px;">
+        <button type="button" aria-label="Voltar" onClick="{{ irBoasvindas }}" class="btn-terciario" style="width: 48px; height: 48px; flex-shrink: 0; border: none; border-radius: 999px; background: #F4F2EE; color: #14112B; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+        </button>
+        <div role="progressbar" aria-label="Etapa 1 de 3" aria-valuemin="1" aria-valuemax="3" aria-valuenow="1" style="flex: 1; height: 6px; border-radius: 999px; background: #EAE7E1; overflow: hidden;">
+          <div style="width: 33.33%; height: 100%; border-radius: 999px; background: #3346F0;"></div>
+        </div>
+        <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: #6B6883; font-variant-numeric: tabular-nums;">1 de 3</span>
+      </div>
+      <div class="rolagem" style="flex: 1; min-height: 0; overflow-y: auto; padding-top: 24px; display: flex; flex-direction: column; gap: 32px;">
+        <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; line-height: 34px; letter-spacing: -0.01em; color: #14112B;">Como se chama sua loja?</h1>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="campoNomeLoja" style="font-size: 13px; line-height: 18px; font-weight: 600; color: #4A4766;">Nome da loja</label>
+          <input id="campoNomeLoja" type="text" autocomplete="organization" value="{{ nomeLoja }}" onInput="{{ aoDigitarNome }}" style="height: 56px; width: 100%; box-sizing: border-box; border: none; border-radius: 16px; background: #F4F2EE; padding: 0 16px; font-family: Inter, sans-serif; font-size: 17px; font-weight: 500; color: #14112B;">
+        </div>
+        <div role="group" aria-labelledby="rotuloTipo" style="display: flex; flex-direction: column; gap: 12px;">
+          <span id="rotuloTipo" style="font-size: 13px; line-height: 18px; font-weight: 600; color: #4A4766;">Tipo de comércio</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <sc-for list="{{ tipos }}" as="chip" hint-placeholder-count="5">
+              <button type="button" aria-pressed="{{ chip.pressed }}" onClick="{{ chip.escolher }}" style="height: 36px; padding: 0 16px; border: none; border-radius: 999px; background: {{ chip.fundo }}; color: {{ chip.cor }}; font-family: Inter, sans-serif; font-size: 13px; line-height: 18px; font-weight: 600; cursor: pointer;">{{ chip.nome }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="btn-primario" onClick="{{ irPagamentos }}" disabled="{{ nomeVazio }}" style="margin-top: 16px; height: 56px; width: 100%; flex-shrink: 0; border: none; border-radius: 999px; background: #FFC933; color: #14112B; font-family: Inter, sans-serif; font-size: 17px; font-weight: 700; cursor: pointer; opacity: {{ ctaLojaOpacidade }};">Continuar</button>
+    </div>
+  </sc-if>
+
+  <!-- ============ PAGAMENTOS (2 de 3) ============ -->
+  <sc-if value="{{ isPagamentos }}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; box-sizing: border-box; padding: 12px 20px 24px;">
+      <div style="height: 56px; display: flex; align-items: center; gap: 16px;">
+        <button type="button" aria-label="Voltar" onClick="{{ irLoja }}" class="btn-terciario" style="width: 48px; height: 48px; flex-shrink: 0; border: none; border-radius: 999px; background: #F4F2EE; color: #14112B; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+        </button>
+        <div role="progressbar" aria-label="Etapa 2 de 3" aria-valuemin="1" aria-valuemax="3" aria-valuenow="2" style="flex: 1; height: 6px; border-radius: 999px; background: #EAE7E1; overflow: hidden;">
+          <div style="width: 66.66%; height: 100%; border-radius: 999px; background: #3346F0;"></div>
+        </div>
+        <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: #6B6883; font-variant-numeric: tabular-nums;">2 de 3</span>
+      </div>
+      <div class="rolagem" style="flex: 1; min-height: 0; overflow-y: auto; padding-top: 24px; display: flex; flex-direction: column; gap: 32px;">
+        <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; line-height: 34px; letter-spacing: -0.01em; color: #14112B;">Como você quer receber?</h1>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+
+          <!-- InfinitePay -->
+          <button type="button" aria-pressed="{{ ipPressed }}" onClick="{{ alternarIP }}" class="tile" style="min-height: 76px; width: 100%; box-sizing: border-box; border: none; border-radius: 16px; background: #F4F2EE; padding: 16px; display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer; font-family: Inter, sans-serif; color: #14112B;">
+            <span aria-hidden="true" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; background: #14112B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; letter-spacing: 0.02em;">IP</span>
+            <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-size: 15px; line-height: 22px; font-weight: 600; color: #14112B;">InfinitePay</span>
+              <span style="font-size: 12px; line-height: 16px; font-weight: 500; color: #6B6883;">Pix na tela + InfiniteTap no celular</span>
+            </span>
+            <sc-if value="{{ ipDesconectado }}" hint-placeholder-val="{{ true }}">
+              <span style="height: 36px; padding: 0 16px; flex-shrink: 0; border-radius: 999px; background: #FFFFFF; color: #14112B; display: flex; align-items: center; font-size: 13px; font-weight: 600;">Conectar</span>
+            </sc-if>
+            <sc-if value="{{ ipConectado }}" hint-placeholder-val="{{ false }}">
+              <span style="height: 24px; padding: 0 10px 0 8px; flex-shrink: 0; border-radius: 999px; background: #DDF5E7; color: #0E7A40; display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600;">
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+                Conectado
+              </span>
+            </sc-if>
+          </button>
+
+          <!-- Mercado Pago -->
+          <button type="button" aria-pressed="{{ mpPressed }}" onClick="{{ alternarMP }}" class="tile" style="min-height: 76px; width: 100%; box-sizing: border-box; border: none; border-radius: 16px; background: #F4F2EE; padding: 16px; display: flex; align-items: center; gap: 12px; text-align: left; cursor: pointer; font-family: Inter, sans-serif; color: #14112B;">
+            <span aria-hidden="true" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; background: #E6E9FF; color: #3346F0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; letter-spacing: 0.02em;">MP</span>
+            <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-size: 15px; line-height: 22px; font-weight: 600; color: #14112B;">Mercado Pago</span>
+              <span style="font-size: 12px; line-height: 16px; font-weight: 500; color: #6B6883;">Pix na tela + Tap no celular</span>
+            </span>
+            <sc-if value="{{ mpDesconectado }}" hint-placeholder-val="{{ true }}">
+              <span style="height: 36px; padding: 0 16px; flex-shrink: 0; border-radius: 999px; background: #FFFFFF; color: #14112B; display: flex; align-items: center; font-size: 13px; font-weight: 600;">Conectar</span>
+            </sc-if>
+            <sc-if value="{{ mpConectado }}" hint-placeholder-val="{{ false }}">
+              <span style="height: 24px; padding: 0 10px 0 8px; flex-shrink: 0; border-radius: 999px; background: #DDF5E7; color: #0E7A40; display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600;">
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+                Conectado
+              </span>
+            </sc-if>
+          </button>
+
+          <!-- Dinheiro (sempre ativo) -->
+          <div style="min-height: 76px; box-sizing: border-box; border-radius: 16px; background: #F4F2EE; padding: 16px; display: flex; align-items: center; gap: 12px;">
+            <span aria-hidden="true" style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 8px; background: #DDF5E7; color: #0E7A40; display: flex; align-items: center; justify-content: center;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle><path d="M6 12h.01M18 12h.01"></path></svg>
+            </span>
+            <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-size: 15px; line-height: 22px; font-weight: 600; color: #14112B;">Dinheiro</span>
+              <span style="font-size: 12px; line-height: 16px; font-weight: 500; color: #6B6883;">Com calculadora de troco</span>
+            </span>
+            <span style="height: 24px; padding: 0 10px 0 8px; flex-shrink: 0; border-radius: 999px; background: #DDF5E7; color: #0E7A40; display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600;">
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+              Sempre ativo
+            </span>
+          </div>
+
+          <p style="margin: 4px 0 0; font-size: 12px; line-height: 16px; font-weight: 500; color: #6B6883;">Dá para mudar depois em Ajustes.</p>
+        </div>
+      </div>
+      <button type="button" class="btn-primario" onClick="{{ irCamera }}" style="margin-top: 16px; height: 56px; width: 100%; flex-shrink: 0; border: none; border-radius: 999px; background: #FFC933; color: #14112B; font-family: Inter, sans-serif; font-size: 17px; font-weight: 700; cursor: pointer;">Continuar</button>
+    </div>
+  </sc-if>
+
+  <!-- ============ CÂMERA (3 de 3) ============ -->
+  <sc-if value="{{ isCamera }}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; inset: 0; display: flex; flex-direction: column; box-sizing: border-box; padding: 12px 20px 24px;">
+      <div style="height: 56px; display: flex; align-items: center; gap: 16px;">
+        <button type="button" aria-label="Voltar" onClick="{{ irPagamentos }}" class="btn-terciario" style="width: 48px; height: 48px; flex-shrink: 0; border: none; border-radius: 999px; background: #F4F2EE; color: #14112B; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg>
+        </button>
+        <div role="progressbar" aria-label="Etapa 3 de 3" aria-valuemin="1" aria-valuemax="3" aria-valuenow="3" style="flex: 1; height: 6px; border-radius: 999px; background: #EAE7E1; overflow: hidden;">
+          <div style="width: 100%; height: 100%; border-radius: 999px; background: #3346F0;"></div>
+        </div>
+        <span style="font-size: 13px; line-height: 18px; font-weight: 600; color: #6B6883; font-variant-numeric: tabular-nums;">3 de 3</span>
+      </div>
+      <div class="rolagem" style="flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: center; padding: 16px 0 8px;">
+          <dc-import name="Ilustra" kind="scanner" size="200" hint-size="200px,200px"></dc-import>
+        </div>
+        <h1 style="margin: 0 0 24px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; line-height: 34px; letter-spacing: -0.01em; color: #14112B;">Seu celular vira um leitor de código de barras</h1>
+        <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px;">
+          <li style="display: flex; align-items: center; gap: 16px;">
+            <span aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 999px; background: #F4F2EE; color: #14112B; display: flex; align-items: center; justify-content: center;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M7 12h10"></path></svg>
+            </span>
+            <span style="font-size: 15px; line-height: 22px; font-weight: 500; color: #14112B;">Lê só o que está dentro da moldura</span>
+          </li>
+          <li style="display: flex; align-items: center; gap: 16px;">
+            <span aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 999px; background: #F4F2EE; color: #14112B; display: flex; align-items: center; justify-content: center;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="3" width="8" height="18" rx="2"></rect><path d="M4 9v6M20 9v6"></path></svg>
+            </span>
+            <span style="font-size: 15px; line-height: 22px; font-weight: 500; color: #14112B;">Apita e vibra a cada produto</span>
+          </li>
+          <li style="display: flex; align-items: center; gap: 16px;">
+            <span aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 999px; background: #F4F2EE; color: #14112B; display: flex; align-items: center; justify-content: center;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+            </span>
+            <span style="font-size: 15px; line-height: 22px; font-weight: 500; color: #14112B;">Pausa sozinho para poupar bateria</span>
+          </li>
+        </ul>
+      </div>
+      <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
+        <button type="button" class="btn-primario" onClick="{{ irHome }}" style="height: 56px; width: 100%; border: none; border-radius: 999px; background: #FFC933; color: #14112B; font-family: Inter, sans-serif; font-size: 17px; font-weight: 700; cursor: pointer;">Permitir câmera</button>
+        <button type="button" class="btn-ghost" onClick="{{ irHome }}" style="height: 48px; width: 100%; border: none; border-radius: 999px; background: transparent; color: #14112B; font-family: Inter, sans-serif; font-size: 15px; font-weight: 600; cursor: pointer;">Agora não</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ HOME ============ -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; inset: 0; display: flex; flex-direction: column;">
+      <main class="rolagem" style="flex: 1; min-height: 0; overflow-y: auto; box-sizing: border-box; padding: 24px 20px 32px; display: flex; flex-direction: column; gap: 24px;">
+
+        <header style="display: flex; flex-direction: column; gap: 4px;">
+          <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; line-height: 34px; letter-spacing: -0.01em; color: #14112B;">Olá, Ana</h1>
+          <p style="margin: 0; font-size: 15px; line-height: 22px; font-weight: 500; color: #4A4766;">Mercadinho Bom Preço</p>
+          <div style="margin-top: 8px;">
+            <button type="button" onClick="{{ alternarConexao }}" aria-label="{{ statusAria }}" style="height: 36px; padding: 0 14px 0 12px; border: none; border-radius: 999px; background: {{ statusFundo }}; color: {{ statusCor }}; display: inline-flex; align-items: center; gap: 6px; font-family: Inter, sans-serif; font-size: 13px; line-height: 18px; font-weight: 600; cursor: pointer;">
+              <sc-if value="{{ isOnline }}" hint-placeholder-val="{{ true }}">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path><path d="M9.5 14.5l2 2 3.5-3.5"></path></svg>
+                <span>Online · sincronizado</span>
+              </sc-if>
+              <sc-if value="{{ isOffline }}" hint-placeholder-val="{{ false }}">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3"></path><path d="M1 1l22 22"></path></svg>
+                <span>Offline · 3 vendas na fila</span>
+              </sc-if>
+            </button>
+          </div>
+        </header>
+
+        <section aria-labelledby="tituloVendido" style="border-radius: 24px; background: #F4F2EE; padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <h2 id="tituloVendido" style="margin: 0; font-size: 13px; line-height: 18px; font-weight: 600; color: #4A4766;">Vendido hoje</h2>
+            <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 44px; line-height: 44px; letter-spacing: -0.02em; color: #14112B; font-variant-numeric: tabular-nums;">R$ 1.284,50</span>
+            <span style="font-size: 15px; line-height: 22px; font-weight: 500; color: #4A4766;">47 vendas</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <sc-for list="{{ meios }}" as="meio" hint-placeholder-count="3">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="width: 64px; flex-shrink: 0; font-size: 13px; line-height: 18px; font-weight: 600; color: #4A4766;">{{ meio.nome }}</span>
+                <span aria-hidden="true" style="flex: 1; height: 8px; border-radius: 999px; background: #EAE7E1; overflow: hidden;">
+                  <span style="display: block; height: 100%; border-radius: 999px; background: #14112B; width: {{ meio.largura }};"></span>
+                </span>
+                <span style="width: 84px; flex-shrink: 0; text-align: right; font-size: 13px; line-height: 18px; font-weight: 600; color: #14112B; font-variant-numeric: tabular-nums;">{{ meio.valor }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <a href="AppVender.dc.html" class="btn-primario" style="height: 56px; border-radius: 999px; background: #FFC933; color: #14112B; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 17px; font-weight: 700;">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14M7 5v14M10 5v14M14 5v14M17 5v14M21 5v14"></path></svg>
+          Vender
+        </a>
+
+        <nav aria-label="Atalhos" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+          <a href="AppCadastro.dc.html" class="tile" style="min-height: 96px; box-sizing: border-box; border-radius: 16px; background: #F4F2EE; padding: 16px; color: #14112B; text-decoration: none; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;">
+            <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v10M6 5v10M10 5v10M13 5v10M17 5v4M18 14v7M14.5 17.5h7"></path></svg>
+            <span style="font-size: 15px; line-height: 20px; font-weight: 600;">Cadastrar bipando</span>
+          </a>
+          <a href="AppCadastro.dc.html" class="tile" style="min-height: 96px; box-sizing: border-box; border-radius: 16px; background: #F4F2EE; padding: 16px; color: #14112B; text-decoration: none; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;">
+            <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"></path><path d="M3 8v8l9 5 9-5V8M12 13v8"></path></svg>
+            <span style="font-size: 15px; line-height: 20px; font-weight: 600;">Produtos</span>
+          </a>
+          <a href="AppCaixa.dc.html" class="tile" style="min-height: 96px; box-sizing: border-box; border-radius: 16px; background: #F4F2EE; padding: 16px; color: #14112B; text-decoration: none; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;">
+            <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4V3h6v1M9 13l2 2 4-4"></path></svg>
+            <span style="font-size: 15px; line-height: 20px; font-weight: 600;">Fechar caixa</span>
+          </a>
+          <a href="AppVender.dc.html" class="tile" style="min-height: 96px; box-sizing: border-box; border-radius: 16px; background: #F4F2EE; padding: 16px; color: #14112B; text-decoration: none; display: flex; flex-direction: column; justify-content: space-between; gap: 12px;">
+            <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M8 7h8M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"></path></svg>
+            <span style="font-size: 15px; line-height: 20px; font-weight: 600;">Valor avulso</span>
+          </a>
+        </nav>
+
+        <section aria-labelledby="tituloUltimas" style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+            <h2 id="tituloUltimas" style="margin: 0; font-size: 18px; line-height: 24px; font-weight: 700; color: #14112B;">Últimas vendas</h2>
+            <a href="AppCaixa.dc.html" style="min-height: 44px; display: flex; align-items: center; font-size: 13px; font-weight: 600; text-decoration: none;">Ver todas</a>
+          </div>
+          <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;">
+            <sc-for list="{{ ultimas }}" as="venda" hint-placeholder-count="3">
+              <li style="min-height: 68px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #E2DED6;">
+                <span aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 16px; background: #F4F2EE; color: #14112B; display: flex; align-items: center; justify-content: center;">
+                  <sc-if value="{{ venda.isPix }}" hint-placeholder-val="{{ true }}">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 9-9 9-9-9z"></path><path d="M9 12h6"></path></svg>
+                  </sc-if>
+                  <sc-if value="{{ venda.isDinheiro }}" hint-placeholder-val="{{ false }}">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle></svg>
+                  </sc-if>
+                  <sc-if value="{{ venda.isCartao }}" hint-placeholder-val="{{ false }}">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path></svg>
+                  </sc-if>
+                </span>
+                <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+                  <span style="font-size: 15px; line-height: 22px; font-weight: 500; color: #14112B; font-variant-numeric: tabular-nums;">{{ venda.numero }} · {{ venda.meio }}</span>
+                  <span style="font-size: 12px; line-height: 16px; font-weight: 500; color: #6B6883; font-variant-numeric: tabular-nums;">{{ venda.hora }}</span>
+                </span>
+                <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                  <span style="font-size: 15px; line-height: 22px; font-weight: 600; color: #14112B; font-variant-numeric: tabular-nums;">{{ venda.valor }}</span>
+                  <span style="height: 24px; padding: 0 8px 0 6px; border-radius: 999px; background: #DDF5E7; color: #0E7A40; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; line-height: 16px; font-weight: 600;">
+                    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+                    Pago
+                  </span>
+                </span>
+              </li>
+            </sc-for>
+          </ul>
+        </section>
+      </main>
+
+      <!-- Barra inferior -->
+      <nav aria-label="Navegação principal" style="position: relative; z-index: 1; height: 88px; flex-shrink: 0; box-sizing: border-box; border-top: 1px solid #E2DED6; background: #FFFFFF; display: grid; grid-template-columns: 1fr 1fr 128px 1fr 1fr; align-items: start; padding-top: 8px; padding-bottom: env(safe-area-inset-bottom);">
+        <a href="#" aria-current="page" style="min-width: 48px; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; color: #14112B; text-decoration: none;">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>
+          <span style="font-size: 12px; line-height: 16px; font-weight: 600;">Início</span>
+          <span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 999px; background: #FFC933;"></span>
+        </a>
+        <a href="AppCadastro.dc.html" style="min-width: 48px; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; color: #4A4766; text-decoration: none;">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"></path><path d="M3 8v8l9 5 9-5V8M12 13v8"></path></svg>
+          <span style="font-size: 12px; line-height: 16px; font-weight: 600;">Produtos</span>
+        </a>
+        <a href="AppVender.dc.html" class="btn-primario btn-vender" style="box-sizing:border-box;min-width:104px;padding:0 14px;white-space:nowrap;height:56px;margin-top:-22px;justify-self:center;gap:8px;border:4px solid #FFFFFF;border-radius:999px;background:#FFC933;color:#14112B;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(20,17,43,.18);text-decoration:none;font:700 16px/20px Inter,sans-serif;"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5v14M7 5v14M10 5v14M14 5v14M17 5v14M21 5v14"></path></svg><span>Vender</span></a>
+        <a href="AppCaixa.dc.html" style="min-width: 48px; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; color: #4A4766; text-decoration: none;">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="9" rx="2"></rect><path d="M7 11V5h10v6M10 15.5h4"></path></svg>
+          <span style="font-size: 12px; line-height: 16px; font-weight: 600;">Caixa</span>
+        </a>
+        <a href="AppCaixa.dc.html" style="min-width: 48px; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; color: #4A4766; text-decoration: none;">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"></path><circle cx="15" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>
+          <span style="font-size: 12px; line-height: 16px; font-weight: 600;">Ajustes</span>
+        </a>
+      </nav>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tela":{"editor":"enum","options":["boasvindas","loja","pagamentos","camera","home"],"default":"boasvindas"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      tela: props.tela ?? 'boasvindas',
+      nomeLoja: 'Mercadinho Bom Preço',
+      tipo: 'Mercadinho',
+      ip: false,
+      mp: false,
+      online: true
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const t = s.tela;
+    const ir = (x) => () => this.setState({ tela: x });
+
+    const tipos = ['Mercadinho', 'Padaria', 'Adega', 'Banca', 'Conveniência'].map((nome) => {
+      const ativo = s.tipo === nome;
+      return {
+        nome: nome,
+        pressed: ativo ? 'true' : 'false',
+        fundo: ativo ? '#14112B' : '#F4F2EE',
+        cor: ativo ? '#FFFFFF' : '#14112B',
+        escolher: () => this.setState({ tipo: nome })
+      };
+    });
+
+    const nomeVazio = !(s.nomeLoja || '').trim();
+
+    const meios = [
+      { nome: 'Dinheiro', valor: 'R$ 412,30', largura: '32.1%' },
+      { nome: 'Pix', valor: 'R$ 598,70', largura: '46.6%' },
+      { nome: 'Cartão', valor: 'R$ 273,50', largura: '21.3%' }
+    ];
+
+    const ultimas = [
+      { numero: '#000230', hora: '18:41', meio: 'Pix', valor: 'R$ 23,40', isPix: true, isDinheiro: false, isCartao: false },
+      { numero: '#000229', hora: '18:37', meio: 'Dinheiro', valor: 'R$ 8,49', isPix: false, isDinheiro: true, isCartao: false },
+      { numero: '#000228', hora: '18:30', meio: 'Cartão', valor: 'R$ 56,05', isPix: false, isDinheiro: false, isCartao: true }
+    ];
+
+    return {
+      isBoasvindas: t === 'boasvindas',
+      isLoja: t === 'loja',
+      isPagamentos: t === 'pagamentos',
+      isCamera: t === 'camera',
+      isHome: t === 'home',
+
+      irBoasvindas: ir('boasvindas'),
+      irLoja: ir('loja'),
+      irPagamentos: () => { if (!nomeVazio) this.setState({ tela: 'pagamentos' }); },
+      irCamera: ir('camera'),
+      irHome: ir('home'),
+
+      nomeLoja: s.nomeLoja,
+      aoDigitarNome: (e) => this.setState({ nomeLoja: e.target.value }),
+      nomeVazio: nomeVazio,
+      ctaLojaOpacidade: nomeVazio ? '0.4' : '1',
+      tipos: tipos,
+
+      ipConectado: s.ip,
+      ipDesconectado: !s.ip,
+      ipPressed: s.ip ? 'true' : 'false',
+      alternarIP: () => this.setState({ ip: !s.ip }),
+      mpConectado: s.mp,
+      mpDesconectado: !s.mp,
+      mpPressed: s.mp ? 'true' : 'false',
+      alternarMP: () => this.setState({ mp: !s.mp }),
+
+      isOnline: s.online,
+      isOffline: !s.online,
+      statusFundo: s.online ? '#DDF5E7' : '#FFEFD9',
+      statusCor: s.online ? '#0E7A40' : '#A65400',
+      statusAria: s.online ? 'Online, sincronizado. Toque para simular offline.' : 'Offline, 3 vendas na fila. Toque para simular online.',
+      alternarConexao: () => this.setState({ online: !s.online }),
+
+      meios: meios,
+      ultimas: ultimas
+    };
+  }
+}
+</script>
+</body>
+</html>

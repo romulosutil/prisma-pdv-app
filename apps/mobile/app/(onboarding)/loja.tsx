@@ -1,0 +1,88 @@
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Banner } from '@/componentes/Banner';
+import { Botao } from '@/componentes/Botao';
+import { CabecalhoEtapa } from '@/componentes/CabecalhoEtapa';
+import { Campo } from '@/componentes/Campo';
+import { Chip } from '@/componentes/Chip';
+import { TelaBase } from '@/componentes/TelaBase';
+import { Texto } from '@/componentes/Texto';
+import { useDados } from '@/dados/hooks';
+import { TIPOS_DE_LOJA, useRascunho } from '@/nucleo/rascunho';
+import { mensagemDeErro } from '@/servicos/backend';
+import { cores } from '@/tema';
+
+export default function Loja() {
+  const router = useRouter();
+  const dados = useDados();
+  const { rascunho, alterar } = useRascunho();
+  const [nomeLoja, setNomeLoja] = useState(rascunho.nomeLoja);
+  const [tipoLoja, setTipoLoja] = useState(rascunho.tipoLoja);
+  const [erroNome, setErroNome] = useState<string | null>(null);
+  const [erroGeral, setErroGeral] = useState<string | null>(null);
+  const [criando, setCriando] = useState(false);
+
+  const continuar = async () => {
+    if (nomeLoja.trim().length === 0) {
+      setErroNome('Digite o nome da loja.');
+      return;
+    }
+    setErroNome(null);
+    setErroGeral(null);
+    setCriando(true);
+    alterar({ nomeLoja: nomeLoja.trim(), tipoLoja });
+    try {
+      await dados.criarConta({
+        nomeResponsavel: rascunho.nomeResponsavel,
+        email: rascunho.email,
+        documento: rascunho.documento,
+        nomeLoja: nomeLoja.trim(),
+        tipoLoja,
+      });
+      router.replace('/planos');
+    } catch (erro) {
+      setErroGeral(mensagemDeErro(erro));
+    } finally {
+      setCriando(false);
+    }
+  };
+
+  return (
+    <TelaBase rolavel rodape={<Botao rotulo="Continuar" onPress={continuar} carregando={criando} />}>
+      <CabecalhoEtapa etapa={2} total={6} onVoltar={() => router.back()} />
+      <View style={estilos.corpo}>
+        <Texto estilo="tituloXL" accessibilityRole="header">
+          Como se chama sua loja?
+        </Texto>
+        <Campo
+          rotulo="Nome da loja"
+          value={nomeLoja}
+          onChangeText={setNomeLoja}
+          autoComplete="organization"
+          autoCapitalize="words"
+          returnKeyType="done"
+          onSubmitEditing={continuar}
+          erro={erroNome}
+        />
+        <View style={estilos.grupo} accessibilityRole="radiogroup" accessibilityLabel="Tipo de comércio">
+          <Texto estilo="label" cor={cores.ink2}>
+            Tipo de comércio
+          </Texto>
+          <View style={estilos.chips}>
+            {TIPOS_DE_LOJA.map((tipo) => (
+              <Chip key={tipo} rotulo={tipo} ativo={tipo === tipoLoja} onPress={() => setTipoLoja(tipo)} />
+            ))}
+          </View>
+        </View>
+        {erroGeral ? <Banner tipo="erro" texto={erroGeral} /> : null}
+      </View>
+    </TelaBase>
+  );
+}
+
+const estilos = StyleSheet.create({
+  corpo: { gap: 24, paddingTop: 24 },
+  grupo: { gap: 12 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+});

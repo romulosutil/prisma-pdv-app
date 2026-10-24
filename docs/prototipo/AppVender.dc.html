@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Vender</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#3346F0}a:hover{color:#14112B}
+button{font-family:inherit;color:inherit;border:0;background:none;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:disabled{cursor:not-allowed}
+input{font-family:inherit}
+input::placeholder{color:#6B6883}
+input[type=search]::-webkit-search-cancel-button{display:none}
+button:focus-visible,a:focus-visible{outline:2px solid #3346F0;outline-offset:2px}
+.visorBtn:focus-visible{outline:2px solid #FFC933;outline-offset:-6px}
+.prensa{transition:transform .08s ease-out}
+.prensa:active{transform:scale(.97)}
+.tecla:active{background:#EAE7E1 !important}
+.semBarra{scrollbar-width:none}
+.semBarra::-webkit-scrollbar{display:none}
+@keyframes laser{0%,100%{top:10px}50%{top:96px}}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(31,175,95,.7)}70%{box-shadow:0 0 0 7px rgba(31,175,95,0)}100%{box-shadow:0 0 0 0 rgba(31,175,95,0)}}
+@keyframes bipIn{0%{transform:scale(.6);opacity:0}45%{transform:scale(1.12);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes toastIn{0%{transform:translateY(8px);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes sheetIn{0%{transform:translateY(40px);opacity:.6}100%{transform:translateY(0);opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition:none !important}}
+</style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;overflow:hidden;box-sizing:border-box;background:#FFFFFF;font-family:'Inter',system-ui,sans-serif;color:#14112B;">
+
+  <!-- ===================== VISOR + PAINEL (scanner, avulso, pausado) ===================== -->
+  <sc-if value="{{ naoBusca }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;left:0;top:0;width:390px;height:296px;background:#0D0B1A;overflow:hidden;">
+
+      <!-- feed simulado -->
+      <div aria-hidden="true" style="position:absolute;left:0;top:0;width:390px;height:296px;opacity:{{ visorOpacidade }};filter:brightness({{ visorBrilho }});transition:opacity .4s ease, filter .3s ease;">
+        <div style="position:absolute;left:-30px;top:24px;width:190px;height:120px;border-radius:50%;background:#FF7A59;opacity:.42;filter:blur(38px);"></div>
+        <div style="position:absolute;left:220px;top:6px;width:200px;height:140px;border-radius:50%;background:#2EC4B6;opacity:.34;filter:blur(42px);"></div>
+        <div style="position:absolute;left:120px;top:140px;width:180px;height:110px;border-radius:50%;background:#FFC933;opacity:.28;filter:blur(40px);"></div>
+        <div style="position:absolute;left:-24px;top:186px;width:160px;height:110px;border-radius:50%;background:#7B5CFF;opacity:.45;filter:blur(36px);"></div>
+        <div style="position:absolute;left:270px;top:176px;width:160px;height:120px;border-radius:50%;background:#E8407A;opacity:.3;filter:blur(40px);"></div>
+        <div style="position:absolute;left:0;right:0;top:72px;height:6px;background:rgba(255,255,255,.06);filter:blur(1px);"></div>
+        <div style="position:absolute;left:0;right:0;top:162px;height:6px;background:rgba(255,255,255,.06);filter:blur(1px);"></div>
+        <div style="position:absolute;left:0;right:0;top:250px;height:6px;background:rgba(255,255,255,.05);filter:blur(1px);"></div>
+      </div>
+
+      <sc-if value="{{ lanterna }}" hint-placeholder-val="{{ true }}">
+        <div aria-hidden="true" style="position:absolute;left:0;top:0;width:390px;height:296px;background:radial-gradient(ellipse at 50% 48%, rgba(255,238,196,.42) 0%, rgba(255,238,196,.12) 45%, rgba(255,238,196,0) 72%);pointer-events:none;"></div>
+      </sc-if>
+
+      <!-- ROI + laser -->
+      <sc-if value="{{ visorAtivo }}" hint-placeholder-val="{{ true }}">
+        <div aria-hidden="true" style="position:absolute;left:65px;top:92px;width:260px;height:110px;border-radius:12px;box-shadow:{{ roiSombra }};background:{{ roiFundo }};transform:{{ roiEscala }};transition:background .12s ease, transform .12s ease;pointer-events:none;">
+          <div style="position:absolute;left:-2px;top:-2px;width:28px;height:28px;border-top:4px solid #FFFFFF;border-left:4px solid #FFFFFF;border-top-left-radius:12px;"></div>
+          <div style="position:absolute;right:-2px;top:-2px;width:28px;height:28px;border-top:4px solid #FFFFFF;border-right:4px solid #FFFFFF;border-top-right-radius:12px;"></div>
+          <div style="position:absolute;left:-2px;bottom:-2px;width:28px;height:28px;border-bottom:4px solid #FFFFFF;border-left:4px solid #FFFFFF;border-bottom-left-radius:12px;"></div>
+          <div style="position:absolute;right:-2px;bottom:-2px;width:28px;height:28px;border-bottom:4px solid #FFFFFF;border-right:4px solid #FFFFFF;border-bottom-right-radius:12px;"></div>
+          <sc-if value="{{ laserVisivel }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute;left:16px;right:16px;top:10px;height:2px;border-radius:2px;background:#FFC933;box-shadow:0 0 10px 2px rgba(255,201,51,.65);animation:laser 1.8s ease-in-out infinite;"></div>
+          </sc-if>
+          <sc-if value="{{ flash }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute;left:0;top:0;width:260px;height:110px;display:flex;align-items:center;justify-content:center;gap:8px;color:#FFFFFF;">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+              <span style="font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:32px;line-height:32px;animation:bipIn .35s ease-out;">Bip!</span>
+            </div>
+          </sc-if>
+        </div>
+        <div aria-hidden="true" style="position:absolute;left:0;right:0;top:216px;text-align:center;font-size:12px;line-height:16px;font-weight:500;color:#FFFFFF;pointer-events:none;">Toque no visor para simular uma leitura</div>
+      </sc-if>
+
+      <sc-if value="{{ isScanner }}" hint-placeholder-val="{{ true }}">
+        <button class="visorBtn" aria-label="Simular leitura de código de barras" onClick="{{ bipar }}" style="position:absolute;left:0;top:0;width:390px;height:272px;background:transparent;z-index:2;"></button>
+      </sc-if>
+
+      <!-- modo economia -->
+      <sc-if value="{{ isPausado }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;left:0;top:0;width:390px;height:296px;background:rgba(13,11,26,.55);z-index:2;display:flex;flex-direction:column;align-items:center;padding-top:72px;gap:10px;box-sizing:border-box;">
+          <div style="width:88px;height:88px;border-radius:999px;background:rgba(255,255,255,.94);display:flex;align-items:center;justify-content:center;">
+            <dc-import name="Ilustra" kind="pausa" size="72" hint-size="72px,72px"></dc-import>
+          </div>
+          <div style="font-size:13px;line-height:18px;font-weight:500;color:#FFFFFF;">Leitor em pausa para poupar bateria</div>
+          <button class="prensa" onClick="{{ ativarLeitor }}" style="height:48px;padding:0 20px;border-radius:999px;background:#FFC933;color:#14112B;font-size:15px;line-height:22px;font-weight:700;">Toque para ativar o leitor</button>
+        </div>
+      </sc-if>
+
+      <!-- sobreposições do topo -->
+      <a href="AppInicio.dc.html" aria-label="Fechar venda" style="position:absolute;left:16px;top:12px;width:48px;height:48px;border-radius:999px;background:rgba(255,255,255,.16);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#FFFFFF;display:flex;align-items:center;justify-content:center;z-index:3;text-decoration:none;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>
+      </a>
+
+      <div style="position:absolute;left:72px;right:72px;top:22px;display:flex;flex-direction:column;align-items:center;gap:6px;z-index:3;pointer-events:none;">
+        <sc-if value="{{ naoPausado }}" hint-placeholder-val="{{ true }}">
+          <div style="height:28px;padding:0 12px;border-radius:999px;background:rgba(13,11,26,.62);border:1px solid rgba(255,255,255,.14);box-sizing:border-box;display:flex;align-items:center;gap:8px;color:#FFFFFF;font-size:13px;line-height:18px;font-weight:600;white-space:nowrap;">
+            <span style="width:8px;height:8px;border-radius:999px;background:#1FAF5F;animation:pulso 1.6s ease-out infinite;"></span>
+            Leitor ativo
+          </div>
+        </sc-if>
+        <sc-if value="{{ isPausado }}" hint-placeholder-val="{{ true }}">
+          <div style="height:28px;padding:0 12px;border-radius:999px;background:rgba(13,11,26,.62);border:1px solid rgba(255,255,255,.14);box-sizing:border-box;display:flex;align-items:center;gap:8px;color:#FFFFFF;font-size:13px;line-height:18px;font-weight:600;white-space:nowrap;">
+            <span style="width:8px;height:8px;border-radius:999px;background:#A9A6BD;"></span>
+            Leitor em pausa
+          </div>
+        </sc-if>
+        <sc-if value="{{ lanterna }}" hint-placeholder-val="{{ true }}">
+          <div style="height:24px;padding:0 10px;border-radius:999px;background:rgba(13,11,26,.62);border:1px solid rgba(255,201,51,.4);box-sizing:border-box;display:flex;align-items:center;gap:6px;color:#FFC933;font-size:12px;line-height:16px;font-weight:600;white-space:nowrap;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFC933" stroke="#FFC933" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10v4l-2 3v10a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V10L7 7z"></path></svg>
+            Lanterna ligada
+          </div>
+        </sc-if>
+      </div>
+
+      <button class="prensa" aria-label="{{ lanternaAria }}" aria-pressed="{{ lanternaPressed }}" onClick="{{ alternarLanterna }}" style="position:absolute;right:16px;top:12px;width:48px;height:48px;border-radius:999px;background:{{ lanternaFundo }};backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#FFFFFF;display:flex;align-items:center;justify-content:center;z-index:3;">
+        <sc-if value="{{ lanterna }}" hint-placeholder-val="{{ true }}">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#FFC933" stroke="#FFC933" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10v4l-2 3v10a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V10L7 7z"></path><path d="M12 13v2" stroke="#14112B"></path></svg>
+        </sc-if>
+        <sc-if value="{{ lanternaDesligada }}" hint-placeholder-val="{{ true }}">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10v4l-2 3v10a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V10L7 7z"></path><path d="M7 7h10"></path><path d="M12 13v2"></path></svg>
+        </sc-if>
+      </button>
+    </div>
+
+    <!-- ===================== PAINEL INFERIOR ===================== -->
+    <div style="position:absolute;left:0;right:0;top:272px;bottom:0;background:#FFFFFF;border-radius:24px 24px 0 0;box-shadow:0 -8px 32px rgba(20,17,43,.12);display:flex;flex-direction:column;z-index:5;">
+      <div style="padding:20px 20px 0;display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label style="flex:1;min-width:0;height:48px;display:flex;align-items:center;gap:8px;padding:0 14px;background:#F4F2EE;border-radius:16px;color:#4A4766;cursor:text;box-sizing:border-box;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+            <input type="search" aria-label="Buscar produto ou digitar código" placeholder="Buscar produto ou digitar código" onFocus="{{ irBusca }}" onClick="{{ irBusca }}" style="flex:1;min-width:0;height:44px;border:0;background:transparent;font-size:15px;line-height:22px;font-weight:500;color:#14112B;outline:none;padding:0;">
+          </label>
+          <button class="prensa" onClick="{{ abrirAvulso }}" style="flex-shrink:0;height:48px;padding:0 16px;border-radius:999px;background:#F4F2EE;display:flex;align-items:center;gap:8px;font-size:15px;line-height:22px;font-weight:600;color:#14112B;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"></rect><path d="M6.5 10h1"></path><path d="M10.5 10h1"></path><path d="M14.5 10h1"></path><path d="M7 14h10"></path></svg>
+            Avulso
+          </button>
+        </div>
+
+        <div class="semBarra" role="group" aria-label="Atalhos" style="display:flex;gap:8px;overflow-x:auto;margin:0 -20px;padding:0 20px;">
+          <button class="prensa" onClick="{{ chipPao }}" style="flex-shrink:0;height:36px;padding:0 14px;border-radius:999px;background:#F4F2EE;font-size:13px;line-height:18px;font-weight:600;white-space:nowrap;">Pão francês</button>
+          <button class="prensa" onClick="{{ chipBanana }}" style="flex-shrink:0;height:36px;padding:0 14px;border-radius:999px;background:#F4F2EE;font-size:13px;line-height:18px;font-weight:600;white-space:nowrap;">Banana prata</button>
+          <button class="prensa" onClick="{{ chipGelo }}" style="flex-shrink:0;height:36px;padding:0 14px;border-radius:999px;background:#F4F2EE;font-size:13px;line-height:18px;font-weight:600;white-space:nowrap;">Saco de gelo</button>
+          <a href="AppCadastro.dc.html" aria-label="Criar novo atalho" style="flex-shrink:0;height:36px;padding:0 14px 0 10px;border-radius:999px;border:1px dashed #6B6883;box-sizing:border-box;color:#14112B;text-decoration:none;display:flex;align-items:center;gap:4px;font-size:13px;line-height:18px;font-weight:600;white-space:nowrap;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+            Atalho
+          </a>
+          <div aria-hidden="true" style="flex:0 0 12px;"></div>
+        </div>
+      </div>
+
+      <div style="flex:1;min-height:0;position:relative;">
+        <sc-if value="{{ temItens }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;left:0;top:0;right:0;bottom:0;display:flex;flex-direction:column;">
+            <!-- card do último item -->
+            <div aria-label="Último item lido" role="group" style="margin:16px 20px 4px;padding:16px;background:#FFF3CC;border-radius:24px;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;gap:12px;align-items:flex-start;">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+                  <div style="font-size:18px;line-height:24px;font-weight:700;color:#14112B;">{{ ultimoNome }}</div>
+                  <div style="font-size:12px;line-height:16px;font-weight:500;color:#4A4766;font-variant-numeric:tabular-nums;">{{ ultimoSub }}</div>
+                  <div style="font-size:13px;line-height:18px;font-weight:600;color:#4A4766;font-variant-numeric:tabular-nums;">{{ ultimoUnit }}</div>
+                </div>
+                <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:24px;line-height:28px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;">{{ ultimoTotal }}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <button class="prensa" aria-label="{{ ariaMenos }}" onClick="{{ menos }}" style="width:48px;height:48px;border-radius:999px;background:#FFFFFF;color:#14112B;display:flex;align-items:center;justify-content:center;">
+                  <sc-if value="{{ ultimoQtdUm }}" hint-placeholder-val="{{ true }}">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C8102E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path></svg>
+                  </sc-if>
+                  <sc-if value="{{ ultimoQtdMais }}" hint-placeholder-val="{{ true }}">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path></svg>
+                  </sc-if>
+                </button>
+                <div aria-live="polite" style="min-width:44px;text-align:center;font-size:18px;line-height:24px;font-weight:700;font-variant-numeric:tabular-nums;">{{ ultimoQtd }}</div>
+                <button class="prensa" aria-label="Aumentar quantidade" onClick="{{ mais }}" style="width:48px;height:48px;border-radius:999px;background:#FFFFFF;color:#14112B;display:flex;align-items:center;justify-content:center;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                </button>
+                <button class="prensa" aria-label="Somar 5 unidades" onClick="{{ mais5 }}" style="height:48px;padding:0 18px;border-radius:999px;background:#FFFFFF;color:#14112B;font-size:15px;line-height:22px;font-weight:700;font-variant-numeric:tabular-nums;">+5</button>
+              </div>
+            </div>
+
+            <!-- demais itens -->
+            <div style="flex:1;min-height:0;overflow-y:auto;padding:4px 20px 8px;">
+              <sc-for list="{{ demais }}" as="item" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:12px;min-height:56px;border-bottom:1px solid #E2DED6;">
+                  <div style="flex:1;min-width:0;font-size:15px;line-height:22px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item.rotulo }}</div>
+                  <div style="font-size:15px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;">{{ item.subtotal }}</div>
+                  <button class="prensa" aria-label="{{ item.ariaRemover }}" onClick="{{ item.remover }}" style="width:44px;height:44px;margin-right:-10px;border-radius:999px;color:#C8102E;display:flex;align-items:center;justify-content:center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path></svg>
+                  </button>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ vazio }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;left:0;top:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:0 32px;text-align:center;">
+            <dc-import name="Ilustra" kind="scanner" size="96" hint-size="96px,96px"></dc-import>
+            <div style="font-size:18px;line-height:24px;font-weight:700;">Aponte para o código de barras</div>
+            <div style="font-size:15px;line-height:22px;color:#4A4766;">Ou busque o produto e use os atalhos acima.</div>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- rodapé -->
+      <div style="padding:12px 20px 20px;border-top:1px solid #E2DED6;display:flex;flex-direction:column;gap:12px;background:#FFFFFF;">
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;">
+          <div style="font-size:13px;line-height:18px;font-weight:600;color:#4A4766;padding-bottom:6px;">{{ nItensTexto }}</div>
+          <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:44px;line-height:44px;font-weight:800;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;white-space:nowrap;">{{ totalTexto }}</div>
+        </div>
+        <sc-if value="{{ temItens }}" hint-placeholder-val="{{ true }}">
+          <a class="prensa" href="AppPagar.dc.html" style="height:56px;border-radius:999px;background:#FFC933;color:#14112B;text-decoration:none;display:flex;align-items:center;justify-content:center;font-size:17px;line-height:24px;font-weight:700;font-variant-numeric:tabular-nums;">{{ ctaTexto }}</a>
+        </sc-if>
+        <sc-if value="{{ vazio }}" hint-placeholder-val="{{ true }}">
+          <button disabled style="width:100%;height:56px;border-radius:999px;background:#FFC933;color:#14112B;opacity:.4;font-size:17px;line-height:24px;font-weight:700;">Cobrar</button>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===================== AVULSO (bottom sheet) ===================== -->
+  <sc-if value="{{ isAvulso }}" hint-placeholder-val="{{ true }}">
+    <div aria-hidden="true" style="position:absolute;left:0;top:0;width:390px;height:844px;background:rgba(20,17,43,.56);z-index:20;"></div>
+    <div role="dialog" aria-modal="true" aria-label="Valor avulso" style="position:absolute;left:0;right:0;bottom:0;z-index:21;background:#FFFFFF;border-radius:24px 24px 0 0;box-shadow:0 -8px 32px rgba(20,17,43,.12);padding:8px 20px 20px;display:flex;flex-direction:column;gap:16px;animation:sheetIn .22s ease-out;">
+      <div aria-hidden="true" style="width:36px;height:4px;border-radius:999px;background:#E2DED6;margin:0 auto;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <h2 style="margin:0;font-family:'Bricolage Grotesque',sans-serif;font-size:24px;line-height:28px;font-weight:700;">Valor avulso</h2>
+        <button class="prensa" aria-label="Fechar valor avulso" onClick="{{ fecharAvulso }}" style="width:48px;height:48px;border-radius:999px;background:#F4F2EE;display:flex;align-items:center;justify-content:center;color:#14112B;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div role="group" aria-label="Descrição do item" style="display:flex;gap:8px;">
+        <button class="prensa" aria-pressed="{{ catPaoPressed }}" onClick="{{ catPao }}" style="height:36px;padding:0 16px;border-radius:999px;background:{{ catPaoFundo }};color:{{ catPaoCor }};font-size:13px;line-height:18px;font-weight:600;">Pão</button>
+        <button class="prensa" aria-pressed="{{ catHortiPressed }}" onClick="{{ catHorti }}" style="height:36px;padding:0 16px;border-radius:999px;background:{{ catHortiFundo }};color:{{ catHortiCor }};font-size:13px;line-height:18px;font-weight:600;">Hortifruti</button>
+        <button class="prensa" aria-pressed="{{ catDivPressed }}" onClick="{{ catDiv }}" style="height:36px;padding:0 16px;border-radius:999px;background:{{ catDivFundo }};color:{{ catDivCor }};font-size:13px;line-height:18px;font-weight:600;">Diversos</button>
+      </div>
+
+      <div aria-live="polite" style="display:flex;align-items:baseline;justify-content:center;gap:8px;padding:4px 0;">
+        <span style="font-family:'Bricolage Grotesque',sans-serif;font-size:24px;line-height:28px;font-weight:700;color:#4A4766;">R$</span>
+        <span style="font-family:'Bricolage Grotesque',sans-serif;font-size:44px;line-height:44px;font-weight:800;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;color:{{ avulsoCor }};">{{ avulsoNum }}</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:8px;">
+        <button class="tecla" onClick="{{ t1 }}" style="height:64px;border-radius:16px;background:#F4F2EE;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums;">1</button>
+        <button class="tecla" onClick="{{ t2 }}" style="height:64px;border-radius:16px;background:#F4F2EE;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums;">2</button>
+        <button class="tecla" onClick="{{ t3 }}" style="height:64px;border-radius:16px;background:#F4F2EE;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums;">3</button>
+        <button class="tecla" onClick="{{ t4 }}" style="height:64px;border-radius:16px;background:#F4F2EE;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums;">4</button>
+        <button class="tecla" onClick="{{ t5 }}" style="height:64px;border-radius:16px;background:#F4F2EE;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums;">5</button>
+        <button class="tecla" onClick="{{ t6 }}" style="height:64px;border-radius:16px;background:#F4F2EE;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums;">6</button>
+        <button class="tecla" onClick="{{ t7 }}" style="height:64px;border-radius:16px;background:#F4F2EE;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums;">7</button>
+        <button class="tecla" onClick="{{ t8 }}" style="height:64px;border-radius:16px;background:#F4F2EE;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums;">8</button>
+        <button class="tecla" onClick="{{ t9 }}" style="height:64px;border-radius:16px;background:#F4F2EE;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums;">9</button>
+        <button class="tecla" onClick="{{ t00 }}" style="height:64px;border-radius:16px;background:#F4F2EE;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums;">00</button>
+        <button class="tecla" onClick="{{ t0 }}" style="height:64px;border-radius:16px;background:#F4F2EE;font-size:24px;line-height:32px;font-weight:600;font-variant-numeric:tabular-nums;">0</button>
+        <button class="tecla" aria-label="Apagar último dígito" onClick="{{ tApagar }}" style="height:64px;border-radius:16px;background:#F4F2EE;display:flex;align-items:center;justify-content:center;color:#14112B;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 5H9l-7 7 7 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z"></path><path d="M17 9l-6 6"></path><path d="M11 9l6 6"></path></svg>
+        </button>
+      </div>
+
+      <sc-if value="{{ avulsoTemValor }}" hint-placeholder-val="{{ true }}">
+        <button class="prensa" onClick="{{ adicionarAvulso }}" style="width:100%;height:56px;border-radius:999px;background:#FFC933;color:#14112B;font-size:17px;line-height:24px;font-weight:700;font-variant-numeric:tabular-nums;">{{ avulsoCta }}</button>
+      </sc-if>
+      <sc-if value="{{ avulsoSemValor }}" hint-placeholder-val="{{ true }}">
+        <button disabled style="width:100%;height:56px;border-radius:999px;background:#FFC933;color:#14112B;opacity:.4;font-size:17px;line-height:24px;font-weight:700;">Digite o valor</button>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- ===================== BUSCA ===================== -->
+  <sc-if value="{{ isBusca }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;left:0;top:0;width:390px;height:844px;background:#FFFFFF;z-index:10;display:flex;flex-direction:column;">
+      <div style="padding:16px 20px 12px;display:flex;gap:8px;align-items:center;">
+        <div style="flex:1;min-width:0;height:56px;display:flex;align-items:center;gap:10px;padding:0 4px 0 16px;background:#F4F2EE;border-radius:16px;box-shadow:inset 0 0 0 2px #3346F0;color:#4A4766;box-sizing:border-box;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+          <input type="search" autofocus aria-label="Buscar produto ou digitar código" placeholder="Buscar produto ou digitar código" value="{{ q }}" onInput="{{ aoDigitar }}" style="flex:1;min-width:0;height:48px;border:0;background:transparent;font-size:17px;line-height:24px;color:#14112B;outline:none;padding:0;">
+          <sc-if value="{{ temQ }}" hint-placeholder-val="{{ true }}">
+            <button aria-label="Limpar busca" onClick="{{ limparBusca }}" style="width:44px;height:44px;flex-shrink:0;border-radius:999px;display:flex;align-items:center;justify-content:center;color:#4A4766;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>
+            </button>
+          </sc-if>
+        </div>
+        <button onClick="{{ cancelarBusca }}" style="height:48px;padding:0 8px;font-size:15px;line-height:22px;font-weight:600;color:#14112B;">Cancelar</button>
+      </div>
+
+      <div style="flex:1;min-height:0;overflow-y:auto;padding-bottom:24px;">
+        <sc-if value="{{ mostraCodigo }}" hint-placeholder-val="{{ true }}">
+          <button class="prensa" onClick="{{ buscarCodigo }}" style="width:100%;display:flex;align-items:center;gap:12px;min-height:72px;padding:0 20px;text-align:left;border-bottom:1px solid #E2DED6;box-sizing:border-box;">
+            <span style="width:44px;height:44px;flex-shrink:0;border-radius:16px;background:#E6E9FF;color:#3346F0;display:flex;align-items:center;justify-content:center;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6v12"></path><path d="M7 6v12"></path><path d="M10 6v12"></path><path d="M14 6v12"></path><path d="M17 6v12"></path><path d="M21 6v12"></path></svg>
+            </span>
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column;">
+              <span style="font-size:15px;line-height:22px;font-weight:600;color:#3346F0;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ codigoTexto }}</span>
+              <span style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;">Procurar pelo código de barras (EAN)</span>
+            </span>
+          </button>
+        </sc-if>
+
+        <sc-if value="{{ temResultados }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:16px 20px 4px;font-size:13px;line-height:18px;font-weight:600;color:#6B6883;">{{ tituloLista }}</div>
+        </sc-if>
+        <sc-for list="{{ resultados }}" as="r" hint-placeholder-count="6">
+          <button class="prensa" aria-label="{{ r.aria }}" onClick="{{ r.escolher }}" style="width:100%;display:flex;align-items:center;gap:12px;min-height:68px;padding:0 20px;text-align:left;box-sizing:border-box;border-bottom:1px solid #E2DED6;">
+            <span aria-hidden="true" style="width:44px;height:44px;flex-shrink:0;border-radius:16px;background:#F4F2EE;color:#4A4766;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:18px;font-weight:700;">{{ r.mono }}</span>
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column;">
+              <span style="font-size:15px;line-height:22px;font-weight:500;color:#14112B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.rotulo }}</span>
+              <span style="font-size:12px;line-height:16px;font-weight:500;color:#6B6883;font-variant-numeric:tabular-nums;">{{ r.sub }}</span>
+            </span>
+            <span style="font-size:15px;line-height:22px;font-weight:600;color:#14112B;font-variant-numeric:tabular-nums;white-space:nowrap;">{{ r.preco }}</span>
+          </button>
+        </sc-for>
+
+        <sc-if value="{{ semResultados }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:40px 32px 0;text-align:center;">
+            <dc-import name="Ilustra" kind="busca" size="96" hint-size="96px,96px"></dc-import>
+            <div style="font-size:18px;line-height:24px;font-weight:700;">{{ semResultadosTitulo }}</div>
+            <div style="font-size:15px;line-height:22px;color:#4A4766;">Confira a grafia ou lance como valor avulso.</div>
+            <button class="prensa" onClick="{{ abrirAvulso }}" style="margin-top:8px;height:48px;padding:0 20px;border-radius:999px;background:#F4F2EE;color:#14112B;font-size:15px;line-height:22px;font-weight:600;">Lançar valor avulso</button>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===================== TOAST ===================== -->
+  <div role="status" aria-live="polite" style="position:absolute;left:20px;right:20px;bottom:{{ toastBottom }};z-index:40;pointer-events:none;">
+    <sc-if value="{{ temToast }}" hint-placeholder-val="{{ true }}">
+      <div style="pointer-events:auto;background:#14112B;color:#FFFFFF;border-radius:16px;box-shadow:0 8px 24px rgba(20,17,43,.24);padding:10px 8px 10px 16px;display:flex;align-items:center;gap:12px;min-height:52px;box-sizing:border-box;animation:toastIn .2s ease-out;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+        <div style="flex:1;min-width:0;font-size:15px;line-height:20px;font-weight:500;">{{ toastTexto }}</div>
+        <sc-if value="{{ toastTemAcao }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ toastAcao }}" style="flex-shrink:0;height:40px;padding:0 12px;border-radius:999px;color:#FFC933;font-size:15px;line-height:22px;font-weight:700;">{{ toastAcaoTexto }}</button>
+        </sc-if>
+      </div>
+    </sc-if>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tela":{"editor":"enum","options":["scanner","avulso","busca","pausado"],"default":"scanner"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.CAT = [
+      { id: 'arroz', nome: 'Arroz tipo 1 5kg', ean: '7890000000017', preco: 2790, mono: 'AR' },
+      { id: 'feijao', nome: 'Feijão carioca 1kg', ean: '7890000000024', preco: 849, mono: 'FE' },
+      { id: 'leite', nome: 'Leite integral 1L', ean: '7890000000031', preco: 529, mono: 'LE' },
+      { id: 'cafe', nome: 'Café torrado 500g', ean: '7890000000048', preco: 1990, mono: 'CA' },
+      { id: 'biscoito', nome: 'Biscoito recheado 130g', ean: '7890000000055', preco: 379, mono: 'BI' },
+      { id: 'refri', nome: 'Refrigerante cola 2L', ean: '7890000000062', preco: 999, mono: 'RE' },
+      { id: 'pao', nome: 'Pão francês 0,300 kg', rotulo: 'Pão francês', sub: 'Pesado · R$ 16,90/kg', subBusca: 'Por kg · adiciona 0,300 kg', precoBusca: 'R$ 16,90/kg', preco: 507, mono: 'PF' },
+      { id: 'banana', nome: 'Banana prata 1,000 kg', rotulo: 'Banana prata', sub: 'Pesado · R$ 6,99/kg', subBusca: 'Por kg · adiciona 1,000 kg', precoBusca: 'R$ 6,99/kg', preco: 699, mono: 'BP' },
+      { id: 'gelo', nome: 'Saco de gelo 5kg', sub: 'Atalho sem código', subBusca: 'Sem código · atalho', preco: 1200, mono: 'SG' }
+    ];
+    this.SEQ = ['cafe', 'biscoito', 'biscoito', 'refri', 'arroz'];
+    this.ptr = 0;
+    this.ultimoCod = 'leite';
+    this.ultimoEm = 0;
+    this.desfazerDados = null;
+    this.toastAcaoFn = null;
+    const tela = this.props.tela ?? 'scanner';
+    const leite = this.item('leite');
+    leite.qtd = 3;
+    this.state = {
+      tela: tela,
+      itens: [leite, this.item('feijao'), this.item('arroz')],
+      lanterna: false,
+      flash: false,
+      toast: null,
+      q: '',
+      avulsoCents: tela === 'avulso' ? 450 : 0,
+      avulsoCat: 'Hortifruti'
+    };
+  }
+
+  componentDidMount() {
+    if (this.state.tela === 'scanner') this.armarIdle();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps && prevProps.tela !== this.props.tela && this.props.tela) {
+      const t = this.props.tela;
+      this.setState({ tela: t, avulsoCents: t === 'avulso' ? 450 : 0, q: '' });
+      if (t === 'scanner') this.armarIdle(); else clearTimeout(this.idleT);
+    }
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this.idleT);
+    clearTimeout(this.flashT);
+    clearTimeout(this.toastT);
+  }
+
+  // ---------- utilidades ----------
+  brl(c) {
+    const v = Math.round(c);
+    const a = Math.abs(v);
+    const inteiro = String(Math.floor(a / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const cent = String(a % 100).padStart(2, '0');
+    return (v < 0 ? '- ' : '') + 'R$ ' + inteiro + ',' + cent;
+  }
+  norm(s) {
+    return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  }
+  produto(id) {
+    return this.CAT.find(x => x.id === id);
+  }
+  item(id) {
+    const p = this.produto(id);
+    return { id: p.id, nome: p.nome, sub: p.sub || ('EAN ' + p.ean), preco: p.preco, qtd: 1 };
+  }
+
+  // ---------- timers ----------
+  armarIdle() {
+    clearTimeout(this.idleT);
+    this.idleT = setTimeout(() => {
+      if (this.state.tela === 'scanner') this.setState({ tela: 'pausado', flash: false });
+    }, 15000);
+  }
+  mostrarToast(texto, acao) {
+    clearTimeout(this.toastT);
+    this.toastAcaoFn = acao ? acao.fn : null;
+    this.setState({ toast: { texto: texto, acaoTexto: acao ? acao.texto : null } });
+    this.toastT = setTimeout(() => { this.toastAcaoFn = null; this.setState({ toast: null }); }, acao ? 4000 : 2800);
+  }
+  fazerFlash() {
+    clearTimeout(this.flashT);
+    this.setState({ flash: true });
+    this.flashT = setTimeout(() => this.setState({ flash: false }), 350);
+  }
+
+  // ---------- carrinho ----------
+  adicionar(novo) {
+    const itens = this.state.itens;
+    const idx = itens.findIndex(i => i.id === novo.id);
+    let prox;
+    if (idx >= 0) {
+      const it = Object.assign({}, itens[idx], { qtd: itens[idx].qtd + 1 });
+      prox = [it].concat(itens.filter((_, k) => k !== idx));
+    } else {
+      prox = [novo].concat(itens);
+    }
+    this.setState({ itens: prox });
+  }
+  alterarQtd(id, delta) {
+    const it = this.state.itens.find(i => i.id === id);
+    if (!it) return;
+    const nova = it.qtd + delta;
+    if (nova <= 0) { this.remover(id); return; }
+    this.setState({ itens: this.state.itens.map(i => i.id === id ? Object.assign({}, i, { qtd: nova }) : i) });
+  }
+  remover(id) {
+    const itens = this.state.itens;
+    const idx = itens.findIndex(i => i.id === id);
+    if (idx < 0) return;
+    this.desfazerDados = { item: itens[idx], idx: idx };
+    this.setState({ itens: itens.filter(i => i.id !== id) });
+    this.mostrarToast(itens[idx].nome + ' removido', { texto: 'Desfazer', fn: () => this.desfazer() });
+  }
+  desfazer() {
+    const d = this.desfazerDados;
+    if (!d) return;
+    const itens = this.state.itens.slice();
+    itens.splice(Math.min(d.idx, itens.length), 0, d.item);
+    this.desfazerDados = null;
+    clearTimeout(this.toastT);
+    this.toastAcaoFn = null;
+    this.setState({ itens: itens, toast: null });
+  }
+
+  // ---------- leitura simulada (anti-duplicidade) ----------
+  bipar() {
+    const cod = this.SEQ[this.ptr];
+    const agora = Date.now();
+    if (cod === this.ultimoCod && agora - this.ultimoEm < 1500) {
+      this.mostrarToast('Mesmo código ignorado (1,5 s). Use + para somar.');
+      this.armarIdle();
+      return;
+    }
+    this.adicionar(this.item(cod));
+    this.ptr = (this.ptr + 1) % this.SEQ.length;
+    this.ultimoCod = cod;
+    this.ultimoEm = agora;
+    this.fazerFlash();
+    this.armarIdle();
+  }
+
+  // ---------- navegação ----------
+  irTela(t) {
+    this.setState({ tela: t });
+    if (t === 'scanner') this.armarIdle(); else clearTimeout(this.idleT);
+  }
+
+  // ---------- avulso ----------
+  tecla(d) {
+    let c = this.state.avulsoCents;
+    if (d === 'apagar') c = Math.floor(c / 10);
+    else if (d === '00') c = c * 100;
+    else c = c * 10 + Number(d);
+    if (c > 9999999) return;
+    this.setState({ avulsoCents: c });
+  }
+  adicionarAvulso() {
+    const c = this.state.avulsoCents;
+    if (c <= 0) return;
+    const novo = { id: 'avulso-' + Date.now(), nome: 'Avulso · ' + this.state.avulsoCat, sub: 'Valor avulso', preco: c, qtd: 1 };
+    this.setState({ itens: [novo].concat(this.state.itens), avulsoCents: 0, tela: 'scanner' });
+    this.armarIdle();
+  }
+
+  // ---------- busca ----------
+  escolherBusca(p) {
+    this.adicionar(this.item(p.id));
+    this.setState({ tela: 'scanner', q: '' });
+    this.armarIdle();
+  }
+  buscarCodigo() {
+    const q = this.state.q.trim();
+    const exato = this.CAT.find(p => p.ean && p.ean === q);
+    if (exato) { this.escolherBusca(exato); return; }
+    const parciais = this.CAT.filter(p => p.ean && p.ean.indexOf(q) >= 0);
+    if (parciais.length === 1) { this.escolherBusca(parciais[0]); return; }
+    if (parciais.length > 1) { this.mostrarToast(parciais.length + ' produtos com ' + q + '. Toque no certo abaixo.'); return; }
+    this.mostrarToast('Código ' + q + ' não encontrado.');
+  }
+
+  renderVals() {
+    const s = this.state;
+    const t = s.tela;
+    const isScanner = t === 'scanner';
+    const isAvulso = t === 'avulso';
+    const isBusca = t === 'busca';
+    const isPausado = t === 'pausado';
+
+    // carrinho
+    const itens = s.itens;
+    const total = itens.reduce((a, i) => a + i.preco * i.qtd, 0);
+    const nItens = itens.reduce((a, i) => a + i.qtd, 0);
+    const u = itens[0] || null;
+    const temItens = itens.length > 0;
+    const demais = itens.slice(1).map(i => ({
+      rotulo: i.qtd + '× ' + i.nome,
+      subtotal: this.brl(i.preco * i.qtd),
+      ariaRemover: 'Remover ' + i.nome,
+      remover: () => this.remover(i.id)
+    }));
+
+    // busca
+    const q = s.q.trim();
+    const soDigitos = /^\d+$/.test(q);
+    let res;
+    if (!q) res = this.CAT;
+    else if (soDigitos) res = this.CAT.filter(p => p.ean && p.ean.indexOf(q) >= 0);
+    else {
+      const nq = this.norm(q);
+      res = this.CAT.filter(p => this.norm(p.rotulo || p.nome).indexOf(nq) >= 0 || this.norm(p.nome).indexOf(nq) >= 0);
+    }
+    const resultados = res.map(p => ({
+      mono: p.mono,
+      rotulo: p.rotulo || p.nome,
+      sub: p.subBusca || ('EAN ' + p.ean),
+      preco: p.precoBusca || this.brl(p.preco),
+      aria: 'Adicionar ' + (p.rotulo || p.nome),
+      escolher: () => this.escolherBusca(p)
+    }));
+
+    // avulso
+    const cat = s.avulsoCat;
+    const fundo = c => (c === cat ? '#14112B' : '#F4F2EE');
+    const cor = c => (c === cat ? '#FFFFFF' : '#14112B');
+    const cents = s.avulsoCents;
+    const avulsoBrl = this.brl(cents);
+
+    // toast
+    const toast = s.toast;
+
+    return {
+      isScanner, isAvulso, isBusca, isPausado,
+      naoBusca: !isBusca,
+      naoPausado: !isPausado,
+      visorAtivo: isScanner || isAvulso,
+      laserVisivel: (isScanner || isAvulso) && !s.flash,
+      flash: s.flash,
+
+      // visor
+      visorOpacidade: isPausado ? '0.3' : '1',
+      visorBrilho: s.lanterna ? '1.9' : '1',
+      roiFundo: s.flash ? 'rgba(19,138,75,.85)' : 'rgba(255,255,255,0)',
+      roiEscala: s.flash ? 'scale(1.04)' : 'scale(1)',
+      roiSombra: s.flash
+        ? '0 0 0 4px rgba(31,175,95,.5), 0 0 0 600px rgba(13,11,26,.55)'
+        : '0 0 0 600px rgba(13,11,26,.55)',
+      lanterna: s.lanterna,
+      lanternaDesligada: !s.lanterna,
+      lanternaAria: s.lanterna ? 'Desligar lanterna' : 'Ligar lanterna',
+      lanternaPressed: s.lanterna ? 'true' : 'false',
+      lanternaFundo: s.lanterna ? 'rgba(255,201,51,.24)' : 'rgba(255,255,255,.16)',
+      alternarLanterna: () => this.setState({ lanterna: !this.state.lanterna }),
+      bipar: () => this.bipar(),
+      ativarLeitor: () => this.irTela('scanner'),
+
+      // painel
+      irBusca: () => { if (this.state.tela !== 'busca') this.irTela('busca'); },
+      abrirAvulso: () => { this.setState({ avulsoCents: 0, avulsoCat: 'Hortifruti', q: '' }); this.irTela('avulso'); },
+      chipPao: () => { this.adicionar(this.item('pao')); this.armarIdle(); },
+      chipBanana: () => { this.adicionar(this.item('banana')); this.armarIdle(); },
+      chipGelo: () => { this.adicionar(this.item('gelo')); this.armarIdle(); },
+
+      temItens: temItens,
+      vazio: !temItens,
+      ultimoNome: u ? u.nome : '',
+      ultimoSub: u ? u.sub : '',
+      ultimoUnit: u ? this.brl(u.preco) + ' cada' : '',
+      ultimoQtd: u ? String(u.qtd) : '0',
+      ultimoTotal: u ? this.brl(u.preco * u.qtd) : '',
+      ultimoQtdUm: !!u && u.qtd === 1,
+      ultimoQtdMais: !!u && u.qtd > 1,
+      ariaMenos: u && u.qtd === 1 ? 'Remover ' + u.nome : 'Diminuir quantidade',
+      menos: () => { if (u) this.alterarQtd(u.id, -1); },
+      mais: () => { if (u) this.alterarQtd(u.id, 1); },
+      mais5: () => { if (u) this.alterarQtd(u.id, 5); },
+      demais: demais,
+      nItensTexto: nItens === 1 ? '1 item' : nItens + ' itens',
+      totalTexto: this.brl(total),
+      ctaTexto: 'Cobrar ' + this.brl(total),
+
+      // avulso
+      fecharAvulso: () => this.irTela('scanner'),
+      catPao: () => this.setState({ avulsoCat: 'Pão' }),
+      catHorti: () => this.setState({ avulsoCat: 'Hortifruti' }),
+      catDiv: () => this.setState({ avulsoCat: 'Diversos' }),
+      catPaoFundo: fundo('Pão'), catPaoCor: cor('Pão'), catPaoPressed: cat === 'Pão' ? 'true' : 'false',
+      catHortiFundo: fundo('Hortifruti'), catHortiCor: cor('Hortifruti'), catHortiPressed: cat === 'Hortifruti' ? 'true' : 'false',
+      catDivFundo: fundo('Diversos'), catDivCor: cor('Diversos'), catDivPressed: cat === 'Diversos' ? 'true' : 'false',
+      avulsoNum: avulsoBrl.replace('R$ ', ''),
+      avulsoCor: cents > 0 ? '#14112B' : '#6B6883',
+      avulsoTemValor: cents > 0,
+      avulsoSemValor: cents <= 0,
+      avulsoCta: 'Adicionar ' + avulsoBrl,
+      adicionarAvulso: () => this.adicionarAvulso(),
+      t1: () => this.tecla('1'), t2: () => this.tecla('2'), t3: () => this.tecla('3'),
+      t4: () => this.tecla('4'), t5: () => this.tecla('5'), t6: () => this.tecla('6'),
+      t7: () => this.tecla('7'), t8: () => this.tecla('8'), t9: () => this.tecla('9'),
+      t0: () => this.tecla('0'), t00: () => this.tecla('00'), tApagar: () => this.tecla('apagar'),
+
+      // busca
+      q: s.q,
+      temQ: s.q.length > 0,
+      aoDigitar: e => this.setState({ q: e.target.value }),
+      limparBusca: () => this.setState({ q: '' }),
+      cancelarBusca: () => { this.setState({ q: '' }); this.irTela('scanner'); },
+      mostraCodigo: soDigitos,
+      codigoTexto: 'Buscar código ' + q,
+      buscarCodigo: () => this.buscarCodigo(),
+      resultados: resultados,
+      temResultados: resultados.length > 0,
+      tituloLista: !q ? 'Todos os produtos' : (resultados.length === 1 ? '1 produto' : resultados.length + ' produtos'),
+      semResultados: !!q && !soDigitos && resultados.length === 0,
+      semResultadosTitulo: 'Nada encontrado para “' + q + '”',
+
+      // toast
+      temToast: !!toast,
+      toastTexto: toast ? toast.texto : '',
+      toastTemAcao: !!(toast && toast.acaoTexto),
+      toastAcaoTexto: toast && toast.acaoTexto ? toast.acaoTexto : '',
+      toastAcao: () => { if (this.toastAcaoFn) this.toastAcaoFn(); },
+      toastBottom: isScanner || isPausado ? '164px' : '24px'
+    };
+  }
+}
+</script>
+</body>
+</html>

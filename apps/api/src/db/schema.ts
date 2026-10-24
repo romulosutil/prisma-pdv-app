@@ -1,0 +1,330 @@
+import {
+  bigint,
+  bigserial,
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
+import { BANDEIRAS, PLANOS_ORDEM, STATUS_ASSINATURA } from '@pdv/shared';
+
+const instante = (nome: string) => timestamp(nome, { withTimezone: true, mode: 'date' });
+const criadoEm = () => instante('criado_em').notNull();
+const atualizadoEm = () => instante('atualizado_em').notNull();
+/** Dinheiro (centavos) e quantidades (milésimos): inteiros que podem passar de 2^31. */
+const inteiro = (nome: string) => bigint(nome, { mode: 'number' });
+
+export const contas = pgTable('contas', {
+  id: uuid('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  documento: text('documento').notNull().unique(),
+  nomeResponsavel: text('nome_responsavel').notNull(),
+  criadoEm: criadoEm(),
+  atualizadoEm: atualizadoEm(),
+});
+
+export const lojas = pgTable('lojas', {
+  id: uuid('id').primaryKey(),
+  contaId: uuid('conta_id')
+    .notNull()
+    .references(() => contas.id),
+  nome: text('nome').notNull(),
+  criadoEm: criadoEm(),
+  atualizadoEm: atualizadoEm(),
+});
+
+export const operadores = pgTable('operadores', {
+  id: uuid('id').primaryKey(),
+  contaId: uuid('conta_id')
+    .notNull()
+    .references(() => contas.id),
+  lojaId: uuid('loja_id')
+    .notNull()
+    .references(() => lojas.id),
+  nome: text('nome').notNull(),
+  papel: text('papel', { enum: ['dono', 'operador'] }).notNull(),
+  criadoEm: criadoEm(),
+  atualizadoEm: atualizadoEm(),
+});
+
+/** O id é gerado no aparelho; vale para uma conta só. */
+export const aparelhos = pgTable('aparelhos', {
+  id: uuid('id').primaryKey(),
+  contaId: uuid('conta_id')
+    .notNull()
+    .references(() => contas.id),
+  lojaId: uuid('loja_id')
+    .notNull()
+    .references(() => lojas.id),
+  nome: text('nome').notNull(),
+  criadoEm: criadoEm(),
+  ultimoAcessoEm: instante('ultimo_acesso_em').notNull(),
+});
+
+export const sessoes = pgTable('sessoes', {
+  id: uuid('id').primaryKey(),
+  /** SHA-256 do token; o token em si só existe no aparelho. */
+  tokenHash: text('token_hash').notNull().unique(),
+  contaId: uuid('conta_id')
+    .notNull()
+    .references(() => contas.id),
+  lojaId: uuid('loja_id')
+    .notNull()
+    .references(() => lojas.id),
+  operadorId: uuid('operador_id')
+    .notNull()
+    .references(() => operadores.id),
+  aparelhoId: uuid('aparelho_id')
+    .notNull()
+    .references(() => aparelhos.id),
+  criadoEm: criadoEm(),
+});
+
+export const codigosLogin = pgTable(
+  'codigos_login',
+  {
+    id: uuid('id').primaryKey(),
+    email: text('email').notNull(),
+    codigoHash: text('codigo_hash').notNull(),
+    expiraEm: instante('expira_em').notNull(),
+    usadoEm: instante('usado_em'),
+    tentativas: integer('tentativas').notNull().default(0),
+    criadoEm: criadoEm(),
+  },
+  (t) => [index('codigos_login_email_idx').on(t.email)],
+);
+
+// ---------- Catálogo, vendas e caixa (sincronizados) ----------
+
+export const produtos = pgTable(
+  'produtos',
+  {
+    id: uuid('id').primaryKey(),
+    lojaId: uuid('loja_id')
+      .notNull()
+      .references(() => lojas.id),
+    nome: text('nome').notNull(),
+    ean: text('ean'),
+    precoCentavos: inteiro('preco_centavos').notNull(),
+    unidade: text('unidade', { enum: ['un', 'kg'] }).notNull(),
+    estoque: inteiro('estoque'),
+    estoqueMinimo: inteiro('estoque_minimo'),
+    atalho: boolean('atalho').notNull(),
+    criadoEm: criadoEm(),
+    atualizadoEm: atualizadoEm(),
+    excluidoEm: instante('excluido_em'),
+    versao: integer('versao').notNull(),
+  },
+  (t) => [index('produtos_loja_idx').on(t.lojaId)],
+);
+
+export const vendas = pgTable(
+  'vendas',
+  {
+    id: uuid('id').primaryKey(),
+    lojaId: uuid('loja_id')
+      .notNull()
+      .references(() => lojas.id),
+    aparelhoId: uuid('aparelho_id').notNull(),
+    operadorId: uuid('operador_id').notNull(),
+    totalCentavos: inteiro('total_centavos').notNull(),
+    status: text('status', { enum: ['concluida', 'cancelada'] }).notNull(),
+    criadoEm: criadoEm(),
+    atualizadoEm: atualizadoEm(),
+    excluidoEm: instante('excluido_em'),
+    versao: integer('versao').notNull(),
+  },
+  (t) => [index('vendas_loja_idx').on(t.lojaId)],
+);
+
+export const itensVenda = pgTable('itens_venda', {
+  id: uuid('id').primaryKey(),
+  vendaId: uuid('venda_id')
+    .notNull()
+    .references(() => vendas.id),
+  lojaId: uuid('loja_id')
+    .notNull()
+    .references(() => lojas.id),
+  posicao: integer('posicao').notNull(),
+  produtoId: uuid('produto_id'),
+  descricao: text('descricao').notNull(),
+  precoUnitarioCentavos: inteiro('preco_unitario_centavos').notNull(),
+  quantidadeMilesimos: inteiro('quantidade_milesimos').notNull(),
+  totalCentavos: inteiro('total_centavos').notNull(),
+  criadoEm: criadoEm(),
+});
+
+export const pagamentosVenda = pgTable('pagamentos_venda', {
+  id: uuid('id').primaryKey(),
+  vendaId: uuid('venda_id')
+    .notNull()
+    .references(() => vendas.id),
+  lojaId: uuid('loja_id')
+    .notNull()
+    .references(() => lojas.id),
+  posicao: integer('posicao').notNull(),
+  meio: text('meio', { enum: ['dinheiro', 'pix', 'cartao_credito', 'cartao_debito', 'tap'] }).notNull(),
+  provedor: text('provedor', { enum: ['infinitepay', 'mercadopago'] }),
+  valorCentavos: inteiro('valor_centavos').notNull(),
+  trocoCentavos: inteiro('troco_centavos').notNull(),
+  criadoEm: criadoEm(),
+});
+
+export const caixas = pgTable(
+  'caixas',
+  {
+    id: uuid('id').primaryKey(),
+    lojaId: uuid('loja_id')
+      .notNull()
+      .references(() => lojas.id),
+    aparelhoId: uuid('aparelho_id').notNull(),
+    operadorId: uuid('operador_id').notNull(),
+    abertoEm: instante('aberto_em').notNull(),
+    trocoInicialCentavos: inteiro('troco_inicial_centavos').notNull(),
+    fechadoEm: instante('fechado_em'),
+    esperadoCentavos: inteiro('esperado_centavos'),
+    contadoCentavos: inteiro('contado_centavos'),
+    criadoEm: criadoEm(),
+    atualizadoEm: atualizadoEm(),
+    excluidoEm: instante('excluido_em'),
+    versao: integer('versao').notNull(),
+  },
+  (t) => [index('caixas_loja_idx').on(t.lojaId)],
+);
+
+export const movimentosCaixa = pgTable('movimentos_caixa', {
+  id: uuid('id').primaryKey(),
+  caixaId: uuid('caixa_id')
+    .notNull()
+    .references(() => caixas.id),
+  lojaId: uuid('loja_id')
+    .notNull()
+    .references(() => lojas.id),
+  tipo: text('tipo', { enum: ['sangria', 'suprimento'] }).notNull(),
+  valorCentavos: inteiro('valor_centavos').notNull(),
+  motivo: text('motivo'),
+  criadoEm: criadoEm(),
+});
+
+// ---------- Sincronização ----------
+
+/**
+ * Cursor do pull: cada escrita sincronizável acrescenta uma linha aqui, e `seq` é a
+ * sequência monotônica global. O pull lê só este índice, sem UNION entre as tabelas.
+ */
+export const mudancas = pgTable(
+  'mudancas',
+  {
+    seq: bigserial('seq', { mode: 'number' }).primaryKey(),
+    lojaId: uuid('loja_id')
+      .notNull()
+      .references(() => lojas.id),
+    entidade: text('entidade', { enum: ['produto', 'venda', 'caixa'] }).notNull(),
+    entidadeId: uuid('entidade_id').notNull(),
+    criadoEm: criadoEm(),
+  },
+  (t) => [index('mudancas_loja_seq_idx').on(t.lojaId, t.seq)],
+);
+
+/** Só mutações aceitas: é por aqui que um reenvio da outbox vira no-op. */
+export const mutacoesAplicadas = pgTable(
+  'mutacoes_aplicadas',
+  {
+    id: uuid('id').notNull(),
+    lojaId: uuid('loja_id')
+      .notNull()
+      .references(() => lojas.id),
+    aparelhoId: uuid('aparelho_id').notNull(),
+    criadoEm: criadoEm(),
+  },
+  (t) => [primaryKey({ columns: [t.lojaId, t.id] })],
+);
+
+// ---------- Assinatura e cobrança ----------
+
+export const assinaturas = pgTable('assinaturas', {
+  id: uuid('id').primaryKey(),
+  contaId: uuid('conta_id')
+    .notNull()
+    .unique()
+    .references(() => contas.id),
+  planoId: text('plano_id', { enum: PLANOS_ORDEM }).notNull(),
+  status: text('status', { enum: STATUS_ASSINATURA }).notNull(),
+  criadaEm: instante('criada_em').notNull(),
+  testeTerminaEm: instante('teste_termina_em').notNull(),
+  periodoAtualInicio: instante('periodo_atual_inicio').notNull(),
+  periodoAtualFim: instante('periodo_atual_fim').notNull(),
+  acessoAte: instante('acesso_ate'),
+  inadimplenteDesde: instante('inadimplente_desde'),
+  tentativasFalhas: integer('tentativas_falhas').notNull(),
+  proximaTentativaEm: instante('proxima_tentativa_em'),
+  canceladaEm: instante('cancelada_em'),
+  planoAgendado: text('plano_agendado', { enum: PLANOS_ORDEM }),
+  cartaoBandeira: text('cartao_bandeira', { enum: BANDEIRAS }),
+  cartaoUltimos4: text('cartao_ultimos4'),
+  cartaoFingerprint: text('cartao_fingerprint'),
+  /** Referência do cliente no gateway: nunca sai pela API. */
+  clienteRef: text('cliente_ref'),
+  atualizadoEm: atualizadoEm(),
+});
+
+export const faturas = pgTable(
+  'faturas',
+  {
+    id: uuid('id').primaryKey(),
+    assinaturaId: uuid('assinatura_id')
+      .notNull()
+      .references(() => assinaturas.id),
+    contaId: uuid('conta_id')
+      .notNull()
+      .references(() => contas.id),
+    valorCentavos: inteiro('valor_centavos').notNull(),
+    tipo: text('tipo', { enum: ['primeira', 'renovacao', 'retentativa', 'prorata'] }).notNull(),
+    status: text('status', { enum: ['pendente', 'aprovada', 'recusada'] }).notNull(),
+    transacaoId: text('transacao_id'),
+    motivoRecusa: text('motivo_recusa'),
+    chaveIdempotencia: text('chave_idempotencia').notNull(),
+    criadoEm: criadoEm(),
+    atualizadoEm: atualizadoEm(),
+  },
+  (t) => [
+    uniqueIndex('faturas_chave_idempotencia_idx').on(t.chaveIdempotencia),
+    index('faturas_assinatura_idx').on(t.assinaturaId),
+  ],
+);
+
+export const eventosCobranca = pgTable(
+  'eventos_cobranca',
+  {
+    id: uuid('id').primaryKey(),
+    assinaturaId: uuid('assinatura_id')
+      .notNull()
+      .references(() => assinaturas.id),
+    contaId: uuid('conta_id')
+      .notNull()
+      .references(() => contas.id),
+    tipo: text('tipo').notNull(),
+    dados: jsonb('dados').$type<Record<string, unknown>>().notNull(),
+    /** Preenchida nos eventos que só podem ocorrer uma vez (ex.: lembrete de fim do teste). */
+    chaveUnica: text('chave_unica').unique(),
+    criadoEm: criadoEm(),
+  },
+  (t) => [index('eventos_cobranca_assinatura_idx').on(t.assinaturaId)],
+);
+
+/** Um teste grátis por documento e por cartão (fingerprint do gateway). */
+export const testesUsados = pgTable('testes_usados', {
+  id: uuid('id').primaryKey(),
+  contaId: uuid('conta_id')
+    .notNull()
+    .references(() => contas.id),
+  documento: text('documento').notNull().unique(),
+  fingerprint: text('fingerprint').notNull().unique(),
+  criadoEm: criadoEm(),
+});

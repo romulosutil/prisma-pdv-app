@@ -1,0 +1,39 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-24T02:25:29Z"},
+  "title": "PDV Mobile — Design System e Protótipo",
+  "launch": {"view": "canvas", "page": "prototipo"},
+  "pages": [
+    {"id": "prototipo", "name": "Protótipo"},
+    {"id": "mapa", "name": "Mapa de telas"},
+    {"id": "sistema", "name": "Design system"}
+  ],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 7360, "title": "Fundamentos", "page": "sistema"},
+    "Ilustracoes.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 1780, "title": "Ilustrações", "page": "sistema"},
+    "Ilustra.dc.html": {"x": 1520, "y": 1900, "w": 200, "h": 200, "title": "Componente Ilustra", "page": "sistema"},
+    "AppInicio.dc.html": {"x": 0, "y": 0, "w": 390, "h": 844, "title": "Início e primeiro acesso", "page": "prototipo", "is_interactive": true, "radius": 32},
+    "AppVender.dc.html": {"x": 470, "y": 0, "w": 390, "h": 844, "title": "Vender", "page": "prototipo", "is_interactive": true, "radius": 32},
+    "AppPagar.dc.html": {"x": 940, "y": 0, "w": 390, "h": 844, "title": "Cobrar", "page": "prototipo", "is_interactive": true, "radius": 32},
+    "AppCadastro.dc.html": {"x": 1410, "y": 0, "w": 390, "h": 844, "title": "Produtos e cadastro", "page": "prototipo", "is_interactive": true, "radius": 32},
+    "AppCaixa.dc.html": {"x": 1880, "y": 0, "w": 390, "h": 844, "title": "Caixa e ajustes", "page": "prototipo", "is_interactive": true, "radius": 32},
+    "Mapa.dc.html": {"x": 0, "y": 0, "w": 3616, "h": 5600, "title": "Mapa de telas", "page": "mapa"}
+  },
+  "order": [
+    "Main.dc.html",
+    "Ilustracoes.dc.html",
+    "Ilustra.dc.html",
+    "AppInicio.dc.html",
+    "AppVender.dc.html",
+    "AppPagar.dc.html",
+    "AppCadastro.dc.html",
+    "AppCaixa.dc.html",
+    "Mapa.dc.html"
+  ],
+  "notes": {
+    "tituloPrototipo": {"x": 0, "y": -300, "text": "Protótipo navegável", "kind": "title1", "maxW": 2270, "page": "prototipo"},
+    "dicaPrototipo": {"x": 0, "y": 960, "w": 420, "text": "Aperte Play em qualquer tela. No visor da câmera, toque para simular uma leitura; toque de novo rápido no mesmo produto para ver a trava anti-duplicidade. Nos pagamentos, os botões tracejados \"Demo\" simulam a resposta do Pix e do app da adquirente.", "fill": "orange", "page": "prototipo"},
+    "tituloSistema": {"x": 0, "y": -300, "text": "Design system Balcão", "kind": "title1", "maxW": 2960, "page": "sistema"}
+  },
+  "designSystems": []
+}

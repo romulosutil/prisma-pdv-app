@@ -4,6 +4,7 @@ import { useToast } from '@/componentes/Toast';
 import { carrinho, montarVenda, totalDoCarrinho, useCarrinho, valorRestante, type Parcela } from '@/dados/carrinho';
 import { useVendas } from '@/dados/hooks';
 import type { ProvedorPagamento } from '@/dados/tipos';
+import { registrar as registrarDiagnostico } from '@/diagnostico/registro';
 import { ehProvedor } from './rotulos';
 
 export type ParteDaParcela = Omit<Parcela, 'valorCentavos'>;
@@ -48,6 +49,7 @@ export function useCobranca() {
       carrinho.marcarConcluida(venda.id);
       router.replace({ pathname: '/pagar/sucesso', params: { venda: venda.id } });
     } catch (erro) {
+      registrarDiagnostico('pagamento', 'falha ao registrar a venda', { mensagem: erro instanceof Error ? erro.message : String(erro) });
       toast.mostrar(erro instanceof Error ? erro.message : 'Não foi possível registrar a venda.', { tipo: 'erro' });
     }
   }, [registrar, router, toast]);
@@ -76,6 +78,7 @@ export function useCobranca() {
       emAndamento.current = true;
       setOcupado(true);
       try {
+        registrarDiagnostico('pagamento', 'pagamento recebido', { meio: parte.meio, provedor: parte.provedor ?? null, valorCentavos, dividida: params.dividir === '1', resultado: 'aprovado' });
         registrarParcela(parte);
         await avancar();
       } finally {
@@ -83,7 +86,7 @@ export function useCobranca() {
         setOcupado(false);
       }
     },
-    [registrarParcela, avancar],
+    [registrarParcela, avancar, valorCentavos, params.dividir],
   );
 
   /** Volta à escolha do meio (checkout, ou divisão quando há parcelas). */

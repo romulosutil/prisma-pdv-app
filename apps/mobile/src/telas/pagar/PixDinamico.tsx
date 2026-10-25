@@ -10,6 +10,7 @@ import { Texto } from '@/componentes/Texto';
 import { useToast } from '@/componentes/Toast';
 import { useConta } from '@/dados/hooks';
 import type { ProvedorPagamento } from '@/dados/tipos';
+import { registrar } from '@/diagnostico/registro';
 import { provedoresPagamento, type SituacaoPix } from '@/servicos/provedoresPagamento';
 import { cores, textoMonograma } from '@/tema';
 import { FERRAMENTAS_TESTE } from '@/util/ferramentasTeste';
@@ -33,21 +34,27 @@ export function PixDinamico({ provedor }: { provedor: ProvedorPagamento }) {
   const [situacao, setSituacao] = useState<SituacaoPix>('aguardando');
   const [restante, setRestante] = useState(() => segundosAte(cobranca.expiraEm));
   const confirmada = useRef(false);
+  const expiradoRegistrado = useRef(false);
 
   useEffect(() => {
     const conferir = () => {
       const atual = provedoresPagamento.situacaoPix(cobranca.id);
       setSituacao(atual);
       setRestante(segundosAte(cobranca.expiraEm));
+      if (atual === 'expirado' && !expiradoRegistrado.current) {
+        expiradoRegistrado.current = true;
+        registrar('pagamento', 'pix expirado', { provedor, valorCentavos, resultado: 'expirado' });
+      }
       if (atual !== 'pago' || confirmada.current) return;
       confirmada.current = true;
+      registrar('pagamento', 'pix pago', { provedor, valorCentavos, resultado: 'aprovado' });
       registrarParcela({ meio: 'pix', provedor });
       router.replace({ pathname: '/pagar/pixpago', params: parametros() });
     };
     conferir();
     const intervalo = setInterval(conferir, 1000);
     return () => clearInterval(intervalo);
-  }, [cobranca, provedor, registrarParcela, parametros, router]);
+  }, [cobranca, provedor, valorCentavos, registrarParcela, parametros, router]);
 
   const copiar = async () => {
     await Clipboard.setStringAsync(cobranca.copiaECola);

@@ -34,7 +34,8 @@ export class ArmazenamentoAsync implements Armazenamento {
   }
 
   async limpar(): Promise<void> {
-    const chaves = (await AsyncStorage.getAllKeys()).filter((c) => c.startsWith(PREFIXO));
+    // O diagnóstico da versão de testes sobrevive ao "Zerar dados" (ele é o que explica o que houve antes).
+    const chaves = (await AsyncStorage.getAllKeys()).filter((c) => c.startsWith(PREFIXO) && c !== PREFIXO + 'diagnostico');
     await AsyncStorage.multiRemove(chaves);
   }
 }

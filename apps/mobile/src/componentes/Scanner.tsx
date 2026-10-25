@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
 import { usePreferencias, useProdutos } from '@/dados/hooks';
+import { registrar } from '@/diagnostico/registro';
 import { cores, legendaForte, raio, texto, textoBotao } from '@/tema';
 import { useFoco } from '@/tema/useFoco';
 import { useReducaoMovimento } from '@/tema/useReducaoMovimento';
@@ -40,6 +41,8 @@ const FLASH_FOLHA = 'rgba(14,122,64,0.85)';
 const CINZA_PAUSA = '#A9A6BD';
 const VERDE_ATIVO = '#1FAF5F';
 const ERRO_SOBRE_NOITE = '#FF8A9B';
+
+type OrigemDaLeitura = 'camera' | 'manual' | 'simulada';
 
 const TIPOS_DE_CODIGO = ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128'] as const;
 
@@ -71,13 +74,14 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
   const [lanterna, setLanterna] = useState(preferencias.lanterna);
   const [digitando, setDigitando] = useState(false);
   const [flash, setFlash] = useState(false);
+  const [erroDaCamera, setErroDaCamera] = useState<string | null>(null);
   const ultimaLeitura = useRef<{ codigo: string; em: number } | null>(null);
   const temporizadorFlash = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pulso = useRef(new Animated.Value(1)).current;
   const laser = useRef(new Animated.Value(0)).current;
 
   const cameraNoAparelho = Platform.OS !== 'web';
-  const cameraLiberada = cameraNoAparelho && permissao?.granted === true;
+  const cameraLiberada = cameraNoAparelho && permissao?.granted === true && erroDaCamera === null;
   const codigosDeTeste = FERRAMENTAS_TESTE ? produtos.filter((p) => p.ean !== null).slice(0, 6) : [];
 
   useEffect(
@@ -86,6 +90,19 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
     },
     [],
   );
+
+  const permissaoConcedida = permissao === null ? null : permissao.granted;
+  const podePedirDeNovo = permissao?.canAskAgain;
+  useEffect(() => {
+    if (permissaoConcedida === null) return;
+    registrar('camera', permissaoConcedida ? 'permissão da câmera concedida' : 'permissão da câmera negada', { podePedirDeNovo });
+  }, [permissaoConcedida, podePedirDeNovo]);
+
+  useEffect(() => {
+    if (!cameraLiberada) return;
+    registrar('camera', 'câmera montada');
+    return () => registrar('camera', 'câmera desmontada');
+  }, [cameraLiberada]);
 
   useEffect(() => {
     if (reduzirMovimento || pausado || !cameraLiberada) {
@@ -100,10 +117,12 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
   }, [reduzirMovimento, pausado, cameraLiberada, laser]);
 
   const entregar = useCallback(
-    (codigo: string, origem: 'camera' | 'manual') => {
+    (codigo: string, origem: OrigemDaLeitura, tipo?: string) => {
       const agora = Date.now();
       const anterior = ultimaLeitura.current;
-      if (anterior && anterior.codigo === codigo && agora - anterior.em < preferencias.ignorarMesmoCodigoMs) {
+      const repetida = anterior !== null && anterior.codigo === codigo && agora - anterior.em < preferencias.ignorarMesmoCodigoMs;
+      registrar('leitura', repetida ? 'leitura ignorada (repetida)' : 'código lido', { tipo: tipo ?? origem, codigo, origem, ignorada: repetida });
+      if (repetida) {
         if (origem === 'manual') toast.mostrar('Mesmo código ignorado. Use + para somar.');
         return;
       }
@@ -149,7 +168,12 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
           active={!pausado}
           enableTorch={lanterna}
           barcodeScannerSettings={{ barcodeTypes: [...TIPOS_DE_CODIGO] }}
-          onBarcodeScanned={pausado ? undefined : ({ data }) => entregar(data, 'camera')}
+          onBarcodeScanned={pausado ? undefined : ({ data, type }) => entregar(data, 'camera', type)}
+          onCameraReady={() => registrar('camera', 'câmera pronta (onCameraReady)')}
+          onMountError={({ message }) => {
+            registrar('erro', 'falha ao iniciar a câmera (onMountError)', { message });
+            setErroDaCamera(message);
+          }}
         />
       ) : (
         <ImagemSimulada clara={lanterna} apagada={pausado} />
@@ -186,6 +210,8 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
       {!cameraLiberada && !(cameraNoAparelho && permissao === null) ? (
         <SemCamera
           cameraNoAparelho={cameraNoAparelho}
+          erro={erroDaCamera !== null}
+          onTentarDeNovo={() => setErroDaCamera(null)}
           podePedir={permissao?.canAskAgain ?? true}
           onPedir={() => void pedirPermissao()}
           onEnviar={(codigo) => entregar(codigo, 'manual')}
@@ -230,7 +256,7 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
 
       <View style={[estilos.baixo, { bottom: MARGEM_INFERIOR }]} pointerEvents="box-none">
         {cameraLiberada ? <BotaoVisor rotulo="Digitar código" icone="calculadora" onPress={() => setDigitando(true)} /> : null}
-        {FERRAMENTAS_TESTE ? <SimuladorDeBip produtos={codigosDeTeste} onBipar={(ean) => entregar(ean, 'manual')} /> : null}
+        {FERRAMENTAS_TESTE ? <SimuladorDeBip produtos={codigosDeTeste} onBipar={(ean) => entregar(ean, 'simulada')} /> : null}
       </View>
 
       {children ? (
@@ -302,14 +328,19 @@ function ImagemSimulada({ clara, apagada }: { clara: boolean; apagada: boolean }
 
 interface SemCameraProps {
   cameraNoAparelho: boolean;
+  /** A câmera falhou ao iniciar (`onMountError`). */
+  erro: boolean;
+  onTentarDeNovo: () => void;
   podePedir: boolean;
   onPedir: () => void;
   onEnviar: (codigo: string) => void;
 }
 
 /** Sem câmera (web, permissão negada): explica e deixa digitar o código ali mesmo. */
-function SemCamera({ cameraNoAparelho, podePedir, onPedir, onEnviar }: SemCameraProps) {
-  const mensagem = !cameraNoAparelho
+function SemCamera({ cameraNoAparelho, erro, onTentarDeNovo, podePedir, onPedir, onEnviar }: SemCameraProps) {
+  const mensagem = erro
+    ? 'Não foi possível iniciar a câmera. Tente de novo ou digite o código.'
+    : !cameraNoAparelho
     ? 'Sem câmera por aqui. Digite o código de barras.'
     : podePedir
       ? 'Permita o uso da câmera para ler os códigos.'
@@ -319,7 +350,8 @@ function SemCamera({ cameraNoAparelho, podePedir, onPedir, onEnviar }: SemCamera
       <Texto estilo="corpoMedio" cor={cores.bg} style={estilos.mensagemSemCamera} accessibilityLiveRegion="polite">
         {mensagem}
       </Texto>
-      {cameraNoAparelho && podePedir ? <Botao rotulo="Permitir câmera" tamanho="M" larguraTotal={false} onPress={onPedir} /> : null}
+      {erro ? <Botao rotulo="Tentar de novo" tamanho="M" larguraTotal={false} onPress={onTentarDeNovo} /> : null}
+      {!erro && cameraNoAparelho && podePedir ? <Botao rotulo="Permitir câmera" tamanho="M" larguraTotal={false} onPress={onPedir} /> : null}
       <FormularioCodigo onEnviar={onEnviar} />
     </View>
   );

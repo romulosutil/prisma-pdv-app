@@ -9,6 +9,7 @@ import { Ilustra } from '@/componentes/Ilustra';
 import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
 import type { ProvedorPagamento } from '@/dados/tipos';
+import { registrar } from '@/diagnostico/registro';
 import { provedoresPagamento } from '@/servicos/provedoresPagamento';
 import { cores, raio } from '@/tema';
 import { FERRAMENTAS_TESTE } from '@/util/ferramentasTeste';
@@ -36,7 +37,10 @@ function AproximacaoEmCurso({ provedor }: { provedor: ProvedorPagamento }) {
       if (situacao === 'aguardando') return;
       resolvida.current = true;
       if (situacao === 'aprovado') void receber({ meio: 'tap', provedor });
-      else router.replace({ pathname: '/pagar/tapfalha', params: parametros({ cobranca: cobranca.id }) });
+      else {
+        registrar('pagamento', 'tap sem aprovação', { provedor, situacao, resultado: 'falha' });
+        router.replace({ pathname: '/pagar/tapfalha', params: parametros({ cobranca: cobranca.id }) });
+      }
     };
     const intervalo = setInterval(conferir, 400);
     return () => clearInterval(intervalo);
@@ -44,6 +48,7 @@ function AproximacaoEmCurso({ provedor }: { provedor: ProvedorPagamento }) {
 
   const simularFalha = () => {
     provedoresPagamento.simularAbandonoTap(cobranca.id);
+    registrar('pagamento', 'tap abandonado (simulado)', { provedor, resultado: 'falha' });
     resolvida.current = true;
     router.replace({ pathname: '/pagar/tapfalha', params: parametros({ cobranca: cobranca.id }) });
   };

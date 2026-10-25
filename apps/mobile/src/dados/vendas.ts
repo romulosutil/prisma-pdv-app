@@ -1,4 +1,5 @@
 import { multiplicarPreco, somar, type Centavos, type Venda } from '@pdv/shared';
+import { registrar } from '@/diagnostico/registro';
 import { inicioDoDia } from '@/util/tempo';
 import type { Ambiente } from './ambiente';
 import { ErroDeDominio } from './erros';
@@ -109,6 +110,11 @@ export class VendasRepo extends Persistido<EstadoVendas> {
       criadaEm: this.amb.relogio.agora().toISOString(),
     };
     await this.modificar((atual) => ({ ...atual, vendas: [...atual.vendas, venda] }));
+    registrar('venda', 'venda registrada', {
+      totalCentavos,
+      itens: venda.itens.length,
+      meios: venda.pagamentos.map((p) => p.meio),
+    });
     return venda;
   }
 

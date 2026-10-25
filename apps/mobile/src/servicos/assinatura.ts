@@ -12,6 +12,7 @@ import {
 } from '@pdv/shared';
 import type { Armazenamento } from '@/dados/armazenamento';
 import { Observavel } from '@/dados/observavel';
+import { registrar } from '@/diagnostico/registro';
 import { ErroBackend, type Backend } from './backend';
 
 export interface EstadoAssinatura {
@@ -63,7 +64,9 @@ export class AssinaturaServico extends Observavel<EstadoAssinatura> {
       else this.definir({ ...this.obter(), agora: this.relogio.agora(), offline: false });
     } catch (erro) {
       if (!(erro instanceof ErroBackend)) throw erro;
-      this.definir({ ...this.obter(), agora: this.relogio.agora(), offline: erro.codigo === 'rede' });
+      const offline = erro.codigo === 'rede';
+      if (offline !== this.obter().offline) registrar('assinatura', offline ? 'sem conexão: usando a licença em cache' : 'sincronização falhou', { codigo: erro.codigo });
+      this.definir({ ...this.obter(), agora: this.relogio.agora(), offline });
     }
   }
 
@@ -112,11 +115,19 @@ export class AssinaturaServico extends Observavel<EstadoAssinatura> {
   }
 
   private aplicarEmMemoria(res: AssinaturaRes): void {
+    const anterior = this.obter().assinatura;
+    const nova = desserializarAssinatura(res.assinatura);
     this.definir({
-      assinatura: desserializarAssinatura(res.assinatura),
+      assinatura: nova,
       licenca: desserializarLicenca(res.licenca),
       agora: this.relogio.agora(),
       offline: false,
     });
+    if (anterior?.status !== nova.status || anterior?.planoId !== nova.planoId) {
+      registrar('assinatura', 'assinatura mudou', {
+        de: anterior ? { status: anterior.status, plano: anterior.planoId } : null,
+        para: { status: nova.status, plano: nova.planoId, planoAgendado: nova.planoAgendado },
+      });
+    }
   }
 }

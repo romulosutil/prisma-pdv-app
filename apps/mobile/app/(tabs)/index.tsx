@@ -17,6 +17,16 @@ import { falarDinheiro } from '@/util/dinheiroFalado';
 import { iconeDoMeio, rotuloDoMeio } from '@/util/meios';
 import { formatarHora } from '@/util/tempo';
 
+/**
+ * Atalho de diagnóstico da versão de testes. A condição é a mesma de `FERRAMENTAS_TESTE`, escrita por extenso de
+ * propósito: o Metro só apaga o ramo morto (e o módulo do `require`) quando a condição está inline neste arquivo.
+ * Em produção (sem EXPO_PUBLIC_FERRAMENTAS_TESTE) o componente nem entra no bundle.
+ */
+const ChipComDiagnostico: typeof import('@/diagnostico/ChipComDiagnostico').ChipComDiagnostico | null =
+  __DEV__ || process.env.EXPO_PUBLIC_FERRAMENTAS_TESTE === '1'
+    ? (require('@/diagnostico/ChipComDiagnostico') as typeof import('@/diagnostico/ChipComDiagnostico')).ChipComDiagnostico
+    : null;
+
 const ATALHOS: readonly { icone: NomeIcone; rotulo: string; destino: '/produtos' | '/produtos/scanner' | '/caixa' | '/vender' }[] = [
   { icone: 'cadastrarBipando', rotulo: 'Cadastrar bipando', destino: '/produtos/scanner' },
   { icone: 'produtos', rotulo: 'Produtos', destino: '/produtos' },
@@ -50,12 +60,7 @@ export default function Inicio() {
         <Texto estilo="corpoMedio" cor={cores.ink2}>
           {nomeLoja}
         </Texto>
-        <View style={estilos.conexao}>
-          <Icone nome={offline ? 'offline' : 'online'} tamanho={16} cor={offline ? cores.ambar : cores.ink2} />
-          <Texto estilo="label" cor={offline ? cores.ambar : cores.ink2}>
-            {modo === 'demo' ? 'Modo de testes · dados neste aparelho' : offline ? 'Offline · vendas ficam salvas no aparelho' : 'Online'}
-          </Texto>
-        </View>
+        <ChipDeStatus offline={offline} texto={modo === 'demo' ? 'Modo de testes · dados neste aparelho' : offline ? 'Offline · vendas ficam salvas no aparelho' : 'Online'} />
       </View>
 
       {aviso ? <Banner tipo={aviso.tipo} texto={aviso.texto} acao={{ rotulo: aviso.acao.rotulo, aoPressionar: () => router.push(aviso.acao.destino) }} /> : null}
@@ -124,6 +129,20 @@ export default function Inicio() {
       </View>
     </TelaBase>
   );
+}
+
+/** Estado da conexão. Na versão de testes, o toque longo (1 s) copia o diagnóstico para a área de transferência. */
+function ChipDeStatus({ offline, texto }: { offline: boolean; texto: string }) {
+  const cor = offline ? cores.ambar : cores.ink2;
+  const conteudo = (
+    <>
+      <Icone nome={offline ? 'offline' : 'online'} tamanho={16} cor={cor} />
+      <Texto estilo="label" cor={cor}>
+        {texto}
+      </Texto>
+    </>
+  );
+  return ChipComDiagnostico ? <ChipComDiagnostico texto={texto}>{conteudo}</ChipComDiagnostico> : <View style={estilos.conexao}>{conteudo}</View>;
 }
 
 function Atalho({ icone, rotulo, onPress }: { icone: NomeIcone; rotulo: string; onPress: () => void }) {

@@ -13,10 +13,21 @@ import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
 import { TilePagamento } from '@/componentes/TilePagamento';
 import { useAssinatura, useConta, useDados, useLicenca, usePreferencias } from '@/dados/hooks';
+import { registrar, salvarAgora } from '@/diagnostico/registro';
 import { cores, raio } from '@/tema';
 import { FERRAMENTAS_TESTE } from '@/util/ferramentasTeste';
 import { PROVEDORES } from '@/util/provedores';
 import { STATUS_VISUAL } from '@/util/statusAssinatura';
+
+/**
+ * Seção de diagnóstico da versão de testes. A condição é a de `FERRAMENTAS_TESTE` escrita por extenso: o Metro só
+ * elimina o ramo morto (e o módulo do `require`) quando está inline. Sem EXPO_PUBLIC_FERRAMENTAS_TESTE, a seção
+ * e o texto "Copiar diagnóstico" não entram no bundle de produção.
+ */
+const SecaoDiagnostico: typeof import('@/diagnostico/SecaoDiagnostico').SecaoDiagnostico | null =
+  __DEV__ || process.env.EXPO_PUBLIC_FERRAMENTAS_TESTE === '1'
+    ? (require('@/diagnostico/SecaoDiagnostico') as typeof import('@/diagnostico/SecaoDiagnostico')).SecaoDiagnostico
+    : null;
 
 function recarregarApp() {
   if (Platform.OS === 'web') window.location.reload();
@@ -129,6 +140,8 @@ export default function Ajustes() {
         <LinhaDado rotulo="Versão" valor={Constants.expoConfig?.version ?? '0.1.0'} divisor />
       </Secao>
 
+      {SecaoDiagnostico ? <SecaoDiagnostico /> : null}
+
       {FERRAMENTAS_TESTE ? (
         <Secao titulo="Desenvolvimento">
           <Botao
@@ -138,6 +151,8 @@ export default function Ajustes() {
             larguraTotal
             accessibilityHint="Apaga conta, assinatura e vendas deste aparelho e reinicia o app"
             onPress={async () => {
+              registrar('app', 'dados do app zerados');
+              await salvarAgora();
               await dados.zerar();
               recarregarApp();
             }}

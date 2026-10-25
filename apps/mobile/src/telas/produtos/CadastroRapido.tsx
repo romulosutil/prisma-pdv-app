@@ -1,6 +1,6 @@
 import type { Centavos, Produto } from '@pdv/shared';
 import { useIsFocused, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Botao } from '@/componentes/Botao';
 import { BottomSheet } from '@/componentes/BottomSheet';
@@ -14,7 +14,7 @@ import { Texto } from '@/componentes/Texto';
 import { useToast } from '@/componentes/Toast';
 import { ehErroDeDominio } from '@/dados/erros';
 import { useLicenca, useProdutos } from '@/dados/hooks';
-import { buscarNoCatalogo } from '@/servicos/catalogoEan';
+import { buscarNoCatalogo, catalogoComApi, confirmarNoCatalogo, consultarCatalogo } from '@/servicos/catalogoEan';
 import { cores } from '@/tema';
 import { EntradaDeValor } from '@/componentes/EntradaDeValor';
 import { formatarEstoque, somenteDigitos } from './logica';
@@ -37,6 +37,9 @@ export function CadastroRapido() {
   const focada = useIsFocused();
   const { buscarPorEan } = useProdutos();
   const [lido, setLido] = useState<Lido | null>(null);
+  const consulta = useRef<AbortController | null>(null);
+
+  useEffect(() => () => consulta.current?.abort(), []);
 
   const ler = useCallback(
     (codigo: string) => {
@@ -45,8 +48,20 @@ export function CadastroRapido() {
         toast.mostrar('Esse não parece um código de barras de produto.', { tipo: 'erro' });
         return;
       }
+      consulta.current?.abort();
+      const produto = buscarPorEan(ean);
       const catalogo = buscarNoCatalogo(ean);
-      setLido({ ean, produto: buscarPorEan(ean), nomeSugerido: catalogo.achou ? catalogo.nome : '' });
+      setLido({ ean, produto, nomeSugerido: catalogo.achou ? catalogo.nome : '' });
+      // Com a API, o que não está no cache local chega logo depois e preenche o nome se o campo ainda estiver vazio.
+      if (!produto && !catalogo.achou && catalogoComApi()) {
+        const controle = new AbortController();
+        consulta.current = controle;
+        consultarCatalogo(ean, { sinal: controle.signal })
+          .then((r) => {
+            if (r.achou) setLido((atual) => (atual && atual.ean === ean && !atual.nomeSugerido ? { ...atual, nomeSugerido: r.nome } : atual));
+          })
+          .catch(() => undefined);
+      }
     },
     [buscarPorEan, toast],
   );
@@ -70,6 +85,10 @@ function FolhaRapida({ lido, onConcluir }: { lido: Lido; onConcluir: () => void 
   const comEstoque = podeUsar('estoque');
 
   const [nome, setNome] = useState(lido.nomeSugerido);
+  // A sugestão da API pode chegar depois de a folha abrir; só entra se o lojista ainda não digitou nada.
+  useEffect(() => {
+    if (lido.nomeSugerido) setNome((atual) => atual || lido.nomeSugerido);
+  }, [lido.nomeSugerido]);
   const [preco, setPreco] = useState<Centavos>(produto?.precoCentavos ?? 0);
   const [entrada, setEntrada] = useState(0);
   const [erros, setErros] = useState<{ nome?: string; preco?: string }>({});
@@ -93,6 +112,8 @@ function FolhaRapida({ lido, onConcluir }: { lido: Lido; onConcluir: () => void 
         toast.mostrar(`${produto.nome} atualizado`, { tipo: 'sucesso' });
       } else {
         await criar({ nome: nome.trim(), ean: lido.ean, precoCentavos: preco, ...(comEstoque && entrada > 0 ? { estoque: entrada * 1000 } : {}) });
+        // Alimenta o catálogo com o nome confirmado; não espera nem falha a tela.
+        void confirmarNoCatalogo(lido.ean, nome.trim());
         toast.mostrar(`${nome.trim()} cadastrado. Bipe o próximo.`, { tipo: 'sucesso' });
       }
       onConcluir();

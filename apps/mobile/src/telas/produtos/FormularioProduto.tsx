@@ -18,6 +18,7 @@ import { ehErroDeDominio } from '@/dados/erros';
 import { useLicenca, useProdutos } from '@/dados/hooks';
 import type { NovoProduto } from '@/dados/produtos';
 import type { Unidade } from '@/dados/tipos';
+import { confirmarNoCatalogo } from '@/servicos/catalogoEan';
 import { cores, raio } from '@/tema';
 import { CabecalhoTela } from '@/componentes/CabecalhoTela';
 import { CampoPreco } from '@/componentes/CampoPreco';
@@ -110,7 +111,11 @@ export function FormularioProduto({ produto, sugestao, atalhoInicial = false, da
     setSalvando(true);
     try {
       if (produto) await editar(produto.id, dados);
-      else await criar(dados);
+      else {
+        await criar(dados);
+        // Alimenta o catálogo com o nome confirmado; não espera nem falha a tela.
+        if (dados.ean) void confirmarNoCatalogo(dados.ean, dados.nome);
+      }
       toast.mostrar(`${dados.nome} salvo`, { tipo: 'sucesso' });
       if (depois === 'proximo') voltar();
       else if (daCamera) router.dismissTo('/produtos');

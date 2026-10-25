@@ -4,6 +4,7 @@ export * from './cartao';
 export * from './contrato';
 export * from './datas';
 export * from './dinheiro';
+export * from './ean';
 export * from './ids';
 export * from './licenca';
 export * from './planos';

@@ -36,6 +36,27 @@ export const ProdutoSchema = z.object({
 });
 export type Produto = z.infer<typeof ProdutoSchema>;
 
+export const FonteCatalogoSchema = z.enum(['proprio', 'open_food_facts']);
+export type FonteCatalogo = z.infer<typeof FonteCatalogoSchema>;
+export const ConfiancaCatalogoSchema = z.enum(['confirmada', 'externa']);
+export type ConfiancaCatalogo = z.infer<typeof ConfiancaCatalogoSchema>;
+
+/** Sugestão de cadastro a partir do código de barras. Nunca carrega preço: cada loja define o seu. */
+export const ProdutoCatalogoSchema = z.object({
+  ean: z.string(),
+  nome: z.string().trim().min(1).max(200),
+  marca: z.string().nullable(),
+  conteudo: z.string().nullable(),
+  imagemUrl: z.url().nullable(),
+  fonte: FonteCatalogoSchema,
+  confianca: ConfiancaCatalogoSchema,
+});
+export type ProdutoCatalogo = z.infer<typeof ProdutoCatalogoSchema>;
+
+/** Nome confirmado pelo lojista ao salvar o produto; só o nome é compartilhado. */
+export const ConfirmarEanReqSchema = z.object({ nome: z.string().trim().min(2).max(200) });
+export type ConfirmarEanReq = z.infer<typeof ConfirmarEanReqSchema>;
+
 // ---------- Vendas ----------
 
 export const ItemVendaSchema = z.object({

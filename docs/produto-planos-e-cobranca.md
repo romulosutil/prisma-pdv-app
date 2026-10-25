@@ -65,11 +65,12 @@ Qualquer estado → `cancelada` (com `acessoAte`). `cancelada` → `ativa` ao re
 
 - O código usa a interface `BillingProvider`. **A versão de testes usa `MockBillingProvider`**: cartão de teste `4242 4242 4242 4242` aprova e `4000 0000 0000 0002` recusa. Há um "relógio de teste" em Ajustes (só em dev) para avançar dias e ver teste → cobrança → falha.
 - O número do cartão **nunca** passa nem fica salvo na nossa API. Em produção, o cartão é tokenizado pelo SDK do gateway direto no app. No mock, o app só envia últimos 4 dígitos, bandeira e token falso.
-- Candidatos para produção: Stripe Billing (trial, dunning e proration prontos) ou Asaas/Pagar.me (operação local). No futuro: **Pix Automático** como alternativa ao cartão.
+- **Decisão de 24/10/2026:** o gateway de testes (sandbox) é o **Asaas**, atrás da interface `BillingProvider`. No app Android a cobrança vai pelo **Google Play Billing** (`GooglePlayBillingProvider`), conforme o risco 1 abaixo. O papel do Asaas na produção (site e Desktop) fica a confirmar.
+- Candidatos para produção (antes dessa decisão): Stripe Billing (trial, dunning e proration prontos) ou Asaas/Pagar.me (operação local). No futuro: **Pix Automático** como alternativa ao cartão.
 
 ## 5. ⚠️ Riscos abertos (decidir antes de publicar na Play Store)
 
-1. **Política de cobrança do Google Play**: assinatura de software vendida *dentro* do app Android pode ser obrigada a usar o Google Play Billing (taxa de 15% em assinaturas). Opções: (a) contratar o plano pelo site/desktop e o app só faz login; (b) adapter `GooglePlayBillingProvider`; (c) programa de faturamento alternativo, se disponível no Brasil. A arquitetura já prevê o adapter. **Validar com jurídico/política vigente.**
+1. **Política de cobrança do Google Play**: assinatura de software vendida *dentro* do app Android pode ser obrigada a usar o Google Play Billing (taxa de 15% em assinaturas). Opções: (a) contratar o plano pelo site/desktop e o app só faz login; (b) adapter `GooglePlayBillingProvider`; (c) programa de faturamento alternativo, se disponível no Brasil. A arquitetura já prevê o adapter. **Validar com jurídico/política vigente.** Decisão de 24/10/2026: seguir pela opção (b), Google Play Billing no app Android. Falta validar com a política vigente e fechar como o plano contratado no Google conversa com a licença da nossa API.
 2. CDC (direito de arrependimento) e clareza da oferta: textos de cobrança revisados pelo jurídico.
 3. Custo por conta (infra + taxa do gateway) precisa caber no Essencial. Estimativa a validar: ≤ R$ 5/mês.
 

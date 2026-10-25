@@ -25,6 +25,8 @@ Monorepo com **npm workspaces** (sem ferramenta extra).
 6. **Limites de plano vêm do catálogo `PLANOS`** em `packages/shared`. O cliente usa para UX, e o servidor revalida.
 
 ## Banco (Postgres em produção)
+Em produção o Postgres e a API rodam no **Easypanel** (decisão de 24/10/2026).
+
 Em dev e nos testes da API usa **PGlite** (Postgres embutido, sem Docker), com o mesmo dialeto e as mesmas migrações do Drizzle.
 
 Tabelas principais: `contas`, `lojas`, `operadores`, `aparelhos`, `produtos`, `vendas`, `itens_venda`, `pagamentos_venda`, `caixas` (abertura/fechamento/sangria/suprimento), `assinaturas`, `faturas`, `eventos_cobranca`.

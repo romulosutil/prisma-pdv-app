@@ -25,7 +25,7 @@ O reconhecimento só **acelera o cadastro**. Venda e cadastro funcionam sem ele:
 |---|---|---|---|---|
 | 1 | **Catálogo próprio** (tabela `catalogo_ean` na nossa API) | Zero | Cresce com o uso | Sempre primeiro |
 | 2 | **Open Food Facts** | Grátis e aberta (exige `User-Agent` identificado) | Boa em alimentos e bebidas de marca; fraca em limpeza, bazar e marcas regionais | Segunda consulta |
-| 3 | **Cosmos (Bluesoft)** | Pago por consulta (avaliar plano) | A mais completa do varejo brasileiro | Reserva, só quando 1 e 2 falham |
+| 3 | **Cosmos (Bluesoft)** | **Só plano pago.** Pelos Termos de Uso, o acesso gratuito à API foi desativado em 01/10/2026 e o período de teste não inclui consultas. Cada requisição (e cada página) conta na franquia diária do plano. Preços e franquias: `cosmos.bluesoft.com.br/api-pricings` (conferir no navegador) | A mais completa do varejo brasileiro | Reserva, só quando 1 e 2 falham |
 | — | GS1 Brasil | Contrato | Oficial | Avaliar depois, se a qualidade de 2 e 3 não bastar |
 
 O resultado de qualquer fonte externa é gravado no catálogo próprio. Assim cada código é pago no máximo uma vez.

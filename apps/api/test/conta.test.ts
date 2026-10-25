@@ -138,7 +138,7 @@ describe('autenticação', () => {
 
   it('em produção o código só é enviado, nunca devolvido', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    const producao = await criarApp({ db: amb.db, relogio: new RelogioFalso(INICIO), billing: new MockBillingProvider() });
+    const producao = await criarApp({ db: amb.db, relogio: new RelogioFalso(INICIO), billing: new MockBillingProvider(), fontesEan: [] });
     const dados = { email: 'prod@exemplo.com.br', nomeResponsavel: 'P', nomeLoja: 'L', documento: '12345678901', aparelhoId: gerarId(), aparelhoNome: 'C' };
     expect((await producao.inject({ method: 'POST', url: '/contas', payload: dados })).statusCode).toBe(201);
     const res = await producao.inject({ method: 'POST', url: '/auth/codigo', payload: { email: dados.email } });

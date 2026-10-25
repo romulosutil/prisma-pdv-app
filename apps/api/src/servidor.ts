@@ -7,6 +7,7 @@ import { exigirSessao } from './auth';
 import type { Deps } from './deps';
 import { ErroApi } from './erros';
 import { rotasAssinatura, rotasPlanos } from './rotas/assinatura';
+import { rotasCatalogo } from './rotas/catalogo';
 import { rotasConta } from './rotas/conta';
 import { rotasDev } from './rotas/dev';
 import { rotasSync } from './rotas/sync';
@@ -28,7 +29,13 @@ function descreverErroZod(erro: z.ZodError): string {
 /** NODE_ENV é lido aqui, na criação: em produção as rotas /dev nem existem. */
 export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
   const producao = process.env.NODE_ENV === 'production';
-  const deps: Deps = { db: config.db, relogio: config.relogio, billing: config.billing };
+  const deps: Deps = {
+    db: config.db,
+    relogio: config.relogio,
+    billing: config.billing,
+    fontesEan: config.fontesEan,
+    orcamentoEanMs: config.orcamentoEanMs,
+  };
   const app = Fastify({ logger: config.logger ?? false });
 
   // Aceita POST com Content-Type JSON e corpo vazio (ex.: /assinatura/cancelar).
@@ -76,6 +83,7 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
     privado.addHook('onRequest', exigirSessao(deps.db));
     rotasAssinatura(privado, deps);
     rotasSync(privado, deps);
+    rotasCatalogo(privado, deps);
   });
 
   return app;

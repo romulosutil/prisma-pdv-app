@@ -12,7 +12,17 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { BANDEIRAS, PLANOS_ORDEM, STATUS_ASSINATURA } from '@pdv/shared';
+import {
+  BANDEIRAS,
+  PLANOS_ORDEM,
+  STATUS_ASSINATURA,
+  type ConfiancaCatalogo,
+  type FonteCatalogo,
+} from '@pdv/shared';
+
+// `satisfies` mantém as listas alinhadas com o contrato (o enum do drizzle exige uma tupla).
+const FONTES_CATALOGO = ['proprio', 'open_food_facts'] as const satisfies readonly FonteCatalogo[];
+const CONFIANCAS_CATALOGO = ['confirmada', 'externa'] as const satisfies readonly ConfiancaCatalogo[];
 
 const instante = (nome: string) => timestamp(nome, { withTimezone: true, mode: 'date' });
 const criadoEm = () => instante('criado_em').notNull();
@@ -211,6 +221,36 @@ export const movimentosCaixa = pgTable('movimentos_caixa', {
   motivo: text('motivo'),
   criadoEm: criadoEm(),
 });
+
+// ---------- Catálogo por código de barras ----------
+
+/** Sugestões de cadastro por EAN. Nunca guarda preço; vale para todas as lojas. */
+export const catalogoEan = pgTable('catalogo_ean', {
+  ean: text('ean').primaryKey(),
+  nome: text('nome').notNull(),
+  marca: text('marca'),
+  conteudo: text('conteudo'),
+  imagemUrl: text('imagem_url'),
+  fonte: text('fonte', { enum: FONTES_CATALOGO }).notNull(),
+  confianca: text('confianca', { enum: CONFIANCAS_CATALOGO }).notNull(),
+  criadoEm: criadoEm(),
+  atualizadoEm: atualizadoEm(),
+});
+
+/** Nome que cada loja confirmou para um EAN. O `loja_id` nunca sai pela API. */
+export const catalogoEanConfirmacoes = pgTable(
+  'catalogo_ean_confirmacoes',
+  {
+    ean: text('ean').notNull(),
+    lojaId: uuid('loja_id')
+      .notNull()
+      .references(() => lojas.id),
+    nome: text('nome').notNull(),
+    nomeNormalizado: text('nome_normalizado').notNull(),
+    criadoEm: criadoEm(),
+  },
+  (t) => [primaryKey({ columns: [t.ean, t.lojaId] })],
+);
 
 // ---------- Sincronização ----------
 

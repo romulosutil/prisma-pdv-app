@@ -12,7 +12,7 @@ beforeAll(async () => {
 afterAll(() => banco.fechar());
 afterEach(() => vi.unstubAllEnvs());
 
-const criar = (relogio: Relogio) => criarApp({ db: banco.db, relogio, billing: new MockBillingProvider() });
+const criar = (relogio: Relogio) => criarApp({ db: banco.db, relogio, billing: new MockBillingProvider(), fontesEan: [] });
 
 describe('rotas /dev', () => {
   it('fora de produção: avançam o relógio e rodam o job', async () => {

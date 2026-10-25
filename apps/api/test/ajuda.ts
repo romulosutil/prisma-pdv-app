@@ -15,6 +15,7 @@ import {
 import { asc, eq, getTableName, is, sql } from 'drizzle-orm';
 import { PgTable } from 'drizzle-orm/pg-core';
 import { abrirPglite, type Conexao, type Db } from '../src/db/conexao';
+import type { FonteEan } from '../src/fontes/fonte';
 import * as schema from '../src/db/schema';
 import { criarApp } from '../src/servidor';
 
@@ -47,12 +48,14 @@ export const abrirBanco = (): Promise<Conexao> => abrirPglite();
 export async function criarAmbiente(
   conexao: Conexao,
   billing?: (mock: MockBillingProvider) => BillingProvider,
+  fontesEan: FonteEan[] = [],
+  orcamentoEanMs?: number,
 ): Promise<Ambiente> {
   await conexao.db.execute(sql.raw(`truncate table ${TABELAS} restart identity cascade`));
   const relogio = new RelogioFalso(INICIO);
   const mock = new MockBillingProvider();
   const provider = billing ? billing(mock) : mock;
-  const app = await criarApp({ db: conexao.db, relogio, billing: provider });
+  const app = await criarApp({ db: conexao.db, relogio, billing: provider, fontesEan, orcamentoEanMs });
   return { app, db: conexao.db, relogio, billing: provider, mock, fechar: () => app.close() };
 }
 

@@ -46,5 +46,8 @@ Sem `EXPO_PUBLIC_API_URL`, o App roda **100% local**, com `MockBillingProvider` 
 
 Na versão de testes, o armazenamento local é `AsyncStorage` atrás da interface `Armazenamento`, porque funciona no Expo Go e no navegador, onde fazemos a revisão visual. A troca para SQLite (`expo-sqlite`) acontece antes do beta, sem mudar as telas.
 
+## Catálogo de produtos por código de barras (pré-produção)
+`GET /catalogo/ean/:ean` consulta, nesta ordem: catálogo próprio, Open Food Facts e Cosmos. O resultado fica em cache no catálogo próprio, e a chave do Cosmos só existe no servidor. App e Desktop usam a mesma rota. Regras, fontes e critérios de pronto em [produto-catalogo-ean.md](produto-catalogo-ean.md).
+
 ## Desktop (futuro)
 Tauri + React (web), importando `packages/shared` e o mesmo cliente da API. Componentes visuais seguem os tokens do design system "Balcão" (`docs/design-system.md`). Os tokens ficam exportados em `packages/shared/src/tokens.ts` para servir os dois.

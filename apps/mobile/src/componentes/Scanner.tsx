@@ -45,6 +45,8 @@ const ERRO_SOBRE_NOITE = '#FF8A9B';
 type OrigemDaLeitura = 'camera' | 'manual' | 'simulada';
 
 const TIPOS_DE_CODIGO = ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128'] as const;
+/** Objeto estável: um novo a cada render reenvia a configuração ao módulo nativo da câmera. */
+const CONFIGURACAO_DO_LEITOR = { barcodeTypes: [...TIPOS_DE_CODIGO] };
 
 export interface ScannerProps {
   /** Chamado com o código lido (câmera, digitado ou, na versão de testes, simulado), sem repetições. */
@@ -167,9 +169,9 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
           facing="back"
           active={!pausado}
           enableTorch={lanterna}
-          barcodeScannerSettings={{ barcodeTypes: [...TIPOS_DE_CODIGO] }}
+          barcodeScannerSettings={CONFIGURACAO_DO_LEITOR}
           onBarcodeScanned={pausado ? undefined : ({ data, type }) => entregar(data, 'camera', type)}
-          onCameraReady={() => registrar('camera', 'câmera pronta (onCameraReady)')}
+          onCameraReady={() => registrar('camera', 'câmera pronta (onCameraReady)', { ativa: !pausado, lanterna })}
           onMountError={({ message }) => {
             registrar('erro', 'falha ao iniciar a câmera (onMountError)', { message });
             setErroDaCamera(message);

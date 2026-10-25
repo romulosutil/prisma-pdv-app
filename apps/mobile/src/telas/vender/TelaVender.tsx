@@ -14,6 +14,7 @@ import { Texto } from '@/componentes/Texto';
 import { useToast } from '@/componentes/Toast';
 import { useCarrinho, type ItemCarrinho } from '@/dados/carrinho';
 import { mensagemDeBloqueio, useLicenca, usePreferencias, useProdutos } from '@/dados/hooks';
+import { registrar } from '@/diagnostico/registro';
 import { cores, margemTela, raio, sombras } from '@/tema';
 import { useFoco } from '@/tema/useFoco';
 import { FolhaAvulso } from './FolhaAvulso';
@@ -102,8 +103,10 @@ export function TelaVender() {
     (codigo: string) => {
       setOciosa(false);
       const produto = buscarPorEan(codigo);
-      if (!produto) setNaoEncontrado(codigo);
-      else aoEscolherProduto(produto);
+      if (!produto) {
+        registrar('leitura', 'código não encontrado na venda', { codigo });
+        setNaoEncontrado(codigo);
+      } else aoEscolherProduto(produto);
     },
     [buscarPorEan, aoEscolherProduto],
   );

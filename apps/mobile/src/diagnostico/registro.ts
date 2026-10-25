@@ -8,7 +8,7 @@ import { sanitizar, sanitizarTexto } from './sanitizar';
  * funções daqui são no-op (nada é gravado, lido ou instalado). Sem dependências de React Native.
  */
 
-export type CategoriaDiagnostico = 'erro' | 'aviso' | 'navegacao' | 'camera' | 'leitura' | 'venda' | 'pagamento' | 'assinatura' | 'app';
+export type CategoriaDiagnostico = 'erro' | 'aviso' | 'navegacao' | 'camera' | 'leitura' | 'produto' | 'venda' | 'pagamento' | 'assinatura' | 'app';
 
 export interface EventoDiagnostico {
   /** ISO 8601. */

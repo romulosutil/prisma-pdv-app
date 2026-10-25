@@ -1,4 +1,5 @@
 import { dentroDoLimite, type PlanoId, type Produto } from '@pdv/shared';
+import { registrar } from '@/diagnostico/registro';
 import type { Ambiente } from './ambiente';
 import { ErroDeDominio } from './erros';
 import { Persistido } from './observavel';
@@ -95,6 +96,7 @@ export class ProdutosRepo extends Persistido<Produto[]> {
       versao: 1,
     };
     await this.modificar((atual) => [...atual, produto]);
+    registrar('produto', 'produto cadastrado', { ean: produto.ean, precoCentavos: produto.precoCentavos, unidade: produto.unidade, total: this.listar().length });
     return produto;
   }
 
@@ -115,6 +117,7 @@ export class ProdutosRepo extends Persistido<Produto[]> {
       versao: atual.versao + 1,
     };
     await this.modificar((lista) => lista.map((p) => (p.id === id ? editado : p)));
+    registrar('produto', 'produto editado', { ean: editado.ean, campos: Object.keys(mudancas) });
     return editado;
   }
 
@@ -125,6 +128,7 @@ export class ProdutosRepo extends Persistido<Produto[]> {
     await this.modificar((lista) =>
       lista.map((p) => (p.id === id ? { ...p, excluidoEm: agora, atualizadoEm: agora, versao: p.versao + 1 } : p)),
     );
+    registrar('produto', 'produto excluído', { ean: atual.ean });
   }
 
   async substituirTodos(produtos: Produto[]): Promise<void> {

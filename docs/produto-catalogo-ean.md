@@ -1,6 +1,6 @@
 # Reconhecimento de produto por código de barras — v0.1
 
-Dono: Produto · Status: **decidido; implementação em pré-produção** · Decisão de 24/10/2026
+Dono: Produto · Status: **API e app implementados com catálogo próprio + Open Food Facts; Cosmos pendente (plano pago); falta medir os critérios da seção 5** · Decisão de 24/10/2026
 
 ## 1. Duas capacidades diferentes
 

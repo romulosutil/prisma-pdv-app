@@ -359,8 +359,8 @@ Evidências locais, com escopo limitado ao resultado descrito. Homologação And
 | Parte P0-07-C | fbd1a3c | configuracao: 17 testes e typecheck API; reviews/configuracao-api.md | Node | API valida antes de efeitos; produção bloqueada enquanto só existe billing mock |
 | Parte P0-01-D/E, serviço | e9453f6 | checkoutSqlite: 17 testes; revisao-servico.md | SQLite real | R/R/saldoR, seis fronteiras de escrita, falha de COMMIT, outbox e conclusão únicas; caixa local preservado, contrato remoto P0-04 pendente |
 | Parte P0-01-C/D, integração | e82d1b8 | 252 testes mobile; typecheck todos; checkout-duravel/validation.md | Node/SQLite; hook com adaptadores UI simulados | Fachada aguarda gravações; recuperação antes de liberar app; retry sem duplicar parcela; navegação inspecionada, Android ainda não executado |
-| P0-03-C | commit desta entrega | 12 testes identidade + 7 storage; typecheck mobile; reviews/identidade-instalacao.md PASS local | Backend simulado explicitamente | UUID salvo antes do request e reutilizado; migração legada; corrupção/falhas não geram novo ID silenciosamente; reinstalação documentada, Android/API real pendentes |
-| Parte P0-03-D/F, API | commit desta entrega | 125 testes API; 12 sessões repetidos pelo revisor + sensor sem lock; typecheck todos | PostgreSQL17 local; backfill legado em PGlite | Expiração30dias/logout/perfil/revogação, locks e autorização; credencial protegida e integração mobile ainda pendentes |
+| P0-03-C | 9a122f2 | 12 testes identidade + 7 storage; typecheck mobile; reviews/identidade-instalacao.md PASS local | Backend simulado explicitamente | UUID salvo antes do request e reutilizado; migração legada; corrupção/falhas não geram novo ID silenciosamente; reinstalação documentada, Android/API real pendentes |
+| Parte P0-03-D/F, API | a0be2d2 | 125 testes API; 12 sessões repetidos pelo revisor + sensor sem lock; typecheck todos | PostgreSQL17 local; backfill legado em PGlite | Expiração30dias/logout/perfil/revogação, locks e autorização; credencial protegida e integração mobile ainda pendentes |
 
 ### Condição de liberação
 

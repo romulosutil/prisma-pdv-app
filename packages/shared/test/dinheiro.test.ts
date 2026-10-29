@@ -64,6 +64,46 @@ describe('parseBRL', () => {
 });
 
 describe('multiplicarPreco', () => {
+  it('arredonda na fronteira segura sem perder um centavo na soma intermediária', () => {
+    for (const [preco, esperado] of [
+      [9007199254740498, 9007199254740],
+      [9007199254740499, 9007199254740],
+      [9007199254740500, 9007199254741],
+      [9007199254740501, 9007199254741],
+      [Number.MAX_SAFE_INTEGER, 9007199254741],
+    ] as const) {
+      for (const sinalPreco of [1, -1]) {
+        for (const sinalQuantidade of [1, -1]) {
+          expect(multiplicarPreco(preco * sinalPreco, sinalQuantidade)).toBe(esperado * sinalPreco * sinalQuantidade);
+        }
+      }
+    }
+  });
+
+  it('conserva faixa, sinais e zero comparados com aritmética inteira independente', () => {
+    for (const bruto of [0, 1, 499, 500, 501, 999, 1000, 1001, 4503599627370495, 4503599627370496, Number.MAX_SAFE_INTEGER]) {
+      const esperado = Number((BigInt(bruto) + 500n) / 1000n);
+      for (const sinalPreco of [1, -1]) {
+        for (const sinalQuantidade of [1, -1]) {
+          const valor = multiplicarPreco(bruto * sinalPreco, sinalQuantidade);
+          expect(valor).toBe(esperado === 0 ? 0 : esperado * sinalPreco * sinalQuantidade);
+          expect(Object.is(valor, -0)).toBe(false);
+        }
+      }
+    }
+    expect(multiplicarPreco(-Number.MAX_SAFE_INTEGER, 0)).toBe(0);
+    expect(Object.is(multiplicarPreco(-Number.MAX_SAFE_INTEGER, 0), -0)).toBe(false);
+    for (const invalido of [0.5, NaN, Infinity, -Infinity, Number.MAX_SAFE_INTEGER + 1, -Number.MAX_SAFE_INTEGER - 1]) {
+      expect(() => multiplicarPreco(invalido, 1)).toThrow(RangeError);
+      expect(() => multiplicarPreco(1, invalido)).toThrow(RangeError);
+    }
+    for (const sinalPreco of [1, -1]) {
+      for (const sinalQuantidade of [1, -1]) {
+        expect(() => multiplicarPreco(Number.MAX_SAFE_INTEGER * sinalPreco, 2 * sinalQuantidade)).toThrow(RangeError);
+      }
+    }
+  });
+
   it('unidades inteiras (1 un = 1000)', () => {
     expect(multiplicarPreco(529, 3000)).toBe(1587);
     expect(multiplicarPreco(2790, 1000)).toBe(2790);

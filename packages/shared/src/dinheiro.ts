@@ -42,7 +42,8 @@ export function multiplicarPreco(precoCentavos: Centavos, quantidadeMilesimos: n
   exigirInteiro(quantidadeMilesimos, 'quantidadeMilesimos');
   const bruto = Math.abs(precoCentavos * quantidadeMilesimos);
   exigirInteiro(bruto, 'produto');
-  const arredondado = Math.floor((bruto + 500) / 1000);
+  // Somar 500 ao produto seguro pode ultrapassar a faixa exata.
+  const arredondado = Math.floor(bruto / 1000) + (bruto % 1000 >= 500 ? 1 : 0);
   const negativo = precoCentavos < 0 !== quantidadeMilesimos < 0;
   return negativo && arredondado !== 0 ? -arredondado : arredondado;
 }

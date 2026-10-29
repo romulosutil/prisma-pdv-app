@@ -32,10 +32,12 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| ROUND-01 | 1,2 | P0-04-A2 cálculo | Planejado |
-| ROUND-02 | 3 | P0-04-A2 persistência/contrato | Planejado |
+| ROUND-01 | 1,2 | P0-04-A2 cálculo | Implementado/gates PASS; final pendente |
+| ROUND-02 | 3 | P0-04-A2 persistência/contrato | Implementado/gates PASS; final pendente |
 
 ## Execution Plan
 
 1. Gestor: testes RED derivados dos3ACs, corrigir função e testar em série; arquivos somente packages/shared/src/dinheiro.ts, packages/shared/test/dinheiro.test.ts, apps/mobile/test/checkoutSqlite.test.ts e apps/api/test/syncValoresVenda.test.ts. Gate: shared/mobile/API completos PGlite ePG local dedicado, typecheck todos, diffstaged; commit atômico com status desta spec.
 2. Verificador novo: inspeção por AC/file:line/asserção, repetir alvos nos dois bancos, sensor>=5 comportamental emscratch (resolver shared para cópia mutada, nunca origem real), validate_state e checkpoint do gestor. Não aceitar feature antes de PASS. Base ampla anterior359API/PGlite ou392PG em610afad; T3 adicionou1teste validado por quick25porbanco em933db20; mobile433/shared148. Contar execuções reais sem somar variantes.
+
+Execução1 concluída pelo gestor: RED nos três alvos antes da correção; gates finais150shared/434mobile/361API PGlite ou394comPG/typecheck todos PASS. Apenas4arquivos definidos alterados, nenhuma asserção anterior removida/enfraquecida. Evidências em implementacao.md. Execução2/verificador final ainda pendente; não aceitar feature antes de PASS.

@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { gerarId, type Mutacao, type Venda } from '@pdv/shared';
+import { gerarId, multiplicarPreco, type Mutacao, type Venda } from '@pdv/shared';
 import { asc, eq } from 'drizzle-orm';
 import * as schema from '../src/db/schema';
 import type { Conexao } from '../src/db/conexao';
@@ -26,6 +26,35 @@ async function snapshot() {
 }
 
 describe('validação de venda no push', () => {
+  it('aceita o arredondamento compartilhado exato na fronteira e rejeita o centavo excedente', async () => {
+    const conta = await contaEmTeste(amb);
+    const base = venda(conta);
+    const total = multiplicarPreco(9007199254740499, 1);
+    expect(total).toBe(9007199254740);
+    const correta: Venda = { ...base, totalCentavos: total,
+      itens: [{ ...base.itens[0]!, precoUnitarioCentavos: 9007199254740499, quantidadeMilesimos: 1, totalCentavos: total }],
+      pagamentos: [{ ...base.pagamentos[0]!, valorCentavos: total, trocoCentavos: 0 }],
+    };
+    const m = mutacao('venda', correta);
+    const res = await enviar(amb, conta, [m]);
+    expect(res.status).toBe(200);
+    expect(res.corpo.aceitas).toEqual([m.id]);
+    expect(res.corpo.rejeitadas).toEqual([]);
+    const pull = await chamar(amb, 'GET', '/sync/pull?desde=0', { token: conta.token });
+    expect(pull.status).toBe(200);
+    expect(pull.corpo.mudancas).toEqual([{ entidade: 'venda', operacao: 'upsert', dados: correta }]);
+    const antes = await snapshot();
+    const errada = mutacao('venda', { ...correta, id: gerarId(), totalCentavos: 9007199254741,
+      itens: [{ ...correta.itens[0]!, totalCentavos: 9007199254741 }],
+      pagamentos: [{ ...correta.pagamentos[0]!, valorCentavos: 9007199254741 }],
+    });
+    const rejeicao = await enviar(amb, conta, [errada]);
+    expect(rejeicao.status).toBe(200);
+    expect(rejeicao.corpo.aceitas).toEqual([]);
+    expect(rejeicao.corpo.rejeitadas).toEqual([{ id: errada.id, motivo: 'venda_inconsistente' }]);
+    expect(await snapshot()).toEqual(antes);
+  });
+
   it('rejeita loja divergente e ID de venda pertencente a outra loja sem escrita', async () => {
     const a = await contaEmTeste(amb);
     const b = await criarConta(amb);

@@ -30,6 +30,36 @@ function criar(raw: DatabaseSync, legado: Memoria, falhar?: (sql: string) => boo
 function contagem(raw: DatabaseSync, tabela: string) { return (raw.prepare(`SELECT COUNT(*) AS n FROM ${tabela}`).get() as { n: number }).n; }
 
 describe('CheckoutSqlite', () => {
+  it('preserva arredondamento exato na fronteira em venda, filhos e outbox após reabrir', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'checkout-arredondamento-'));
+    const caminho = join(dir, 'db.sqlite');
+    const legado = new Memoria();
+    let raw = new DatabaseSync(caminho);
+    const limite: RegistroCheckout = { ...completo, estado: { ...completo.estado,
+      itens: [{ ...completo.estado.itens[0]!, precoUnitarioCentavos: 9007199254740499, quantidadeMilesimos: 1, unidade: 'kg' }],
+      parcelas: [{ meio: 'dinheiro', valorCentavos: 9007199254740, trocoCentavos: 0 }],
+    } };
+    try {
+      const checkout = criar(raw, legado);
+      await checkout.salvar(limite);
+      const venda = await checkout.concluir();
+      expect(venda.totalCentavos).toBe(9007199254740);
+      expect(venda.itens).toMatchObject([{ precoUnitarioCentavos: 9007199254740499, quantidadeMilesimos: 1, totalCentavos: 9007199254740 }]);
+      expect(venda.pagamentos).toMatchObject([{ meio: 'dinheiro', valorCentavos: 9007199254740, trocoCentavos: 0 }]);
+      raw.close(); raw = new DatabaseSync(caminho);
+      expect(await criar(raw, legado).concluir()).toEqual(venda);
+      expect(['vendas', 'itens_venda', 'pagamentos_venda', 'outbox'].map(t => contagem(raw, t))).toEqual([1, 1, 1, 1]);
+      const pai = raw.prepare('SELECT payload_json FROM vendas').get() as { payload_json: string };
+      const itens = raw.prepare('SELECT payload_json FROM itens_venda ORDER BY posicao').all() as { payload_json: string }[];
+      const pagamentos = raw.prepare('SELECT payload_json FROM pagamentos_venda ORDER BY posicao').all() as { payload_json: string }[];
+      expect(JSON.parse(pai.payload_json)).toEqual(venda);
+      expect(itens.map(i => JSON.parse(i.payload_json))).toEqual(venda.itens);
+      expect(pagamentos.map(p => JSON.parse(p.payload_json))).toEqual(venda.pagamentos);
+      const linha = raw.prepare('SELECT payload_json FROM outbox').get() as { payload_json: string };
+      expect(JSON.parse(linha.payload_json)).toMatchObject({ entidade: 'venda', operacao: 'upsert', dados: venda });
+    } finally { raw.close(); rmSync(dir, { recursive: true, force: true }); }
+  });
+
   it('recupera parcela, itens e saldo após reabrir arquivo', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'checkout-'));
     const caminho = join(dir, 'db.sqlite');

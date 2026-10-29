@@ -1,26 +1,23 @@
 import { fileURLToPath } from 'node:url';
 import { relogioSistema, type Relogio } from '@pdv/shared';
 import { criarBilling } from './billing';
+import { validarConfiguracao } from './configuracao';
 import { abrirPglite, abrirPostgres } from './db/conexao';
 import { openFoodFacts } from './fontes/openFoodFacts';
 import { agendarCobranca } from './jobs';
 import { RelogioDeDesenvolvimento } from './relogio-dev';
 import { criarApp } from './servidor';
 
-const producao = process.env.NODE_ENV === 'production';
-const porta = Number(process.env.PORT ?? 3333);
+const configuracao = validarConfiguracao(process.env);
+const producao = configuracao.ambiente === 'production';
 
-if (producao && !process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL é obrigatória em produção.');
-}
-
-const conexao = process.env.DATABASE_URL
-  ? await abrirPostgres(process.env.DATABASE_URL)
+const conexao = configuracao.databaseUrl
+  ? await abrirPostgres(configuracao.databaseUrl)
   : await abrirPglite(fileURLToPath(new URL('../.data/pglite', import.meta.url)));
 
 // Fora de produção o relógio pode ser avançado pelas rotas /dev/relogio.
 const relogio: Relogio = producao ? relogioSistema : new RelogioDeDesenvolvimento();
-const billing = criarBilling(process.env.BILLING_PROVIDER);
+const billing = criarBilling(configuracao.billingProvider);
 const app = await criarApp({ db: conexao.db, relogio, billing, fontesEan: [openFoodFacts], logger: true });
 
 const pararJob =
@@ -35,4 +32,4 @@ async function encerrar(): Promise<void> {
 process.on('SIGINT', () => void encerrar());
 process.on('SIGTERM', () => void encerrar());
 
-await app.listen({ port: porta, host: '0.0.0.0' });
+await app.listen({ port: configuracao.porta, host: '0.0.0.0' });

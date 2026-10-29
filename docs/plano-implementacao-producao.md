@@ -359,6 +359,8 @@ Evidências locais por entrega. Revisões em .specs/features/persistencia-base/.
 
 ### Condição de liberação
 
+Parte de P0-07-C entregue: configuração API validada antes de efeitos; 17 testes de configuração e typecheck API passaram; revisão independente em `.specs/reviews/configuracao-api.md`. Produção recusa mock e permanece bloqueada até provider real. Configuração mobile e integrações externas seguem pendentes. Runbook: `docs/operacao-configuracao.md`.
+
 Evidência adicional: parte de P0-01-C aceita em `revisao-t1-t2.md`, com 6 testes de publicação após escrita, falhas, fila e leitura inválida. O item global P0-01-C segue pendente até transações e tratamento na UI.
 
 - [ ] Todos os critérios P0 aplicáveis estão atendidos; condicionais de integração ficam explicitamente desabilitados e fora da oferta quando não implementados.

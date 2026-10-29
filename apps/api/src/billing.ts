@@ -9,6 +9,6 @@ export function criarBilling(nome: string = 'mock'): BillingProvider {
     case 'mock':
       return new MockBillingProvider();
     default:
-      throw new Error(`BILLING_PROVIDER "${nome}" não é suportado. Valores aceitos: mock.`);
+      throw new Error('BILLING_PROVIDER não é suportado. Valores aceitos: mock.');
   }
 }

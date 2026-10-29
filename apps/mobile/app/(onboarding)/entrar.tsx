@@ -7,7 +7,8 @@ import { BotaoIcone } from '@/componentes/BotaoIcone';
 import { Campo } from '@/componentes/Campo';
 import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
-import { useDados } from '@/dados/hooks';
+import { useConta, useDados } from '@/dados/hooks';
+import { useCarrinho } from '@/dados/carrinho';
 import { mensagemDeErro } from '@/servicos/backend';
 import { cores } from '@/tema';
 
@@ -17,7 +18,9 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 export default function Entrar() {
   const router = useRouter();
   const dados = useDados();
-  const [email, setEmail] = useState('');
+  const { perfil, reautenticacaoNecessaria } = useConta();
+  const carrinho = useCarrinho();
+  const [email, setEmail] = useState(perfil?.email ?? '');
   const [codigo, setCodigo] = useState('');
   const [codigoEnviado, setCodigoEnviado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -70,8 +73,10 @@ export default function Entrar() {
       </View>
       <View style={estilos.corpo}>
         <Texto estilo="tituloXL" accessibilityRole="header">
-          Entrar na sua conta
+          {reautenticacaoNecessaria ? 'Entre novamente' : 'Entrar na sua conta'}
         </Texto>
+        {reautenticacaoNecessaria ? <Banner tipo="atencao" texto="Seu acesso precisa ser confirmado. Os registros e recebimentos deste aparelho continuam guardados." /> : null}
+        {!carrinho.vazio ? <Botao rotulo="Continuar venda em andamento" variante="secundario" onPress={() => router.replace('/pagar')} /> : null}
         <Texto estilo="corpo" cor={cores.ink2}>
           {codigoEnviado ? `Enviamos um código de 6 números para ${email.trim()}.` : 'Enviaremos um código de 6 números para o seu e-mail.'}
         </Texto>

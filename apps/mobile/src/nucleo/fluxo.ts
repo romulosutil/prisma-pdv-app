@@ -1,11 +1,13 @@
 import { temAcesso, type Assinatura } from '@pdv/shared';
 
-export type DestinoDoFluxo = '/' | '/boas-vindas' | '/planos' | '/bloqueio';
+export type DestinoDoFluxo = '/' | '/boas-vindas' | '/planos' | '/bloqueio' | '/entrar';
 
 export interface EstadoDoFluxo {
   temConta: boolean;
   assinatura: Assinatura | null;
   agora: Date;
+  reautenticacaoNecessaria?: boolean;
+  vendaEmAndamento?: boolean;
 }
 
 const ANTES_DA_CONTA = ['boas-vindas', 'entrar', 'criar-conta', 'loja'];
@@ -23,6 +25,10 @@ export function decidirRota(estado: EstadoDoFluxo, segmentos: readonly string[])
   const noOnboarding = raiz === '(onboarding)';
 
   if (!estado.temConta) return noOnboarding && ANTES_DA_CONTA.includes(tela) ? null : '/boas-vindas';
+
+  // Uma venda já iniciada não perde parcelas nem é interrompida por vencimento da sessão/licença.
+  if (estado.vendaEmAndamento && (raiz === 'vender' || raiz === 'pagar')) return null;
+  if (estado.reautenticacaoNecessaria) return noOnboarding && tela === 'entrar' ? null : '/entrar';
 
   const { assinatura, agora } = estado;
   if (!assinatura || assinatura.status === 'sem_assinatura') {

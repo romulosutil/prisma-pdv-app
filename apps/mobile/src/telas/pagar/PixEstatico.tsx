@@ -32,7 +32,7 @@ export function PixEstatico() {
   const toast = useToast();
   const { nomeLoja } = useConta();
   const { valorCentavos, receber, ocupado } = useCobranca();
-  const { carregada, chave, salvar } = useChavePix();
+  const { carregada, chave, salvar, erro: erroChave, recarregar } = useChavePix();
   const [trocando, setTrocando] = useState(false);
 
   const codigo = useMemo(
@@ -59,6 +59,7 @@ export function PixEstatico() {
   );
 
   if (!carregada) return <TelaBase>{cabecalho}</TelaBase>;
+  if (erroChave) return <TelaBase>{cabecalho}<Banner tipo="atencao" texto={erroChave} /><Botao rotulo="Tentar novamente" onPress={recarregar} /></TelaBase>;
 
   if (!chave || !codigo || trocando) {
     return (
@@ -110,10 +111,14 @@ function FormularioDaChave({ chaveAtual, onSalvar, onCancelar }: FormularioDaCha
   const [salvando, setSalvando] = useState(false);
 
   const enviar = async () => {
+    if (salvando) return;
     setSalvando(true);
-    const ok = await onSalvar(texto);
-    setSalvando(false);
-    if (!ok) setErro('Não reconhecemos essa chave. Use CPF, CNPJ, e-mail, celular com DDD ou chave aleatória.');
+    setErro(null);
+    try {
+      const ok = await onSalvar(texto);
+      if (!ok) setErro('Não reconhecemos essa chave. Use CPF, CNPJ, e-mail, celular com DDD ou chave aleatória.');
+    } catch { setErro('Não foi possível guardar a chave Pix. Confira a conta e tente novamente.'); }
+    finally { setSalvando(false); }
   };
 
   return (

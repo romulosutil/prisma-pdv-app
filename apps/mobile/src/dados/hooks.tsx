@@ -38,11 +38,15 @@ export function useDados(): Dados {
 /** Conta deste aparelho: sessão (token, lojaId, operadorId, aparelhoId) e nomes exibidos. */
 export function useConta() {
   const { conta } = useDados();
-  const { sessao, perfil } = useObservavel(conta);
+  const { sessao, perfil, identidade, reautenticacaoNecessaria } = useObservavel(conta);
+  const carregandoConta = useObservavel(conta.transicao);
   return {
     sessao,
     perfil,
-    temConta: sessao !== null,
+    identidade,
+    reautenticacaoNecessaria,
+    carregandoConta,
+    temConta: identidade !== null,
     nomeLoja: perfil?.nomeLoja ?? '',
     primeiroNome: perfil?.nomeResponsavel.split(' ')[0] ?? '',
   };
@@ -154,6 +158,7 @@ export interface LicencaApp {
 export function useLicenca(): LicencaApp {
   const { licenca, agora } = useAssinatura();
   const planoId: PlanoId = licenca?.planoId ?? 'essencial';
+  const { reautenticacaoNecessaria } = useConta();
   return useMemo(() => {
     const permissaoDeVenda: PermissaoDeVenda = licenca
       ? licencaPermiteVenda(licenca, agora)
@@ -165,9 +170,9 @@ export function useLicenca(): LicencaApp {
       limite: (chave) => limiteDoPlano(planoId, chave),
       dentroDoLimite: (chave, usoAtual) => dentroDoLimiteDoPlano(planoId, chave, usoAtual),
       permissaoDeVenda,
-      podeAbrirVenda: permissaoDeVenda.permitido,
+      podeAbrirVenda: permissaoDeVenda.permitido && !reautenticacaoNecessaria,
     };
-  }, [licenca, agora, planoId]);
+  }, [licenca, agora, planoId, reautenticacaoNecessaria]);
 }
 
 const MENSAGEM_BLOQUEIO: Record<MotivoBloqueio, string> = {

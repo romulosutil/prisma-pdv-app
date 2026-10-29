@@ -52,6 +52,7 @@ export default function Ajustes() {
 
       <Secao titulo="Conta">
         <View style={estilos.cartao}>
+          <LinhaLista titulo="Conta e aparelhos" subtitulo={perfil?.email ?? 'Acesso e recuperação'} onPress={() => router.push('/ajustes/aparelhos')} valor={<Icone nome="chevronDireita" tamanho={20} cor={cores.ink3} />} />
           <LinhaLista
             titulo="Assinatura"
             subtitulo={assinatura ? `Plano ${PLANOS[assinatura.planoId].nome}` : 'Sem assinatura'}

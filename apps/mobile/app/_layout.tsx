@@ -3,9 +3,9 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, ScrollView } from 'react-native';
+import { ActivityIndicator, AppState, ScrollView, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { ToastProvider } from '@/componentes/Toast';
+import { ToastProvider, useToast } from '@/componentes/Toast';
 import { Botao } from '@/componentes/Botao';
 import { Texto } from '@/componentes/Texto';
 import { dados } from '@/dados/instancia';
@@ -13,6 +13,7 @@ import { registrar } from '@/diagnostico/registro';
 import { DadosProvider, useAssinatura, useConta } from '@/dados/hooks';
 import { decidirRota } from '@/nucleo/fluxo';
 import { cores, FONTES_PARA_CARREGAR } from '@/tema';
+import { useCarrinho } from '@/dados/carrinho';
 
 // A splash fica até as fontes e os dados locais carregarem e o guarda de fluxo escolher a tela.
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -71,15 +72,17 @@ export default function LayoutRaiz() {
 }
 
 function GuardaDeFluxo() {
+  const toast = useToast();
   const router = useRouter();
   const segmentos = useSegments();
   const navegacaoPronta = useRootNavigationState()?.key !== undefined;
-  const { temConta } = useConta();
+  const { temConta, reautenticacaoNecessaria, carregandoConta } = useConta();
+  const carrinho = useCarrinho();
   const { assinatura, agora, servico } = useAssinatura();
 
   useDiagnosticoDeNavegacao();
 
-  const destino = navegacaoPronta ? decidirRota({ temConta, assinatura, agora }, segmentos) : null;
+  const destino = navegacaoPronta && !carregandoConta ? decidirRota({ temConta, assinatura, agora, reautenticacaoNecessaria, vendaEmAndamento: !carrinho.vazio }, segmentos) : null;
 
   useEffect(() => {
     if (destino) {
@@ -95,10 +98,15 @@ function GuardaDeFluxo() {
   // Voltou ao primeiro plano: reavalia o tempo da assinatura (teste que acabou, cobrança devida, carência).
   useEffect(() => {
     const assinatura = AppState.addEventListener('change', (estado) => {
-      if (estado === 'active') servico.sincronizar();
+      if (estado === 'active') void servico.sincronizar().catch(() => toast.mostrar('Não foi possível atualizar a licença. Seus registros continuam guardados.', { tipo: 'erro' }));
     });
     return () => assinatura.remove();
-  }, [servico]);
+  }, [servico, toast]);
 
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.bg } }} />;
+  return <View style={{ flex: 1 }}>
+    <View style={{ flex: 1 }} accessibilityElementsHidden={carregandoConta} importantForAccessibility={carregandoConta ? 'no-hide-descendants' : 'auto'}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.bg } }} />
+    </View>
+    {carregandoConta ? <View accessibilityRole="progressbar" accessibilityLabel="Carregando dados da conta" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'center', alignItems: 'center', gap: 16, backgroundColor: cores.bg }}><ActivityIndicator /><Texto>Carregando seus dados…</Texto></View> : null}
+  </View>;
 }

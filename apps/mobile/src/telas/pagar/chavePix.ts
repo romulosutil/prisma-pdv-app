@@ -1,38 +1,46 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ArmazenamentoAsync } from '@/dados/armazenamento';
+import { useConta, useDados } from '@/dados/hooks';
 import { interpretarChavePix, type ChavePix } from '@/util/brcode';
 
 const CHAVE_NO_ARMAZENAMENTO = 'chavePix';
-const armazenamento = new ArmazenamentoAsync();
 
 /** Chave Pix do recebedor, usada no QR estático. Fica só neste aparelho. */
 export function useChavePix() {
+  const { armazenamentoDaLoja: armazenamento } = useDados();
+  const { identidade } = useConta();
+  const escopo = identidade ? JSON.stringify([identidade.contaId, identidade.lojaId]) : null;
   const [carregada, setCarregada] = useState(false);
   const [chave, setChave] = useState<ChavePix | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [tentativa, setTentativa] = useState(0);
+  const [escopoCarregado, setEscopoCarregado] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     let ativo = true;
+    setCarregada(false); setChave(null); setErro(null);
     armazenamento
       .obter<ChavePix>(CHAVE_NO_ARMAZENAMENTO)
       .then((salva) => {
         if (ativo) setChave(salva);
       })
+      .catch(() => { if (ativo) setErro('Não foi possível abrir a chave Pix desta conta. Tente novamente antes de receber.'); })
       .finally(() => {
-        if (ativo) setCarregada(true);
+        if (ativo) { setEscopoCarregado(escopo); setCarregada(true); }
       });
     return () => {
       ativo = false;
     };
-  }, []);
+  }, [armazenamento, escopo, tentativa]);
 
   /** Guarda a chave digitada; devolve `false` se ela não for uma chave Pix válida. */
   const salvar = useCallback(async (texto: string): Promise<boolean> => {
     const interpretada = interpretarChavePix(texto);
     if (!interpretada) return false;
     await armazenamento.gravar(CHAVE_NO_ARMAZENAMENTO, interpretada);
+    if (armazenamento.obterEscopo() !== escopo) throw new Error('A conta mudou. Confira a chave Pix antes de receber.');
     setChave(interpretada);
     return true;
-  }, []);
+  }, [armazenamento, escopo]);
 
-  return { carregada, chave, salvar };
+  return { carregada: carregada && escopoCarregado === escopo, chave: escopoCarregado === escopo ? chave : null, salvar, erro: escopoCarregado === escopo ? erro : null, recarregar: () => setTentativa((n) => n + 1) };
 }

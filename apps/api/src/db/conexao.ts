@@ -22,9 +22,14 @@ export async function abrirPglite(pasta?: string): Promise<Conexao> {
   ]);
   if (pasta) await mkdir(pasta, { recursive: true });
   const cliente = new PGlite(pasta);
-  const db = drizzle(cliente, { schema });
-  await migrate(db, { migrationsFolder: PASTA_MIGRACOES });
-  return { db, fechar: () => cliente.close() };
+  try {
+    const db = drizzle(cliente, { schema });
+    await migrate(db, { migrationsFolder: PASTA_MIGRACOES });
+    return { db, fechar: () => cliente.close() };
+  } catch (erro) {
+    try { await cliente.close(); } catch { /* preservar falha de inicialização */ }
+    throw erro;
+  }
 }
 
 export async function abrirPostgres(url: string): Promise<Conexao> {
@@ -34,7 +39,12 @@ export async function abrirPostgres(url: string): Promise<Conexao> {
     import('drizzle-orm/postgres-js/migrator'),
   ]);
   const cliente = postgres(url);
-  const db = drizzle(cliente, { schema });
-  await migrate(db, { migrationsFolder: PASTA_MIGRACOES });
-  return { db, fechar: () => cliente.end() };
+  try {
+    const db = drizzle(cliente, { schema });
+    await migrate(db, { migrationsFolder: PASTA_MIGRACOES });
+    return { db, fechar: () => cliente.end() };
+  } catch (erro) {
+    try { await cliente.end(); } catch { /* preservar falha de inicialização */ }
+    throw erro;
+  }
 }

@@ -33,7 +33,7 @@ describe('recuperação na tela de entrada', () => {
     m.pedir.mockResolvedValue(undefined); m.entrar.mockRejectedValue(new ErroBackend('limite_aparelhos', '', 409));
     m.iniciar.mockImplementation(async () => { m.pendente = { recuperacao: visao, aparelhoSubstituidoId: null }; return visao; });
     m.confirmar.mockResolvedValue(undefined);
-    await preparar(); await clicar('Entrar'); await clicar('Recuperar acesso neste aparelho');
+    await preparar(); expect(JSON.stringify(r.toJSON())).toContain('Solicitação recebida. Se dona@example.com estiver cadastrado, um código de 6 números poderá chegar por e-mail.'); await clicar('Entrar'); await clicar('Recuperar acesso neste aparelho');
     expect(JSON.stringify(r.toJSON())).toContain('Loja real'); expect(JSON.stringify(r.toJSON())).toContain('Caixa antigo');
     expect(JSON.stringify(r.toJSON())).toContain('dona@example.com');
     expect(botao('Continuar').props.desabilitado).toBe(true); expect(m.confirmar).not.toHaveBeenCalled();
@@ -46,7 +46,7 @@ describe('recuperação na tela de entrada', () => {
     await clicar('Confirmar substituição'); expect(m.confirmar).toHaveBeenCalledWith('a');
   });
   it.each([['limite_aparelhos', 400, 'http'], ['conflito', 409, 'http'], ['limite_aparelhos', 409, 'demo']] as const)('não oferece para %s %s %s', async (codigo, status, modo) => {
-    m.modo = modo; m.pedir.mockResolvedValue(undefined); m.entrar.mockRejectedValue(new ErroBackend(codigo, '', status)); await preparar(); await clicar('Entrar'); expect(botao('Recuperar acesso neste aparelho')).toBeUndefined();
+    m.modo = modo; m.pedir.mockResolvedValue(undefined); m.entrar.mockRejectedValue(new ErroBackend(codigo, '', status)); await preparar(); if (modo === 'demo') expect(JSON.stringify(r.toJSON())).toContain('Modo de testes: use qualquer código de 6 números.'); await clicar('Entrar'); expect(botao('Recuperar acesso neste aparelho')).toBeUndefined();
   });
   it('bloqueia dois toques e não fecha a confirmação enquanto aguarda', async () => {
     let resolver!: () => void;

@@ -40,7 +40,7 @@ Where: observavel e armazenamento existentes; teste persistidoDuravel.
 Tests: LOCAL-02, critérios 3 a 5 do spec.
 Gate: build
 Done when: snapshots só mudam após persistência, fila se recupera após falha, leitura inválida não simula vazio; revisor aprova. Não conclui todo P0-01-C.
-Status: em implementação.
+Status: concluída e aceita pelo gestor após 6 testes e revisão independente T1/T2. Pendem transações compostas e UI no bloco global P0-01-C.
 
 ### T3: Migração e adaptador SQLite
 Depends on: T1, T2

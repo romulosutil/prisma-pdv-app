@@ -21,7 +21,7 @@ export class ArmazenamentoAsync implements Armazenamento {
     try {
       return JSON.parse(bruto) as T;
     } catch {
-      return null;
+      throw new Error('Dados armazenados contêm JSON inválido.');
     }
   }
 

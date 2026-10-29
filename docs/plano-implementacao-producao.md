@@ -357,6 +357,8 @@ Evidências locais por entrega. Revisões em .specs/features/persistencia-base/.
 
 ### Condição de liberação
 
+Evidência adicional: parte de P0-01-C aceita em `revisao-t1-t2.md`, com 6 testes de publicação após escrita, falhas, fila e leitura inválida. O item global P0-01-C segue pendente até transações e tratamento na UI.
+
 - [ ] Todos os critérios P0 aplicáveis estão atendidos; condicionais de integração ficam explicitamente desabilitados e fora da oferta quando não implementados.
 - [ ] Os mínimos obrigatórios de P1-10/P1-11 estão atendidos; recursos adicionais só são ofertados após seu aceite.
 - [ ] O commit homologado corresponde ao artefato distribuído e ao contrato da API implantada.

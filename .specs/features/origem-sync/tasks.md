@@ -35,4 +35,4 @@ Where: apps/api/src/auth.ts, apps/api/src/servicos/sync.ts e apps/api/test/syncO
 Tests: cinco ACs com expectativas exatas, RED comportamental antes de implementar; PGlite/PostgreSQL reais e controle positivo de cada rejeição, sem mock de persistência.
 Gate: build
 Done when: gates completos passam e gestor/revisor independente verificam origem, papel, história e snapshots; commit central antes de verificador final novo com sensor.
-Status: pendente.
+Status: implementado e aceito no escopo T2 pelo gestor após revisão independente revisao.md PASS e inspeção direta de autenticação/persistência/sync. Gates finais seriais:369API/PGlite,418API comPG/26arquivos,434mobile,150shared,typecheck todos PASS. Revisor repetiu32alvosPGlite/48PG e typeAPI. RED comportamental3/3 registrado pelo executor. Lacuna de caixa histórico resolvida pelo gestor com suprimento real e registros completos; esperado excluidoEm:null corrigido conforme schema, sem alterar fontes. Nenhum teste anterior removido/enfraquecido. Feature ainda aguarda verificador final novo comsensorP0>=5 e validate_state. P0-04-B global continua aberto por permissões de rotas privilegiadas.

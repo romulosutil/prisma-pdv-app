@@ -34,6 +34,7 @@ type Resultado = string | null;
 interface Contexto {
   tx: Db;
   sessao: SessaoAutenticada;
+  papel: 'dono' | 'operador';
   agora: Date;
   licenca: Licenca;
   /** Último instante em que o app ainda deixava abrir uma venda; `null` = nunca. */
@@ -148,6 +149,7 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
     return null;
   }
 
+  if (v.aparelhoId !== c.sessao.aparelhoId || v.operadorId !== c.sessao.operadorId) return 'origem_invalida';
   // Vale o momento da venda, não o de agora: venda feita offline enquanto o app permitia nunca se perde.
   const criadoEm = noMaximoAgora(v.criadaEm, c.agora);
   if (c.vendaPermitidaAte === null || criadoEm > c.vendaPermitidaAte) return 'assinatura_suspensa';
@@ -207,6 +209,8 @@ async function upsertCaixa(c: Contexto, cx: Caixa): Promise<Resultado> {
   const [atual] = await c.tx.select().from(caixas).where(eq(caixas.id, cx.id));
   if (atual && atual.lojaId !== cx.lojaId) return 'loja_invalida';
   if (atual?.fechadoEm) return 'caixa_fechada';
+  const origem = atual ?? c.sessao;
+  if (cx.aparelhoId !== origem.aparelhoId || cx.operadorId !== origem.operadorId) return 'origem_invalida';
 
   const campos = {
     aparelhoId: cx.aparelhoId,
@@ -247,6 +251,7 @@ async function upsertCaixa(c: Contexto, cx: Caixa): Promise<Resultado> {
 // ---------- Push ----------
 
 async function aplicar(c: Contexto, m: Mutacao): Promise<Resultado> {
+  if (c.papel !== 'dono') return 'permissao_negada';
   if (m.operacao === 'delete') {
     return m.entidade === 'produto' ? excluirProduto(c, m.dados.id, m.criadaEm) : 'exclusao_nao_permitida';
   }
@@ -271,7 +276,7 @@ export function aplicarPush(db: Db, sessaoId: string, sessao: SessaoAutenticada,
     if (!conta || !linha) throw new ErroApi(401, 'nao_autenticado', 'Sessão inválida. Entre novamente.');
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${sessao.lojaId}))`);
     const agora = relogio.agora();
-    await revalidarSessaoSync(tx, sessaoId, sessao, agora);
+    const papel = await revalidarSessaoSync(tx, sessaoId, sessao, agora);
 
     const { assinatura: salva } = await carregarAssinatura(tx, sessao.contaId, agora);
     const assinatura = avaliar(salva, agora);
@@ -279,6 +284,7 @@ export function aplicarPush(db: Db, sessaoId: string, sessao: SessaoAutenticada,
     const contexto: Contexto = {
       tx,
       sessao,
+      papel,
       agora,
       licenca,
       vendaPermitidaAte: vendaPermitidaAte(assinatura, licenca),

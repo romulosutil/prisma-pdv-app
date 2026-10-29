@@ -2,11 +2,11 @@
 
 ## Problem Statement
 
-Completar P0-04-B após sessao-sync: a sessão é revalidada na transação, mas novas vendas/caixas ainda aceitam aparelho e operador arbitrários. Não há política de escrita para papel operador. O lançamento tem uma loja, uma pessoa e um aparelho; o cadastro cria dono e o login público seleciona esse dono. Restringir novas escritas a esse papel e à identidade autenticada, sem impedir acesso ao histórico confirmado de aparelho substituído.
+Avançar P0-04-B após sessao-sync: a sessão é revalidada na transação, mas novas vendas/caixas ainda aceitam aparelho e operador arbitrários. Não há política de escrita para papel operador. O lançamento tem uma loja, uma pessoa e um aparelho; o cadastro cria dono e o login público seleciona esse dono. Restringir novas escritas a esse papel e à identidade autenticada, sem impedir acesso ao histórico confirmado de aparelho substituído.
 
 ## Out of Scope
 
-Provisionar operadores ou permissões granulares, multiloja, capacidades/limites comerciais de C, caixaId e ajustes de D/E. Não alterar janelas offline ou autorizar retroação livre. Não transferir dados pendentes de outro aparelho, reativar UUID revogado, provar aparelho físico ou refazer histórico. Mobile, schemas/migrações, billing e contrato externo de sessão permanecem iguais.
+Provisionar operadores ou permissões granulares, multiloja, capacidades/limites comerciais de C, caixaId e ajustes de D/E. Não alterar janelas offline ou autorizar retroação livre. Não transferir dados pendentes de outro aparelho, reativar UUID revogado, provar aparelho físico ou refazer histórico. Mobile, schemas/migrações, billing e contrato externo de sessão permanecem iguais. Auditoria identificou rotas privadas de assinatura e confirmação de catálogo sem guarda de dono; autorização dessas rotas será lote separado antes de encerrar P0-04-B global. Este aceite cobre somente origem e papel do push.
 
 ## Assumptions & Open Questions
 
@@ -37,6 +37,6 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| ORIGIN-01 | 1,5 | P0-04-B papel atual | Planejado |
-| ORIGIN-02 | 2 | P0-04-B nova origem | Planejado |
-| ORIGIN-03 | 3,4 | P0-04-B histórico confirmado | Planejado |
+| ORIGIN-01 | 1,5 | P0-04-B papel atual | Implementado/gates PASS; final pendente |
+| ORIGIN-02 | 2 | P0-04-B nova origem | Implementado/gates PASS; final pendente |
+| ORIGIN-03 | 3,4 | P0-04-B histórico confirmado | Implementado/gates PASS; final pendente |

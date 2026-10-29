@@ -6,6 +6,7 @@ import { BackendLocal } from '@/servicos/backendLocal';
 import type { Armazenamento } from './armazenamento';
 import { CaixaRepo } from './caixa';
 import { ContaRepo, NOME_APARELHO_PADRAO } from './conta';
+import { InstalacaoRepo } from './instalacao';
 import { OrdemAtalhosRepo } from './ordemAtalhos';
 import { PreferenciasRepo } from './preferencias';
 import { ProdutosRepo } from './produtos';
@@ -35,6 +36,7 @@ export class Dados {
   readonly relogio: RelogioApp;
   readonly backend: Backend;
   readonly conta: ContaRepo;
+  private readonly instalacao: InstalacaoRepo;
   readonly preferencias: PreferenciasRepo;
   readonly produtos: ProdutosRepo;
   readonly ordemAtalhos: OrdemAtalhosRepo;
@@ -50,6 +52,7 @@ export class Dados {
   ) {
     this.relogio = new RelogioApp(armazenamento);
     this.conta = new ContaRepo(armazenamento);
+    this.instalacao = new InstalacaoRepo(armazenamento, novoId);
     this.backend = urlApi
       ? new BackendHttp(urlApi.replace(/\/+$/, ''), () => this.conta.obter().sessao?.token ?? null)
       : new BackendLocal(armazenamento, this.relogio, novoId);
@@ -99,7 +102,7 @@ export class Dados {
   }
 
   async criarConta(formulario: FormularioConta): Promise<void> {
-    const aparelhoId = this.novoId();
+    const aparelhoId = await this.instalacao.obterOuCriar(this.conta.obter().sessao?.aparelhoId);
     const sessao = await this.backend.criarConta({
       email: formulario.email,
       nomeResponsavel: formulario.nomeResponsavel,
@@ -121,7 +124,8 @@ export class Dados {
 
   /** O contrato da API não tem rota de perfil: sem ela, os nomes exibidos vêm do e-mail. */
   async entrar(email: string, codigo: string): Promise<void> {
-    const sessao = await this.backend.entrar({ email, codigo, aparelhoId: this.novoId(), aparelhoNome: NOME_APARELHO_PADRAO });
+    const aparelhoId = await this.instalacao.obterOuCriar(this.conta.obter().sessao?.aparelhoId);
+    const sessao = await this.backend.entrar({ email, codigo, aparelhoId, aparelhoNome: NOME_APARELHO_PADRAO });
     const nome = email.split('@')[0] ?? 'Você';
     await this.conta.registrar(sessao, {
       nomeResponsavel: nome.charAt(0).toUpperCase() + nome.slice(1),

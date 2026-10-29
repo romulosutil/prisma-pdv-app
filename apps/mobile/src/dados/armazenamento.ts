@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * navegador); a troca por SQLite acontece antes do beta, sem mudar as telas.
  */
 export interface Armazenamento {
+  /** Retorna null somente quando a chave está ausente; null como valor raiz é inválido. */
   obter<T>(chave: string): Promise<T | null>;
   gravar<T>(chave: string, valor: T): Promise<void>;
   remover(chave: string): Promise<void>;
@@ -18,11 +19,14 @@ export class ArmazenamentoAsync implements Armazenamento {
   async obter<T>(chave: string): Promise<T | null> {
     const bruto = await AsyncStorage.getItem(PREFIXO + chave);
     if (bruto === null) return null;
+    let valor: unknown;
     try {
-      return JSON.parse(bruto) as T;
+      valor = JSON.parse(bruto);
     } catch {
       throw new Error('Dados armazenados contêm JSON inválido.');
     }
+    if (valor === null) throw new Error('Dados armazenados não podem conter null como valor raiz.');
+    return valor as T;
   }
 
   async gravar<T>(chave: string, valor: T): Promise<void> {

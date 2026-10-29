@@ -12,6 +12,9 @@
 - AD-008: configuração da API é validada antes de abrir banco/agendar jobs/listen. Enquanto só houver MockBillingProvider, produção falha explicitamente mesmo com JOBS=off; não se cria provedor fictício para passar o gate. NODE_ENV desconhecido é erro, valores sensíveis não entram em mensagens.
 - AD-009: Carrinho permanece redutor puro; CarrinhoDuravel é a fachada assíncrona por instância de Dados. Publica após escrita, fixa venda/instante/caixa na abertura e recarrega VendasRepo antes de publicar conclusão. Browser tem adapter demonstrativo explícito sem atomicidade multi-chave; somente SQLite nativo atende esse contrato de produção.
 - AD-010: após a parcela final confirmada, retentar recebimento com saldo zero tenta apenas concluir. O revisor detectou duplicação da tentativa de parcela; regressão do hook com fachada real e adaptadores de UI simulados passou após correção.
+- AD-011: identidade pública da instalação fica em metadata global antes da requisição. Reutilizar UUID salvo; na primeira migração adotar aparelhoId da sessão legada. Literal JSON null em armazenamento é corrupção (null retornado significa exclusivamente ausência), não autorização para gerar outra identidade.
+- AD-012: sessões API duram 30 dias; acesso offline continua regido pela licença. Revogação é auditável por data, sem apagar registros financeiros. Login e revogação adquirem FOR UPDATE da mesma conta antes de código/dispositivo/limite.
+- AD-013: os dois cenários comerciais existentes que avançam além de 30 dias renovam explicitamente a sessão via rotas locais de código/login. Nenhuma asserção financeira foi removida/enfraquecida; a expiração exata tem teste próprio.
 
 ## Handoff
 
@@ -23,4 +26,7 @@
 - Commit T1 f0bd5a4, T2 23ac272; revisão parcial e revisão final em .specs/features/persistencia-base/. T3 inclui bloqueio de inicialização em caso de erro e opção de tentar novamente; UI ainda sem homologação em aparelho.
 - T3 62d1d6d aceito. Configuração API: 17 testes e typecheck API passaram; revisão independente em .specs/reviews/configuracao-api.md. Produção bloqueada por ausência de billing real (bloqueio intencional). Ver docs/operacao-configuracao.md.
 - Configuração API commit fbd1a3c. Serviço checkout commit e9453f6 (17 testes SQLite; sensor sem outbox detectado). Fachada/UI: 252 testes mobile passaram e typecheck todos passou; revisão em .specs/features/checkout-duravel/validation.md PASS parcial local. Não houve execução Android ou navegação React Native real.
+- Identidade P0-03-C implementada e revisada localmente em reviews/identidade-instalacao.md; 12 testes de identidade +7 storage passaram, typecheck mobile passou. Literal null corrigido sem sobrescrever origem.
+- Sessões API em revisão/correção: expiração, logout, perfil, revogação e locks de conta. Novos testes 11 passaram em PGlite; suíte completa inicialmente2 falhas por sessão vencida em fixtures (correção AD-013). Nova migração local 0002.
+- PostgreSQL efêmero LOCAL criado para verificação adicional: container codex-prisma-pdv-goal-pg, id 32b46a92458e686d99d41e08a4e0a26848951201d7a25a078eaef9350db741f0, postgres:17-alpine, porta 127.0.0.1:53361, banco dedicado pdv_test. Apenas teste, nenhum serviço externo/produção. Parar/remover esse container exato ao concluir verificação. Helper aceita PDV_TEST_POSTGRES_URL somente loopback/banco pdv_test pois faz TRUNCATE.
 - Bloqueios de homologação conhecidos: Android físico/artefato definitivo, credenciais de e-mail/Play, infraestrutura externa/backup/alertas. Ainda não inspecionados; não contam como testes executados.

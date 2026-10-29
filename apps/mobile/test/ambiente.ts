@@ -7,7 +7,15 @@ export class ArmazenamentoMemoria implements Armazenamento {
 
   async obter<T>(chave: string): Promise<T | null> {
     const bruto = this.dados.get(chave);
-    return bruto === undefined ? null : (JSON.parse(bruto) as T);
+    if (bruto === undefined) return null;
+    let valor: unknown;
+    try {
+      valor = JSON.parse(bruto);
+    } catch {
+      throw new Error('Dados armazenados contêm JSON inválido.');
+    }
+    if (valor === null) throw new Error('Dados armazenados não podem conter null como valor raiz.');
+    return valor as T;
   }
 
   async gravar<T>(chave: string, valor: T): Promise<void> {

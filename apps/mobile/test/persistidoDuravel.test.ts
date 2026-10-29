@@ -115,6 +115,12 @@ describe('Persistido durável', () => {
 });
 
 describe('ArmazenamentoAsync', () => {
+  it('rejeita null como valor raiz sem alterar a origem', async () => {
+    vi.mocked(AsyncStorage.getItem).mockResolvedValueOnce('null');
+    await expect(new ArmazenamentoAsync().obter('chave')).rejects.toThrow('Dados armazenados não podem conter null como valor raiz.');
+    expect(AsyncStorage.removeItem).not.toHaveBeenCalled();
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  });
   it('rejeita JSON corrompido sem expor nem remover o conteúdo', async () => {
     vi.mocked(AsyncStorage.getItem).mockResolvedValueOnce('{segredo');
     await expect(new ArmazenamentoAsync().obter('chave')).rejects.toThrow('Dados armazenados contêm JSON inválido.');

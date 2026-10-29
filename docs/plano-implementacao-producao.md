@@ -96,7 +96,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 - [ ] **P0-03-A:** integrar provedor de e-mail transacional, entrega com retentativa e tratamento de falhas; não retornar/logar o código em produção nem revelar se a conta existe.
 - [ ] **P0-03-B:** limitar emissão e tentativas por e-mail/IP, com armazenamento compartilhado entre instâncias, respostas estáveis e proteção contra reenvio contínuo que reinicie a contagem de tentativas.
-- [ ] **P0-03-C:** criar uma identidade persistente por instalação, reutilizada no cadastro/login; documentar reinstalação, substituição de aparelho e recuperação quando o limite estiver atingido.
+- [x] **P0-03-C:** criar uma identidade persistente por instalação, reutilizada no cadastro/login; documentar reinstalação, substituição de aparelho e recuperação quando o limite estiver atingido.
 - [ ] **P0-03-D:** proteger o token no armazenamento nativo; implementar duração, renovação ou nova autenticação, logout e revogação no servidor, compatíveis com a operação offline.
 - [ ] **P0-03-E:** isolar os dados por conta/loja e impedir troca de conta com perda de operações pendentes; limpar a sessão em memória sem apagar vendas por efeito colateral.
 - [ ] **P0-03-F:** adicionar consulta de perfil real e gestão mínima de aparelhos/sessões para substituir aparelho perdido; não gerar o nome da loja a partir do e-mail após login.
@@ -349,23 +349,20 @@ Os comandos atuais não substituem os testes de integração PostgreSQL, SQLite 
 
 ### Registro de evidências
 
-Evidências locais por entrega. Revisões em .specs/features/persistencia-base/. Critérios globais exigem também homologação definida acima.
+Evidências locais, com escopo limitado ao resultado descrito. Homologação Android, integração externa e critérios globais continuam pendentes. Revisões independentes e testes de regressão estão em .specs/.
 
 | Tarefa/critério | Commit ou versão | Teste/comando/roteiro | Ambiente/aparelho | Resultado e evidência |
 |---|---|---|---|---|
-| P0-01-A | commit desta entrega | teste sqliteSchema: 4 passaram; typecheck mobile passou; revisão T1/T2 PASS parcial | Node 24.14.1, SQLite real (node:sqlite) | Schema v1, FKs, reabertura, rollback e versão futura; não homologa Android |
+| P0-01-A | f0bd5a4 | sqliteSchema: 4 testes; typecheck mobile; revisao-t1-t2.md | Node 24, SQLite real | Schema v1, FKs, reabertura, rollback, versão futura |
+| Parte P0-01-C | 23ac272 | persistidoDuravel: 6 testes na entrega; revisão T1/T2 | Node, storage fake explícito | Snapshot após escrita, falhas/fila/JSON inválido; não conclui bloco global |
+| P0-01-B | 62d1d6d | sqliteArmazenamento: 13 testes; 23 específicos; revisão persistencia-base/validation.md | SQLite real, arquivo reaberto | Migração repetível, igualdade de contagens/totais/filhos, rollback, origem preservada e partição; Android pendente |
+| Parte P0-07-C | fbd1a3c | configuracao: 17 testes e typecheck API; reviews/configuracao-api.md | Node | API valida antes de efeitos; produção bloqueada enquanto só existe billing mock |
+| Parte P0-01-D/E, serviço | e9453f6 | checkoutSqlite: 17 testes; revisao-servico.md | SQLite real | R/R/saldoR, seis fronteiras de escrita, falha de COMMIT, outbox e conclusão únicas; caixa local preservado, contrato remoto P0-04 pendente |
+| Parte P0-01-C/D, integração | e82d1b8 | 252 testes mobile; typecheck todos; checkout-duravel/validation.md | Node/SQLite; hook com adaptadores UI simulados | Fachada aguarda gravações; recuperação antes de liberar app; retry sem duplicar parcela; navegação inspecionada, Android ainda não executado |
 
-| P0-01-B | commit desta entrega | 13 testes sqliteArmazenamento; 23 específicos incluindo schema/Persistido; typecheck mobile; revisão validation.md PASS | SQLite real Node 24, arquivo reaberto | Migração idempotente, contagens/totais/filhos, rollback, origem mantida e partição; Android pendente |
+| P0-03-C | commit desta entrega | 12 testes identidade + 7 storage; typecheck mobile; reviews/identidade-instalacao.md PASS local | Backend simulado explicitamente | UUID salvo antes do request e reutilizado; migração legada; corrupção/falhas não geram novo ID silenciosamente; reinstalação documentada, Android/API real pendentes |
 
 ### Condição de liberação
-
-Integração local de P0-01-C/D: CarrinhoDuravel publica após persistir; inicialização recupera antes de liberar telas; UI aguarda parcelas, conclusão e limpeza. 252 testes mobile passaram, incluindo 7 de fachada e 2 regressões do hook; typecheck todos passou. Revisão independente `checkout-duravel/validation.md` aprova o escopo local com limites explícitos. Os ACs globais e homologação Android continuam pendentes; não se infere execução nativa dos mocks de UI.
-
-Parte de P0-01-D/E (serviço local): CheckoutSqlite grava venda/filhos/outbox/conclusão num commit; 17 testes SQLite reais passaram, com reabertura 2500/1000/1500, seis fronteiras de escrita, falha de COMMIT, repetição e integridade. Revisão independente em `.specs/features/checkout-duravel/revisao-servico.md`. P0-01-E integral permanece dependente do contrato de caixa em P0-04; Android pendente.
-
-Parte de P0-07-C entregue: configuração API validada antes de efeitos; 17 testes de configuração e typecheck API passaram; revisão independente em `.specs/reviews/configuracao-api.md`. Produção recusa mock e permanece bloqueada até provider real. Configuração mobile e integrações externas seguem pendentes. Runbook: `docs/operacao-configuracao.md`.
-
-Evidência adicional: parte de P0-01-C aceita em `revisao-t1-t2.md`, com 6 testes de publicação após escrita, falhas, fila e leitura inválida. O item global P0-01-C segue pendente até transações e tratamento na UI.
 
 - [ ] Todos os critérios P0 aplicáveis estão atendidos; condicionais de integração ficam explicitamente desabilitados e fora da oferta quando não implementados.
 - [ ] Os mínimos obrigatórios de P1-10/P1-11 estão atendidos; recursos adicionais só são ofertados após seu aceite.

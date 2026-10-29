@@ -50,7 +50,7 @@ export function exigirSessao(db: Db, relogio: Relogio) {
   };
 }
 
-/** Revalida a identidade depois dos locks da transação de push. */
+/** Consulta a identidade atual; os chamadores transacionais controlam seus próprios locks. */
 export async function revalidarSessaoSync(tx: Db, sessaoId: string, identidade: SessaoAutenticada, agora: Date): Promise<'dono' | 'operador'> {
   const [sessao] = await tx.select({ id: sessoes.id, papel: operadores.papel }).from(sessoes)
     .innerJoin(contas, eq(contas.id, sessoes.contaId))
@@ -62,4 +62,16 @@ export async function revalidarSessaoSync(tx: Db, sessaoId: string, identidade: 
       isNull(sessoes.revogadaEm), isNull(aparelhos.revogadoEm), gt(sessoes.expiraEm, agora)));
   if (!sessao) throw new ErroApi(401, 'nao_autenticado', 'Sessão inválida. Entre novamente.');
   return sessao.papel;
+}
+
+export async function validarDonoAtual(db: Db, sessaoId: string, identidade: SessaoAutenticada, agora: Date): Promise<void> {
+  const papel = await revalidarSessaoSync(db, sessaoId, identidade, agora);
+  if (papel !== 'dono') throw new ErroApi(403, 'proibido', 'Operação permitida somente ao dono.');
+}
+
+/** Autoriza antes do handler, sem manter transação aberta durante chamadas externas. */
+export function exigirDono(db: Db, relogio: Relogio) {
+  return async (request: FastifyRequest): Promise<void> => {
+    await validarDonoAtual(db, request.sessaoId, request.sessao, relogio.agora());
+  };
 }

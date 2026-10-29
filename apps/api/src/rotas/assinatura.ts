@@ -25,6 +25,7 @@ import {
 } from '@pdv/shared';
 import { contas, testesUsados } from '../db/schema';
 import type { Deps } from '../deps';
+import { exigirDono } from '../auth';
 import { ErroApi } from '../erros';
 import { carregarAssinatura, registrarEvento, salvarAssinatura } from '../servicos/assinatura';
 import { chaveAvulsa, cobrarFatura, descricaoDaFatura, type TipoFatura } from '../servicos/cobranca';
@@ -61,7 +62,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
     return resposta(assinatura, agora);
   });
 
-  app.post('/assinatura', async (request, reply) => {
+  app.post('/assinatura', { preHandler: exigirDono(db, relogio) }, async (request, reply) => {
     const req = CriarAssinaturaReqSchema.parse(request.body);
     const { contaId } = request.sessao;
     const agora = relogio.agora();
@@ -105,7 +106,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
     return reply.status(201).send(resposta(nova, agora));
   });
 
-  app.post('/assinatura/trocar-plano', async (request) => {
+  app.post('/assinatura/trocar-plano', { preHandler: exigirDono(db, relogio) }, async (request) => {
     const { planoId } = TrocarPlanoReqSchema.parse(request.body);
     const agora = relogio.agora();
     const { assinatura, clienteRef } = await carregarAssinatura(db, request.sessao.contaId, agora);
@@ -137,7 +138,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
     return resposta(nova, agora);
   });
 
-  app.put('/assinatura/cartao', async (request) => {
+  app.put('/assinatura/cartao', { preHandler: exigirDono(db, relogio) }, async (request) => {
     const { tokenCartao } = AtualizarCartaoReqSchema.parse(request.body);
     const agora = relogio.agora();
     const { assinatura } = await carregarAssinatura(db, request.sessao.contaId, agora);
@@ -173,7 +174,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
     return resposta(nova, agora);
   });
 
-  app.post('/assinatura/cancelar', async (request) => {
+  app.post('/assinatura/cancelar', { preHandler: exigirDono(db, relogio) }, async (request) => {
     const agora = relogio.agora();
     const { assinatura } = await carregarAssinatura(db, request.sessao.contaId, agora);
     const nova = cancelar(avaliar(assinatura, agora), agora);
@@ -182,7 +183,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
     return resposta(nova, agora);
   });
 
-  app.post('/assinatura/reativar', async (request) => {
+  app.post('/assinatura/reativar', { preHandler: exigirDono(db, relogio) }, async (request) => {
     const { planoId } = TrocarPlanoReqSchema.parse(request.body);
     const agora = relogio.agora();
     const { assinatura, clienteRef } = await carregarAssinatura(db, request.sessao.contaId, agora);

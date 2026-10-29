@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { ConfirmarEanReqSchema, normalizarEan, ProdutoCatalogoSchema } from '@pdv/shared';
 import type { Deps } from '../deps';
+import { exigirDono } from '../auth';
 import { ErroApi } from '../erros';
 import { confirmarEan, consultarEan, criarLimitador } from '../servicos/catalogoEan';
 
@@ -33,7 +34,7 @@ export function rotasCatalogo(app: FastifyInstance, { db, relogio, fontesEan, or
     return ProdutoCatalogoSchema.parse(produto);
   });
 
-  app.post('/catalogo/ean/:ean/confirmacao', async (request, reply) => {
+  app.post('/catalogo/ean/:ean/confirmacao', { preHandler: exigirDono(db, relogio) }, async (request, reply) => {
     const ean = eanDaRota(request.params);
     const { nome } = ConfirmarEanReqSchema.parse(request.body);
     await confirmarEan(db, request.sessao.lojaId, ean, nome, relogio.agora());

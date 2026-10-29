@@ -13,7 +13,7 @@ import {
   PerfilResSchema,
   AparelhosResSchema,
 } from '@pdv/shared';
-import { criarSessao } from '../auth';
+import { criarSessao, exigirDono, validarDonoAtual } from '../auth';
 import { aparelhos, codigosLogin, contas, lojas, operadores, sessoes, recuperacoesAparelho } from '../db/schema';
 import type { Deps } from '../deps';
 import { ErroApi } from '../erros';
@@ -170,19 +170,20 @@ export function rotasContaProtegidas(app: FastifyInstance, { db, relogio }: Deps
     const lista = await db.select().from(aparelhos).where(and(eq(aparelhos.contaId, s.contaId), eq(aparelhos.lojaId, s.lojaId)));
     return AparelhosResSchema.parse(lista.map((a) => ({ id: a.id, nome: a.nome, criadoEm: a.criadoEm.toISOString(), ultimoAcessoEm: a.ultimoAcessoEm.toISOString(), revogadoEm: a.revogadoEm?.toISOString() ?? null, atual: a.id === s.aparelhoId })));
   });
-  app.delete('/aparelhos/:id', async (request, reply) => {
-    if ((await perfil(request)).papel !== 'dono') throw new ErroApi(403, 'proibido', 'Operação permitida somente ao dono.');
+  app.delete('/aparelhos/:id', { preHandler: exigirDono(db, relogio) }, async (request, reply) => {
     const { id } = z.object({ id: z.uuid() }).parse(request.params);
     const s = request.sessao;
     await db.transaction(async (tx) => {
       // Ordem comum com login: conta antes de qualquer aparelho ou sessão.
       await tx.select({ id: contas.id }).from(contas).where(eq(contas.id, s.contaId)).for('update');
+      await tx.select({ id: sessoes.id }).from(sessoes).where(eq(sessoes.id, request.sessaoId)).for('update');
+      const agora = relogio.agora();
+      await validarDonoAtual(tx, request.sessaoId, s, agora);
       const [aparelho] = await tx.select().from(aparelhos).where(and(eq(aparelhos.id, id), eq(aparelhos.contaId, s.contaId), eq(aparelhos.lojaId, s.lojaId)));
       if (!aparelho) throw new ErroApi(404, 'aparelho_nao_encontrado', 'Aparelho não encontrado.');
-      const agora = relogio.agora();
       if (!aparelho.revogadoEm) await tx.update(aparelhos).set({ revogadoEm: agora }).where(eq(aparelhos.id, id));
       await tx.update(sessoes).set({ revogadaEm: agora }).where(and(eq(sessoes.aparelhoId, id), eq(sessoes.contaId, s.contaId), eq(sessoes.lojaId, s.lojaId), isNull(sessoes.revogadaEm)));
-    });
+    }, { isolationLevel: 'read committed' });
     return reply.status(204).send();
   });
 }

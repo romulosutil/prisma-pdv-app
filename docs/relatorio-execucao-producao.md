@@ -1,6 +1,6 @@
 # Checkpoint da execução do plano de produção
 
-Referência: 29/10/2026, após autorização de papel e origem no push, fonte `4e71729`. O Goal consta **active** na consulta mais recente; antes desta retomada a ferramenta havia retornado blocked, sem ação de retomada disponível ao agente. O gestor não alterou manualmente o controle. Objetivo persistente ainda não concluído. Este checkpoint não encerra o trabalho executável e não aprova produção.
+Referência: 29/10/2026, após autorização de dono nas rotas privadas, fonte `c055910`. O Goal consta **active** na consulta mais recente. O gestor não alterou manualmente o controle. Objetivo persistente ainda não concluído. Este checkpoint não encerra o trabalho executável e não aprova produção.
 
 ## Entregas locais aceitas
 
@@ -148,6 +148,8 @@ O fluxo de entrega agora integra a emissão à fila e ao bootstrap: OTP e envelo
 
 O verificador final de entrega-codigo aprovou9ACs e matou5mutações por asserção em5651212: retirar fencing, omitir cancelamento no consumo, pular validação de pendências no bootstrap, antecipar o timer e ignorar cleanup de migração. Usou scratch isolado, junctions removidas separadamente e árvore real preservada. validate_state retornou0. Sinais de processo foram inspecionados no código, sem ensaio de processo/implantação. Nenhum envio a caixa de entrada externa foi realizado.
 
+As sete escritas privilegiadas agora exigem dono atual. O DELETE de aparelho também revalida sessão e papel depois dos locks de conta/sessão, com relógio posterior à espera e Read Committed explícito. Fonte c055910, quatro ACs PASS e10/10mutações detectadas pelo verificador novo. API ampla392/PGlite ou447/com PG, depois caso adicional sem mudança de fonte: alvo24/30; mobile434, shared150 e typecheck todos PASS. O revisor repetiu38/59alvos e typecheck API. A união cobre393/448casos de API; não houve uma invocação ampla final com essa contagem. PostgreSQL efêmero9857f561/porta59743 e volume removidos após conferir identidade. Billing permanece mock local, sem integração real.
+
 ## Pendências externas e limites
 
 - Android e artefato final: não houve execução em aparelho. `adb` não foi encontrado no PATH. Reinício forçado, atualização, scanner, câmera e pagamentos manuais precisam de roteiro no artefato exato.
@@ -162,7 +164,7 @@ O verificador final de entrega-codigo aprovou9ACs e matou5mutações por asserç
 
 ## Próximos lotes executáveis
 
-1. P0-04-B: proteger mutações privadas de assinatura e confirmação de catálogo pelo papel do dono antes dos efeitos. Sessão, origem e papel do push já foram aceitos localmente; só encerrar B após essa auditoria.
+1. P0-04-B aceito localmente em c055910: sete guardas de dono, revalidação na revogação após locks, quatro ACs PASS e10/10mutações detectadas. Avançar por C, sem marcar AC-P0-04-2 antes das capacidades.
 2. P0-04-C/D/E: capacidades, vínculo caixaId no contrato/bancos/checkout e ajustes após fechamento. O vínculo atual é local; não concluir P0-01-E integral antes desse contrato.
 3. P0-02: outbox completa, envio/ack/retry, pull paginado/cursor transacional, conflitos e recuperação autenticada. A recuperação de acesso entregue não substitui esse bloco.
 4. Homologação externa de e-mail quando houver acesso autorizado; capacidades/oferta, assinatura real, build/CI, operação, remediação de dependências e mínimos P1. Continuar as partes locais independentes enquanto faltarem acessos externos.

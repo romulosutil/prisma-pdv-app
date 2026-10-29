@@ -35,9 +35,9 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| OWNER-01 | 1,2 | P0-04-B rotas privilegiadas | Implementado e gates locais PASS; verificação independente pendente |
-| OWNER-02 | 3 | P0-03/P0-04-B revogação atual | Implementado e gates locais PASS; verificação independente pendente |
-| OWNER-03 | 4 | Compatibilidade e limites de escopo | Implementado e gates locais PASS; verificação independente pendente |
+| OWNER-01 | 1,2 | P0-04-B rotas privilegiadas | Aceito localmente;4ACs PASS,10/10mutações; validation.md |
+| OWNER-02 | 3 | P0-03/P0-04-B revogação atual | Aceito localmente;4ACs PASS,10/10mutações; validation.md |
+| OWNER-03 | 4 | Compatibilidade e limites de escopo | Aceito localmente;4ACs PASS,10/10mutações; validation.md |
 
 ## Execution Plan
 

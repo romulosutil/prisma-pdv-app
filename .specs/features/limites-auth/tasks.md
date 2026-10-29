@@ -48,4 +48,20 @@ Where: apps/mobile/src/servicos/backend.ts e backendHttp.ts, apps/mobile/test/ba
 Tests: critério9 com 429 público/privado, corpo adversarial, credencial preservada e retentativa bem-sucedida.
 Gate: build
 Done when: categoria de erro local reconhece429 com texto definido, nunca passa mensagem arbitrária, preserva sessão; revisão final nova verifica critérios1a9 e sensor isolado.
-Status: pending.
+Status: execução concluída, aguardando verificador final novo; mobile353/353, API149/149 PGlite e153/153 PostgreSQL antes do ajuste apenas no cliente, shared136/136 e typecheck todos passaram. Os dois testes novos falharam com categoria cartao_recusado antes da implementação e passaram com categoria local de429.
+
+## Adequação de testes T3
+
+| Critério | Asserção localizada | Resultado exigido |
+|---|---|---|
+| AC9 categoria e orientação | apps/mobile/test/backendAcesso.test.ts:23 `expect(erro).toMatchObject({ codigo: 'limite_autenticacao', status: 429 })`; :24 `expect(mensagemDeErro(erro)).toBe(...)` | 429 prevalece sobre código adversarial no corpo; texto local exato |
+| AC9 credencial e sanitização | apps/mobile/test/backendAcesso.test.ts:25 `expect(erro.message).not.toContain('token-secreto')`; :26 callback não chamado; :27 token igual | Nenhuma invalidação nem exibição do corpo recebido |
+| AC9 retentativa | apps/mobile/test/backendAcesso.test.ts:28 `expect(await chamar()).toEqual(...)`; :29 cabeçalhos iguais | Pedido posterior prossegue; token privado preservado, público sem token |
+
+| Asserções | Requisito | Necessidade |
+|---|---|---|
+| backendAcesso.test.ts:23-24, dois casos parametrizados | AC9 categoria e mensagem | Manter, detectaram falha antes da implementação |
+| backendAcesso.test.ts:25-27, dois casos | AC9 corpo arbitrário e credencial | Manter, saída/estado em vez de só chamadas |
+| backendAcesso.test.ts:28-30, dois casos | AC9 retentativa e autorização | Manter, verifica resultado e cabeçalhos |
+
+Adequação: critérios locais cobertos, sem exclusão/skip/enfraquecimento de testes; mesmos padrões Vitest do projeto. Fetch simulado explícito; UI nativa permanece pendente globalmente.

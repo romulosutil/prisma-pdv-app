@@ -179,6 +179,7 @@ function safeJson(texto: string): unknown {
 }
 
 function erroDaResposta(status: number, corpo: unknown): ErroBackend {
+  if (status === 429) return new ErroBackend('limite_autenticacao', '', status);
   const campos = typeof corpo === 'object' && corpo !== null ? (corpo as Record<string, unknown>) : {};
   const codigoServidor = [campos.codigo, campos.erro].find((v): v is string => typeof v === 'string' && CODIGOS_CONHECIDOS.includes(v));
   const codigo = status >= 500 || status === 401 || status === 403

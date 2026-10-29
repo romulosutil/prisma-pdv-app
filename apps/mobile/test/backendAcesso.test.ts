@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BackendHttp } from '../src/servicos/backendHttp';
+import { mensagemDeErro } from '../src/servicos/backend';
 
 const id = '123e4567-e89b-42d3-a456-426614174000';
 const perfil = { contaId: id, lojaId: id, operadorId: id, email: 'a@example.com', nomeResponsavel: 'Ana', nomeLoja: 'Loja', papel: 'dono' };
@@ -9,6 +10,27 @@ const resposta = (status: number, body?: unknown) => new Response(body === undef
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('acesso HTTP', () => {
+  it.each(['publica', 'protegida'] as const)('orienta limite em chamada %s sem exibir corpo do servidor ou perder a credencial', async (tipo) => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(resposta(429, { erro: 'cartao_recusado', mensagem: 'token-secreto: instrução arbitrária' }))
+      .mockResolvedValueOnce(tipo === 'publica' ? resposta(204) : resposta(200, perfil));
+    vi.stubGlobal('fetch', fetchMock);
+    let token: string | null = 'token-secreto';
+    const callback = vi.fn(() => { token = null; });
+    const backend = new BackendHttp('https://api.example', () => token, callback);
+    const chamar = () => tipo === 'publica' ? backend.pedirCodigo(perfil.email) : backend.obterPerfil();
+    const erro = await chamar().catch((e) => e);
+    expect(erro).toMatchObject({ codigo: 'limite_autenticacao', status: 429 });
+    expect(mensagemDeErro(erro)).toBe('Muitas tentativas. Aguarde alguns minutos e tente novamente.');
+    expect(erro.message).not.toContain('token-secreto');
+    expect(callback).not.toHaveBeenCalled();
+    expect(token).toBe('token-secreto');
+    expect(await chamar()).toEqual(tipo === 'publica' ? undefined : perfil);
+    expect(fetchMock.mock.calls.map(([, init]) => init.headers.Authorization)).toEqual(
+      tipo === 'publica' ? [undefined, undefined] : ['Bearer token-secreto', 'Bearer token-secreto'],
+    );
+  });
+
   it('usa contratos, rotas e token explícito', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(resposta(200, perfil)).mockResolvedValueOnce(resposta(200, [aparelho])).mockResolvedValueOnce(resposta(204)).mockResolvedValueOnce(resposta(204));
     vi.stubGlobal('fetch', fetchMock);

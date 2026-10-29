@@ -35,5 +35,5 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| SYNCAUTH-01 | 1,2 | Parte P0-04-B autorização atual | Implementado/gates PASS; final pendente |
-| SYNCAUTH-02 | 3,4 | Parte P0-04-B concorrência/relógio | Implementado/gates PASS; final pendente |
+| SYNCAUTH-01 | 1,2 | Parte P0-04-B autorização atual | PASS local, validation.md fonte66a63b6 |
+| SYNCAUTH-02 | 3,4 | Parte P0-04-B concorrência/relógio | PASS local, validation.md fonte66a63b6 |

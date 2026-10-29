@@ -181,6 +181,13 @@ export class Dados {
     return ++this.geracaoAcesso;
   }
 
+  obterRecuperacaoPendente(): { recuperacao: Omit<RecuperacaoAparelho, 'token'>; aparelhoSubstituidoId: string | null } | null {
+    const tentativa = this.recuperacao;
+    if (!tentativa || tentativa.geracao !== this.geracaoAcesso || tentativa.vinculo !== this.vinculoAtual()) return null;
+    const { token: _token, ...visao } = tentativa.desafio;
+    return { recuperacao: { ...visao, perfil: { ...visao.perfil }, aparelhos: visao.aparelhos.map(a => ({ ...a })) }, aparelhoSubstituidoId: tentativa.alvo ?? null };
+  }
+
   cancelarRecuperacao(): void { this.invalidarRecuperacao(); }
 
   private verificarGeracao(geracao: number): void {

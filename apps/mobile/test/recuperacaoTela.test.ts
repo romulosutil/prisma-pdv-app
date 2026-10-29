@@ -1,0 +1,153 @@
+import React from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ErroBackend } from '../src/servicos/backend';
+import { Dados } from '../src/dados/dados';
+import { ArmazenamentoMemoria, criarContadorDeIds } from './ambiente';
+
+const m = vi.hoisted(() => ({ modo: 'http', entrar: vi.fn(), iniciar: vi.fn(), confirmar: vi.fn(), cancelar: vi.fn(), pedir: vi.fn(), pendente: null as any, real: null as any, conta: { perfil: null as any, identidade: null as any, carregandoConta: false }, backHandler: null as null | (() => boolean), back: vi.fn(), setOptions: vi.fn() }));
+vi.mock('react-native', async () => { const R = await import('react'); return { View: (p: any) => R.createElement('view', p, p.children), Pressable: (p: any) => R.createElement('pressable', p, p.children), StyleSheet: { create: (v: unknown) => v }, BackHandler: { addEventListener: (_: string, fn: () => boolean) => { m.backHandler = fn; return { remove: vi.fn() }; } } }; });
+vi.mock('expo-router', () => ({ useRouter: () => ({ back: m.back, replace: vi.fn() }), useNavigation: () => ({ setOptions: m.setOptions }) }));
+vi.mock('@/tema', () => ({ cores: { ink2: 'ink', surface: 's', surface2: 's2' }, raio: { md: 8 } }));
+vi.mock('@/dados/hooks', async () => { const R = await import('react'); return { useConta: () => m.real ? { ...(R.useSyncExternalStore(m.real.conta.assinar, m.real.conta.obter) as object), carregandoConta: R.useSyncExternalStore(m.real.conta.transicao.assinar, m.real.conta.transicao.obter) } : m.conta, useDados: () => m.real ?? dados }; });
+vi.mock('@/dados/carrinho', () => ({ useCarrinho: () => ({ vazio: true }) }));
+vi.mock('@/componentes/Banner', async () => { const R = await import('react'); return { Banner: (p: any) => R.createElement('banner', p) }; });
+vi.mock('@/componentes/Botao', async () => { const R = await import('react'); return { Botao: (p: any) => R.createElement('botao', p) }; });
+vi.mock('@/componentes/BotaoIcone', async () => { const R = await import('react'); return { BotaoIcone: (p: any) => R.createElement('icone', p) }; });
+vi.mock('@/componentes/Campo', async () => { const R = await import('react'); return { Campo: (p: any) => R.createElement('campo', p) }; });
+vi.mock('@/componentes/BottomSheet', async () => { const R = await import('react'); return { BottomSheet: (p: any) => R.createElement('sheet', p, p.visivel ? p.children : null) }; });
+vi.mock('@/componentes/TelaBase', async () => { const R = await import('react'); return { TelaBase: (p: any) => R.createElement('tela', null, p.children, p.rodape) }; });
+vi.mock('@/componentes/Texto', async () => { const R = await import('react'); return { Texto: (p: any) => R.createElement('texto', p, p.children) }; });
+import Tela from '../app/(onboarding)/entrar';
+const dados = { backend: { get modo() { return m.modo; }, pedirCodigo: m.pedir }, entrar: m.entrar, iniciarRecuperacao: m.iniciar, confirmarRecuperacao: m.confirmar, cancelarRecuperacao: m.cancelar, obterRecuperacaoPendente: () => m.pendente };
+const visao = { id: 'desafio', perfil: { nomeLoja: 'Loja real', email: 'dona@example.com' }, aparelhos: [{ id: 'a', nome: 'Caixa antigo' }, { id: 'b', nome: 'Balcão' }] };
+let r: ReactTestRenderer;
+const botao = (nome: string) => r.root.findAll(n => n.type === ('botao' as any) && n.props.rotulo === nome)[0]!;
+const campo = (nome: string) => r.root.findAll(n => n.type === ('campo' as any) && n.props.rotulo === nome)[0]!;
+const clicar = async (nome: string) => { await act(async () => { botao(nome).props.onPress(); }); };
+async function preparar() { await act(async () => { r = create(React.createElement(Tela)); }); await act(async () => campo('E-mail').props.onChangeText('dona@example.com')); await clicar('Enviar código'); await act(async () => campo('Código').props.onChangeText('123456')); }
+afterEach(async () => { if (r) await act(async () => r.unmount()); vi.resetAllMocks(); m.modo = 'http'; m.pendente = null; m.real = null; m.conta = { perfil: null, identidade: null, carregandoConta: false }; });
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+describe('recuperação na tela de entrada', () => {
+  it('oferece apenas no limite 409 e exige escolha e consentimento', async () => {
+    m.pedir.mockResolvedValue(undefined); m.entrar.mockRejectedValue(new ErroBackend('limite_aparelhos', '', 409));
+    m.iniciar.mockImplementation(async () => { m.pendente = { recuperacao: visao, aparelhoSubstituidoId: null }; return visao; });
+    m.confirmar.mockResolvedValue(undefined);
+    await preparar(); await clicar('Entrar'); await clicar('Recuperar acesso neste aparelho');
+    expect(JSON.stringify(r.toJSON())).toContain('Loja real'); expect(JSON.stringify(r.toJSON())).toContain('Caixa antigo');
+    expect(botao('Continuar').props.desabilitado).toBe(true); expect(m.confirmar).not.toHaveBeenCalled();
+    const opcoes = r.root.findAll(n => n.type === ('pressable' as any) && n.props.accessibilityRole === 'radio');
+    expect(opcoes[0]!.props.accessibilityState.checked).toBe(false);
+    await act(async () => opcoes[0]!.props.onPress()); await clicar('Continuar');
+    expect(JSON.stringify(r.toJSON())).toContain('não transfere vendas'); expect(m.confirmar).not.toHaveBeenCalled();
+    await clicar('Confirmar substituição'); expect(m.confirmar).toHaveBeenCalledWith('a');
+  });
+  it.each([['limite_aparelhos', 400, 'http'], ['conflito', 409, 'http'], ['limite_aparelhos', 409, 'demo']] as const)('não oferece para %s %s %s', async (codigo, status, modo) => {
+    m.modo = modo; m.pedir.mockResolvedValue(undefined); m.entrar.mockRejectedValue(new ErroBackend(codigo, '', status)); await preparar(); await clicar('Entrar'); expect(botao('Recuperar acesso neste aparelho')).toBeUndefined();
+  });
+  it('bloqueia dois toques e não fecha a confirmação enquanto aguarda', async () => {
+    let resolver!: () => void;
+    m.pedir.mockResolvedValue(undefined); m.entrar.mockRejectedValue(new ErroBackend('limite_aparelhos', '', 409));
+    m.iniciar.mockImplementation(async () => { m.pendente = { recuperacao: visao, aparelhoSubstituidoId: null }; return visao; });
+    m.confirmar.mockReturnValue(new Promise<void>(resolve => { resolver = resolve; }));
+    await preparar(); await clicar('Entrar'); await clicar('Recuperar acesso neste aparelho');
+    await act(async () => r.root.findAll(n => n.props.accessibilityRole === 'radio')[0]!.props.onPress()); await clicar('Continuar');
+    const voltar = botao('Voltar').props.onPress;
+    await act(async () => { botao('Confirmar substituição').props.onPress(); botao('Confirmar substituição').props.onPress(); voltar(); });
+    expect(m.confirmar).toHaveBeenCalledTimes(1);
+    await act(async () => r.root.findByType('sheet' as any).props.onFechar());
+    expect(r.root.findByType('sheet' as any).props.visivel).toBe(true);
+    await act(async () => resolver());
+  });
+  it('cancelar descarta resposta atrasada e volta a pedir código', async () => {
+    let resolver!: (v: typeof visao) => void;
+    m.pedir.mockResolvedValue(undefined); m.entrar.mockRejectedValue(new ErroBackend('limite_aparelhos', '', 409));
+    m.iniciar.mockReturnValue(new Promise(resolve => { resolver = resolve; }));
+    await preparar(); await clicar('Entrar'); await clicar('Recuperar acesso neste aparelho');
+    await act(async () => r.root.findByType('icone' as any).props.onPress());
+    await act(async () => resolver(visao));
+    expect(botao('Enviar código')).toBeDefined(); expect(botao('Continuar')).toBeUndefined(); expect(m.cancelar).toHaveBeenCalled();
+  });
+  it('rejeita código incompleto e orienta novo código após expiração da prova', async () => {
+    m.pedir.mockResolvedValue(undefined); m.entrar.mockRejectedValue(new ErroBackend('limite_aparelhos', '', 409));
+    m.iniciar.mockImplementation(async () => { m.pendente = { recuperacao: visao, aparelhoSubstituidoId: null }; return visao; });
+    m.confirmar.mockImplementation(async () => { m.pendente = null; throw new ErroBackend('nao_autorizado', '', 401); });
+    await preparar(); await act(async () => campo('Código').props.onChangeText('123')); await clicar('Entrar');
+    expect(m.entrar).not.toHaveBeenCalled();
+    await act(async () => campo('Código').props.onChangeText('123456')); await clicar('Entrar'); await clicar('Recuperar acesso neste aparelho');
+    await act(async () => r.root.findAll(n => n.props.accessibilityRole === 'radio')[0]!.props.onPress()); await clicar('Continuar'); await clicar('Confirmar substituição');
+    expect(botao('Enviar código')).toBeDefined(); expect(JSON.stringify(r.toJSON())).toContain('recuperação expirou');
+  });
+  it('retoma alvo após remontagem por identidade e falha local usando Dados real', async () => {
+    const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+    const perfil = { contaId: id(2), lojaId: id(3), operadorId: id(4), email: 'dona@example.com', nomeResponsavel: 'Dona', nomeLoja: 'Loja real', papel: 'dono' as const };
+    const real = new Dados(new ArmazenamentoMemoria(), criarContadorDeIds(), 'http://api.local'); m.real = real;
+    vi.spyOn(real.backend, 'pedirCodigo').mockResolvedValue();
+    vi.spyOn(real.backend, 'entrar').mockRejectedValue(new ErroBackend('limite_aparelhos', '', 409));
+    const inicio = vi.spyOn(real.backend, 'iniciarRecuperacao').mockImplementation(async req => ({ id: id(9), token: 'a'.repeat(43), expiraEm: '2026-10-29T12:05:00.000Z', perfil, aparelhoNovoId: req.aparelhoId, aparelhoNovoNome: req.aparelhoNome, aparelhos: [{ id: id(6), nome: 'Caixa antigo', ultimoAcessoEm: '2026-10-28T12:00:00.000Z' }] }));
+    const confirmar = vi.spyOn(real.backend, 'confirmarRecuperacao').mockImplementation(async () => ({ token: 'sessao', contaId: id(2), lojaId: id(3), operadorId: id(4), aparelhoId: inicio.mock.calls[0]![0].aparelhoId }));
+    vi.spyOn(real.backend, 'obterPerfil').mockResolvedValue(perfil); vi.spyOn(real.assinatura, 'sincronizar').mockResolvedValue();
+    vi.spyOn(real.produtos, 'carregar').mockRejectedValueOnce(new Error('falha local'));
+    function Raiz() { const conta = React.useSyncExternalStore(real.conta.assinar, real.conta.obter); return React.createElement(Tela, { key: JSON.stringify([conta.identidade?.contaId, conta.identidade?.lojaId]) }); }
+    await act(async () => { r = create(React.createElement(Raiz)); });
+    await act(async () => campo('E-mail').props.onChangeText(perfil.email)); await clicar('Enviar código'); await act(async () => campo('Código').props.onChangeText('123456')); await clicar('Entrar'); await clicar('Recuperar acesso neste aparelho');
+    await act(async () => r.root.findAll(n => n.props.accessibilityRole === 'radio')[0]!.props.onPress()); await clicar('Continuar'); await clicar('Confirmar substituição');
+    expect(real.obterRecuperacaoPendente()?.aparelhoSubstituidoId).toBe(id(6));
+    expect(JSON.stringify(real.obterRecuperacaoPendente())).not.toContain('a'.repeat(43));
+    expect(botao('Tentar novamente')).toBeDefined(); await clicar('Tentar novamente'); await clicar('Confirmar substituição');
+    expect(confirmar).toHaveBeenCalledTimes(2); expect(confirmar.mock.calls[0]).toEqual(confirmar.mock.calls[1]); expect(real.conta.obter().sessao?.token).toBe('sessao');
+  });
+  it('bloqueia retorno e submissão após remontar durante transição real da conta', async () => {
+    const real = new Dados(new ArmazenamentoMemoria(), criarContadorDeIds(), 'http://api.local'); m.real = real;
+    const pedir = vi.spyOn(real.backend, 'pedirCodigo').mockResolvedValue();
+    real.conta.transicao.alterar(true);
+    await act(async () => { r = create(React.createElement(Tela)); });
+    expect(m.setOptions).toHaveBeenLastCalledWith({ gestureEnabled: false });
+    expect(m.backHandler?.()).toBe(true);
+    await act(async () => { r.root.findByType('icone' as any).props.onPress(); botao('Enviar código').props.onPress(); });
+    expect(m.back).not.toHaveBeenCalled(); expect(pedir).not.toHaveBeenCalled();
+    await act(async () => real.conta.transicao.alterar(false));
+    expect(m.setOptions).toHaveBeenLastCalledWith({ gestureEnabled: true });
+    expect(m.backHandler?.()).toBe(false);
+    await act(async () => r.root.findByType('icone' as any).props.onPress()); expect(m.back).toHaveBeenCalledOnce();
+  });
+  it('rejeita visão antiga quando há outra tentativa pendente', async () => {
+    m.pedir.mockResolvedValue(undefined); m.entrar.mockRejectedValue(new ErroBackend('limite_aparelhos', '', 409));
+    m.iniciar.mockImplementation(async () => { m.pendente = { recuperacao: visao, aparelhoSubstituidoId: null }; return visao; });
+    await preparar(); await clicar('Entrar'); await clicar('Recuperar acesso neste aparelho');
+    await act(async () => r.root.findAll(n => n.props.accessibilityRole === 'radio')[0]!.props.onPress()); await clicar('Continuar');
+    const confirmarAntigo = botao('Confirmar substituição').props.onPress;
+    m.pendente = { recuperacao: { ...visao, id: 'outro', aparelhos: [{ id: 'novo', nome: 'Novo aparelho' }] }, aparelhoSubstituidoId: null };
+    await act(async () => confirmarAntigo());
+    await act(async () => r.update(React.createElement(Tela)));
+    expect(JSON.stringify(r.toJSON())).not.toContain('Caixa antigo');
+    expect(r.root.findByType('sheet' as any).props.visivel).toBe(false);
+    expect(m.confirmar).not.toHaveBeenCalled();
+  });
+  it('falha de rede permite retry somente com o mesmo alvo', async () => {
+    m.pedir.mockResolvedValue(undefined); m.entrar.mockRejectedValue(new ErroBackend('limite_aparelhos', '', 409));
+    m.iniciar.mockImplementation(async () => { m.pendente = { recuperacao: visao, aparelhoSubstituidoId: null }; return visao; });
+    m.confirmar.mockImplementationOnce(async alvo => { m.pendente.aparelhoSubstituidoId = alvo; throw new ErroBackend('rede', ''); }).mockResolvedValueOnce(undefined);
+    await preparar(); await clicar('Entrar'); await clicar('Recuperar acesso neste aparelho');
+    await act(async () => r.root.findAll(n => n.props.accessibilityRole === 'radio')[0]!.props.onPress()); await clicar('Continuar'); await clicar('Confirmar substituição');
+    const radios = r.root.findAll(n => n.props.accessibilityRole === 'radio');
+    expect(radios[1]!.props.disabled).toBe(true); expect(radios[0]!.props.accessibilityState.checked).toBe(true);
+    await clicar('Tentar novamente'); await clicar('Confirmar substituição');
+    expect(m.confirmar.mock.calls).toEqual([['a'], ['a']]);
+  });
+  it.each(['resolve', 'reject'])('ignora confirmação antiga que %s durante nova tentativa', async fim => {
+    let resolver!: () => void; let rejeitar!: (e: unknown) => void; let terminarCodigo!: () => void;
+    m.pedir.mockResolvedValueOnce(undefined).mockReturnValueOnce(new Promise<void>(resolve => { terminarCodigo = resolve; }));
+    m.entrar.mockRejectedValue(new ErroBackend('limite_aparelhos', '', 409));
+    m.iniciar.mockImplementation(async () => { m.pendente = { recuperacao: visao, aparelhoSubstituidoId: null }; return visao; });
+    m.confirmar.mockReturnValue(new Promise<void>((resolve, reject) => { resolver = resolve; rejeitar = reject; }));
+    await preparar(); await clicar('Entrar'); await clicar('Recuperar acesso neste aparelho');
+    await act(async () => r.root.findAll(n => n.props.accessibilityRole === 'radio')[0]!.props.onPress()); await clicar('Continuar'); await clicar('Confirmar substituição');
+    m.pendente = null; m.conta = { perfil: { email: 'nova@example.com' }, identidade: { contaId: 'B', lojaId: 'B' }, carregandoConta: false };
+    await act(async () => r.update(React.createElement(Tela)));
+    await clicar('Enviar código'); expect(botao('Enviar código').props.carregando).toBe(true);
+    await act(async () => { if (fim === 'resolve') resolver(); else rejeitar(new ErroBackend('rede', '')); });
+    expect(botao('Enviar código').props.carregando).toBe(true); expect(JSON.stringify(r.toJSON())).not.toContain('Sem conexão');
+    await act(async () => terminarCodigo()); expect(botao('Entrar')).toBeDefined();
+  });
+});

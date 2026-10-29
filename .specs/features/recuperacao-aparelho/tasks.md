@@ -66,8 +66,20 @@ Status: aceita localmente após correção de retry parcial;21 casos novos,392 m
 
 ### T5: Escolha e confirmação no login
 Depends on: T4
-Where: apps/mobile/app/(onboarding)/entrar.tsx, novo componente de recuperação se necessário, test/recuperacaoTela.test.tsx ou .ts.
-Tests: AC12, erro409 exato oferece, perfil/candidatos reais, confirmação explícita uma vez, cancela, erro/expiração e resposta atrasada sem falso sucesso, navegação inspecionada; Android pendente.
+Where: apps/mobile/app/(onboarding)/entrar.tsx, novo componente de recuperação se necessário, test/recuperacaoTela.test.tsx ou .ts; dados.ts somente getter de visão pendente sem segredo e recuperacaoDados.test.ts somente provas desse getter.
+Tests: AC12 e fronteira AC11, erro409 exato oferece, perfil/candidatos reais, confirmação explícita uma vez, cancela, erro/expiração e resposta atrasada sem falso sucesso; remontagem por chave da conta após falha local deve retomar visão só em memória e mesmo alvo. Getter nunca expõe token ou contexto antigo. Navegação inspecionada; Android pendente.
 Gate: build
 Done when: fluxo acessível com componentes existentes, mensagens honestas sobre acesso/vendas, sem segredo exposto nem ação concorrente; revisão final nova confronta13ACs e mata mutação em scratch.
-Status: pending.
+Status: execução concluída, aguarda verificador final novo;406 mobile no total,33 alvos UI/Dados (35 incluindo integração API/SQLite), typecheck todos e diff--check passaram. Gestor repetiu35 alvos e leu fonte/getter. Há testes React com Dados real para remontagem por identidade/falha local, getter sem segredo, mesmo alvo/retry, resposta antiga resolve/rejeita, clique duplo, visão/modal por ID e bloqueio de retorno durante transição mesmo após remontar. Sem teste físico Android/layout/orientação/a11y; roteiro preparado, não executado.
+
+## Adequação T5
+
+| Critério | Evidência | Resultado exigido |
+|---|---|---|
+| AC12 oferta e consentimento | recuperacaoTela.test.ts:34-46; :48-61 | Somente409limite, perfil/lista reais, escolha e confirmação, duplo clique1chamada |
+| AC12 cancelamento e401 | recuperacaoTela.test.ts:63-80 | Resposta antiga ignorada e novo código após prova expirada, sem sucesso fictício |
+| AC11/12 remontagem | recuperacaoTela.test.ts:81-99 e testes de getter em recuperacaoDados.test.ts | Dados real retoma visão em memória após falha parcial, corpos idênticos, token fora da visão |
+| AC12 contexto e retry | recuperacaoTela.test.ts:100-137 | VisãoA não confirmaB, rede permite mesmo alvo, resultado antigo não altera erro/loading novos |
+| AC12 transição | recuperacaoTela.test.ts, caso bloqueia retorno e submissão após remontar | Conta em transição bloqueia BackHandler/gestos/submissões e libera após terminar |
+
+Todos os casos novos mapeiam AC11/12; sem remoção/skip/enfraquecimento de asserções anteriores. Testes React usam hosts nativos simulados, não homologam navegação/a11y físicas. Verificador final ainda deve localizar cada asserção e confirmar o resultado por AC1a13.

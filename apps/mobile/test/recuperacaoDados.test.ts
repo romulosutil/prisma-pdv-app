@@ -17,6 +17,21 @@ function montar() {
 function pendente<T>() { let resolver!: (valor: T) => void; const promessa = new Promise<T>(r => { resolver = r; }); return { promessa, resolver }; }
 
 describe('Dados recuperação AC10 e AC11', () => {
+  it('getter copia a visão sem segredo e mantém somente o alvo enviado da tentativa atual', async () => {
+    const { dados, confirmar } = montar();
+    expect(dados.obterRecuperacaoPendente()).toBeNull();
+    await dados.iniciarRecuperacao(perfil.email, '123456');
+    const primeira = dados.obterRecuperacaoPendente()!;
+    expect(primeira.recuperacao).not.toHaveProperty('token');
+    expect(primeira.aparelhoSubstituidoId).toBeNull();
+    primeira.recuperacao.perfil.email = 'mudou'; primeira.recuperacao.aparelhos[0]!.id = id(77);
+    expect(dados.obterRecuperacaoPendente()!.recuperacao.perfil.email).toBe(perfil.email);
+    expect(dados.obterRecuperacaoPendente()!.recuperacao.aparelhos[0]!.id).toBe(id(6));
+    confirmar.mockRejectedValueOnce(new ErroBackend('rede', ''));
+    await expect(dados.confirmarRecuperacao(id(6))).rejects.toMatchObject({ codigo: 'rede' });
+    expect(dados.obterRecuperacaoPendente()!.aparelhoSubstituidoId).toBe(id(6));
+    dados.cancelarRecuperacao(); expect(dados.obterRecuperacaoPendente()).toBeNull();
+  });
   it('omite segredo e protege desafio de mutação da visão; valida perfil antes do acesso', async () => {
     const { dados, base, iniciar, confirmar, obter } = montar();
     const visao = await dados.iniciarRecuperacao(perfil.email, '123456');

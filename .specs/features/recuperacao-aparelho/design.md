@@ -25,6 +25,10 @@ Dados expõe iniciarRecuperacao(email,codigo):Promise<Omit<RecuperacaoAparelho,'
 
 UI integra a tela entrar: erro de limite identificado pelo código409 exato oferece iniciar; mostra nome real da loja/email e candidatos; escolha + BottomSheet de confirmação explicam que revoga acesso anterior e não transfere vendas. Desabilitar ações concorrentes, cancelar/alterar email limpam a tentativa. Usar componentes existentes; testes de hooks reais/hosts simulados, Android pendente.
 
+O Stack atual remonta por conta/loja quando a identidade é publicada. Para retentar após falha local parcial sem perder a prova só em memória, Dados fornece obterRecuperacaoPendente(): { recuperacao: Omit<RecuperacaoAparelho,'token'>; aparelhoSubstituidoId: string|null }|null, uma visão copiada somente quando geração e vínculo atuais ainda correspondem à tentativa. A tela consulta essa visão depois da transição de conta, inclusive ao remontar, para oferecer o mesmo alvo já enviado; não persiste prova nem devolve segredo. Cancelar/iniciar outra ação/sucesso deixa o getter nulo. Depois de enviar confirmação, não alterar alvo: retentar o mesmo ou pedir novo código.
+
+Ao desmontar durante confirmação já consentida, não cancelar automaticamente Dados por causa da remontagem do próprio Stack. Bloquear retorno/fechamento durante o envio e aplicação; retorno antes de confirmar cancela a tentativa local. Respostas antigas não mudam estado/erro/loading de tentativa nova, com geração de UI e trava imediata de clique. Teste React deve modelar a remontagem por chave da conta e a recuperação da visão após falha de carga própria; não basta testar Dados isolado.
+
 ## Data Models
 
 Tabela recuperacoes_aparelho: id UUID PK; token_hash text unique; conta_id/loja_id/operador_id FKs; aparelho_novo_id UUID; aparelho_novo_nome text; aparelhos_permitidos jsonb string[]; criado_em/expira_em; invalidado_em/confirmado_em opcionais; aparelho_substituido_id e sessao_id FKs opcionais. Índice conta_id para invalidação de pendências. Nenhum segredo bruto, nenhuma exclusão financeira.

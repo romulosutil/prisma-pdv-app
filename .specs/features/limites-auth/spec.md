@@ -13,7 +13,7 @@ Entrega real de e-mail, recuperação por aparelho perdido, proxy de produção,
 | Assumption | Chosen default | Rationale |
 |---|---|---|
 | Armazenamento | PostgreSQL existente; tabela limites_auth sem serviços adicionais | Partilhar estado e preservar arquitetura |
-| Janela | 15 minutos a partir do primeiro uso, reset inclusivo aos 900000ms | Política reversível e testável |
+| Janela | 15 minutos a partir do primeiro consumo, reset inclusivo aos 900000ms; janela zerada tem piso no último instante de inicialização/reset observado | Verificação sem consumo não antecipa renovação e recuo não elimina proteção |
 | Emissão por email | Até 3 aceitas/janela, intervalo mínimo 60s | Evitar inundação e reenvio contínuo |
 | Emissão por IP | Até 20 requisições válidas/janela, inclusive desconhecidas e barradas por email | Evitar enumeração em massa |
 | Login | Até 50 requisições válidas/IP/janela e 5 falhas/email/janela | Reemissão não renova orçamento de erros |
@@ -37,6 +37,7 @@ Acceptance Criteria:
 6. WHEN uma operação é negada por autenticação ou regra de aparelho, a transação SHALL confirmar os contadores aplicáveis e não criar sessão indevida; falha inesperada de banco SHALL retornar erro sem autorizar login/emissão; êxito SHALL continuar consumindo o código uma vez e preservar expiração de 10min e limite por código de 5 erros.
 7. WHEN limites são persistidos, a tabela SHALL conter somente chave opaca, instantes e contagem; email/IP/código/token SHALL não existir em texto no registro. Falha de validação de corpo SHALL manter 400 requisicao_invalida e não emitir código.
 8. WHEN o relógio recua ou aguarda trava, o serviço SHALL não reabrir janela antes do prazo e SHALL avaliar o prazo após adquirir a trava. O procedimento de retenção SHALL preservar todas as janelas ativas e ser preparado sem execução externa.
+9. WHEN uma chamada HTTP retorna 429, o mobile SHALL apresentar a orientação local Muitas tentativas. Aguarde alguns minutos e tente novamente., sem exibir corpo arbitrário do servidor nem invalidar a credencial existente; o próximo pedido após liberação SHALL poder prosseguir.
 
 ## Requirement Traceability
 
@@ -45,3 +46,4 @@ Acceptance Criteria:
 | RATE-01 | 1, 7, 8 | P0-03-B armazenamento compartilhado | pending |
 | RATE-02 | 2, 3 | P0-03-B emissão | pending |
 | RATE-03 | 4, 5, 6 | P0-03-B tentativas | pending |
+| RATE-04 | 9 | P0-03-B comunicação no mobile | pending |

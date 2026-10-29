@@ -371,3 +371,10 @@ export const testesUsados = pgTable('testes_usados', {
   fingerprint: text('fingerprint').notNull().unique(),
   criadoEm: criadoEm(),
 });
+
+export const limitesAuth = pgTable('limites_auth', {
+  chave: text('chave').primaryKey(),
+  janelaInicio: instante('janela_inicio').notNull(),
+  usos: integer('usos').notNull(),
+  ultimoUsoEm: instante('ultimo_uso_em'),
+});

@@ -40,7 +40,7 @@ Where: apps/api/src/rotas/conta.ts, apps/api/test/limitesAuthRotas.test.ts; fixt
 Tests: critérios2a8 via duas instâncias e PostgreSQL real; manter todos os testes legados, corpo400, produção anti-enumeração, código anterior preservado, reenvio não reinicia erros e rollback não apaga contagem.
 Gate: build
 Done when: rotas aplicam orçamento antes de consultar conta, erros esperados confirmam contadores, não há sessão indevida nem emissão fora do limite; retenção/proxy documentados; revisão nova com sensor em scratch aprova contrato local.
-Status: pending.
+Status: aceita localmente; API149/149 PGlite e153/153 PostgreSQL17, mobile351/351, shared136/136, typecheck todos aprovado. Revisor novo executou14/14 rotas no PostgreSQL; revisao-rotas.md PASS. Fixtures só avançam relógio; erro após consumo/insert sessão faz rollback e preserva código.
 
 ### T3: Orientação de limite no cliente
 Depends on: T2

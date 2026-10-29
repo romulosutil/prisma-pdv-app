@@ -1,0 +1,13 @@
+# Revisão independente T2 — PASS
+
+Escopo: diff contra 3325a48 de conta.ts, testes de rotas, quatro fixtures e operação. Nenhuma alteração de implementação. PostgreSQL local dedicado: 14/14 testes de limitesAuthRotas passaram; executor informou API 149 PGlite/153 PostgreSQL, mobile 351 e typecheck API aprovados. Não executei sensor de mutação nesta revisão.
+
+- AC2: limites e ordem em conta.ts:73-90; testes limitesAuthRotas.test.ts:28-47 verificam 59.999ms, 60s, três emissões, 429, código anterior utilizável e reinício aos 15min.
+- AC3: limitesAuthRotas.test.ts:50-69 cobre 20/IP inclusive desconhecido e bloqueado, XFF alterado, IP independente e produção 204 vazia/429 idêntico; conta.ts:76-79,93-97 aplica antes da consulta.
+- AC4: limitesAuthRotas.test.ts:74-110 e 113-120 cobrem cinco falhas compartilhadas entre IPs/instâncias, reemissão, códigos ausente/usado/expirado e conta inexistente. conta.ts:107-130 preserva a contagem; 139-152 preserva código e falhas nos 409; teste de limite de aparelho verifica contador e reutilização em limitesAuthRotas.test.ts:140-150.
+- AC5: limitesAuthRotas.test.ts:122-138 testa 50 logins, 51º correto bloqueado, sessão anterior e outro IP. Sucesso não consome falha conforme conta.ts:127-160; teste de sequência em limitesAuthRotas.test.ts:94-110 também verifica cinco falhas apesar de sucesso anterior.
+- AC6/7: erros esperados retornam da transação e são lançados após commit em conta.ts:93,107-130,139-163; testes de 400 e falha de banco/rollback em limitesAuthRotas.test.ts:153-202. Uso único, validade e cinco erros legados continuam em conta.test.ts:103-131; expiração exata também em limitesAuthRotas.test.ts:101-103. Teste concorrente de uso único em sessoes.test.ts:119-125. Chave opaca é produzida pelo serviço limitesAuth.ts:19, e os campos não contêm dados brutos. Teste de trigger verifica rollback de código, contador e sessão.
+- AC8: SQL operacional docs/operacao-autenticacao.md:33-46 usa os dois instantes e trava; limitesAuthRotas.test.ts:204-215 executa a consulta com antiga, ativa e uso recente. Concorrência PostgreSQL real entre instâncias é coberta em limitesAuthRotas.test.ts:220-240; prazo/recuo pós-trava pertence à revisão T1.
+- Diff das fixtures conta.test.ts:165, sessoes.test.ts:80, acessoApiIntegracao.test.ts:66 e trocaContasApi.test.ts:23-26,69 apenas disponibiliza relógio e avança 60s; nenhuma asserção removida ou enfraquecida. Operações financeiras e dados de conta não são alterados pelo diff da rota; limites emitem hashes e não registram credenciais na tabela. MockBilling da fábrica de produção é dependência de teste, não homologação de cobrança.
+
+Sem falhas concretas identificadas no escopo. A revisão não comprova entrega de email, proxy implantado, cobrança real ou T3.

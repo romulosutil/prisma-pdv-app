@@ -20,11 +20,12 @@ class Cofre implements CofreSessao {
   async remover(k: string) { this.dados.delete(k); }
 }
 let conexao: Conexao; let app: Awaited<ReturnType<typeof criarApp>>;
+const relogio = new RelogioFalso(new Date('2026-03-10T12:00:00Z'));
 const abertos: DatabaseSync[] = []; const chamadas: { metodo: string; caminho: string; status: number }[] = [];
 let n = 0;
 beforeAll(async () => {
   conexao = await abrirPglite();
-  app = await criarApp({ db: conexao.db, relogio: new RelogioFalso(new Date('2026-03-10T12:00:00Z')), billing: new MockBillingProvider(), fontesEan: [] });
+  app = await criarApp({ db: conexao.db, relogio, billing: new MockBillingProvider(), fontesEan: [] });
   vi.stubGlobal('fetch', async (entrada: string | URL | Request, init?: RequestInit) => {
     const url = new URL(typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url);
     const metodo = init?.method ?? 'GET';
@@ -65,6 +66,7 @@ describe('troca de contas com API real em processo', () => {
     expect(await dados.armazenamentoDaLoja.obter('chavePix')).toBeNull(); semToken(c.base, sessaoB.token);
     dados = new Dados(c.sqlite, c.novoId, 'http://api.local'); await dados.iniciar();
     for (const [form, esperada] of [[a, sessaoA], [b, sessaoB], [a, sessaoA], [b, sessaoB]] as const) {
+      relogio.avancarHoras(1 / 60);
       chamadas.length = 0; await dados.entrar(form.email, await codigo(form.email));
       const atual = dados.conta.obter();
       expect(atual.sessao).toMatchObject({ contaId: esperada.contaId, lojaId: esperada.lojaId, aparelhoId: esperada.aparelhoId });

@@ -63,6 +63,7 @@ describe('acesso com API local e SQLite', () => {
     const { dados, base, email } = await montar();
     const inicial = dados.conta.obter().sessao!; semToken(base, inicial.token);
     for (let i = 0; i < 3; i++) {
+      if (i > 0) relogio.avancarHoras(1 / 60);
       await dados.entrar(email, await codigo(email));
       const atual = dados.conta.obter();
       expect(atual.sessao?.aparelhoId).toBe(inicial.aparelhoId);

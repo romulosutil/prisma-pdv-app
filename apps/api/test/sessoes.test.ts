@@ -77,6 +77,7 @@ describe('sessões e aparelhos', () => {
     expect((await chamar(amb, 'GET', '/conta', { token: conta.token })).status).toBe(401);
     expect((await chamar(amb, 'GET', '/conta', { token: segundoToken.corpo.token })).status).toBe(401);
     expect((await chamar(amb, 'GET', '/conta', { token: outra.token })).status).toBe(200);
+    amb.relogio.avancarHoras(1 / 60);
     const cod = await codigo(conta.email);
     const recusado = await login(conta.email, conta.aparelhoId, cod);
     expect(recusado).toMatchObject({ status: 409, corpo: { erro: 'aparelho_revogado' } });

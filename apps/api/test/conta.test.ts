@@ -162,6 +162,7 @@ describe('autenticação', () => {
 
     const troca = await chamar(amb, 'POST', '/assinatura/trocar-plano', { token: conta.token, corpo: { planoId: 'negocio' } });
     expect(troca.status).toBe(200);
+    amb.relogio.avancarHoras(1 / 60);
     expect((await entrarComNovoAparelho()).status).toBe(200);
   });
 

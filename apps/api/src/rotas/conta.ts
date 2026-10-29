@@ -18,6 +18,7 @@ import { aparelhos, codigosLogin, contas, lojas, operadores, sessoes } from '../
 import type { Deps } from '../deps';
 import { ErroApi } from '../erros';
 import { carregarAssinatura } from '../servicos/assinatura';
+import { limitarAuth } from '../servicos/limitesAuth';
 
 const CODIGO_VALIDADE_MS = 10 * 60 * 1000;
 const CODIGO_MAX_TENTATIVAS = 5;
@@ -26,6 +27,7 @@ const PedirCodigoReqSchema = z.object({ email: z.email() });
 
 const normalizarEmail = (email: string): string => email.trim().toLowerCase();
 const hashDoCodigo = (email: string, codigo: string): string => sha256(`${email}:${codigo}`);
+const limiteAuth = () => new ErroApi(429, 'limite_autenticacao', 'Muitas tentativas. Aguarde alguns minutos e tente novamente.');
 
 export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao: boolean): void {
   app.post('/contas', async (request, reply) => {
@@ -71,6 +73,8 @@ export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao
   app.post('/auth/codigo', async (request, reply) => {
     const email = normalizarEmail(PedirCodigoReqSchema.parse(request.body).email);
     const codigo = await db.transaction(async (tx) => {
+      if (!await limitarAuth(tx, 'emissao_ip', request.ip, relogio)) return limiteAuth();
+      if (!await limitarAuth(tx, 'emissao_email', email, relogio)) return limiteAuth();
       const [conta] = await tx.select({ id: contas.id }).from(contas).where(eq(contas.email, email)).for('update');
       if (!conta) return null;
       const agora = relogio.agora();
@@ -86,6 +90,7 @@ export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao
       return codigo;
     });
 
+    if (codigo instanceof ErroApi) throw codigo;
     if (codigo === null) return reply.status(204).send();
 
     // O envio por e-mail ainda não existe: fora de produção o código volta na resposta e vai para o console.
@@ -99,10 +104,15 @@ export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao
     const email = normalizarEmail(req.email);
 
     const sessao = await db.transaction(async (tx) => {
+      if (!await limitarAuth(tx, 'login_ip', request.ip, relogio)) return limiteAuth();
+      const codigoInvalido = new ErroApi(401, 'codigo_invalido', 'Código inválido ou expirado.');
+      if (!await limitarAuth(tx, 'falha_email', email, relogio, false)) return codigoInvalido;
       // A mesma trava serializa login, consumo de código, limite e revogação de aparelhos.
       const [conta] = await tx.select().from(contas).where(eq(contas.email, email)).for('update');
-      const codigoInvalido = new ErroApi(401, 'codigo_invalido', 'Código inválido ou expirado.');
-      if (!conta) throw codigoInvalido;
+      if (!conta) {
+        await limitarAuth(tx, 'falha_email', email, relogio);
+        return codigoInvalido;
+      }
       const agora = relogio.agora();
       const [pendente] = await tx
         .select()
@@ -110,11 +120,14 @@ export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao
         .where(and(eq(codigosLogin.email, email), isNull(codigosLogin.usadoEm)))
         .orderBy(desc(codigosLogin.criadoEm))
         .limit(1);
-      if (!pendente || pendente.expiraEm <= agora || pendente.tentativas >= CODIGO_MAX_TENTATIVAS) throw codigoInvalido;
+      if (!pendente || pendente.expiraEm <= agora || pendente.tentativas >= CODIGO_MAX_TENTATIVAS) {
+        await limitarAuth(tx, 'falha_email', email, relogio);
+        return codigoInvalido;
+      }
       if (pendente.codigoHash !== hashDoCodigo(email, req.codigo)) {
         await tx.update(codigosLogin).set({ tentativas: pendente.tentativas + 1 }).where(eq(codigosLogin.id, pendente.id));
-        // Sem lançar aqui: o erro desfaria a transação e a contagem de tentativas junto.
-        return null;
+        await limitarAuth(tx, 'falha_email', email, relogio);
+        return codigoInvalido;
       }
 
       const [dono] = await tx
@@ -125,10 +138,10 @@ export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao
 
       const [aparelho] = await tx.select().from(aparelhos).where(eq(aparelhos.id, req.aparelhoId));
       if (aparelho && aparelho.contaId !== conta.id) {
-        throw new ErroApi(409, 'aparelho_em_uso', 'Este aparelho já pertence a outra conta.');
+        return new ErroApi(409, 'aparelho_em_uso', 'Este aparelho já pertence a outra conta.');
       }
-      if (aparelho?.revogadoEm) throw new ErroApi(409, 'aparelho_revogado', 'Este aparelho foi revogado.');
-      if (aparelho && aparelho.lojaId !== dono.lojaId) throw new ErroApi(409, 'aparelho_em_uso', 'Este aparelho pertence a outra loja.');
+      if (aparelho?.revogadoEm) return new ErroApi(409, 'aparelho_revogado', 'Este aparelho foi revogado.');
+      if (aparelho && aparelho.lojaId !== dono.lojaId) return new ErroApi(409, 'aparelho_em_uso', 'Este aparelho pertence a outra loja.');
       if (aparelho) {
         await tx.update(aparelhos).set({ nome: req.aparelhoNome, ultimoAcessoEm: agora }).where(eq(aparelhos.id, aparelho.id));
       } else {
@@ -136,7 +149,7 @@ export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao
         const { planoId } = licencaDe(assinatura, agora);
         const total = await tx.$count(aparelhos, and(eq(aparelhos.contaId, conta.id), isNull(aparelhos.revogadoEm)));
         if (!dentroDoLimite(planoId, 'aparelhos', total)) {
-          throw new ErroApi(409, 'limite_aparelhos', 'O plano atual não permite mais aparelhos. Remova um aparelho ou troque de plano.');
+          return new ErroApi(409, 'limite_aparelhos', 'O plano atual não permite mais aparelhos. Remova um aparelho ou troque de plano.');
         }
         await tx
           .insert(aparelhos)
@@ -147,7 +160,7 @@ export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao
       return criarSessao(tx, { contaId: conta.id, lojaId: dono.lojaId, operadorId: dono.id, aparelhoId: req.aparelhoId }, agora);
     });
 
-    if (!sessao) throw new ErroApi(401, 'codigo_invalido', 'Código inválido ou expirado.');
+    if (sessao instanceof ErroApi) throw sessao;
     return LoginResSchema.parse(sessao);
   });
 }

@@ -3,11 +3,11 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { ConfirmarRecuperacaoReqSchema, IniciarRecuperacaoReqSchema, RecuperacaoAparelhoSchema, SessaoSchema, dentroDoLimite, gerarId, licencaDe } from '@pdv/shared';
 import type { FastifyInstance } from 'fastify';
 import { criarSessao, sha256 } from '../auth';
-import { aparelhos, codigosLogin, contas, lojas, operadores, recuperacoesAparelho, sessoes } from '../db/schema';
+import { aparelhos, contas, lojas, operadores, recuperacoesAparelho, sessoes } from '../db/schema';
 import type { Deps } from '../deps';
 import { ErroApi } from '../erros';
 import { carregarAssinatura } from '../servicos/assinatura';
-import { limiteAuth, normalizarEmail, verificarCodigo } from '../servicos/codigoLogin';
+import { consumirCodigoLogin, limiteAuth, normalizarEmail, verificarCodigo } from '../servicos/codigoLogin';
 import { limitarAuth } from '../servicos/limitesAuth';
 
 const conflito = (codigo: string) => new ErroApi(409, codigo, 'Não foi possível recuperar o aparelho.');
@@ -39,7 +39,7 @@ export function rotasRecuperacao(app: FastifyInstance, { db, relogio }: Deps): v
       const expiraEm = new Date(agora.getTime() + 300_000);
       await tx.update(recuperacoesAparelho).set({ invalidadoEm: agora }).where(and(eq(recuperacoesAparelho.contaId, conta.id), isNull(recuperacoesAparelho.confirmadoEm), isNull(recuperacoesAparelho.invalidadoEm)));
       await tx.insert(recuperacoesAparelho).values({ id, tokenHash: sha256(token), contaId: conta.id, lojaId: loja.id, operadorId: dono.id, aparelhoNovoId: req.aparelhoId, aparelhoNovoNome: req.aparelhoNome, aparelhosPermitidos: candidatos.map((a) => a.id), criadoEm: agora, expiraEm });
-      await tx.update(codigosLogin).set({ usadoEm: agora }).where(eq(codigosLogin.id, pendente.id));
+      await consumirCodigoLogin(tx, pendente.id, agora);
       return RecuperacaoAparelhoSchema.parse({ id, token, expiraEm: expiraEm.toISOString(), perfil: { contaId: conta.id, lojaId: loja.id, operadorId: dono.id, email: conta.email, nomeResponsavel: conta.nomeResponsavel, nomeLoja: loja.nome, papel: 'dono' }, aparelhoNovoId: req.aparelhoId, aparelhoNovoNome: req.aparelhoNome, aparelhos: candidatos.map((a) => ({ id: a.id, nome: a.nome, ultimoAcessoEm: a.ultimoAcessoEm.toISOString() })) });
     });
     if (resultado instanceof ErroApi) throw resultado;

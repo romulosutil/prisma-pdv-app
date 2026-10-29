@@ -7,6 +7,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Conexao } from '../src/db/conexao';
 import { codigosLogin, limitesAuth, sessoes } from '../src/db/schema';
 import { criarApp } from '../src/servidor';
+import { emissaoTeste } from './emailFixture';
 import { abrirBanco, criarAmbiente, criarConta, contaEmTeste, INICIO, type Ambiente } from './ajuda';
 
 let banco: Conexao;
@@ -60,7 +61,7 @@ describe('limites de autenticação nas rotas', () => {
   it('produção responde 204 vazio para conhecidos e desconhecidos e aplica o mesmo 429', async () => {
     const conta = await criarConta(amb);
     vi.stubEnv('NODE_ENV', 'production');
-    const producao = await criarApp({ db: amb.db, relogio: amb.relogio, billing: amb.billing, fontesEan: [] });
+    const producao = await criarApp({ db: amb.db, relogio: amb.relogio, billing: amb.billing, fontesEan: [], emissaoCodigo: emissaoTeste });
     try {
       for (const email of [conta.email, 'ausente@exemplo.com']) {
         const resposta = await pedir(producao, email);

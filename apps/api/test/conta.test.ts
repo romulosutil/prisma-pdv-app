@@ -2,6 +2,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { Conexao } from '../src/db/conexao';
 import { AssinaturaResSchema, gerarId, LoginResSchema, MockBillingProvider, PLANOS_ORDEM, RelogioFalso } from '@pdv/shared';
 import { criarApp } from '../src/servidor';
+import { emissaoTeste } from './emailFixture';
+import { entregasCodigo } from '../src/db/schema';
 import { abrirBanco, assinar, chamar, contaEmTeste, criarAmbiente, criarConta, INICIO, NUMEROS, type Ambiente } from './ajuda';
 
 let banco: Conexao;
@@ -136,14 +138,15 @@ describe('autenticação', () => {
     expect(res.status).toBe(204);
   });
 
-  it('em produção o código só é enviado, nunca devolvido', async () => {
+  it('em produção o código é enfileirado, nunca devolvido', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    const producao = await criarApp({ db: amb.db, relogio: new RelogioFalso(INICIO), billing: new MockBillingProvider(), fontesEan: [] });
+    const producao = await criarApp({ db: amb.db, relogio: new RelogioFalso(INICIO), billing: new MockBillingProvider(), fontesEan: [], emissaoCodigo: emissaoTeste });
     const dados = { email: 'prod@exemplo.com.br', nomeResponsavel: 'P', nomeLoja: 'L', documento: '12345678901', aparelhoId: gerarId(), aparelhoNome: 'C' };
     expect((await producao.inject({ method: 'POST', url: '/contas', payload: dados })).statusCode).toBe(201);
     const res = await producao.inject({ method: 'POST', url: '/auth/codigo', payload: { email: dados.email } });
     expect(res.statusCode).toBe(204);
     expect(res.body).toBe('');
+    expect(await amb.db.select().from(entregasCodigo)).toHaveLength(1);
     await producao.close();
   });
 

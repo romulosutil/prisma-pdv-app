@@ -59,7 +59,7 @@ Where: apps/api/src/deps.ts, servidor.ts, rotas/{conta,recuperacao}.ts, servicos
 Tests: AC1/2 e guarda de produção de AC7; DBfault/ratebudget/supersessão, OTP login/recuperação e quinta falha, resposta204 uniforme/503 local sem segredo, regressões de autenticação em PGlite/PostgreSQL.
 Gate: build
 Done when: emissão grava OTP/fila atomicos e consumo cancela fila na mesma transação; limites/finanças preservados, sem logs de OTP; revisor novo aceita as rotas. Bootstrap e SMTP real ficam em T5, sem dar entrega externa por concluída.
-Status: pending.
+Status: aceita no escopo T4 após revisao-emissao.md PASS e reforço de atomicidade. Gestor leu fontes e rodou suítes completas333API/PGlite e363API/PostgreSQL,433mobile,148shared,typecheck todos. Revisor executou89alvos anteriores e18casos de emissão finais no PG; executor86PGlite/92PG em5arquivos. Testes verificam204, logs, supersessão,6fronteiras de emissão com OTP antigo ainda utilizável e3fronteiras de consumo com snapshot/retentativa. Nenhuma asserção financeira legada removida, teste pulado ou expectativa enfraquecida; fixtures prod agora declaram modoemail, sem alegar envio. Bootstrap/protocolo/finanças preenchidas e sensor aindaT5.
 
 ### T5: Bootstrap, protocolo local e comunicação
 Depends on: T4

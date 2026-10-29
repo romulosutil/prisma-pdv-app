@@ -30,10 +30,12 @@ function descreverErroZod(erro: z.ZodError): string {
 /** NODE_ENV é lido aqui, na criação: em produção as rotas /dev nem existem. */
 export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
   const producao = process.env.NODE_ENV === 'production';
+  if (producao && config.emissaoCodigo?.modo !== 'email') throw new Error('Configuração de emissão de código inválida.');
   const deps: Deps = {
     db: config.db,
     relogio: config.relogio,
     billing: config.billing,
+    emissaoCodigo: config.emissaoCodigo ?? { modo: 'desenvolvimento' },
     fontesEan: config.fontesEan,
     orcamentoEanMs: config.orcamentoEanMs,
   };
@@ -76,7 +78,7 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
     return { status: 'ok' };
   });
   rotasPlanos(app);
-  rotasConta(app, deps, producao);
+  rotasConta(app, deps);
   rotasRecuperacao(app, deps);
   if (!producao) rotasDev(app, deps);
 

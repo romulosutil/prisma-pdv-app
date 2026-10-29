@@ -19,14 +19,15 @@ import type { Deps } from '../deps';
 import { ErroApi } from '../erros';
 import { carregarAssinatura } from '../servicos/assinatura';
 import { limitarAuth } from '../servicos/limitesAuth';
-import { normalizarEmail, hashDoCodigo, limiteAuth, verificarCodigo } from '../servicos/codigoLogin';
+import { normalizarEmail, hashDoCodigo, limiteAuth, verificarCodigo, consumirCodigoLogin } from '../servicos/codigoLogin';
+import { cancelarEntregasDaConta, enfileirarCodigo } from '../email/filaCodigo';
 
 const CODIGO_VALIDADE_MS = 10 * 60 * 1000;
 
 const PedirCodigoReqSchema = z.object({ email: z.email() });
 
 
-export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao: boolean): void {
+export function rotasConta(app: FastifyInstance, { db, relogio, emissaoCodigo = { modo: 'desenvolvimento' } }: Deps): void {
   app.post('/contas', async (request, reply) => {
     const req = CriarContaReqSchema.parse(request.body);
     const email = normalizarEmail(req.email);
@@ -69,7 +70,8 @@ export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao
   // Não revela se o e-mail existe: sem conta, a resposta é a mesma e nenhum código é gerado.
   app.post('/auth/codigo', async (request, reply) => {
     const email = normalizarEmail(PedirCodigoReqSchema.parse(request.body).email);
-    const codigo = await db.transaction(async (tx) => {
+    let codigo: string | null | ErroApi;
+    try { codigo = await db.transaction(async (tx) => {
       if (!await limitarAuth(tx, 'emissao_ip', request.ip, relogio)) return limiteAuth();
       if (!await limitarAuth(tx, 'emissao_email', email, relogio)) return limiteAuth();
       const [conta] = await tx.select({ id: contas.id }).from(contas).where(eq(contas.email, email)).for('update');
@@ -78,22 +80,27 @@ export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao
       const codigo = String(randomInt(0, 1_000_000)).padStart(6, '0');
       await tx.update(codigosLogin).set({ usadoEm: agora }).where(and(eq(codigosLogin.email, email), isNull(codigosLogin.usadoEm)));
       await tx.update(recuperacoesAparelho).set({ invalidadoEm: agora }).where(and(eq(recuperacoesAparelho.contaId, conta.id), isNull(recuperacoesAparelho.confirmadoEm), isNull(recuperacoesAparelho.invalidadoEm)));
+      await cancelarEntregasDaConta(tx, conta.id, agora);
+      const codigoId = gerarId();
+      const expiraEm = new Date(agora.getTime() + CODIGO_VALIDADE_MS);
       await tx.insert(codigosLogin).values({
-        id: gerarId(),
+        id: codigoId,
         email,
         codigoHash: hashDoCodigo(email, codigo),
-        expiraEm: new Date(agora.getTime() + CODIGO_VALIDADE_MS),
+        expiraEm,
         criadoEm: agora,
       });
+      if (emissaoCodigo.modo === 'email') await enfileirarCodigo(tx, emissaoCodigo.chaves, { contaId: conta.id, codigoId, email, codigo, dominioRemetente: emissaoCodigo.dominioRemetente, criadoEm: agora, expiraEm });
       return codigo;
-    });
+    }); } catch (erro) {
+      if (emissaoCodigo.modo === 'email') throw new ErroApi(503, 'codigo_indisponivel', 'Código temporariamente indisponível.');
+      throw erro;
+    }
 
     if (codigo instanceof ErroApi) throw codigo;
     if (codigo === null) return reply.status(204).send();
 
-    // O envio por e-mail ainda não existe: fora de produção o código volta na resposta e vai para o console.
-    if (producao) return reply.status(204).send();
-    request.log.info(`[codigo-login] ${email}: ${codigo}`);
+    if (emissaoCodigo.modo === 'email') return reply.status(204).send();
     return { codigo };
   });
 
@@ -133,7 +140,7 @@ export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao
           .values({ id: req.aparelhoId, contaId: conta.id, lojaId: dono.lojaId, nome: req.aparelhoNome, criadoEm: agora, ultimoAcessoEm: agora });
       }
 
-      await tx.update(codigosLogin).set({ usadoEm: agora }).where(eq(codigosLogin.id, pendente.id));
+      await consumirCodigoLogin(tx, pendente.id, agora);
       return criarSessao(tx, { contaId: conta.id, lojaId: dono.lojaId, operadorId: dono.id, aparelhoId: req.aparelhoId }, agora);
     });
 

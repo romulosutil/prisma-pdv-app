@@ -185,7 +185,7 @@ export function venda(conta: { lojaId: string; aparelhoId: string; operadorId: s
       { id: gerarId(), produtoId: null, descricao: 'Pão', precoUnitarioCentavos: 100, quantidadeMilesimos: 2000, totalCentavos: 200 },
       { id: gerarId(), produtoId: null, descricao: 'Leite', precoUnitarioCentavos: 500, quantidadeMilesimos: 1000, totalCentavos: 500 },
     ],
-    pagamentos: [{ id: gerarId(), meio: 'dinheiro', provedor: null, valorCentavos: 1000, trocoCentavos: 300 }],
+    pagamentos: [{ id: gerarId(), meio: 'dinheiro', provedor: null, valorCentavos: 700, trocoCentavos: 300 }],
     totalCentavos: 700,
     status: 'concluida',
     criadaEm: INICIO.toISOString(),

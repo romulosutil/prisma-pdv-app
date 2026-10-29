@@ -35,4 +35,4 @@ Where: apps/api/src/servicos/{valoresVenda,sync}.ts, test/{valoresVenda,syncValo
 Tests: AC1–5, testes primeiro a partir do contrato; snapshots totais de vendas/filhos/mudanças/ACK/caixas/movimentos, lote misto e retry; comparações de todos campos imutáveis e legado sem recalcular. API PGlite/PG e regressões financeiras.
 Gate: build
 Done when: gates passam, gestor revisa diretamente persistência/sync, revisor novo aceita com evidências; commit central e verificador final novo com sensor antes de aceitar a feature.
-Status: pendente.
+Status: implementado e aceito no escopo T2 pelo gestor após revisão independente revisao.md PASS. Gates finais seriais:359API/PGlite,392API comPostgreSQL,433mobile,148shared,typecheck todos. Revisor repetiu24alvos por banco e typecheckAPI; snapshots completos e provas isoladas reforçados após achados. Nenhuma asserção legada removida/enfraquecida, fixture somente líquido700. Verificador FINAL novo e sensor ainda pendentes antes do aceite da feature.

@@ -22,6 +22,7 @@ import type { SessaoAutenticada } from '../auth';
 import type { Db } from '../db/conexao';
 import { caixas, itensVenda, movimentosCaixa, mudancas, mutacoesAplicadas, pagamentosVenda, produtos, vendas } from '../db/schema';
 import { carregarAssinatura } from './assinatura';
+import { vendaConsistente } from './valoresVenda';
 
 export const PULL_LIMITE = 500;
 
@@ -129,7 +130,12 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
 
   if (atual) {
     if (atual.lojaId !== v.lojaId) return 'loja_invalida';
-    if (v.totalCentavos !== atual.totalCentavos) return 'venda_imutavel';
+    const salva = (await carregarVendas(c.tx, [v.id])).get(v.id);
+    if (!salva || salva.entidade !== 'venda' || salva.operacao !== 'upsert') return 'venda_imutavel';
+    const financeiro = (x: Venda) => [x.lojaId, x.aparelhoId, x.operadorId, x.totalCentavos,
+      x.itens.map(i => [i.id, i.produtoId, i.descricao, i.precoUnitarioCentavos, i.quantidadeMilesimos, i.totalCentavos]),
+      x.pagamentos.map(p => [p.id, p.meio, p.provedor, p.valorCentavos, p.trocoCentavos])];
+    if (JSON.stringify(financeiro(v)) !== JSON.stringify(financeiro(salva.dados))) return 'venda_imutavel';
     if (v.status === atual.status) return null;
     if (v.status !== 'cancelada') return 'venda_imutavel';
     await c.tx
@@ -145,6 +151,7 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
   if (c.vendaPermitidaAte === null || criadoEm > c.vendaPermitidaAte) return 'assinatura_suspensa';
   // O app não deixa vender offline além da janela: criadaEm mais antigo que isso é retroação.
   if (criadoEm < adicionarDias(c.agora, -OFFLINE_MAX_DIAS)) return 'venda_fora_da_janela_offline';
+  if (!vendaConsistente(v)) return 'venda_inconsistente';
   await c.tx.insert(vendas).values({
     id: v.id,
     lojaId: v.lojaId,

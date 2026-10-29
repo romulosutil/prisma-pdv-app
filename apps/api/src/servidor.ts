@@ -11,6 +11,7 @@ import { rotasCatalogo } from './rotas/catalogo';
 import { rotasConta, rotasContaProtegidas } from './rotas/conta';
 import { rotasDev } from './rotas/dev';
 import { rotasSync } from './rotas/sync';
+import { rotasRecuperacao } from './rotas/recuperacao';
 
 // Mensagens de validação do zod em português, inclusive nos schemas do @pdv/shared.
 z.config(z.locales.pt());
@@ -76,6 +77,7 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
   });
   rotasPlanos(app);
   rotasConta(app, deps, producao);
+  rotasRecuperacao(app, deps);
   if (!producao) rotasDev(app, deps);
 
   await app.register(async (privado) => {

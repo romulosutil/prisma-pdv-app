@@ -113,6 +113,21 @@ export const codigosLogin = pgTable(
   (t) => [index('codigos_login_email_idx').on(t.email)],
 );
 
+export const recuperacoesAparelho = pgTable('recuperacoes_aparelho', {
+  id: uuid('id').primaryKey(),
+  tokenHash: text('token_hash').notNull().unique(),
+  contaId: uuid('conta_id').notNull().references(() => contas.id),
+  lojaId: uuid('loja_id').notNull().references(() => lojas.id),
+  operadorId: uuid('operador_id').notNull().references(() => operadores.id),
+  aparelhoNovoId: uuid('aparelho_novo_id').notNull(),
+  aparelhoNovoNome: text('aparelho_novo_nome').notNull(),
+  aparelhosPermitidos: jsonb('aparelhos_permitidos').$type<string[]>().notNull(),
+  criadoEm: criadoEm(), expiraEm: instante('expira_em').notNull(),
+  invalidadoEm: instante('invalidado_em'), confirmadoEm: instante('confirmado_em'),
+  aparelhoSubstituidoId: uuid('aparelho_substituido_id').references(() => aparelhos.id),
+  sessaoId: uuid('sessao_id').references(() => sessoes.id),
+}, (t) => [index('recuperacoes_aparelho_conta_idx').on(t.contaId)]);
+
 // ---------- Catálogo, vendas e caixa (sincronizados) ----------
 
 export const produtos = pgTable(

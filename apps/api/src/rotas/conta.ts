@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { and, desc, eq, isNull, or } from 'drizzle-orm';
+import { and, eq, isNull, or } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import {
@@ -13,21 +13,18 @@ import {
   PerfilResSchema,
   AparelhosResSchema,
 } from '@pdv/shared';
-import { criarSessao, sha256 } from '../auth';
-import { aparelhos, codigosLogin, contas, lojas, operadores, sessoes } from '../db/schema';
+import { criarSessao } from '../auth';
+import { aparelhos, codigosLogin, contas, lojas, operadores, sessoes, recuperacoesAparelho } from '../db/schema';
 import type { Deps } from '../deps';
 import { ErroApi } from '../erros';
 import { carregarAssinatura } from '../servicos/assinatura';
 import { limitarAuth } from '../servicos/limitesAuth';
+import { normalizarEmail, hashDoCodigo, limiteAuth, verificarCodigo } from '../servicos/codigoLogin';
 
 const CODIGO_VALIDADE_MS = 10 * 60 * 1000;
-const CODIGO_MAX_TENTATIVAS = 5;
 
 const PedirCodigoReqSchema = z.object({ email: z.email() });
 
-const normalizarEmail = (email: string): string => email.trim().toLowerCase();
-const hashDoCodigo = (email: string, codigo: string): string => sha256(`${email}:${codigo}`);
-const limiteAuth = () => new ErroApi(429, 'limite_autenticacao', 'Muitas tentativas. Aguarde alguns minutos e tente novamente.');
 
 export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao: boolean): void {
   app.post('/contas', async (request, reply) => {
@@ -80,6 +77,7 @@ export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao
       const agora = relogio.agora();
       const codigo = String(randomInt(0, 1_000_000)).padStart(6, '0');
       await tx.update(codigosLogin).set({ usadoEm: agora }).where(and(eq(codigosLogin.email, email), isNull(codigosLogin.usadoEm)));
+      await tx.update(recuperacoesAparelho).set({ invalidadoEm: agora }).where(and(eq(recuperacoesAparelho.contaId, conta.id), isNull(recuperacoesAparelho.confirmadoEm), isNull(recuperacoesAparelho.invalidadoEm)));
       await tx.insert(codigosLogin).values({
         id: gerarId(),
         email,
@@ -105,30 +103,9 @@ export function rotasConta(app: FastifyInstance, { db, relogio }: Deps, producao
 
     const sessao = await db.transaction(async (tx) => {
       if (!await limitarAuth(tx, 'login_ip', request.ip, relogio)) return limiteAuth();
-      const codigoInvalido = new ErroApi(401, 'codigo_invalido', 'Código inválido ou expirado.');
-      if (!await limitarAuth(tx, 'falha_email', email, relogio, false)) return codigoInvalido;
-      // A mesma trava serializa login, consumo de código, limite e revogação de aparelhos.
-      const [conta] = await tx.select().from(contas).where(eq(contas.email, email)).for('update');
-      if (!conta) {
-        await limitarAuth(tx, 'falha_email', email, relogio);
-        return codigoInvalido;
-      }
-      const agora = relogio.agora();
-      const [pendente] = await tx
-        .select()
-        .from(codigosLogin)
-        .where(and(eq(codigosLogin.email, email), isNull(codigosLogin.usadoEm)))
-        .orderBy(desc(codigosLogin.criadoEm))
-        .limit(1);
-      if (!pendente || pendente.expiraEm <= agora || pendente.tentativas >= CODIGO_MAX_TENTATIVAS) {
-        await limitarAuth(tx, 'falha_email', email, relogio);
-        return codigoInvalido;
-      }
-      if (pendente.codigoHash !== hashDoCodigo(email, req.codigo)) {
-        await tx.update(codigosLogin).set({ tentativas: pendente.tentativas + 1 }).where(eq(codigosLogin.id, pendente.id));
-        await limitarAuth(tx, 'falha_email', email, relogio);
-        return codigoInvalido;
-      }
+      const prova = await verificarCodigo(tx, email, req.codigo, relogio);
+      if (prova instanceof ErroApi) return prova;
+      const { conta, pendente, agora } = prova;
 
       const [dono] = await tx
         .select()

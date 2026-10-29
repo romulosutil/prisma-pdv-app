@@ -46,7 +46,7 @@ Where: apps/api/src/{auth,db/schema,rotas/conta}.ts, novos servicos/{codigoLogin
 Tests: AC1a8 com PostgreSQL real e duas instâncias, incluindo guards OTP isolados, rate compartilhado, múltiplas fronteiras de falha, replay idempotente, prazo após lock e tabelas financeiras preservadas.
 Gate: build
 Done when: OTP e provas restritas não são sessões; confirmação uma vez atomica/consentida, limites compartilhados, replay não renova/revive acesso; revisão independente passa, critérios externos permanecem pendentes.
-Status: pending.
+Status: aceita localmente após reforço de quatro provas da revisão; API180/180 PGlite e186/186 PostgreSQL17,28/30 casos específicos de recuperação, typecheck todos e diff--check aprovados. Gestor repetiu28 PGlite e leu auth/helper/rotas/migração; revisor novo repetiu30 PostgreSQL e typecheck API. revisao-servidor.md PASS AC1a8; financeiro real local comparado e fronteiras/concorrência forçadas. Nenhum SMTP ou Android comprovado.
 
 ### T3: Transporte HTTP e erro de limite identificado
 Depends on: T1

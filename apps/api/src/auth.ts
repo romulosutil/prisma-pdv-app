@@ -18,9 +18,9 @@ declare module 'fastify' {
 export const sha256 = (texto: string): string => createHash('sha256').update(texto).digest('hex');
 
 /** Abre uma sessão e devolve o token em claro, que só existe aqui e no aparelho. */
-export async function criarSessao(db: Db, dados: SessaoAutenticada, agora: Date): Promise<Sessao> {
-  const token = randomBytes(32).toString('base64url');
-  await db.insert(sessoes).values({ id: gerarId(), tokenHash: sha256(token), ...dados, criadoEm: agora, expiraEm: new Date(agora.getTime() + 30 * 24 * 60 * 60 * 1000) });
+export const SESSAO_VALIDADE_MS = 30 * 24 * 60 * 60 * 1000;
+export async function criarSessao(db: Db, dados: SessaoAutenticada, agora: Date, token = randomBytes(32).toString('base64url')): Promise<Sessao> {
+  await db.insert(sessoes).values({ id: gerarId(), tokenHash: sha256(token), ...dados, criadoEm: agora, expiraEm: new Date(agora.getTime() + SESSAO_VALIDADE_MS) });
   return { token, ...dados };
 }
 

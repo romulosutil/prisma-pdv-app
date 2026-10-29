@@ -21,6 +21,7 @@ const estadoConfirmacao = async () => ({
   recuperacoes: await amb.db.select().from(recuperacoesAparelho),
   ip: await amb.db.select().from(limitesAuth).where(eq(limitesAuth.chave, sha256('login_ip:127.0.0.1'))),
 });
+const estadoNegocio = async () => ({ aparelhos: await amb.db.select().from(aparelhos), sessoes: await amb.db.select().from(sessoes), recuperacoes: await amb.db.select().from(recuperacoesAparelho) });
 
 it('prova, confirma e repete a mesma substituição sem renovar a sessão', async () => {
   const conta = await criarConta(amb);
@@ -61,7 +62,11 @@ it('prova, confirma e repete a mesma substituição sem renovar a sessão', asyn
   expect(await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: req })).toEqual(confirmado);
   expect((await amb.db.select().from(sessoes).where(eq(sessoes.id, sessao!.id)))[0]).toEqual(sessao);
   expect(await amb.db.$count(sessoes)).toBe(2);
-  expect((await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: { ...req, aparelhoSubstituidoId: gerarId() } })).corpo.erro).toBe('recuperacao_desatualizada');
+  const antesOutroAlvo = await estadoNegocio();
+  const outroAlvo = await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: { ...req, aparelhoSubstituidoId: gerarId() } });
+  expect(outroAlvo.status).toBe(409);
+  expect(outroAlvo.corpo.erro).toBe('recuperacao_desatualizada');
+  expect(await estadoNegocio()).toEqual(antesOutroAlvo);
   expect((await chamar(amb, 'POST', '/auth/logout', { token: confirmado.corpo.token })).status).toBe(204);
   expect((await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: req })).status).toBe(401);
 });
@@ -91,7 +96,13 @@ it('preserva código após conflito e invalida prova quando novo código é emit
   const conta = await criarConta(amb);
   const codigo = (await chamar(amb, 'POST', '/auth/codigo', { corpo: { email: conta.email } })).corpo.codigo;
   const base = { email: conta.email, codigo, aparelhoNome: 'Novo' };
-  expect((await chamar(amb, 'POST', '/auth/recuperacao', { corpo: { ...base, aparelhoId: conta.aparelhoId } })).corpo.erro).toBe('aparelho_ja_autorizado');
+  const antesAtivo = await estadoNegocio();
+  const ativo = await chamar(amb, 'POST', '/auth/recuperacao', { corpo: { ...base, aparelhoId: conta.aparelhoId } });
+  expect(ativo.status).toBe(409);
+  expect(ativo.corpo.erro).toBe('aparelho_ja_autorizado');
+  expect(await estadoNegocio()).toEqual(antesAtivo);
+  expect((await amb.db.select().from(codigosLogin).where(eq(codigosLogin.email, conta.email)))[0]?.usadoEm).toBeNull();
+  expect((await amb.db.select().from(limitesAuth).where(eq(limitesAuth.chave, sha256('login_ip:127.0.0.1'))))[0]?.usos).toBe(1);
   const inicio = await chamar(amb, 'POST', '/auth/recuperacao', { corpo: { ...base, aparelhoId: gerarId() } });
   expect(inicio.status).toBe(200);
   amb.relogio.definir(new Date(amb.relogio.agora().getTime() + 60_000));
@@ -108,7 +119,9 @@ it('expira exatamente em cinco minutos e não revoga o aparelho', async () => {
   expect(inicio.status).toBe(200);
   amb.relogio.definir(new Date(amb.relogio.agora().getTime() + 300_000));
   const req = { id: inicio.corpo.id, token: inicio.corpo.token, aparelhoSubstituidoId: conta.aparelhoId, confirmar: true };
-  expect((await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: req })).status).toBe(401);
+  const expirada = await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: req });
+  expect(expirada.status).toBe(401);
+  expect(expirada.corpo.erro).toBe('recuperacao_invalida');
   expect((await chamar(amb, 'GET', '/conta', { token: conta.token })).status).toBe(200);
 });
 
@@ -260,6 +273,8 @@ if (process.env.PDV_TEST_POSTGRES_URL) it('concorrência entre contas pelo mesmo
     return { id: r.corpo.id, token: r.corpo.token, aparelhoSubstituidoId: conta.aparelhoId, confirmar: true };
   }
   const ra = await iniciar(a), rb = await iniciar(b);
+  const antesA = { aparelhos: await amb.db.select().from(aparelhos).where(eq(aparelhos.contaId, a.contaId)), sessoes: await amb.db.select().from(sessoes).where(eq(sessoes.contaId, a.contaId)) };
+  const antesB = { aparelhos: await amb.db.select().from(aparelhos).where(eq(aparelhos.contaId, b.contaId)), sessoes: await amb.db.select().from(sessoes).where(eq(sessoes.contaId, b.contaId)) };
   await amb.db.execute(sql.raw("create function barreira_recuperacao() returns trigger language plpgsql as $$ begin perform pg_advisory_xact_lock(1987654321); return new; end $$"));
   await amb.db.execute(sql.raw('create trigger barreira_recuperacao before insert on aparelhos for each row execute function barreira_recuperacao()'));
   await controle`select pg_advisory_lock(1987654321)`;
@@ -280,6 +295,7 @@ if (process.env.PDV_TEST_POSTGRES_URL) it('concorrência entre contas pelo mesmo
     const ip = respostas[0]!.statusCode === 409 ? '10.0.0.1' : '10.0.0.2';
     expect(respostas.find((r) => r.statusCode === 409)!.json().erro).toBe('aparelho_em_uso');
     expect((await chamar(amb, 'GET', '/conta', { token: perdedor.token })).status).toBe(200);
+    expect({ aparelhos: await amb.db.select().from(aparelhos).where(eq(aparelhos.contaId, perdedor.contaId)), sessoes: await amb.db.select().from(sessoes).where(eq(sessoes.contaId, perdedor.contaId)) }).toEqual(perdedor.contaId === a.contaId ? antesA : antesB);
     expect((await amb.db.select().from(limitesAuth).where(eq(limitesAuth.chave, sha256('login_ip:' + ip))))[0]?.usos).toBe(1);
   } finally {
     await controle`select pg_advisory_unlock(1987654321)`;
@@ -329,9 +345,17 @@ it('seleção fora do snapshot ou alvo revogado não altera o acesso', async () 
   const codigo = (await chamar(amb, 'POST', '/auth/codigo', { corpo: { email: conta.email } })).corpo.codigo;
   const inicio = await chamar(amb, 'POST', '/auth/recuperacao', { corpo: { email: conta.email, codigo, aparelhoNome: 'Novo', aparelhoId: gerarId() } });
   const req = { id: inicio.corpo.id, token: inicio.corpo.token, aparelhoSubstituidoId: gerarId(), confirmar: true };
-  expect((await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: req })).corpo.erro).toBe('recuperacao_desatualizada');
+  const antesFora = await estadoNegocio();
+  const fora = await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: req });
+  expect(fora.status).toBe(409);
+  expect(fora.corpo.erro).toBe('recuperacao_desatualizada');
+  expect(await estadoNegocio()).toEqual(antesFora);
   await amb.db.update(aparelhos).set({ revogadoEm: amb.relogio.agora() }).where(eq(aparelhos.id, conta.aparelhoId));
-  expect((await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: { ...req, aparelhoSubstituidoId: conta.aparelhoId } })).corpo.erro).toBe('recuperacao_desatualizada');
+  const antesRevogado = await estadoNegocio();
+  const revogado = await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: { ...req, aparelhoSubstituidoId: conta.aparelhoId } });
+  expect(revogado.status).toBe(409);
+  expect(revogado.corpo.erro).toBe('recuperacao_desatualizada');
+  expect(await estadoNegocio()).toEqual(antesRevogado);
   expect(await amb.db.$count(sessoes)).toBe(1);
   expect(await amb.db.$count(aparelhos)).toBe(1);
 });
@@ -345,11 +369,13 @@ it('recusa downgrade sem capacidade após substituir, preservando origem', async
   expect(inicio.status).toBe(200);
   await amb.db.update(assinaturas).set({ planoId: 'essencial' }).where(eq(assinaturas.contaId, conta.contaId));
   const req = { id: inicio.corpo.id, token: inicio.corpo.token, aparelhoSubstituidoId: conta.aparelhoId, confirmar: true };
+  const antes = await estadoNegocio();
   const resposta = await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: req });
   expect(resposta.status).toBe(409);
   expect(resposta.corpo.erro).toBe('limite_aparelhos');
   expect((await chamar(amb, 'GET', '/conta', { token: conta.token })).status).toBe(200);
   expect(await amb.db.$count(aparelhos)).toBe(3);
+  expect(await estadoNegocio()).toEqual(antes);
 });
 
 if (process.env.PDV_TEST_POSTGRES_URL) it('revalida expiração depois de aguardar trava da conta', async () => {
@@ -359,13 +385,14 @@ if (process.env.PDV_TEST_POSTGRES_URL) it('revalida expiração depois de aguard
   const codigo = (await chamar(amb, 'POST', '/auth/codigo', { corpo: { email: conta.email } })).corpo.codigo;
   const inicio = await chamar(amb, 'POST', '/auth/recuperacao', { corpo: { email: conta.email, codigo, aparelhoNome: 'Novo', aparelhoId: gerarId() } });
   const req = { id: inicio.corpo.id, token: inicio.corpo.token, aparelhoSubstituidoId: conta.aparelhoId, confirmar: true };
+  const pidControle = (await controle`select pg_backend_pid() as pid`)[0]!.pid as number;
   await controle`begin`;
   try {
     await controle`select id from contas where id = ${conta.contaId} for update`;
     const pendente = amb.app.inject({ method: 'POST', url: '/auth/recuperacao/confirmar', payload: req });
     let bloqueados = 0;
     for (let i = 0; i < 100 && !bloqueados; i++) {
-      const linhas = await controle`select count(*)::int as n from pg_stat_activity where wait_event_type = 'Lock' and datname = current_database()`;
+      const linhas = await controle`select count(*)::int as n from pg_stat_activity where ${pidControle} = any(pg_blocking_pids(pid)) and datname = current_database()`;
       bloqueados = linhas[0]!.n as number;
       if (!bloqueados) await new Promise((resolve) => setTimeout(resolve, 20));
     }
@@ -391,6 +418,7 @@ it.each(['revogado', 'outra_conta', 'outra_loja', 'vaga'])('iniciação %s confi
   }
   const codigo = (await chamar(amb, 'POST', '/auth/codigo', { corpo: { email: conta.email } })).corpo.codigo;
   const sessoesAntes = await amb.db.$count(sessoes);
+  const antes = await estadoNegocio();
   const res = await chamar(amb, 'POST', '/auth/recuperacao', { corpo: { email: conta.email, codigo, aparelhoId, aparelhoNome: 'Novo' } });
   expect(res.status).toBe(409);
   expect(res.corpo.erro).toBe(({ revogado: 'aparelho_revogado', outra_conta: 'aparelho_em_uso', outra_loja: 'aparelho_em_uso', vaga: 'recuperacao_desnecessaria' } as Record<string, string>)[caso]);
@@ -398,6 +426,7 @@ it.each(['revogado', 'outra_conta', 'outra_loja', 'vaga'])('iniciação %s confi
   expect((await amb.db.select().from(limitesAuth).where(eq(limitesAuth.chave, sha256('login_ip:127.0.0.1'))))[0]?.usos).toBe(1);
   expect(await amb.db.$count(recuperacoesAparelho)).toBe(0);
   expect(await amb.db.$count(sessoes)).toBe(sessoesAntes);
+  expect(await estadoNegocio()).toEqual(antes);
 });
 
 it('revogar candidato não escolhido não invalida seleção ainda ativa', async () => {
@@ -473,4 +502,113 @@ it('código legado com quatro tentativas é bloqueado na quinta sem esgotar emai
   expect((await chamar(amb, 'POST', '/auth/recuperacao', { corpo: req })).status).toBe(401);
   expect((await amb.db.select().from(codigosLogin).where(eq(codigosLogin.email, conta.email)))[0]?.tentativas).toBe(5);
   expect((await amb.db.select().from(limitesAuth).where(eq(limitesAuth.chave, sha256('falha_email:' + conta.email))))[0]?.usos).toBe(2);
+});
+
+it('snapshot inclui apenas ativos da mesma conta e loja', async () => {
+  const conta = await criarConta(amb), outra = await criarConta(amb);
+  const agora = amb.relogio.agora(), lojaId = gerarId(), revogado = gerarId(), foraLoja = gerarId();
+  await amb.db.insert(lojas).values({ id: lojaId, contaId: conta.contaId, nome: 'Outra', criadoEm: agora, atualizadoEm: agora });
+  await amb.db.insert(aparelhos).values([
+    { id: revogado, contaId: conta.contaId, lojaId: conta.lojaId, nome: 'Revogado', criadoEm: agora, ultimoAcessoEm: agora, revogadoEm: agora },
+    { id: foraLoja, contaId: conta.contaId, lojaId, nome: 'Outra loja', criadoEm: agora, ultimoAcessoEm: agora },
+  ]);
+  const codigo = (await chamar(amb, 'POST', '/auth/codigo', { corpo: { email: conta.email } })).corpo.codigo;
+  const resposta = await chamar(amb, 'POST', '/auth/recuperacao', { corpo: { email: conta.email, codigo, aparelhoId: gerarId(), aparelhoNome: 'Novo' } });
+  expect(resposta.status).toBe(200);
+  expect(resposta.corpo.aparelhos).toEqual([{ id: conta.aparelhoId, nome: 'Celular da Maria', ultimoAcessoEm: agora.toISOString() }]);
+  expect(resposta.corpo.aparelhos.map((a: { id: string }) => a.id)).not.toContain(outra.aparelhoId);
+  expect((await amb.db.select().from(recuperacoesAparelho))[0]?.aparelhosPermitidos).toEqual([conta.aparelhoId]);
+});
+
+it('outra iniciação invalida pendente sem emissão intermediária', async () => {
+  const conta = await criarConta(amb);
+  const codigo = (await chamar(amb, 'POST', '/auth/codigo', { corpo: { email: conta.email } })).corpo.codigo;
+  const req = { email: conta.email, codigo, aparelhoId: gerarId(), aparelhoNome: 'Novo' };
+  const primeira = await chamar(amb, 'POST', '/auth/recuperacao', { corpo: req });
+  expect(primeira.status).toBe(200);
+  const agora = amb.relogio.agora(), segundoCodigo = '654321';
+  // Fixture de OTP válido independente da emissão: não passa pela invalidação daquela rota.
+  await amb.db.insert(codigosLogin).values({ id: gerarId(), email: conta.email, codigoHash: sha256(conta.email + ':' + segundoCodigo), criadoEm: agora, expiraEm: new Date(agora.getTime() + 600000) });
+  const segunda = await chamar(amb, 'POST', '/auth/recuperacao', { corpo: { ...req, codigo: segundoCodigo } });
+  expect(segunda.status).toBe(200);
+  const [antiga] = await amb.db.select().from(recuperacoesAparelho).where(eq(recuperacoesAparelho.id, primeira.corpo.id));
+  expect(antiga?.invalidadoEm).toEqual(agora);
+  const resposta = await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: { id: primeira.corpo.id, token: primeira.corpo.token, aparelhoSubstituidoId: conta.aparelhoId, confirmar: true } });
+  expect(resposta.status).toBe(401);
+  expect(resposta.corpo.erro).toBe('recuperacao_invalida');
+  expect((await chamar(amb, 'GET', '/conta', { token: conta.token })).status).toBe(200);
+});
+
+it('revoga todas as sessões da origem e grava alvo, sessão e instante exatos', async () => {
+  const conta = await criarConta(amb), agora = amb.relogio.agora(), token2 = 'sessao-origem-adicional';
+  await amb.db.insert(sessoes).values({ id: gerarId(), tokenHash: sha256(token2), contaId: conta.contaId, lojaId: conta.lojaId, operadorId: conta.operadorId, aparelhoId: conta.aparelhoId, criadoEm: agora, expiraEm: new Date(agora.getTime() + 86400000) });
+  expect((await chamar(amb, 'GET', '/conta', { token: token2 })).status).toBe(200);
+  const codigo = (await chamar(amb, 'POST', '/auth/codigo', { corpo: { email: conta.email } })).corpo.codigo;
+  const inicio = await chamar(amb, 'POST', '/auth/recuperacao', { corpo: { email: conta.email, codigo, aparelhoId: gerarId(), aparelhoNome: 'Novo' } });
+  const resultado = await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: { id: inicio.corpo.id, token: inicio.corpo.token, aparelhoSubstituidoId: conta.aparelhoId, confirmar: true } });
+  expect(resultado.status).toBe(200);
+  for (const token of [conta.token, token2]) expect((await chamar(amb, 'GET', '/conta', { token })).status).toBe(401);
+  const origens = await amb.db.select().from(sessoes).where(eq(sessoes.aparelhoId, conta.aparelhoId));
+  expect(origens).toHaveLength(2);
+  expect(origens.map((s) => s.revogadaEm)).toEqual([agora, agora]);
+  const [nova] = await amb.db.select().from(sessoes).where(eq(sessoes.tokenHash, sha256(resultado.corpo.token)));
+  const [r] = await amb.db.select().from(recuperacoesAparelho).where(eq(recuperacoesAparelho.id, inicio.corpo.id));
+  expect(r).toMatchObject({ confirmadoEm: agora, aparelhoSubstituidoId: conta.aparelhoId, sessaoId: nova!.id });
+});
+
+it.each(['aparelho', 'sessao_id'])('replay não revive acesso após alterar %s', async (caso) => {
+  const conta = await criarConta(amb), agora = amb.relogio.agora();
+  const codigo = (await chamar(amb, 'POST', '/auth/codigo', { corpo: { email: conta.email } })).corpo.codigo;
+  const novo = gerarId();
+  const inicio = await chamar(amb, 'POST', '/auth/recuperacao', { corpo: { email: conta.email, codigo, aparelhoId: novo, aparelhoNome: 'Novo' } });
+  const req = { id: inicio.corpo.id, token: inicio.corpo.token, aparelhoSubstituidoId: conta.aparelhoId, confirmar: true };
+  const confirmado = await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: req });
+  expect(confirmado.status).toBe(200);
+  if (caso === 'aparelho') await amb.db.update(aparelhos).set({ revogadoEm: agora }).where(eq(aparelhos.id, novo));
+  else {
+    const outroId = gerarId();
+    const [original] = await amb.db.select().from(sessoes).where(eq(sessoes.tokenHash, sha256(confirmado.corpo.token)));
+    await amb.db.update(sessoes).set({ tokenHash: sha256('outra-sessao') }).where(eq(sessoes.id, original!.id));
+    await amb.db.insert(sessoes).values({ ...original!, id: outroId });
+  }
+  const antes = await estadoNegocio();
+  const replay = await chamar(amb, 'POST', '/auth/recuperacao/confirmar', { corpo: req });
+  expect(replay.status).toBe(401);
+  expect(replay.corpo.erro).toBe('recuperacao_invalida');
+  expect(await estadoNegocio()).toEqual(antes);
+});
+
+if (process.env.PDV_TEST_POSTGRES_URL) it.each(['alvo', 'plano'])('revalida %s alterado enquanto aguarda trava da conta', async (caso) => {
+  const postgres = (await import('postgres')).default;
+  const controle = postgres(process.env.PDV_TEST_POSTGRES_URL!, { max: 1 });
+  const conta = caso === 'plano' ? await contaEmTeste(amb, 'negocio') : await criarConta(amb);
+  const agora = amb.relogio.agora();
+  if (caso === 'plano') for (let i = 0; i < 2; i++) await amb.db.insert(aparelhos).values({ id: gerarId(), contaId: conta.contaId, lojaId: conta.lojaId, nome: 'Outro', criadoEm: agora, ultimoAcessoEm: agora });
+  const codigo = (await chamar(amb, 'POST', '/auth/codigo', { corpo: { email: conta.email } })).corpo.codigo;
+  const inicio = await chamar(amb, 'POST', '/auth/recuperacao', { corpo: { email: conta.email, codigo, aparelhoId: gerarId(), aparelhoNome: 'Novo' } });
+  expect(inicio.status).toBe(200);
+  const req = { id: inicio.corpo.id, token: inicio.corpo.token, aparelhoSubstituidoId: conta.aparelhoId, confirmar: true };
+  const antes = await estadoNegocio();
+  const pidControle = (await controle`select pg_backend_pid() as pid`)[0]!.pid as number;
+  await controle`begin`;
+  try {
+    await controle`select id from contas where id = ${conta.contaId} for update`;
+    const pendente = amb.app.inject({ method: 'POST', url: '/auth/recuperacao/confirmar', payload: req });
+    let bloqueados = 0;
+    for (let i = 0; i < 100 && !bloqueados; i++) {
+      const linhas = await controle`select count(*)::int as n from pg_stat_activity where ${pidControle} = any(pg_blocking_pids(pid)) and datname = current_database()`;
+      bloqueados = linhas[0]!.n as number;
+      if (!bloqueados) await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    expect(bloqueados).toBeGreaterThan(0);
+    if (caso === 'alvo') await controle`update aparelhos set revogado_em = ${agora} where id = ${conta.aparelhoId}`;
+    else await controle`update assinaturas set plano_id = 'essencial' where conta_id = ${conta.contaId}`;
+    await controle`commit`;
+    const resposta = await pendente;
+    expect(resposta.statusCode).toBe(409);
+    expect(resposta.json().erro).toBe(caso === 'alvo' ? 'recuperacao_desatualizada' : 'limite_aparelhos');
+    const esperado = { ...antes, aparelhos: antes.aparelhos.map((a) => caso === 'alvo' && a.id === conta.aparelhoId ? { ...a, revogadoEm: agora } : a) };
+    expect(await estadoNegocio()).toEqual(esperado);
+    expect((await amb.db.select().from(limitesAuth).where(eq(limitesAuth.chave, sha256('login_ip:127.0.0.1'))))[0]?.usos).toBe(2);
+  } finally { await controle`rollback`; await controle.end(); }
 });

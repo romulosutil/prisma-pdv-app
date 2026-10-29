@@ -46,7 +46,7 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| RECOVERY-01 | 1,2,3,4 | P0-03-F prova e contrato restrito | pending |
-| RECOVERY-02 | 5,6,7,8 | P0-03-F substituição transacional | pending |
+| RECOVERY-01 | 1,2,3,4 | P0-03-F prova e contrato restrito | PASS local; validation.md AC1–4 |
+| RECOVERY-02 | 5,6,7,8 | P0-03-F substituição transacional | PASS local; validation.md AC5–8 |
 | RECOVERY-03 | 9,10,11 | P0-03-D/E/F cliente e cofre | pending |
 | RECOVERY-04 | 12,13 | P0-03-F fluxo e integração local | pending |

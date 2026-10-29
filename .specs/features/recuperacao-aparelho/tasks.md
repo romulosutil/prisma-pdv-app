@@ -24,6 +24,8 @@ T1 -> T3
 T2 -> T4
 T3 -> T4
 T4 -> T5
+T5 -> T6
+T5 -> T7
 ```
 
 T2 API e T3 transporte são os dois executores independentes permitidos; Terra Médio explícito, sem criar agentes/commits. Gestor integra, revisa autenticação/persistência e centraliza plano/commits. T1 schemas pelo gestor; T4 Dados após API/adapters aceitos; T5 UI após Dados. Revisores nunca alteram implementação.
@@ -70,7 +72,7 @@ Where: apps/mobile/app/(onboarding)/entrar.tsx, novo componente de recuperação
 Tests: AC12 e fronteira AC11, erro409 exato oferece, perfil/candidatos reais, confirmação explícita uma vez, cancela, erro/expiração e resposta atrasada sem falso sucesso; remontagem por chave da conta após falha local deve retomar visão só em memória e mesmo alvo. Getter nunca expõe token ou contexto antigo. Navegação inspecionada; Android pendente.
 Gate: build
 Done when: fluxo acessível com componentes existentes, mensagens honestas sobre acesso/vendas, sem segredo exposto nem ação concorrente; revisão final nova confronta13ACs e mata mutação em scratch.
-Status: execução concluída, aguarda verificador final novo;406 mobile no total,33 alvos UI/Dados (35 incluindo integração API/SQLite), typecheck todos e diff--check passaram. Gestor repetiu35 alvos e leu fonte/getter. Há testes React com Dados real para remontagem por identidade/falha local, getter sem segredo, mesmo alvo/retry, resposta antiga resolve/rejeita, clique duplo, visão/modal por ID e bloqueio de retorno durante transição mesmo após remontar. Sem teste físico Android/layout/orientação/a11y; roteiro preparado, não executado.
+Status: aceita no contrato local após verificador final novo PASS dos13ACs;406 mobile no total,33 alvos UI/Dados (35 incluindo integração API/SQLite), typecheck todos e diff--check passaram. Gestor repetiu35 alvos e leu fonte/getter. Há testes React com Dados real para remontagem por identidade/falha local, getter sem segredo, mesmo alvo/retry, resposta antiga resolve/rejeita, clique duplo, visão/modal por ID e bloqueio de retorno durante transição mesmo após remontar. Sem teste físico Android/layout/orientação/a11y; roteiro preparado, não executado.
 
 ## Adequação T5
 
@@ -82,4 +84,20 @@ Status: execução concluída, aguarda verificador final novo;406 mobile no tota
 | AC12 contexto e retry | recuperacaoTela.test.ts:100-137 | VisãoA não confirmaB, rede permite mesmo alvo, resultado antigo não altera erro/loading novos |
 | AC12 transição | recuperacaoTela.test.ts, caso bloqueia retorno e submissão após remontar | Conta em transição bloqueia BackHandler/gestos/submissões e libera após terminar |
 
-Todos os casos novos mapeiam AC11/12; sem remoção/skip/enfraquecimento de asserções anteriores. Testes React usam hosts nativos simulados, não homologam navegação/a11y físicas. Verificador final ainda deve localizar cada asserção e confirmar o resultado por AC1a13.
+Todos os casos novos mapeiam AC11/12; sem remoção/skip/enfraquecimento de asserções anteriores. Testes React usam hosts nativos simulados, não homologam navegação/a11y físicas. Verificador final localizou asserções e confirmou AC1a13 em validation.md após reforços T6/T7; sensor5/5 na fonte2f62ffb.
+
+### T6: Provas adicionais da revisão final da API
+Depends on: T5
+Where: apps/api/test/recuperacaoAparelho.test.ts; gestor atualiza apenas os registros desta tarefa.
+Tests: AC2–7: candidatos adversariais, snapshots integrais nos conflitos, invalidação isolada por segunda iniciação, múltiplas sessões/traço de confirmação, replay e disputa UUID, alterações durante espera comprovada pela trava.
+Gate: build
+Done when: cada GAP de API em validation.md possui prova discriminante, sem remover/enfraquecer testes existentes; revisão independente aceita os resultados. Produção permanece intocada.
+Status: aceita localmente após revisão final independente;33PGlite/37PostgreSQL alvos, gestor repetiu37PG. Suítes completas185PGlite/193PostgreSQL, typecheck/diff--checkPASS. AC2–7 mapeados em validation.md: filtros:517–520; conflitos:100–105 e421–429; invalidação:523–539; múltiplas sessões/traço:550–556; replay/disputa:61–69 e288–299; revalidação:346–363,372–379 e581–614. Nenhuma asserção removida/enfraquecida; barreira antiga fortalecida com pg_blocking_pids específico. Somente provas, sem alteração de fonte.
+
+### T7: Provas adicionais da revisão final do cliente
+Depends on: T5
+Where: apps/mobile/test/backendRecuperacao.test.ts, recuperacaoDados.test.ts, recuperacaoApiIntegracao.test.ts e recuperacaoTela.test.ts.
+Tests: AC9–12: mensagens409 fixas, preflight SQLite durável em ambas fases, IDs/papel e ordem antes de cofre, adoção parcial somente do próprio vínculo/geração e textos reais de email/revogação.
+Gate: build
+Done when: os cinco grupos de GAPs do cliente têm asserções precisas e revisão independente passa; nenhuma asserção removida/enfraquecida; sem alteração de fonte ou promessa de homologação física.
+Status: em execução; executor independente da API, somente arquivos de teste mobile.

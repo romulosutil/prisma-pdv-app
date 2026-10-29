@@ -62,7 +62,7 @@ Where: apps/mobile/src/dados/dados.ts e novos test/{recuperacaoDados,recuperacao
 Tests: AC10/11/13, perda resposta/retry, geração/contexto, preflight antes de ambas fases, perfil/cadastro errado e falta de cofre, finanças origem/servidor preservadas em duas instalações reais API+SQLite.
 Gate: build
 Done when: desafio só memória, sessão só depois de confirmação/perfil/cofre válidos; origem preservada e login novo recuperável. Revisor novo passa sem contar fetch/cofre fake como homologação nativa.
-Status: pending.
+Status: aceita localmente após correção de retry parcial;21 casos novos,392 mobile no total, typecheck todos e diff--check passaram. Revisor novo e gestor repetiram21 alvos. revisao-dados.md PASS AC10/11/13. Regressão reproduziu vínculo antigo recusando retry depois de registrar e falhar carga; adoção agora exige mesma tentativa/geração, sessão ausente e identidade/perfil exatos da própria aplicação validada. Há prova de metadata que comita e lança depois, cofre fake, cancelamento no ponto de aplicação e contexto externo preservado. Sem Android/SMTP/restauração real de vendas.
 
 ### T5: Escolha e confirmação no login
 Depends on: T4

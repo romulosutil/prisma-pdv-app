@@ -1,4 +1,4 @@
-import type { Plano } from '@pdv/shared';
+import { RecuperacaoAparelhoSchema, SessaoSchema, PerfilResSchema, type Plano, type RecuperacaoAparelho } from '@pdv/shared';
 import { AssinaturaServico } from '@/servicos/assinatura';
 import { ErroBackend, type Perfil as PerfilBackend } from '@/servicos/backend';
 import type { Backend } from '@/servicos/backend';
@@ -51,6 +51,8 @@ export class Dados {
   readonly armazenamentoDaLoja: ArmazenamentoEscopo;
   private filaAcesso: Promise<void> = Promise.resolve();
   private contaCarregada = false;
+  private geracaoAcesso = 0;
+  private recuperacao: { desafio: RecuperacaoAparelho; geracao: number; vinculo: string; alvo?: string } | null = null;
 
   constructor(
     private readonly armazenamento: Armazenamento,
@@ -117,6 +119,7 @@ export class Dados {
   }
 
   async criarConta(formulario: FormularioConta): Promise<void> {
+    this.invalidarRecuperacao();
     return this.executarAcesso(async () => {
     await this.preflightTroca(formulario.email);
     const anterior = this.conta.obter();
@@ -143,6 +146,7 @@ export class Dados {
   }
 
   async entrar(email: string, codigo: string): Promise<void> {
+    this.invalidarRecuperacao();
     return this.executarAcesso(async () => {
     await this.preflightTroca(email);
     const anterior = this.conta.obter();
@@ -172,10 +176,105 @@ export class Dados {
     if (perfil.contaId !== sessao.contaId || perfil.lojaId !== sessao.lojaId || perfil.operadorId !== sessao.operadorId) throw new ErroBackend('resposta_invalida', 'Perfil divergente da sessão.');
   }
 
-  private executarAcesso(tarefa: () => Promise<void>): Promise<void> {
+  private invalidarRecuperacao(): number {
+    this.recuperacao = null;
+    return ++this.geracaoAcesso;
+  }
+
+  cancelarRecuperacao(): void { this.invalidarRecuperacao(); }
+
+  private verificarGeracao(geracao: number): void {
+    if (geracao !== this.geracaoAcesso) throw new ErroBackend('conflito', 'Esta tentativa de acesso foi cancelada.');
+  }
+
+  private vinculoAtual(): string {
+    const { identidade, perfil } = this.conta.obter();
+    return JSON.stringify({ identidade, perfil });
+  }
+
+  private verificarVinculo(geracao: number, vinculo: string): void {
+    this.verificarGeracao(geracao);
+    if (this.vinculoAtual() !== vinculo) throw new ErroBackend('conflito', 'A conta local mudou. Inicie a recuperação novamente.');
+  }
+
+  async iniciarRecuperacao(email: string, codigo: string): Promise<Omit<RecuperacaoAparelho, 'token'>> {
+    const geracao = this.invalidarRecuperacao();
+    return this.executarAcesso(async () => {
+      this.verificarGeracao(geracao);
+      const anterior = this.conta.obter();
+      if (anterior.identidade && !anterior.perfil) throw new ErroBackend('conflito', 'Entre primeiro na conta original para recuperar seu perfil.');
+      const vinculo = this.vinculoAtual();
+      await this.preflightTroca(email);
+      this.verificarVinculo(geracao, vinculo);
+      const legado = anterior.identidade && anterior.perfil ? { email: anterior.perfil.email, aparelhoId: anterior.identidade.aparelhoId } : undefined;
+      const aparelhoId = await this.instalacao.aparelhoDaConta(email, legado);
+      this.verificarVinculo(geracao, vinculo);
+      const resposta = await this.backend.iniciarRecuperacao({ email, codigo, aparelhoId, aparelhoNome: NOME_APARELHO_PADRAO });
+      this.verificarVinculo(geracao, vinculo);
+      const lido = RecuperacaoAparelhoSchema.safeParse(resposta);
+      if (!lido.success) throw new ErroBackend('resposta_invalida', 'Resposta de recuperação inválida.');
+      const desafio = lido.data;
+      if (desafio.aparelhoNovoId !== aparelhoId || desafio.aparelhoNovoNome !== NOME_APARELHO_PADRAO || desafio.perfil.email.trim().toLowerCase() !== email.trim().toLowerCase()) throw new ErroBackend('resposta_invalida', 'Recuperação divergente da solicitação.');
+      if (anterior.identidade && anterior.perfil?.email.trim().toLowerCase() === email.trim().toLowerCase() && (desafio.perfil.contaId !== anterior.identidade.contaId || desafio.perfil.lojaId !== anterior.identidade.lojaId || desafio.perfil.operadorId !== anterior.identidade.operadorId)) throw new ErroBackend('resposta_invalida', 'Recuperação divergente da conta local.');
+      this.recuperacao = { desafio, geracao, vinculo };
+      const { token: _token, ...visao } = desafio;
+      return { ...visao, perfil: { ...visao.perfil }, aparelhos: visao.aparelhos.map(a => ({ ...a })) };
+    });
+  }
+
+  async confirmarRecuperacao(aparelhoSubstituidoId: string): Promise<void> {
+    const tentativa = this.recuperacao;
+    if (!tentativa) throw new ErroBackend('conflito', 'Inicie a recuperação antes de confirmar.');
+    return this.executarAcesso(async () => {
+      const { desafio, geracao, vinculo } = tentativa;
+      this.verificarVinculo(geracao, vinculo);
+      if (this.recuperacao !== tentativa) throw new ErroBackend('conflito', 'Esta recuperação não está mais disponível.');
+      if (!desafio.aparelhos.some(a => a.id === aparelhoSubstituidoId) || (tentativa.alvo && tentativa.alvo !== aparelhoSubstituidoId)) throw new ErroBackend('conflito', 'Escolha o aparelho apresentado na recuperação.');
+      await this.preflightTroca(desafio.perfil.email);
+      this.verificarVinculo(geracao, vinculo);
+      tentativa.alvo = aparelhoSubstituidoId;
+      let resposta: Sessao;
+      try {
+        resposta = await this.backend.confirmarRecuperacao({ id: desafio.id, token: desafio.token, aparelhoSubstituidoId, confirmar: true });
+      } catch (erro) {
+        if (erro instanceof ErroBackend && erro.status === 401 && this.recuperacao === tentativa) this.recuperacao = null;
+        throw erro;
+      }
+      this.verificarVinculo(geracao, vinculo);
+      const lido = SessaoSchema.safeParse(resposta);
+      if (!lido.success) throw new ErroBackend('resposta_invalida', 'Sessão de recuperação inválida.');
+      const sessao = lido.data;
+      if (sessao.aparelhoId !== desafio.aparelhoNovoId || sessao.contaId !== desafio.perfil.contaId || sessao.lojaId !== desafio.perfil.lojaId || sessao.operadorId !== desafio.perfil.operadorId) throw new ErroBackend('resposta_invalida', 'Sessão divergente da recuperação.');
+      const respostaPerfil = await this.backend.obterPerfil(sessao.token);
+      this.verificarVinculo(geracao, vinculo);
+      const perfil = PerfilResSchema.safeParse(respostaPerfil);
+      if (!perfil.success) throw new ErroBackend('resposta_invalida', 'Perfil de recuperação inválido.');
+      this.validarPerfil(sessao, perfil.data);
+      if (perfil.data.papel !== 'dono' || perfil.data.email.trim().toLowerCase() !== desafio.perfil.email.trim().toLowerCase()) throw new ErroBackend('resposta_invalida', 'Perfil divergente da recuperação.');
+      this.verificarVinculo(geracao, vinculo);
+      const perfilLocal: Perfil = { nomeResponsavel: perfil.data.nomeResponsavel, nomeLoja: perfil.data.nomeLoja, email: perfil.data.email, aparelhoNome: NOME_APARELHO_PADRAO };
+      try {
+        await this.aplicarAcesso(sessao, perfilLocal);
+      } catch (erro) {
+        const atual = this.conta.obter();
+        const identidade = atual.identidade;
+        const p = atual.perfil;
+        if (this.recuperacao === tentativa && this.geracaoAcesso === geracao && atual.sessao === null && identidade && p &&
+          identidade.contaId === sessao.contaId && identidade.lojaId === sessao.lojaId && identidade.operadorId === sessao.operadorId && identidade.aparelhoId === sessao.aparelhoId &&
+          p.email === perfilLocal.email && p.nomeResponsavel === perfilLocal.nomeResponsavel && p.nomeLoja === perfilLocal.nomeLoja && p.aparelhoNome === perfilLocal.aparelhoNome && p.tipoLoja === perfilLocal.tipoLoja) {
+          tentativa.vinculo = this.vinculoAtual();
+        }
+        throw erro;
+      }
+      if (this.recuperacao === tentativa) this.recuperacao = null;
+      await this.assinatura.sincronizar();
+    });
+  }
+
+  private executarAcesso<T>(tarefa: () => Promise<T>): Promise<T> {
     const resultado = this.filaAcesso.then(async () => {
       if (!this.contaCarregada) { await this.conta.carregar(); this.contaCarregada = true; }
-      try { await tarefa(); }
+      try { return await tarefa(); }
       finally {
         this.armazenamentoDaLoja.bloquearAlteracoes(false);
         this.conta.transicao.alterar(false);
@@ -251,12 +350,13 @@ export class Dados {
   }
 
   async sair(): Promise<{ revogadaNoServidor: boolean }> {
+    this.invalidarRecuperacao();
     const tokenUsado = this.conta.obter().sessao?.token;
     if (!tokenUsado) return { revogadaNoServidor: false };
     let revogadaNoServidor = false;
     try { await this.backend.sair(); revogadaNoServidor = this.backend.modo === 'http'; }
     catch (erro) { if (!(erro instanceof ErroBackend)) throw erro; }
-    await this.conta.invalidarSessao(tokenUsado);
+    await this.executarAcesso(() => this.conta.invalidarSessao(tokenUsado));
     return { revogadaNoServidor };
   }
 

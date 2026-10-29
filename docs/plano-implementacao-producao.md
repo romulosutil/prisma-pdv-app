@@ -47,7 +47,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 **Tarefas**
 
 - [x] **P0-01-A:** definir schema SQLite versionado para produtos, caixas, vendas, itens, pagamentos, venda em andamento e outbox, com partição por conta/loja e IDs estáveis.
-- [ ] **P0-01-B:** implementar migração idempotente dos dados atuais, preservando a origem até validar contagens e totais; manter um adaptador explícito para testes/navegador sem fallback silencioso no Android de produção.
+- [x] **P0-01-B:** implementar migração idempotente dos dados atuais, preservando a origem até validar contagens e totais; manter um adaptador explícito para testes/navegador sem fallback silencioso no Android de produção.
 - [ ] **P0-01-C:** substituir a gravação de agregados críticos por transações; confirmar sucesso na interface somente após persistência e tratar disco cheio, falha de escrita e leitura inválida.
 - [ ] **P0-01-D:** persistir venda em andamento e cada parcela recebida; retomar o checkout após reinício e concluir com o mesmo ID, inclusive se o processo cair entre gravação e navegação.
 - [ ] **P0-01-E:** gravar a venda concluída e sua mutação de saída na mesma transação; conservar vínculos com pagamentos e caixa, conforme P0-04.
@@ -354,6 +354,8 @@ Evidências locais por entrega. Revisões em .specs/features/persistencia-base/.
 | Tarefa/critério | Commit ou versão | Teste/comando/roteiro | Ambiente/aparelho | Resultado e evidência |
 |---|---|---|---|---|
 | P0-01-A | commit desta entrega | teste sqliteSchema: 4 passaram; typecheck mobile passou; revisão T1/T2 PASS parcial | Node 24.14.1, SQLite real (node:sqlite) | Schema v1, FKs, reabertura, rollback e versão futura; não homologa Android |
+
+| P0-01-B | commit desta entrega | 13 testes sqliteArmazenamento; 23 específicos incluindo schema/Persistido; typecheck mobile; revisão validation.md PASS | SQLite real Node 24, arquivo reaberto | Migração idempotente, contagens/totais/filhos, rollback, origem mantida e partição; Android pendente |
 
 ### Condição de liberação
 

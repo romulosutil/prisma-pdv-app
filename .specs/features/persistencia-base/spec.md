@@ -39,4 +39,4 @@ Acceptance Criteria:
 |---|---|---|---|
 | LOCAL-01 | 1, 2 | P0-01-A | verified |
 | LOCAL-02 | 3, 4, 5 | parte de P0-01-C | verified |
-| LOCAL-03 | 6, 7 | P0-01-B | pending |
+| LOCAL-03 | 6, 7 | P0-01-B | verified |

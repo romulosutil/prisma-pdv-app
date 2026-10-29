@@ -1,10 +1,10 @@
 import { configurarCatalogoEan } from '@/servicos/catalogoEan';
 import { novoId } from '@/util/ids';
-import { ArmazenamentoAsync } from './armazenamento';
+import { criarArmazenamento } from './armazenamentoPlataforma';
 import { Dados } from './dados';
 
 const urlApi = process.env.EXPO_PUBLIC_API_URL;
-const armazenamento = new ArmazenamentoAsync();
+const armazenamento = criarArmazenamento();
 
 /** Instância única do app. `EXPO_PUBLIC_API_URL` definida liga a API; sem ela o app roda 100% local (demo). */
 export const dados = new Dados(armazenamento, novoId, urlApi);

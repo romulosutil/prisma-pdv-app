@@ -48,4 +48,4 @@ Where: novo adaptador em dados/sqlite; teste sqliteArmazenamento; instancia e co
 Tests: LOCAL-03, critérios 6 e 7 do spec; rodar sobre SQLite real.
 Gate: build
 Done when: migração idempotente validada conserva origem, adaptador explícito sem fallback Android, erros recuperáveis e reabertura real verificados; revisor aprova.
-Status: pendente.
+Status: concluída e aceita pelo gestor após correção de divergência dos filhos, 23 testes específicos e revisão independente em validation.md. Android físico permanece pendente no plano global.

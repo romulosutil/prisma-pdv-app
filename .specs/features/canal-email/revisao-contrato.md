@@ -12,8 +12,8 @@
 
 **Precisão ISO:** apps/api/src/email/contrato.ts:8 usa z.iso.datetime() sem opção de offset. Uma entrada válida ISO 2026-10-29T09:10:00-03:00 foi rejeitada como mensagem inválida; a spec diz apenas ISO e não define se offsets devem ser aceitos. Resolver explicitamente na especificação ou aceitar/testar offsets se a intenção for ISO 8601 com deslocamento. O teste atual só comprova UTC com Z e uma data inválida (apps/api/test/emailContrato.test.ts:9,19). Não há teste específico de seis caracteres não numéricos nem de campos obrigatórios ausentes, embora o schema os rejeite por inspeção.
 
-**Comandos:** 
-pm run test -w @pdv/api -- test/emailContrato.test.ts: 14 passaram, 0 falharam; 
+**Comandos:**
+pm run test -w @pdv/api -- test/emailContrato.test.ts: 14 passaram, 0 falharam;
 pm run typecheck -w @pdv/api: passou; git diff --check d3c0eca -- apps/api/package.json package-lock.json: passou. Todos executados via rtk. Teste pontual com tsx confirmou a rejeição do offset, sem rede.
 
 **Limites:** SMTP ainda não está integrado às rotas; não há evidência de entrega externa ou caixa de entrada. Não foram executados sensor de mutação, build completo, nem validação final de todos os ACs; essas etapas pertencem à revisão final após T2/T3. Nenhuma conexão SMTP externa ou segredo foi utilizada. A ferramenta de delegação não confirmou o modelo/nível solicitado; registrar a limitação como AD005 pelo gestor, sem afirmar que Terra Médio foi efetivamente usado.

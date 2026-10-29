@@ -48,3 +48,7 @@ Tests: AC4–8, parser/fábrica adversariais e SMTPServer em loopback com sucess
 Gate: build
 Done when: protocolo local e categorias comprovados, sem fallback inseguro/env arbitrário, sem mudar emissão atual nem chamar teste local de entrega externa; revisor novo e sensor aprovados.
 Status: aceita no módulo local apósrevisao-smtp.mdPASS;36alvos repetidos pelorevisor, gestor repetiu28antesdosreforços e suítecompleta259API/433mobile/148shared +typecheck todosPASS apósreforços. AC4:emailSmtp.test.ts:25–42parser/fábrica; AC5:43–60envelope/texto/ID e147–165aceitos/rejeitados/camposextras; AC6:76–83TLSnegativo e99–110opções5s; AC7:62–74status450/550,113–145conexão/AUTHreal e167–179greetingtimeoutreal. Corrigido450comtextoTLSclassificadocomo permanente. AUTH/TLSconfiável apenaslocalcomCAfixtureconfiadasónofilho. Demais timeouts têm prova deopção, semespera real. Verificadorfinalnovo+sensor pendentes.
+
+## Ajuste documental do gate final
+
+O verificador confirmou8ACs/74alvos/typecheck/sensor5de5; encontrou apenas espaços finais naslinhas15–16de revisao-contrato.md. Gestor retirou esses espaços sem alterar conteúdo, fonte ou testes. Conferir diff staged e intervalo final, pois diff--check comum não cobre arquivo novo ainda não adicionado. Veredito final ainda será reavaliado pelo verificador independente.

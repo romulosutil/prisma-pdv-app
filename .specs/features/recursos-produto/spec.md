@@ -38,9 +38,9 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| STOCK-01 | 1,2,3 | P0-04-C recurso estoque e downgrade | Implementado e gates locais PASS; verificador pendente |
-| LIMIT-01 | 4,5 | P0-04-C contagem ativa e plano atual | Implementado e gates locais PASS; verificador pendente |
-| PRODUCT-01 | 6 | Venda offline e regressão | Implementado e gates locais PASS; verificador pendente |
+| STOCK-01 | 1,2,3 | P0-04-C recurso estoque e downgrade | Aceito localmente;6ACs PASS,5/5mutações; validation.md |
+| LIMIT-01 | 4,5 | P0-04-C contagem ativa e plano atual | Aceito localmente;6ACs PASS,5/5mutações; validation.md |
+| PRODUCT-01 | 6 | Venda offline e regressão | Aceito localmente;6ACs PASS,5/5mutações; validation.md |
 
 ## Execution Plan
 

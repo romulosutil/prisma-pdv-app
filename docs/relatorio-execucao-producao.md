@@ -1,11 +1,12 @@
 # Checkpoint da execução do plano de produção
 
-Referência: 29/10/2026, após recursos e identidade dos movimentos de caixa, fonte `7d264f6`. O Goal consta **active** na consulta mais recente. O gestor não alterou manualmente o controle. Objetivo persistente ainda não concluído. Este checkpoint não encerra o trabalho executável e não aprova produção.
+Referência: 29/10/2026, após estoque e limites de produto, fonte `f5195ad`. O Goal consta **active** na consulta mais recente. O gestor não alterou manualmente o controle. Objetivo persistente ainda não concluído. Este checkpoint não encerra o trabalho executável e não aprova produção.
 
 ## Entregas locais aceitas
 
 | Commit | Entrega | Escopo no plano |
 |---|---|---|
+| f5195ad | Estoque por licença, histórico no downgrade e limites verificados em concorrência;6ACs PASS/5mutações | Parte P0-04-C |
 | c055910 / 7461e70 | Sete guardas de dono e revogação revalidada após locks;4ACs PASS/10mutações | P0-04-B local |
 | 7d264f6 | Identidade/capacidade dos movimentos, histórico no downgrade e rollback de conflito tardio;5ACs PASS/7mutações | Parte P0-04-C |
 | 7c169d5 | Goal, decisões, contratos e critérios do primeiro lote | Coordenação |
@@ -154,6 +155,8 @@ As sete escritas privilegiadas agora exigem dono atual. O DELETE de aparelho tam
 
 O lote recursos-caixa exige sangria_suprimento do plano atual para movimentos novos, conserva eventos confirmados idênticos/omitidos após downgrade e nega vínculo/conteúdo/IDs repetidos antes de escrever. Se outra conta ganha um ID após a consulta, contagem parcial de RETURNING provoca409 e rollback do push inteiro, incluindo movimento sem disputa e vizinho já escrito; retry classifica o conflito individual e permite o vizinho. Fonte7d264f6,5ACs PASS e7/7mutações detectadas em scratch. Gates finais API408/PGlite ou464/PG28arquivos, mobile434, shared150 e typecheck todos PASS em série. Total1048/PG ou992/PGlite, sem somar variantes;56casos condicionais PG. Revisor repetiu37/39alvos e typeAPI. Container33319020/porta62426 e seu volume conferidos e removidos. Estoque/limites, caixaId e fechamento auditável continuam pendentes.
 
+Estoque e mínimo agora exigem recurso para valores novos/alterados; no downgrade, dados confirmados ficam idênticos e outros campos/exclusão continuam editáveis. Fontef5195ad,6ACs PASS/5mutações detectadas. Fronteira acima do limite, restauração e última vaga com2apps foram verificadas emPG, assim como plano reduzido durante espera e agendamento sem antecipação. Venda manual de1hora antes foi aceita com pai/filhos/mudança/ACK completos. Gates API430/PGlite ou489/PG29arquivos, mobile434/shared150 e typecheck todos PASS. Total1073/PG ou1014/PGlite;59condicionaisPG, sem somar variantes. Revisor repetiu59/64alvos/typeAPI. Containerb81f1f09/porta60139 e volume conferidos/removidos. Corte de Tap/provedor na API e capacidades/oferta mobile ainda pendentes; nenhum gateway real ou Android homologado.
+
 ## Pendências externas e limites
 
 - Android e artefato final: não houve execução em aparelho. `adb` não foi encontrado no PATH. Reinício forçado, atualização, scanner, câmera e pagamentos manuais precisam de roteiro no artefato exato.
@@ -169,7 +172,7 @@ O lote recursos-caixa exige sangria_suprimento do plano atual para movimentos no
 ## Próximos lotes executáveis
 
 1. P0-04-B aceito localmente em c055910: sete guardas de dono, revalidação na revogação após locks, quatro ACs PASS e10/10mutações detectadas. Avançar por C, sem marcar AC-P0-04-2 antes das capacidades.
-2. P0-04-C/D/E: caixa já aceito localmente; seguir estoque/limites e demais capacidades, vínculo caixaId no contrato/bancos/checkout e ajustes após fechamento. O vínculo atual é local; não concluir P0-01-E integral antes desse contrato.
+2. P0-04-C/D/E: caixa/estoque/limites aceitos localmente; seguir corte manual de pagamentos na API/auditoria de capacidades, vínculo caixaId no contrato/bancos/checkout e ajustes após fechamento. O vínculo atual é local; não concluir P0-01-E integral antes desse contrato.
 3. P0-02: outbox completa, envio/ack/retry, pull paginado/cursor transacional, conflitos e recuperação autenticada. A recuperação de acesso entregue não substitui esse bloco.
 4. Homologação externa de e-mail quando houver acesso autorizado; capacidades/oferta, assinatura real, build/CI, operação, remediação de dependências e mínimos P1. Continuar as partes locais independentes enquanto faltarem acessos externos.
 

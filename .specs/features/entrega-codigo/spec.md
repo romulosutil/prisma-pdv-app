@@ -45,5 +45,5 @@ Acceptance Criteria:
 |---|---|---|---|
 | DELIVERY-01 | 1,2,3 | P0-03-A emissão atômica | pending |
 | DELIVERY-02 | 4,5,6 | P0-03-A processamento recuperável | pending |
-| DELIVERY-03 | 7,8 | P0-03-A/P0-07-F configuração/ciclo | pending |
+| DELIVERY-03 | 7,8 | P0-03-A/P0-07-F configuração/ciclo | parser/scheduler T3 PASS; bootstrap T4 pending |
 | DELIVERY-04 | 9 | P0-03-A integração local e comunicação | pending |

@@ -42,7 +42,7 @@ Where: apps/api/src/db/schema.ts, drizzle0005/meta, email/filaCodigo.ts e test/e
 Tests: AC3–7 PostgreSQL real e PGlite, duasinstâncias/locks/clock, falhas nas fronteiras, TTL/uso/esgotamento/substituição, retry5delays/fencing/ACK/rotação e limpeza.
 Gate: build
 Done when: invariantes do design comprovados por asserções de registros/valores integrais; nenhum lock/transação durante SMTP; revisão nova passa sem tratar mocks como SMTP externo.
-Status: pending.
+Status: em execução por executor Terra Médio em arquivos exclusivos, sem commits/novosagentes.
 
 ### T3: Configuração de chaves e ciclo do worker
 Depends on: T1
@@ -50,7 +50,7 @@ Where: apps/api/src/email/configuracaoEntrega.ts, apps/api/src/jobsEmail.ts e te
 Tests: AC7/8 modos inválidos/chaves/formato e não exibir segredos, timers5s/concorrência/erros/parada aguarda/callbacks; sem tocar config/index legados.
 Gate: quick
 Done when: configuração valida antes de banco/rede e ring permite antiga/nova; scheduler tem ciclo recuperável local e logs somente contadores/texto próprio; revisão nova passa.
-Status: pending.
+Status: aceita no escopo T3;36/36alvos repetidos pelo gestor,typecheckAPI/diffsemwhitespace, revisao-runtime.mdPASSnovo. Configuração normalizaNODEENVausentecomo development, ringantiga/nova decifrados independentemente, produçãoSMTPválidaapenasparser. jobsEmail.test.ts12–22comprova fronteiras4999/5000/9999/10000 e stop0timers; drain/concorrência/logger e erros sanitizados também verificados. Pureza confirmadaporfoneseminstanciaçãoDB/rede, nãotesteinstrumentado; bootstrap/JOBSoff/guardasDBaindaT4. TodososcasosmapeiamAC7parser/AC8, nenhum anteriorremovido/enfraquecido.
 
 ### T4: Emissão atômica e integração local
 Depends on: T2, T3

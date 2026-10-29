@@ -1,0 +1,71 @@
+# Recuperação de aparelho
+
+## Test Coverage Matrix
+
+| Camada | AC | Profundidade |
+|---|---|---|
+| Shared | 2,3,4 | DTOs válidos/inválidos, segredo43, consentimento e candidatos |
+| API/PG | 1a8 | OTP e limites reais, hashes,401/409,5min, concorrência/rollback/sessão única, finanças intactas |
+| HTTP/demo | 9 | Rotas/status/schema, sem token privado/callback público, não simular substituição |
+| Dados/SQLite | 10,11,13 | Geração, preflight, cofre, retry, perfis e duas instalações/API real em processo |
+| UI | 12 | Hooks React reais/hosts simulados, escolha/consentimento/cancelamento/erro/tarde, Android pendente |
+
+## Gate Check Commands
+
+- quick: suíte do workspace tocado com --maxWorkers=1 e typecheck correspondente; testes novos derivados do spec antes de implementar.
+- build: testes mobile/API/shared e typecheck todos, diff--check; API também PostgreSQL17 LOCAL dedicado pdv_test. Não executar TRUNCATE de dois agentes no mesmo banco simultaneamente.
+- spec/tasks/state e mensagens de commit: validadores da skill tlc-spec-driven. Revisor novo por entrega; final novo com sensor isolado em scratch.
+
+## Execution Plan
+
+```text
+T1 -> T2
+T1 -> T3
+T2 -> T4
+T3 -> T4
+T4 -> T5
+```
+
+T2 API e T3 transporte são os dois executores independentes permitidos; Terra Médio explícito, sem criar agentes/commits. Gestor integra, revisa autenticação/persistência e centraliza plano/commits. T1 schemas pelo gestor; T4 Dados após API/adapters aceitos; T5 UI após Dados. Revisores nunca alteram implementação.
+
+## Task Breakdown
+
+### T1: Contratos de recuperação
+Depends on: none
+Where: packages/shared/src/contrato.ts e packages/shared/test/recuperacaoContrato.test.ts.
+Tests: DTOs e invariantes AC2/3/4, consentimento literal, IDs únicos e novo fora dos candidatos.
+Gate: quick
+Done when: contratos explícitos e compatíveis com endpoints de sessão existentes, schemas/typecheck aprovados e revisão de contrato aceita.
+Status: pending.
+
+### T2: Recuperação transacional no servidor
+Depends on: T1
+Where: apps/api/src/{auth,db/schema,rotas/conta}.ts, novos servicos/{codigoLogin,recuperacaoAparelho}.ts e rotas/recuperacao.ts se útil, servidor.ts só registro de rota, drizzle0004/meta e test/recuperacaoAparelho.test.ts.
+Tests: AC1a8 com PostgreSQL real e duas instâncias, incluindo guards OTP isolados, rate compartilhado, múltiplas fronteiras de falha, replay idempotente, prazo após lock e tabelas financeiras preservadas.
+Gate: build
+Done when: OTP e provas restritas não são sessões; confirmação uma vez atomica/consentida, limites compartilhados, replay não renova/revive acesso; revisão independente passa, critérios externos permanecem pendentes.
+Status: pending.
+
+### T3: Transporte HTTP e erro de limite identificado
+Depends on: T1
+Where: apps/mobile/src/servicos/backend{,Http,Local}.ts e novo test/backendRecuperacao.test.ts.
+Tests: AC9, schemas/routes/payload, status e erro estável,429 e401 público, demo rejeita sem escrita.
+Gate: quick
+Done when: assinatura dos métodos fixada, DTO real público sem token antigo e sem falsa recuperação demo, erro409limite é identificável pela UI; revisão independente aprova.
+Status: pending.
+
+### T4: Controle de recuperação local e integração
+Depends on: T2, T3
+Where: apps/mobile/src/dados/dados.ts e novos test/{recuperacaoDados,recuperacaoApiIntegracao}.test.ts, fixtures locais adicionais se estritamente necessárias.
+Tests: AC10/11/13, perda resposta/retry, geração/contexto, preflight antes de ambas fases, perfil/cadastro errado e falta de cofre, finanças origem/servidor preservadas em duas instalações reais API+SQLite.
+Gate: build
+Done when: desafio só memória, sessão só depois de confirmação/perfil/cofre válidos; origem preservada e login novo recuperável. Revisor novo passa sem contar fetch/cofre fake como homologação nativa.
+Status: pending.
+
+### T5: Escolha e confirmação no login
+Depends on: T4
+Where: apps/mobile/app/(onboarding)/entrar.tsx, novo componente de recuperação se necessário, test/recuperacaoTela.test.tsx ou .ts.
+Tests: AC12, erro409 exato oferece, perfil/candidatos reais, confirmação explícita uma vez, cancela, erro/expiração e resposta atrasada sem falso sucesso, navegação inspecionada; Android pendente.
+Gate: build
+Done when: fluxo acessível com componentes existentes, mensagens honestas sobre acesso/vendas, sem segredo exposto nem ação concorrente; revisão final nova confronta13ACs e mata mutação em scratch.
+Status: pending.

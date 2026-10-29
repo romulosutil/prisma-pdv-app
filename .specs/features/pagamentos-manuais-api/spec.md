@@ -35,9 +35,9 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| PAY-01 | 1,2 | P0-04-C; parte API P0-06-B | Implementado e gates locais PASS; revisor pendente |
-| PAY-02 | 3 | História e idempotência preservadas | Implementado e gates locais PASS; revisor pendente |
-| PAY-03 | 4 | Prioridades e verificação | Implementado e gates locais PASS; revisor pendente |
+| PAY-01 | 1,2 | P0-04-C; parte API P0-06-B | Aceito localmente;4ACs PASS/5mutações; validation.md |
+| PAY-02 | 3 | História e idempotência preservadas | Aceito localmente;4ACs PASS/5mutações; validation.md |
+| PAY-03 | 4 | Prioridades e verificação | Aceito localmente;4ACs PASS/5mutações; validation.md |
 
 ## Execution Plan
 

@@ -37,6 +37,6 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| ORIGIN-01 | 1,5 | P0-04-B papel atual | Implementado/gates PASS; final pendente |
-| ORIGIN-02 | 2 | P0-04-B nova origem | Implementado/gates PASS; final pendente |
-| ORIGIN-03 | 3,4 | P0-04-B histórico confirmado | Implementado/gates PASS; final pendente |
+| ORIGIN-01 | 1,5 | P0-04-B papel atual | PASS local, validation.md fonte4e71729 |
+| ORIGIN-02 | 2 | P0-04-B nova origem | PASS local, validation.md fonte4e71729 |
+| ORIGIN-03 | 3,4 | P0-04-B histórico confirmado | PASS local, validation.md fonte4e71729 |

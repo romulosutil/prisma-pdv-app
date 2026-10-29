@@ -364,6 +364,8 @@ Evidências locais, com escopo limitado ao resultado descrito. Homologação And
 
 ### Condição de liberação
 
+29/10, parte de P0-03-D (adapter): SecureStore ligado à fábrica nativa, migração/rotação com journal sem token e erros sanitizados. 16 testes de storage passaram e revisão independente `acesso-mobile/revisao-cofre.md` conferiu código/plugin. Cofre dos testes é simulado; não comprova Android nem conclui o bloco global.
+
 - [ ] Todos os critérios P0 aplicáveis estão atendidos; condicionais de integração ficam explicitamente desabilitados e fora da oferta quando não implementados.
 - [ ] Os mínimos obrigatórios de P1-10/P1-11 estão atendidos; recursos adicionais só são ofertados após seu aceite.
 - [ ] O commit homologado corresponde ao artefato distribuído e ao contrato da API implantada.

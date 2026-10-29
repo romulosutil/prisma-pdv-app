@@ -15,6 +15,8 @@
 - AD-011: identidade pública da instalação fica em metadata global antes da requisição. Reutilizar UUID salvo; na primeira migração adotar aparelhoId da sessão legada. Literal JSON null em armazenamento é corrupção (null retornado significa exclusivamente ausência), não autorização para gerar outra identidade.
 - AD-012: sessões API duram 30 dias; acesso offline continua regido pela licença. Revogação é auditável por data, sem apagar registros financeiros. Login e revogação adquirem FOR UPDATE da mesma conta antes de código/dispositivo/limite.
 - AD-013: os dois cenários comerciais existentes que avançam além de 30 dias renovam explicitamente a sessão via rotas locais de código/login. Nenhuma asserção financeira foi removida/enfraquecida; a expiração exata tem teste próprio.
+- AD-014 (29/10/2026): separar identidade local da credencial. Conta conserva IDs/perfil quando o token expira, é removido ou falta no cofre. SecureStore ~58.0.2 conforme bundledNativeModules e documentação https://docs.expo.dev/versions/v58.0.0/sdk/securestore/; WHEN_UNLOCKED_THIS_DEVICE_ONLY e backup configurado pelo plugin. Adapter browser segue demonstrativo.
+- AD-015: rotação de token usa referências UUID e journal sem segredos escrito antes do cofre. Metadata comum nunca recebe token. Migração verifica cofre antes de sanitizar legado; limpeza de referências exclui a ativa e tenta novamente as falhas. Reset dev possui janela de dois armazenamentos, registrada em revisao-cofre.md; não há promessa de transação base/cofre.
 
 ## Handoff
 

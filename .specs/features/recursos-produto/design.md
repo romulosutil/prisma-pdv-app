@@ -1,0 +1,11 @@
+# Extensão mínima de upsertProduto
+
+Recursos-caixa aceito em7d264f6/a42e14f, dependência cumprida. AD037/038 definidos antes da delegação. Ownership futuro somente sync.ts e teste novo syncRecursosProduto.test.ts; fonte compartilhada com caixa exige execução sequencial.
+
+Depois dos guards existentes de loja, mutação antiga e limite de ativação, comparar estoque/estoqueMinimo do corpo com valores atuais ou null se novo. Sem podeUsar(c.licenca.planoId, 'estoque'), qualquer diferença retorna recurso_plano antes de campos, contagem, mudança ou ACK. Null não substitui histórico no downgrade. Campos não relacionados podem mudar com estoque idêntico. Exclusão explícita não precisa do recurso. Não mudar guardas/contador já implementados sem evidência de falha contra a spec; caso apareça falha, comunicar antes de ampliar a mudança.
+
+Preservar prioridade: loja -> last-write-wins antigo -> limite_plano -> recurso_plano. Valores negativos continuam permitidos no estoque pelo contrato existente quando há recurso; zero conta como valor. Comparação estrita de ambos os campos. Preservar as condições para produto ativo/tombstone e a contagem transacional do lote.
+
+Provas de concorrência em PG dedicado com controle segurando conta, dois apps e observador autocommit. Para última vaga, dois pushes bloqueados antes de liberar, resultado um aceito/outro limite_plano e contagem500. Para redução durante espera, alteração controlada de assinatura dentro da transação que segura conta, sem provider externo; após commit rejeição pela licença atual. Plano agendado é fixture comercial separada e não muda planoId atual. Seed SQL em lote pode preparar499/500 produtos válidos para testar só a fronteira via API; documentar seed como precondição, sem chamar de integração de compra. Downgrade/upgrade funcional pode usar trial e rota de assinatura real local com provider mock.
+
+Não repetir o teste básico já existente de501produtos; citá-lo e testar os estados novos de downgrade/restauração/snapshot/concorrência. Snapshots reais e controles positivos, sem weak assertions ou dados inventados como integração externa. Uma suíte global/maxWorkers1. Sem fonte concorrente, schema, UI, billing ou jobs. A guarda não se aplica a venda manual e preserva janelas atuais.

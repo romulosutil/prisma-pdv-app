@@ -35,11 +35,11 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| PAY-01 | 1,2 | P0-04-C; parte API P0-06-B | Planejado; recursos-produto aceitof5195ad/cf8b826 |
-| PAY-02 | 3 | História e idempotência preservadas | Planejado; recursos-produto aceitof5195ad/cf8b826 |
-| PAY-03 | 4 | Prioridades e verificação | Planejado; recursos-produto aceitof5195ad/cf8b826 |
+| PAY-01 | 1,2 | P0-04-C; parte API P0-06-B | Implementado e gates locais PASS; revisor pendente |
+| PAY-02 | 3 | História e idempotência preservadas | Implementado e gates locais PASS; revisor pendente |
+| PAY-03 | 4 | Prioridades e verificação | Implementado e gates locais PASS; revisor pendente |
 
 ## Execution Plan
 
-1. Depois do aceite de recursos-produto, gestor registra AD final e delega teste RED/implementação mínima em apps/api/src/servicos/sync.ts e novo apps/api/test/syncPagamentosManuais.test.ts. Guard inline após consistência e antes de insert, sem nova abstração para uso único. Gate rápido novo alvo mais syncValoresVenda/syncOrigem/sync nas duas variantes/typeAPI. Gestor revisa, integra, roda regressões completas em série, adequação e commit atômico com status.
+1. Depois do aceite de recursos-produto, gestor registra AD final e delega teste RED/implementação mínima em apps/api/src/servicos/sync.ts e novo apps/api/test/syncPagamentosManuais.test.ts. Guard inline após consistência e antes de insert, sem nova abstração para uso único. Gate rápido novo alvo mais syncValoresVenda/syncOrigem/sync nas duas variantes/typeAPI. Gestor revisa, integra, roda regressões completas em série, registra adequação e inventário em docs/auditoria-autorizacao-capacidades-api.md e faz commit atômico com status.
 2. Verificador novo Terra Médio: alvos PGlite/PG, typeAPI, evidência exata por AC e sensor P0>=5; validation.md/validate_state e checkpoint. Auditar capacidades/limites expostos para encerrar C local somente com provas; manter P0-06-B global aberto para mobile/adapters/oferta.

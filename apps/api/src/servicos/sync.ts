@@ -160,6 +160,7 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
   // O app não deixa vender offline além da janela: criadaEm mais antigo que isso é retroação.
   if (criadoEm < adicionarDias(c.agora, -OFFLINE_MAX_DIAS)) return 'venda_fora_da_janela_offline';
   if (!vendaConsistente(v)) return 'venda_inconsistente';
+  if (v.pagamentos.some(p => p.meio === 'tap' || p.provedor !== null)) return 'pagamento_indisponivel';
   await c.tx.insert(vendas).values({
     id: v.id,
     lojaId: v.lojaId,

@@ -1,11 +1,13 @@
 # Checkpoint da execução do plano de produção
 
-Referência: 29/10/2026, após autorização de dono nas rotas privadas, fonte `c055910`. O Goal consta **active** na consulta mais recente. O gestor não alterou manualmente o controle. Objetivo persistente ainda não concluído. Este checkpoint não encerra o trabalho executável e não aprova produção.
+Referência: 29/10/2026, após recursos e identidade dos movimentos de caixa, fonte `7d264f6`. O Goal consta **active** na consulta mais recente. O gestor não alterou manualmente o controle. Objetivo persistente ainda não concluído. Este checkpoint não encerra o trabalho executável e não aprova produção.
 
 ## Entregas locais aceitas
 
 | Commit | Entrega | Escopo no plano |
 |---|---|---|
+| c055910 / 7461e70 | Sete guardas de dono e revogação revalidada após locks;4ACs PASS/10mutações | P0-04-B local |
+| 7d264f6 | Identidade/capacidade dos movimentos, histórico no downgrade e rollback de conflito tardio;5ACs PASS/7mutações | Parte P0-04-C |
 | 7c169d5 | Goal, decisões, contratos e critérios do primeiro lote | Coordenação |
 | f0bd5a4 | Schema SQLite v1 com partição conta/loja, FKs e migração transacional | P0-01-A |
 | 23ac272 | Publicação do estado somente depois de confirmar escrita, fila e erro de leitura | Parte P0-01-C |
@@ -150,6 +152,8 @@ O verificador final de entrega-codigo aprovou9ACs e matou5mutações por asserç
 
 As sete escritas privilegiadas agora exigem dono atual. O DELETE de aparelho também revalida sessão e papel depois dos locks de conta/sessão, com relógio posterior à espera e Read Committed explícito. Fonte c055910, quatro ACs PASS e10/10mutações detectadas pelo verificador novo. API ampla392/PGlite ou447/com PG, depois caso adicional sem mudança de fonte: alvo24/30; mobile434, shared150 e typecheck todos PASS. O revisor repetiu38/59alvos e typecheck API. A união cobre393/448casos de API; não houve uma invocação ampla final com essa contagem. PostgreSQL efêmero9857f561/porta59743 e volume removidos após conferir identidade. Billing permanece mock local, sem integração real.
 
+O lote recursos-caixa exige sangria_suprimento do plano atual para movimentos novos, conserva eventos confirmados idênticos/omitidos após downgrade e nega vínculo/conteúdo/IDs repetidos antes de escrever. Se outra conta ganha um ID após a consulta, contagem parcial de RETURNING provoca409 e rollback do push inteiro, incluindo movimento sem disputa e vizinho já escrito; retry classifica o conflito individual e permite o vizinho. Fonte7d264f6,5ACs PASS e7/7mutações detectadas em scratch. Gates finais API408/PGlite ou464/PG28arquivos, mobile434, shared150 e typecheck todos PASS em série. Total1048/PG ou992/PGlite, sem somar variantes;56casos condicionais PG. Revisor repetiu37/39alvos e typeAPI. Container33319020/porta62426 e seu volume conferidos e removidos. Estoque/limites, caixaId e fechamento auditável continuam pendentes.
+
 ## Pendências externas e limites
 
 - Android e artefato final: não houve execução em aparelho. `adb` não foi encontrado no PATH. Reinício forçado, atualização, scanner, câmera e pagamentos manuais precisam de roteiro no artefato exato.
@@ -165,7 +169,7 @@ As sete escritas privilegiadas agora exigem dono atual. O DELETE de aparelho tam
 ## Próximos lotes executáveis
 
 1. P0-04-B aceito localmente em c055910: sete guardas de dono, revalidação na revogação após locks, quatro ACs PASS e10/10mutações detectadas. Avançar por C, sem marcar AC-P0-04-2 antes das capacidades.
-2. P0-04-C/D/E: capacidades, vínculo caixaId no contrato/bancos/checkout e ajustes após fechamento. O vínculo atual é local; não concluir P0-01-E integral antes desse contrato.
+2. P0-04-C/D/E: caixa já aceito localmente; seguir estoque/limites e demais capacidades, vínculo caixaId no contrato/bancos/checkout e ajustes após fechamento. O vínculo atual é local; não concluir P0-01-E integral antes desse contrato.
 3. P0-02: outbox completa, envio/ack/retry, pull paginado/cursor transacional, conflitos e recuperação autenticada. A recuperação de acesso entregue não substitui esse bloco.
 4. Homologação externa de e-mail quando houver acesso autorizado; capacidades/oferta, assinatura real, build/CI, operação, remediação de dependências e mínimos P1. Continuar as partes locais independentes enquanto faltarem acessos externos.
 

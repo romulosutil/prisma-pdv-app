@@ -94,7 +94,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 **Tarefas**
 
-- [ ] **P0-03-A:** integrar provedor de e-mail transacional, entrega com retentativa e tratamento de falhas; não retornar/logar o código em produção nem revelar se a conta existe.
+- [ ] **P0-03-A:** integrar provedor de e-mail transacional, entrega com retentativa e tratamento de falhas; não retornar/logar o código em produção nem revelar se a conta existe. Base interna SMTP/cifra verificada localmente em1252ad8/bf7b07f/daa8af5, revisão final emcanal-email/validation.md. Faltam fila transacional, conexão com emissão/worker e entrega externa; /auth/codigo ainda não usa esse canal.
 - [x] **P0-03-B:** limitar emissão e tentativas por e-mail/IP, com armazenamento compartilhado entre instâncias, respostas estáveis e proteção contra reenvio contínuo que reinicie a contagem de tentativas. Implementação local verificada com duas instâncias Fastify e PostgreSQL17; proxy/relógios do ambiente de implantação permanecem pendentes, assim como entrega real de e-mail em P0-03-A.
 - [x] **P0-03-C:** criar uma identidade persistente por instalação, reutilizada no cadastro/login; documentar reinstalação, substituição de aparelho e recuperação quando o limite estiver atingido.
 - [ ] **P0-03-D:** proteger o token no armazenamento nativo; implementar duração, renovação ou nova autenticação, logout e revogação no servidor, compatíveis com a operação offline.
@@ -377,6 +377,7 @@ Evidências locais, com escopo limitado ao resultado descrito. Homologação And
 | Parte P0-03-D/E/F, cliente | 235363b,a47cc81,2f62ffb,70886f9 | Mobile433/shared148,typecheck;80 alvos repetidos pelo gestor | React, duas SQLite reais, Fastify/PGlite em processo; cofre/hosts simulados | Geração/preflight durável, perfil antes do cofre, retry após aplicação parcial, escolha e aviso explícitos; origem2500/1000/1500 intacta |
 | Recuperação, verificação final | 70886f9 | recuperacao-aparelho/validation.md PASS;5/5 mutações detectadas na fonte2f62ffb | Gates completos locais; sensor em scratch isolado | Gaps de prova corrigidos, nenhuma mutação na árvore real; Android/SMTP/restauração remota permanecem pendentes |
 | Triagem de dependências | 04c4922 | npm audit completo13/omit-dev9; árvore e advisories | Somente leitura | Classificação em triagem-dependencias.md; nenhuma remediação ou prova de alcance do APK |
+| Parte P0-03-A, base do canal | 1252ad8,bf7b07f,daa8af5 | 74 alvos e revisão independente8ACs; sensor5/5; gate completo259API PGlite/433mobile/148shared | AES256GCM real; SMTP TCP127.0.0.1; TLS+AUTH em filho com CA só de teste | Config explícita, envelope/texto/ID,4xx/5xx/TLS/timeout, segredo cifrado/AAD; sem fila ou integração da emissão e sem entrega externa |
 
 ### Condição de liberação
 

@@ -110,6 +110,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: AC12-texto (mobile)
 - last seen: 2026-10-29T05:58:38Z
 
+### L-017 - Verifique arquivos novos com git diff --cached --check após stage ou git diff --check no intervalo de commits, pois o diff não staged os omite.
+- signal: `gate_fail` · recurrence: 1 feature(s) · scope: `git` · harmful: 0
+- features: canal-email
+- evidence: .specs/features/canal-email/revisao-contrato.md:15 (git)
+- last seen: 2026-10-29T06:33:26Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

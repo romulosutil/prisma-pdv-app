@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 17,
+  "next_id": 18,
   "lessons": [
     {
       "id": "L-001",
@@ -293,6 +293,24 @@
       ],
       "created": "2026-10-29T05:58:38Z",
       "last_seen": "2026-10-29T05:58:38Z"
+    },
+    {
+      "id": "L-017",
+      "key": "gate_fail::verifique arquivos novos com git diff cached check apos stage ou git diff check no intervalo de commits pois o diff nao staged os omite",
+      "text": "Verifique arquivos novos com git diff --cached --check após stage ou git diff --check no intervalo de commits, pois o diff não staged os omite.",
+      "signal": "gate_fail",
+      "scope": "git",
+      "status": "candidate",
+      "features": [
+        "canal-email"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        ".specs/features/canal-email/revisao-contrato.md:15 (git)"
+      ],
+      "created": "2026-10-29T06:33:26Z",
+      "last_seen": "2026-10-29T06:33:26Z"
     }
   ]
 }

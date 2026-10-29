@@ -39,7 +39,7 @@ Where: apps/api/src/email/cifrador.ts e apps/api/test/emailCifrador.test.ts.
 Tests: AC2/3, crypto real, roundtrip, IV12/tag16, chave externa canônica32, AAD/contexto e adulterações recusadas sem material sensível.
 Gate: quick
 Done when: envelope limitado/estrito e recuperação somente com chave/contexto exatos, testes/inspeção direta e revisão independente aprovados.
-Status: pending.
+Status: aceita localmente apósrevisão-cifrador.mdPASS;14/14alvos repetidos porgestor/revisor,typecheckAPI/diffPASS. AC2em emailCifrador.test.ts:27–46 exige envelope/IV12/tag16/payloadnormalizado e decifragemindependente com algoritmo/AADexatos; AC3:49–96exige chave/contexto/IV/tag/cipher/envelope/base64canônico e limite. Busca plaintextnormalizado:34. Gaps iniciais deprova corrigidos semremoverasserções; fonte manteve contrato/AESNode real.
 
 ### T3: SMTP configurado e protocolo local
 Depends on: T1
@@ -47,4 +47,4 @@ Where: apps/api/src/email/smtp.ts e apps/api/test/emailSmtp.test.ts, fixtures lo
 Tests: AC4–8, parser/fábrica adversariais e SMTPServer em loopback com sucesso,4xx/5xx,STARTTLS ausente/certificado não confiável; conteúdo/erro sem vazamento.
 Gate: build
 Done when: protocolo local e categorias comprovados, sem fallback inseguro/env arbitrário, sem mudar emissão atual nem chamar teste local de entrega externa; revisor novo e sensor aprovados.
-Status: pending.
+Status: em execução por executor independente, arquivos exclusivos definidos.

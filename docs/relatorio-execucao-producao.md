@@ -1,6 +1,6 @@
 # Checkpoint da execução do plano de produção
 
-Referência: 29/10/2026, após recuperação consentida e base interna de e-mail, atéd63a917. Goal persistente **ativo**. Este checkpoint não encerra o trabalho executável e não aprova produção.
+Referência: 29/10/2026, após recuperação consentida e base interna de e-mail, atéd63a917. Controle do Goal consultado na retomada retornou **blocked**, sem operação de reativação disponível ao agente; execução local continua autorizada pelo pedido continue. Objetivo persistente ainda não concluído. Este checkpoint não encerra o trabalho executável e não aprova produção.
 
 ## Entregas locais aceitas
 

@@ -22,7 +22,7 @@ Credenciais, domínio ou destinatário externo; contratação; produção/public
 | Domínio do Message-ID | Persistir domínio do remetente na entrega e bloquear canal de domínio diferente | Retry não muda Message-ID depois de reconfigurar remetente |
 | Falta de chave | Bootstrap recusa pendência ativa sem chave; worker mantém cifrado até correção/expiração | Não descartar silenciosamente rotação pendente |
 
-Open questions: none para o lote local. Provider/credenciais/domínio/destinatário autorizado seguem indisponíveis externamente. O controle do Goal foi consultado em29/10 e retornou blocked; ferramentas não permitem retomada pelo agente. O usuário pediu continue e a execução local permanece autorizada, sem marcar objetivo completo ou simular alteração do controle.
+Open questions: none para o lote local. Provider/credenciais/domínio/destinatário autorizado seguem indisponíveis externamente. Goal active na consulta mais recente; objetivo global ainda não concluído.
 
 ## User Stories
 
@@ -43,7 +43,7 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| DELIVERY-01 | 1,2,3 | P0-03-A emissão atômica | PASS local T2/T4/T5; final pending |
-| DELIVERY-02 | 4,5,6 | P0-03-A processamento recuperável | PASS local T2/T5; final pending |
-| DELIVERY-03 | 7,8 | P0-03-A/P0-07-F configuração/ciclo | PASS local T3/T5; final pending |
-| DELIVERY-04 | 9 | P0-03-A integração local e comunicação | PASS local T5; final pending |
+| DELIVERY-01 | 1,2,3 | P0-03-A emissão atômica | PASS local T2/T4/T5; final PASS local em validation.md, fonte5651212 |
+| DELIVERY-02 | 4,5,6 | P0-03-A processamento recuperável | PASS local T2/T5; final PASS local em validation.md, fonte5651212 |
+| DELIVERY-03 | 7,8 | P0-03-A/P0-07-F configuração/ciclo | PASS local T3/T5; final PASS local em validation.md, fonte5651212 |
+| DELIVERY-04 | 9 | P0-03-A integração local e comunicação | PASS local T5; final PASS local em validation.md, fonte5651212 |

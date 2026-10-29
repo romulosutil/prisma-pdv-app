@@ -1,6 +1,6 @@
 # Operação do código por e-mail
 
-Roteiro preparado em 29/10/2026, ainda não executado em serviço externo. A integração da emissão está em andamento em `.specs/features/entrega-codigo/`. Não usar este documento como aprovação de produção. O bootstrap continua recusando billing mock em produção.
+Roteiro preparado em 29/10/2026, ainda não executado em serviço externo. O fluxo foi integrado e aprovado nos nove critérios locais em `.specs/features/entrega-codigo/validation.md`, fonte5651212. Não usar este documento como aprovação de produção. O bootstrap continua recusando billing mock em produção.
 
 ## Configuração a revisar
 

@@ -1,6 +1,6 @@
 # Checkpoint da execução do plano de produção
 
-Referência: 29/10/2026, após recuperação consentida e base interna de e-mail, atéd63a917. Controle do Goal consultado na retomada retornou **blocked**, sem operação de reativação disponível ao agente; execução local continua autorizada pelo pedido continue. Objetivo persistente ainda não concluído. Este checkpoint não encerra o trabalho executável e não aprova produção.
+Referência: 29/10/2026, após o fluxo local integrado de e-mail, fonte5651212. O Goal consta **active** na consulta mais recente; antes desta retomada a ferramenta havia retornado blocked, sem ação de retomada disponível ao agente. O gestor não alterou manualmente o controle. Objetivo persistente ainda não concluído. Este checkpoint não encerra o trabalho executável e não aprova produção.
 
 ## Entregas locais aceitas
 
@@ -42,6 +42,13 @@ Referência: 29/10/2026, após recuperação consentida e base interna de e-mail
 | bf7b07f | AES256GCM com chave externa e AAD por entrega/código | Parte P0-03-A, preparação da fila |
 | daa8af5 | Adapter SMTP com TLS verificado e protocolo local real | Parte P0-03-A |
 | d63a917 | Correção de espaços finais no relatório do contrato | Gate documental |
+| dc6ef3e | Checkpoint da base de e-mail validada | Documentação |
+| 7971c7a | Contratos de fila, chaves, domínio e recuperação | P0-03-A planejamento |
+| facef7f | Configuração do ring e scheduler recuperável | Parte P0-03-A/P0-07-F |
+| 80da210 | Fila cifrada, migração0005, lease/fencing/retentativa/limpeza | Parte P0-03-A |
+| b3bed4d | Emissão e consumo transacionais, resposta genérica e logs sem OTP | Parte P0-03-A |
+| c7cbee0 | Prova discriminante com sucessor ainda enviando | P0-03-A fencing |
+| 5651212 | Bootstrap/shutdown, cleanup do migrador, SMTP real local e texto honesto | P0-03-A integração local |
 
 O escopo de uma loja, operador e aparelho com dinheiro/cartão manual/Pix estático está registrado em AD-001 e P0-06-A. As capacidades e a oferta ainda precisam refletir essa decisão em P0-06-B/P1-10-A.
 
@@ -51,16 +58,20 @@ O escopo de uma loja, operador e aparelho com dinheiro/cartão manual/Pix estát
 |---|---|---|
 | `rtk proxy npm run test --workspace=@pdv/mobile -- --maxWorkers=1` | 433 testes, 39 arquivos, passou | Node24; SQLite real; API Fastify/PGlite em processo nos testes de integração; cofre e hosts nativos simulados |
 | `rtk proxy npm run test --workspace=@pdv/shared -- --maxWorkers=1` | 148 testes, 10 arquivos, passou | Node |
-| `rtk proxy npm run test --workspace=@pdv/api -- --maxWorkers=1` | 259 testes PGlite, 15 arquivos, passou | Gate mais recente após canal de e-mail. Última suíte PostgreSQL:193/12arquivos na recuperação, antes deste módulo; não houve nova execução PostgreSQL para módulos sem banco |
+| `rtk proxy npm run test --workspace=@pdv/api -- --maxWorkers=1` | 351 testes PGlite e384 na variante com PostgreSQL,22arquivos, passou | Variantes executadas em série. A seleção com PostgreSQL também contém testes unitários e alguns PGlite; não são384testes de rede/banco |
 | `rtk proxy npm run typecheck` | Passou nos três workspaces | TypeScript |
 | `rtk git diff --check` | Passou | Árvore da entrega |
 | Validadores da skill para spec/tasks/state aplicáveis | Passaram | Evidências em `.specs/` |
 
-Total das três suítes completas mais recentes: **840 testes aprovados** (259 API/PGlite,433 mobile,148 shared). Na recuperação anterior foram774 com API/PostgreSQL ou766 com PGlite; não somar essas execuções como casos distintos nem atribuir uma suíte PostgreSQL nova ao canal. Os oito casos PostgreSQL condicionais do acesso foram executados na recuperação e não se registram em PGlite. Nenhum teste registrado foi pulado. Nenhuma contagem comprova Android, entrega externa de e-mail, Google Play ou produção.
+Total das três suítes completas mais recentes: **965 testes aprovados** usando a variante API com PostgreSQL (384 API,433 mobile,148 shared). A alternativa com API/PGlite soma932. Não somar as duas execuções da API nem repetições como casos distintos. Os33casos adicionais da seleção PostgreSQL não se registram na seleção PGlite. Nenhum teste registrado foi pulado. Nenhuma contagem comprova Android, entrega externa de e-mail, Google Play ou produção.
 
 O verificador final de recuperação executou API185PGlite/193PostgreSQL, mobile433 e shared148, typecheck todos e diff--check após os reforços T6/T7, então ainda no working tree. Depois confirmou igualdade dos cinco arquivos testados com os commits82970f6/70886f9; não se afirma nova execução após os commits. O gestor leu as fontes críticas, a migração e os diffs de testes e repetiu37 alvos API/PostgreSQL e80 nos quatro arquivos mobile. O relatório independente identifica o conteúdo executado em recuperacao-aparelho/validation.md.
 
 No canal de e-mail, o gestor executou o conjunto completo840/typecheck após os reforços e antes do commitdaa8af5, com o mesmo conteúdo de fonte/testes. O verificador final novo repetiu74 alvos de contrato/cifra/SMTP e typecheckAPI; os revisores por entrega também repetiram24/14/36 casos. Não se afirma repetição independente das suítes completas neste lote. Foram fixados nodemailer10.2.1, smtp-server3.21.1dev e tipos8.0.2/3.5.13; os installs continuaram informando13 entradas no audit, sem alegar remediação.
+
+Na entrega integrada, o gestor rodou todas as suítes/tipos do conteúdo5651212. O verificador novo executou sete arquivos direcionados:92PGlite/117comPostgreSQL e13da tela; não repetiu as suítes completas e o relatório distingue suas execuções das do gestor. Bootstrap e migração em falha usam mocks explícitos; protocolo usa Fastify real por inject e SMTP TCP/PG locais reais. Cinco tabelas financeiras foram preenchidas e comparadas integralmente. A prova de fencing mantém o sucessor ainda enviando enquanto a resposta antiga termina, evitando que o estado terminal mascare a ausência da checagem de token.
+
+Uma rodada ampla iniciada em paralelo excedeu a memória da máquina (Zone/heap) e foi interrompida, sem contar seus resultados como aprovação. Os runners da rodada foram encerrados; mobile/types que tinham terminado foram repetidos depois, e shared/API passaram em execuções seriais com um worker. Não se aumentou o heap nem se reduziu a suite para obter aprovação. Manter somente uma suite ativa por vez nesta máquina, inclusive variantes e workspaces.
 
 O primeiro comando padrão da suíte API esgotou memória com workers paralelos. O mesmo conjunto passou com `--maxWorkers=1`. Dois cenários comerciais que avançam mais de 30 dias passaram a renovar explicitamente a sessão pelas rotas de autenticação; as expectativas financeiras foram preservadas.
 
@@ -69,6 +80,8 @@ PostgreSQL foi criado num container descartável com porta vinculada somente a l
 No lote de limites, foi criado outro container próprio: `codex-prisma-pdv-auth-pg`, id `ec55d9072c81ad93e60e3ed3c59f86a9c76edecbcddae8ef57c26c6dd54b5b80`, imagem `postgres:17-alpine`, porta `127.0.0.1:52490`. Ele também foi parado e removido com volumes depois de liberar os testes. Nenhum container de outros projetos foi alterado. As execuções PostgreSQL foram serializadas após uma possível interferência inicial no banco compartilhado de teste; duas repetições exclusivas e revisões posteriores passaram.
 
 Na recuperação, o container próprio `codex-prisma-pdv-recovery-pg`, id `1d781cefcfb6ea9ac8f4ecff55229c4d34eed2127fa5547635eb1abc5c6f9de0`, PostgreSQL17/porta127.0.0.1:59584/banco pdv_test foi usado exclusivamente por um executor/revisor por vez. Após liberar todos os testes, o gestor conferiu ID/imagem/porta/volume, parou e removeu somente esse container com seu volume anônimo. Nenhum banco externo foi alterado.
+
+Na entrega integrada de e-mail, o primeiro container próprio `codex-prisma-pdv-email-pg`, id `ffb058ed0c8722719a69f359711710d64f8bf140a31cf415e4427071ca930ae9`, usou127.0.0.1:63360/pdv_test. Após a rodada interrompida, havia zero conexões; ele foi removido com o volume e recriado no mesmo endereço com id `ac13ce979bec442d4a984f88213106523cbd11d590aeed1cdf24ae05bc93682e`, para uma validação limpa. Esse segundo container foi conferido e removido com seu volume após o verificador final liberar todos os runners. Nenhum container de outro projeto foi alterado.
 
 ## Revisão independente e falhas corrigidas
 
@@ -95,14 +108,18 @@ A revisão de Dados reproduziu um defeito: após registrar a nova identidade e f
 
 O verificador final inicialmente manteve FAIL por lacunas de prova, sem novo defeito funcional demonstrado. Os reforços82970f6/70886f9 acrescentaram candidatos adversariais, snapshots integrais, múltiplas sessões, mudanças enquanto aguardava trava comprovada por pg_blocking_pids, preflight SQLite durável e validações antes do cofre. A reavaliação aprovou13ACs locais. Cinco mutações na fonte2f62ffb foram detectadas por asserções em scratch isolado: TTL, expiração, revogação em replay, geração e ID da visão. Essa fonte permaneceu igual nos commits de testes, por isso o sensor não foi repetido; a árvore real ficou intacta. validate_state passou. Lições da auditoria são candidatas, registradas pelo script da skill.
 
-A base de e-mail tem contrato interno estrito, normalização UTC/Z e erros locais. AES256GCM protege o payload da futura fila com chave externa32bytes, IV12 e AAD por IDs; teste independente com crypto nativo verifica o formato. SMTP remoto exige autenticação/TLS verificado; modo sem TLS só permite IP de loopback em dev/test. TCP local confirmou envelope/conteúdo/Message-ID,450/550,timeout real de saudação e AUTH com TLS confiável. Certificado/chave são fixtures públicas; só os filhos de teste recebem essa CA, sem alterar a confiança do Windows. Esse módulo ainda não está ligado à rota ou a uma fila e não entregou mensagem a destinatário externo.
+A base de e-mail tem contrato interno estrito, normalização UTC/Z e erros locais. AES256GCM protege o payload com chave externa32bytes, IV12 e AAD por IDs; teste independente com crypto nativo verifica o formato. SMTP remoto exige autenticação/TLS verificado; modo sem TLS só permite IP de loopback em dev/test. TCP local confirmou envelope/conteúdo/Message-ID,450/550,timeout real de saudação e AUTH com TLS confiável. Certificado/chave são fixtures públicas; só os filhos de teste recebem essa CA, sem alterar a confiança do Windows. No checkpoint da base, esse módulo ainda não estava ligado à rota/fila e não havia mensagem a destinatário externo.
 
 A revisão direta corrigiu classificação de450 com texto mencionando TLS como erro permanente. As revisões também reforçaram prova independente de AAD, base64 canônico, resultado accepted/rejected e isolamento dos erros de TLS. O verificador final aprovou8ACs e detectou5mutações emscratchdaa8af5: AAD errado,IVfixo,base64não-canônico,certificadoignorado e remoção da guarda de aceitação. O único FAIL final foi por espaços finais em relatório; d63a917 corrigiu só documentação, diff--check passou e o revisor atualizou PASS sem repetir os gates/sensor. validate_state passou. Outros timeouts têm prova da opção5000ms, sem alegar expiração real de todos.
+
+O fluxo de entrega agora integra a emissão à fila e ao bootstrap: OTP e envelope no mesmo commit,204uniforme, leases60s/fencing, cinco tentativas e limpeza do segredo no terminal. Rejeições falsy não são aceitas como sucesso. Testes com triggers SQL provam rollback preservando o código anterior ainda utilizável e a atomicidade do consumo em login/recuperação/quinta falha. Retentativa SMTP depois da conexão cair após DATA conserva código, Message-ID e validade; ela pode produzir mensagens duplicadas, não nova credencial. O domínio fica fixo na entrega e a retirada de chaves exige drenagem e barreira operacional entre emissores antigos, ainda não executada externamente.
+
+O verificador final de entrega-codigo aprovou9ACs e matou5mutações por asserção em5651212: retirar fencing, omitir cancelamento no consumo, pular validação de pendências no bootstrap, antecipar o timer e ignorar cleanup de migração. Usou scratch isolado, junctions removidas separadamente e árvore real preservada. validate_state retornou0. Sinais de processo foram inspecionados no código, sem ensaio de processo/implantação. Nenhum envio a caixa de entrada externa foi realizado.
 
 ## Pendências externas e limites
 
 - Android e artefato final: não houve execução em aparelho. `adb` não foi encontrado no PATH. Reinício forçado, atualização, scanner, câmera e pagamentos manuais precisam de roteiro no artefato exato.
-- E-mail: base SMTP/cifra verificada localmente; fila durável, integração com emissão/worker, provider/credenciais/domínio e entrega em homologação ainda não estão integrados/verificados. A emissão de códigos atual não é entrega real; aceitação SMTP local não é caixa de entrada.
+- E-mail: emissão/fila/ciclo/SMTP integrados e verificados localmente. Provider/credenciais/domínio/destinatário, caixa de entrada, alertas e barreira operacional externa ainda não homologados. Roteiro em operacao-email-codigo.md, sem contratação ou mensagens externas.
 - Proxy/relógios: request.ip usa a conexão observada, sem trustProxy; IP final do cliente e sincronização de relógios no ambiente de implantação ainda exigem inventário/teste. A retenção SQL foi preparada e testada localmente, sem agendamento externo. Limites por IP no proxy real não foram homologados.
 - Google Play: produtos, credenciais, compra/restauração/notificações e contas de teste ainda não foram integrados/homologados. Mock não conta como assinatura real.
 - Infraestrutura: inventário Easypanel, domínio/HTTPS, backups/restauração, alertas, réplicas e retorno de versão ainda não foram exercitados externamente.
@@ -113,10 +130,10 @@ A revisão direta corrigiu classificação de450 com texto mencionando TLS como 
 
 ## Próximos lotes executáveis
 
-1. Conectar a base de e-mail entregue à fila transacional, emissão e worker recuperável P0-03-A. Definir claims/retentativa/expiração/supersessão, limpeza do segredo e rotação da chave antes de delegar. Preservar código e Message-ID em ambiguidade SMTP sem prometer entrega única. Homologação externa fica bloqueada enquanto faltarem configuração, destinatário autorizado e acesso. Limites/recuperação usam os mesmos orçamentos; código devolvido em desenvolvimento não é entrega real.
-2. P0-04: consistência financeira e autorização no servidor, vínculo caixaId no contrato/bancos/checkout e ajustes posteriores ao fechamento. O vínculo de caixa atual é local; não concluir P0-01-E integral antes desse contrato.
-3. P0-02: outbox para todas as mutações, envio/ack/retry, pull paginado/cursor transacional, conflitos e recuperação autenticada. A recuperação de acesso entregue não substitui esse bloco.
-4. Capacidades de produção e oferta coerente, assinatura real, build/CI, operação, remediação de dependências e mínimos P1 obrigatórios. Continuar as partes independentes enquanto homologações externas estiverem bloqueadas.
+1. P0-04-A: começar pela validação aritmética das vendas no servidor, com contratos explícitos de pagamentos/troco e preservação do histórico. O servidor ainda grava totais recebidos sem recalcular toda a consistência.
+2. P0-04-B/C/D/E: autorização e capacidades, vínculo caixaId no contrato/bancos/checkout e ajustes após fechamento. O vínculo atual é local; não concluir P0-01-E integral antes desse contrato.
+3. P0-02: outbox completa, envio/ack/retry, pull paginado/cursor transacional, conflitos e recuperação autenticada. A recuperação de acesso entregue não substitui esse bloco.
+4. Homologação externa de e-mail quando houver acesso autorizado; capacidades/oferta, assinatura real, build/CI, operação, remediação de dependências e mínimos P1. Continuar as partes locais independentes enquanto faltarem acessos externos.
 
 O plano principal mantém os critérios globais sem marcação quando falta verificação exigida. O adapter browser é demonstrativo e não possui a atomicidade multi-chave do SQLite nativo. O projeto **não está pronto para produção**.
 

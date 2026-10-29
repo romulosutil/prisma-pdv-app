@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+import type { PerfilResSchema, AparelhosResSchema } from '@pdv/shared';
 import type {
   AssinaturaRes,
   CriarAssinaturaReq,
@@ -52,8 +54,15 @@ export function mensagemDeErro(erro: unknown): string {
  * O que o app precisa do servidor. `BackendLocal` roda tudo no aparelho (modo demo);
  * `BackendHttp` fala com a API quando `EXPO_PUBLIC_API_URL` está definida.
  */
+export type Perfil = z.infer<typeof PerfilResSchema>;
+export type Aparelhos = z.infer<typeof AparelhosResSchema>;
+
 export interface Backend {
   readonly modo: 'demo' | 'http';
+  obterPerfil(token?: string): Promise<Perfil>;
+  listarAparelhos(): Promise<Aparelhos>;
+  revogarAparelho(id: string): Promise<void>;
+  sair(): Promise<void>;
   criarConta(req: CriarContaReq): Promise<Sessao>;
   pedirCodigo(email: string): Promise<void>;
   entrar(req: LoginReq): Promise<Sessao>;

@@ -10,6 +10,7 @@ import {
   licencaDe,
   MockBillingProvider,
   PLANOS,
+  PerfilResSchema,
   PLANOS_ORDEM,
   reativar as reativarAssinatura,
   registrarCobrancaAprovada,
@@ -29,10 +30,13 @@ import {
   type Sessao,
 } from '@pdv/shared';
 import type { Armazenamento } from '@/dados/armazenamento';
-import { ErroBackend, type Backend } from './backend';
+import { ErroBackend, type Backend, type Perfil, type Aparelhos } from './backend';
 
 interface EstadoLocal {
   sessao: Sessao | null;
+  perfil?: Perfil;
+  aparelhoNome?: string;
+  aparelhoCriadoEm?: string;
   email: string | null;
   assinatura: AssinaturaSerializada | null;
   /** No mock o "cliente" do gateway é o próprio token do cartão. */
@@ -67,9 +71,30 @@ export class BackendLocal implements Backend {
       operadorId: this.novoId(),
       aparelhoId: req.aparelhoId,
     };
-    await this.salvar({ sessao, email: req.email.toLowerCase(), assinatura: null, clienteRef: null });
+    await this.salvar({ sessao, email: req.email.toLowerCase(), assinatura: null, clienteRef: null, perfil: { contaId: sessao.contaId, lojaId: sessao.lojaId, operadorId: sessao.operadorId, email: req.email.toLowerCase(), nomeResponsavel: req.nomeResponsavel, nomeLoja: req.nomeLoja, papel: 'dono' }, aparelhoNome: req.aparelhoNome, aparelhoCriadoEm: this.relogio.agora().toISOString() });
     return sessao;
   }
+
+  async obterPerfil(token?: string): Promise<Perfil> {
+    const estado = await this.carregar();
+    if (!estado.sessao || (token !== undefined && token !== estado.sessao.token)) throw new ErroBackend('nao_autorizado', 'Sessão demo inválida.');
+    const perfil = PerfilResSchema.safeParse(estado.perfil);
+    if (!perfil.success || perfil.data.contaId !== estado.sessao.contaId || perfil.data.lojaId !== estado.sessao.lojaId || perfil.data.operadorId !== estado.sessao.operadorId) throw new ErroBackend('resposta_invalida', 'Perfil demo indisponível.');
+    return perfil.data;
+  }
+
+  async listarAparelhos(): Promise<Aparelhos> {
+    const estado = await this.carregar();
+    if (!estado.sessao) throw new ErroBackend('nao_autorizado', 'Sessão demo inválida.');
+    if (!estado.aparelhoNome || !estado.aparelhoCriadoEm) throw new ErroBackend('resposta_invalida', 'Aparelho demo indisponível.');
+    return [{ id: estado.sessao.aparelhoId, nome: estado.aparelhoNome, criadoEm: estado.aparelhoCriadoEm, ultimoAcessoEm: estado.aparelhoCriadoEm, revogadoEm: null, atual: true }];
+  }
+
+  async revogarAparelho(_id: string): Promise<void> {
+    throw new ErroBackend('desconhecido', 'Revogação de aparelho indisponível no modo demo.');
+  }
+
+  async sair(): Promise<void> { /* A credencial local é gerida pelo chamador. */ }
 
   async pedirCodigo(): Promise<void> {
     // Sem e-mail de verdade no modo demo: qualquer código de 6 dígitos vale em `entrar`.

@@ -364,6 +364,8 @@ Evidências locais, com escopo limitado ao resultado descrito. Homologação And
 
 ### Condição de liberação
 
+29/10, transporte P0-03-D/F: BackendHttp usa GET /conta, GET/DELETE /aparelhos e POST /auth/logout; callback somente401protegido e deadline inclui leitura de corpo. Revisão `acesso-mobile/revisao-adapters.md` PASS e16 testes com fetch simulado passaram. Não comprova entrega externa nem integração UI.
+
 29/10, parte de P0-03-D (adapter): SecureStore ligado à fábrica nativa, migração/rotação com journal sem token e erros sanitizados. 16 testes de storage passaram e revisão independente `acesso-mobile/revisao-cofre.md` conferiu código/plugin. Cofre dos testes é simulado; não comprova Android nem conclui o bloco global.
 
 - [ ] Todos os critérios P0 aplicáveis estão atendidos; condicionais de integração ficam explicitamente desabilitados e fora da oferta quando não implementados.

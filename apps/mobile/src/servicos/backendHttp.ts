@@ -1,5 +1,7 @@
 import {
   AssinaturaResSchema,
+  PerfilResSchema,
+  AparelhosResSchema,
   CriarContaResSchema,
   LicencaSerializadaSchema,
   LoginResSchema,
@@ -48,6 +50,8 @@ interface OpcoesChamada {
   publica?: boolean;
   /** 404 vira `null` em vez de erro. */
   nuloSe404?: boolean;
+  token?: string;
+  espera204?: boolean;
 }
 
 export class BackendHttp implements Backend {
@@ -56,7 +60,25 @@ export class BackendHttp implements Backend {
   constructor(
     private readonly baseUrl: string,
     private readonly obterToken: () => string | null,
+    private readonly aoSessaoInvalida?: (tokenUsado: string) => Promise<void> | void,
   ) {}
+
+  obterPerfil(token?: string) {
+    return this.chamar('GET', '/conta', PerfilResSchema, { token });
+  }
+
+  listarAparelhos() {
+    return this.chamar('GET', '/aparelhos', AparelhosResSchema, {});
+  }
+
+  async revogarAparelho(id: string): Promise<void> {
+    if (!z.uuid().safeParse(id).success) throw new ErroBackend('valor_invalido', 'Identificador de aparelho inválido.');
+    await this.chamar('DELETE', `/aparelhos/${encodeURIComponent(id)}`, null, { espera204: true });
+  }
+
+  async sair(): Promise<void> {
+    await this.chamar('POST', '/auth/logout', null, { espera204: true });
+  }
 
   criarConta(req: CriarContaReq): Promise<Sessao> {
     return this.chamar('POST', '/contas', CriarContaResSchema, { corpo: req, publica: true });
@@ -101,30 +123,46 @@ export class BackendHttp implements Backend {
   private async chamar<T>(metodo: string, caminho: string, schema: ZodType<T> | null, opcoes: OpcoesChamada): Promise<T> {
     const cabecalhos: Record<string, string> = { Accept: 'application/json' };
     if (opcoes.corpo !== undefined) cabecalhos['Content-Type'] = 'application/json';
-    const token = opcoes.publica ? null : this.obterToken();
+    const token = opcoes.publica ? null : (opcoes.token ?? this.obterToken());
     if (token) cabecalhos.Authorization = `Bearer ${token}`;
 
     const controle = new AbortController();
-    const prazo = setTimeout(() => controle.abort(), TEMPO_LIMITE_MS);
     let resposta: Response;
+    let texto: string;
+    let prazo: ReturnType<typeof setTimeout> | undefined;
     try {
-      resposta = await fetch(`${this.baseUrl}${caminho}`, {
-        method: metodo,
-        headers: cabecalhos,
-        body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
-        signal: controle.signal,
+      const chamada = (async () => {
+        const recebida = await fetch(`${this.baseUrl}${caminho}`, {
+          method: metodo,
+          headers: cabecalhos,
+          body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
+          signal: controle.signal,
+        });
+        // A autenticação não depende do corpo, que pode conter dados sensíveis.
+        return { resposta: recebida, texto: recebida.status === 401 ? '' : await recebida.text() };
+      })();
+      const limite = new Promise<never>((_, rejeitar) => {
+        prazo = setTimeout(() => {
+          controle.abort();
+          rejeitar(new Error('Tempo limite excedido.'));
+        }, TEMPO_LIMITE_MS);
       });
+      ({ resposta, texto } = await Promise.race([chamada, limite]));
     } catch {
       throw new ErroBackend('rede', 'Sem conexão com o servidor.');
     } finally {
-      clearTimeout(prazo);
+      if (prazo !== undefined) clearTimeout(prazo);
     }
 
+    if (resposta.status === 401 && token && !opcoes.publica) {
+      try { await this.aoSessaoInvalida?.(token); } catch { /* Preserva o erro de autenticação. */ }
+      throw new ErroBackend('nao_autorizado', 'Sua sessão não é mais válida. Entre de novo.', 401);
+    }
     if (resposta.status === 404 && opcoes.nuloSe404) return null as T;
-    const texto = await resposta.text();
     const json: unknown = texto ? safeJson(texto) : undefined;
 
     if (!resposta.ok) throw erroDaResposta(resposta.status, json);
+    if (opcoes.espera204 && resposta.status !== 204) throw new ErroBackend('resposta_invalida', 'Resposta fora do contrato.', resposta.status);
     if (!schema) return undefined as T;
     const lido = schema.safeParse(json);
     if (!lido.success) throw new ErroBackend('resposta_invalida', 'Resposta fora do contrato.', resposta.status);
@@ -142,7 +180,9 @@ function safeJson(texto: string): unknown {
 
 function erroDaResposta(status: number, corpo: unknown): ErroBackend {
   const campos = typeof corpo === 'object' && corpo !== null ? (corpo as Record<string, unknown>) : {};
-  const mensagem = [campos.mensagem, campos.message, campos.erro].find((v): v is string => typeof v === 'string') ?? '';
   const codigoServidor = [campos.codigo, campos.erro].find((v): v is string => typeof v === 'string' && CODIGOS_CONHECIDOS.includes(v));
-  return new ErroBackend((codigoServidor as CodigoErroBackend | undefined) ?? codigoDoStatus(status), mensagem, status);
+  const codigo = status >= 500 || status === 401 || status === 403
+    ? codigoDoStatus(status)
+    : (codigoServidor as CodigoErroBackend | undefined) ?? codigoDoStatus(status);
+  return new ErroBackend(codigo, '', status);
 }

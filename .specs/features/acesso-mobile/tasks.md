@@ -41,7 +41,7 @@ Where: serviço Backend/Http/Local e teste backendAcesso.
 Tests: status/DTO, novo token de perfil,401privado vs403/público, deadline de corpo e erros.
 Gate: build
 Done when: endpoints e schemas reais conectados, callbacks corretos e timeout de toda resposta; adapter demo identificado e sem simular revogação real; revisão aprova.
-Status: correções em revisão.
+Status: aceita no recorte de transporte após16 testes de acesso/assinatura e revisao-adapters.md. Endpoints ainda serão verificados com API local pelo gestor; Android pendente.
 
 ### T3: Identidade local, recuperação de sessão e isolamento
 Depends on: T1, T2

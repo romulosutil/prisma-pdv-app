@@ -1,5 +1,6 @@
 import { somar, type Centavos, type Produto } from '@pdv/shared';
 import { useMemo } from 'react';
+import { useDados } from './hooks';
 import { Observavel, useObservavel } from './observavel';
 import { totalDosItens, type ItemNovaVenda, type NovaVenda, type PagamentoNovaVenda } from './vendas';
 
@@ -39,6 +40,12 @@ export class Carrinho extends Observavel<EstadoCarrinho> {
 
   constructor() {
     super(VAZIO);
+  }
+
+  /** Restaura o redutor sem emitir efeitos externos; a fachada confirma o snapshot no disco. */
+  restaurar(estado: EstadoCarrinho): void {
+    this.definir(estado);
+    this.contador = Math.max(0, ...estado.itens.map((i) => Number.parseInt(i.chave.replace('linha-', ''), 10) || 0), estado.removido ? Number.parseInt(estado.removido.item.chave.replace('linha-', ''), 10) || 0 : 0);
   }
 
   /** `milesimos`: 1 un = 1000; para itens por kg, o peso em gramas (0,350 kg = 350). Soma se o produto já está no carrinho. */
@@ -136,8 +143,6 @@ export class Carrinho extends Observavel<EstadoCarrinho> {
   }
 }
 
-export const carrinho = new Carrinho();
-
 // ---------- Cálculos puros ----------
 
 export const totalDoCarrinho = (itens: readonly ItemNovaVenda[]): Centavos => totalDosItens(itens);
@@ -186,6 +191,7 @@ export const rotuloDaQuantidade = (item: Pick<ItemCarrinho, 'unidade' | 'quantid
 // ---------- Hook ----------
 
 export function useCarrinho() {
+  const { carrinho } = useDados();
   const estado = useObservavel(carrinho);
   return useMemo(() => {
     const totalCentavos = totalDoCarrinho(estado.itens);
@@ -203,8 +209,7 @@ export function useCarrinho() {
       desfazerRemocao: carrinho.desfazerRemocao,
       destacar: carrinho.destacar,
       adicionarParcela: carrinho.adicionarParcela,
-      marcarConcluida: carrinho.marcarConcluida,
       limpar: carrinho.limpar,
     };
-  }, [estado]);
+  }, [estado, carrinho]);
 }

@@ -359,6 +359,8 @@ Evidências locais por entrega. Revisões em .specs/features/persistencia-base/.
 
 ### Condição de liberação
 
+Integração local de P0-01-C/D: CarrinhoDuravel publica após persistir; inicialização recupera antes de liberar telas; UI aguarda parcelas, conclusão e limpeza. 252 testes mobile passaram, incluindo 7 de fachada e 2 regressões do hook; typecheck todos passou. Revisão independente `checkout-duravel/validation.md` aprova o escopo local com limites explícitos. Os ACs globais e homologação Android continuam pendentes; não se infere execução nativa dos mocks de UI.
+
 Parte de P0-01-D/E (serviço local): CheckoutSqlite grava venda/filhos/outbox/conclusão num commit; 17 testes SQLite reais passaram, com reabertura 2500/1000/1500, seis fronteiras de escrita, falha de COMMIT, repetição e integridade. Revisão independente em `.specs/features/checkout-duravel/revisao-servico.md`. P0-01-E integral permanece dependente do contrato de caixa em P0-04; Android pendente.
 
 Parte de P0-07-C entregue: configuração API validada antes de efeitos; 17 testes de configuração e typecheck API passaram; revisão independente em `.specs/reviews/configuracao-api.md`. Produção recusa mock e permanece bloqueada até provider real. Configuração mobile e integrações externas seguem pendentes. Runbook: `docs/operacao-configuracao.md`.

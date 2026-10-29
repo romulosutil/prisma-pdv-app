@@ -78,7 +78,9 @@ export class VendasRepo extends Persistido<EstadoVendas> {
    * Registra uma venda concluída. Nunca depende da rede nem do estado da assinatura: quem já abriu a
    * venda consegue fechá-la. Lança `ErroDeDominio` se não houver itens ou se os pagamentos não fecharem o total.
    */
-  async registrar(nova: NovaVenda): Promise<Venda> {
+  async registrar(nova: NovaVenda, id?: string): Promise<Venda> {
+    const existente = id ? this.obter().vendas.find((v) => v.id === id) : null;
+    if (existente) return existente;
     if (nova.itens.length === 0) throw new ErroDeDominio('sem_itens', 'Adicione ao menos um item à venda.');
     const totalCentavos = totalDosItens(nova.itens);
     if (somar(...nova.pagamentos.map((p) => p.valorCentavos)) !== totalCentavos) {
@@ -86,7 +88,7 @@ export class VendasRepo extends Persistido<EstadoVendas> {
     }
     const { lojaId, aparelhoId, operadorId } = this.contexto.sessao();
     const venda: Venda = {
-      id: this.amb.novoId(),
+      id: id ?? this.amb.novoId(),
       lojaId,
       aparelhoId,
       operadorId,

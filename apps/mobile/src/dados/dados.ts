@@ -13,6 +13,10 @@ import { RelogioApp } from './relogio';
 import { gerarSemente } from './semente';
 import { ErroDeDominio } from './erros';
 import { VendasRepo } from './vendas';
+import { CarrinhoDuravel } from './carrinhoDuravel';
+import { CheckoutNavegador } from './checkoutNavegador';
+import { ArmazenamentoSqlite } from './sqlite/armazenamentoSqlite';
+import { CheckoutSqlite } from './sqlite/checkoutSqlite';
 
 export interface FormularioConta {
   nomeResponsavel: string;
@@ -37,6 +41,7 @@ export class Dados {
   readonly vendas: VendasRepo;
   readonly caixa: CaixaRepo;
   readonly assinatura: AssinaturaServico;
+  readonly carrinho: CarrinhoDuravel;
 
   constructor(
     private readonly armazenamento: Armazenamento,
@@ -64,6 +69,13 @@ export class Dados {
     this.ordemAtalhos = new OrdemAtalhosRepo(armazenamento);
     this.vendas = new VendasRepo(ambiente, { sessao });
     this.caixa = new CaixaRepo(ambiente, { sessao, planoId });
+    this.carrinho = new CarrinhoDuravel();
+    this.carrinho.configurar(
+      armazenamento instanceof ArmazenamentoSqlite
+        ? new CheckoutSqlite(armazenamento, novoId)
+        : new CheckoutNavegador(armazenamento, this.vendas, () => JSON.stringify([sessao().contaId, sessao().lojaId])),
+      { novoId, agora: () => this.relogio.agora().toISOString(), caixaId: () => this.caixa.atual()?.id ?? null, aposConcluir: () => this.vendas.carregar() },
+    );
   }
 
   /** Carrega tudo do armazenamento e confere a assinatura (avaliação de tempo e cobranças devidas). */
@@ -78,6 +90,7 @@ export class Dados {
       this.caixa.carregar(),
       this.assinatura.carregar(),
     ]);
+    if (this.conta.obter().sessao) await this.carrinho.carregar();
     await this.assinatura.sincronizar();
   }
 
@@ -103,6 +116,7 @@ export class Dados {
       aparelhoNome: NOME_APARELHO_PADRAO,
     });
     if (this.backend.modo === 'demo') await this.semear();
+    await this.carrinho.carregar();
   }
 
   /** O contrato da API não tem rota de perfil: sem ela, os nomes exibidos vêm do e-mail. */
@@ -116,6 +130,7 @@ export class Dados {
       aparelhoNome: NOME_APARELHO_PADRAO,
     });
     await this.assinatura.sincronizar();
+    await this.carrinho.carregar();
   }
 
   /** Apaga todos os dados locais (só para o modo dev); o app precisa ser recarregado em seguida. */

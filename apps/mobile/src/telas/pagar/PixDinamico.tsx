@@ -37,7 +37,7 @@ export function PixDinamico({ provedor }: { provedor: ProvedorPagamento }) {
   const expiradoRegistrado = useRef(false);
 
   useEffect(() => {
-    const conferir = () => {
+    const conferir = async () => {
       const atual = provedoresPagamento.situacaoPix(cobranca.id);
       setSituacao(atual);
       setRestante(segundosAte(cobranca.expiraEm));
@@ -47,14 +47,19 @@ export function PixDinamico({ provedor }: { provedor: ProvedorPagamento }) {
       }
       if (atual !== 'pago' || confirmada.current) return;
       confirmada.current = true;
-      registrar('pagamento', 'pix pago', { provedor, valorCentavos, resultado: 'aprovado' });
-      registrarParcela({ meio: 'pix', provedor });
-      router.replace({ pathname: '/pagar/pixpago', params: parametros() });
+      try {
+        await registrarParcela({ meio: 'pix', provedor });
+        registrar('pagamento', 'pix pago', { provedor, valorCentavos, resultado: 'aprovado' });
+        router.replace({ pathname: '/pagar/pixpago', params: parametros() });
+      } catch (erro) {
+        confirmada.current = false;
+        toast.mostrar(erro instanceof Error ? erro.message : 'Não foi possível guardar o recebimento.', { tipo: 'erro' });
+      }
     };
     conferir();
     const intervalo = setInterval(conferir, 1000);
     return () => clearInterval(intervalo);
-  }, [cobranca, provedor, valorCentavos, registrarParcela, parametros, router]);
+  }, [cobranca, provedor, valorCentavos, registrarParcela, parametros, router, toast]);
 
   const copiar = async () => {
     await Clipboard.setStringAsync(cobranca.copiaECola);

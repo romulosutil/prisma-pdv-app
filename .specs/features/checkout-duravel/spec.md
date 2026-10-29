@@ -37,7 +37,7 @@ Acceptance Criteria:
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
 | CHECKOUT-01 | 1, 2, 3, 5 | P0-01-D/E (serviço local) | verified |
-| CHECKOUT-02 | 4, 5, 6 | P0-01-C/D (integração) | pending |
+| CHECKOUT-02 | 4, 5, 6 | P0-01-C/D (integração local; Android pendente no plano) | verified |
 
 ## Execution Plan
 

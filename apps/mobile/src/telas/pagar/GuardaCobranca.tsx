@@ -9,7 +9,7 @@ import { useCarrinho } from '@/dados/carrinho';
 export function GuardaCobranca({ children }: { children: ReactNode }) {
   const { vazio, concluidaId } = useCarrinho();
   const focada = useIsFocused();
-  if (concluidaId) return null;
+  if (concluidaId) return focada ? <Redirect href={{ pathname: '/pagar/sucesso', params: { venda: concluidaId } }} /> : null;
   if (vazio) return focada ? <Redirect href="/vender" /> : null;
   return <>{children}</>;
 }

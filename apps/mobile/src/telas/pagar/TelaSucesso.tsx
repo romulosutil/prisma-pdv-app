@@ -9,6 +9,7 @@ import { Ilustra } from '@/componentes/Ilustra';
 import { StatusPill } from '@/componentes/StatusPill';
 import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
+import { useToast } from '@/componentes/Toast';
 import { formatarPeso, useCarrinho } from '@/dados/carrinho';
 import { useConta, useProdutos, useVendas } from '@/dados/hooks';
 import { cores, legendaForte, raio } from '@/tema';
@@ -29,6 +30,7 @@ function formatarDataHora(iso: string): string {
 
 export function TelaSucesso() {
   const router = useRouter();
+  const toast = useToast();
   const { venda: vendaId } = useLocalSearchParams<{ venda?: string }>();
   const { vendas, numeroDe } = useVendas();
   const { buscarPorId } = useProdutos();
@@ -39,10 +41,10 @@ export function TelaSucesso() {
   const venda = vendas.find((v) => v.id === vendaId);
   const troco = venda ? somar(...venda.pagamentos.map((p) => p.trocoCentavos)) : 0;
 
-  const novaVenda = useCallback(() => {
-    limpar();
-    router.dismissTo('/vender');
-  }, [limpar, router]);
+  const novaVenda = useCallback(async () => {
+    try { await limpar(); router.dismissTo('/vender'); }
+    catch (erro) { toast.mostrar(erro instanceof Error ? erro.message : 'Não foi possível abrir uma nova venda.', { tipo: 'erro' }); }
+  }, [limpar, router, toast]);
 
   // A venda já foi gravada: voltar para a cobrança poderia registrá-la de novo.
   useEffect(() => {

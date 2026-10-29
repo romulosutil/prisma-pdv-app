@@ -111,21 +111,24 @@ export function TelaVender() {
     [buscarPorEan, aoEscolherProduto],
   );
 
-  const aoRemover = (item: ItemCarrinho) => {
-    carrinho.remover(item.chave);
-    toast.mostrar(`${item.descricao} removido`, { acao: { rotulo: 'Desfazer', aoPressionar: carrinho.desfazerRemocao } });
+  const tentar = async (operacao: Promise<void>): Promise<boolean> => {
+    try { await operacao; return true; }
+    catch (erro) { toast.mostrar(erro instanceof Error ? erro.message : 'Não foi possível guardar a alteração.', { tipo: 'erro' }); return false; }
+  };
+
+  const aoRemover = async (item: ItemCarrinho) => {
+    if (await tentar(carrinho.remover(item.chave))) toast.mostrar(`${item.descricao} removido`, { acao: { rotulo: 'Desfazer', aoPressionar: () => { void tentar(carrinho.desfazerRemocao()); } } });
   };
 
   const aoMudarQuantidade = (item: ItemCarrinho, milesimos: number) => {
     if (milesimos <= 0) aoRemover(item);
-    else carrinho.definirQuantidade(item.chave, milesimos);
+    else void tentar(carrinho.definirQuantidade(item.chave, milesimos));
   };
 
-  const aoConfirmarPeso = (gramas: number) => {
+  const aoConfirmarPeso = async (gramas: number) => {
     if (!pesando) return;
-    if ('chave' in pesando.destino) carrinho.definirQuantidade(pesando.destino.chave, gramas);
-    else adicionar(pesando.destino.produto, gramas);
-    setPesando(null);
+    const ok = 'chave' in pesando.destino ? await tentar(carrinho.definirQuantidade(pesando.destino.chave, gramas)) : await adicionar(pesando.destino.produto, gramas);
+    if (ok) setPesando(null);
   };
 
   const fechar = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -159,7 +162,7 @@ export function TelaVender() {
           onMudarQuantidade={aoMudarQuantidade}
           onAlterarPeso={(item) => setPesando({ nome: item.descricao, precoCentavos: item.precoUnitarioCentavos, pesoInicial: item.quantidadeMilesimos, destino: { chave: item.chave } })}
           onRemover={aoRemover}
-          onDestacar={(item) => carrinho.destacar(item.chave)}
+          onDestacar={(item) => { void tentar(carrinho.destacar(item.chave)); }}
         />
 
         <View style={[estilos.rodape, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
@@ -186,9 +189,8 @@ export function TelaVender() {
       <FolhaAvulso
         visivel={avulsoAberto}
         onFechar={() => setAvulsoAberto(false)}
-        onAdicionar={(valor, descricao) => {
-          carrinho.adicionarAvulso(valor, descricao);
-          setAvulsoAberto(false);
+        onAdicionar={async (valor, descricao) => {
+          if (await tentar(carrinho.adicionarAvulso(valor, descricao))) setAvulsoAberto(false);
         }}
       />
       <FolhaPeso produto={pesando} pesoInicial={pesando?.pesoInicial} onConfirmar={aoConfirmarPeso} onFechar={() => setPesando(null)} />
@@ -213,9 +215,8 @@ export function TelaVender() {
           <Botao
             rotulo="Descartar venda"
             variante="perigo"
-            onPress={() => {
-              carrinho.limpar();
-              setDescartando(false);
+            onPress={async () => {
+              if (await tentar(carrinho.limpar())) setDescartando(false);
             }}
           />
           <Botao rotulo="Manter venda" variante="terciario" onPress={() => setDescartando(false)} />

@@ -99,9 +99,11 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 - [x] **P0-03-C:** criar uma identidade persistente por instalação, reutilizada no cadastro/login; documentar reinstalação, substituição de aparelho e recuperação quando o limite estiver atingido.
 - [ ] **P0-03-D:** proteger o token no armazenamento nativo; implementar duração, renovação ou nova autenticação, logout e revogação no servidor, compatíveis com a operação offline.
 - [ ] **P0-03-E:** isolar os dados por conta/loja e impedir troca de conta com perda de operações pendentes; limpar a sessão em memória sem apagar vendas por efeito colateral.
-- [ ] **P0-03-F:** adicionar consulta de perfil real e gestão mínima de aparelhos/sessões para substituir aparelho perdido; não gerar o nome da loja a partir do e-mail após login.
+- [ ] **P0-03-F:** adicionar consulta de perfil real e gestão mínima de aparelhos/sessões para substituir aparelho perdido; não gerar o nome da loja a partir do e-mail após login. Contrato local de recuperação sem aparelho autorizado verificado até70886f9: desafio restrito, escolha/consentimento, substituição transacional e retry idempotente; perfil real e dados da origem preservados. Entrega externa do código e homologação Android continuam pendentes; ver roteiro-recuperacao-aparelho.md.
 
 **Contratos propostos:** `POST /auth/logout` revoga a sessão atual; `GET /conta` devolve perfil e loja autorizados; `GET /aparelhos` lista aparelhos da conta; `DELETE /aparelhos/:id` revoga o aparelho e suas sessões, com autorização do dono. Definir schemas e erros no shared. Cadastro e login existentes passam a reutilizar o ID persistente.
+
+Contrato local implementado para perda do único aparelho: `POST /auth/recuperacao` valida OTP/orçamentos existentes e emite prova restrita de cinco minutos; `POST /auth/recuperacao/confirmar` exige alvo exibido e consentimento literal, revoga origem/sessões e cria um acesso em uma transação. Retry idêntico devolve a mesma sessão válida, sem renovar prazo ou ressuscitar acesso revogado. Recuperar acesso não restaura vendas; restauração depende de P0-02.
 
 **Critérios de aceite**
 
@@ -371,6 +373,10 @@ Evidências locais, com escopo limitado ao resultado descrito. Homologação And
 | P0-03-B, rotas e operação | fe56478 | API149 PGlite/153 PostgreSQL; revisão-rotas PASS | Duas instâncias Fastify em processo; PostgreSQL real local | Emissão3/email e20/IP, falhas5/email sem reset, login50/IP; código anterior e contadores preservados; retenção preparada/testada localmente |
 | P0-03-B, orientação cliente | 355b89a | Mobile353,shared136,typecheck; dois casos novos red/green | Fetch simulado explícito | 429 mostra mensagem local, preserva token e permite retentativa; não homologa Android |
 | P0-03-B, verificação final | 1fb5255 | API152 PGlite/156 PostgreSQL; verificador27/31 alvos e6/6 mutações detectadas | Triggers reais de falha no banco local; scratch isolado | AC6 inicialmente rejeitado por duas provas ausentes, corrigidas; limites-auth/validation.md PASS. Nenhum e-mail entregue ou proxy externo homologado |
+| Parte P0-03-F, prova e servidor | b717dfc,4a7184d,82970f6 | API185 PGlite/193 PostgreSQL, recuperação33/37; revisão final13ACs PASS | PostgreSQL17 local e duas instâncias Fastify | Prova5min/hash, OTP compartilhado, consentimento, rollback5fronteiras, replay e disputaUUID; sem alterações financeiras |
+| Parte P0-03-D/E/F, cliente | 235363b,a47cc81,2f62ffb,70886f9 | Mobile433/shared148,typecheck;80 alvos repetidos pelo gestor | React, duas SQLite reais, Fastify/PGlite em processo; cofre/hosts simulados | Geração/preflight durável, perfil antes do cofre, retry após aplicação parcial, escolha e aviso explícitos; origem2500/1000/1500 intacta |
+| Recuperação, verificação final | 70886f9 | recuperacao-aparelho/validation.md PASS;5/5 mutações detectadas na fonte2f62ffb | Gates completos locais; sensor em scratch isolado | Gaps de prova corrigidos, nenhuma mutação na árvore real; Android/SMTP/restauração remota permanecem pendentes |
+| Triagem de dependências | 04c4922 | npm audit completo13/omit-dev9; árvore e advisories | Somente leitura | Classificação em triagem-dependencias.md; nenhuma remediação ou prova de alcance do APK |
 
 ### Condição de liberação
 

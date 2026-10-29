@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 3,
+  "next_id": 17,
   "lessons": [
     {
       "id": "L-001",
@@ -40,6 +40,259 @@
       ],
       "created": "2026-10-29T04:22:41Z",
       "last_seen": "2026-10-29T04:22:41Z"
+    },
+    {
+      "id": "L-003",
+      "key": "ac_gap::teste filtros de autorizacao com registros elegiveis e inelegiveis na mesma consulta",
+      "text": "Teste filtros de autorizacao com registros elegiveis e inelegiveis na mesma consulta.",
+      "signal": "ac_gap",
+      "scope": "api",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC2 (api)"
+      ],
+      "created": "2026-10-29T05:50:17Z",
+      "last_seen": "2026-10-29T05:50:17Z"
+    },
+    {
+      "id": "L-004",
+      "key": "ac_gap::compare registros completos antes e depois de conflitos que devem preservar estado",
+      "text": "Compare registros completos antes e depois de conflitos que devem preservar estado.",
+      "signal": "ac_gap",
+      "scope": "api",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC3 (api)",
+        "AC7-estado (api)"
+      ],
+      "created": "2026-10-29T05:50:17Z",
+      "last_seen": "2026-10-29T05:54:34Z"
+    },
+    {
+      "id": "L-005",
+      "key": "ac_gap::isole cada evento de invalidacao para provar seu efeito independentemente de eventos anteriores",
+      "text": "Isole cada evento de invalidacao para provar seu efeito independentemente de eventos anteriores.",
+      "signal": "ac_gap",
+      "scope": "api",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC4-iniciacao (api)"
+      ],
+      "created": "2026-10-29T05:50:18Z",
+      "last_seen": "2026-10-29T05:50:18Z"
+    },
+    {
+      "id": "L-006",
+      "key": "ac_gap::asserte status e codigo exatos em cada caminho de rejeicao previsto no contrato",
+      "text": "Asserte status e codigo exatos em cada caminho de rejeicao previsto no contrato.",
+      "signal": "ac_gap",
+      "scope": "api",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC4-expiracao (api)"
+      ],
+      "created": "2026-10-29T05:50:18Z",
+      "last_seen": "2026-10-29T05:50:18Z"
+    },
+    {
+      "id": "L-007",
+      "key": "ac_gap::teste revogacao de multiplas sessoes e os vinculos persistidos da operacao",
+      "text": "Teste revogacao de multiplas sessoes e os vinculos persistidos da operacao.",
+      "signal": "ac_gap",
+      "scope": "api",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC5-traco (api)"
+      ],
+      "created": "2026-10-29T05:54:33Z",
+      "last_seen": "2026-10-29T05:54:33Z"
+    },
+    {
+      "id": "L-008",
+      "key": "ac_gap::asserte status e estado completo para rejeicoes de replay com parametros diferentes",
+      "text": "Asserte status e estado completo para rejeicoes de replay com parametros diferentes.",
+      "signal": "ac_gap",
+      "scope": "api",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC6-alvo (api)"
+      ],
+      "created": "2026-10-29T05:54:33Z",
+      "last_seen": "2026-10-29T05:54:33Z"
+    },
+    {
+      "id": "L-009",
+      "key": "ac_gap::compare registros completos do perdedor em conflitos de concorrencia",
+      "text": "Compare registros completos do perdedor em conflitos de concorrencia.",
+      "signal": "ac_gap",
+      "scope": "api",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC6-perdedor (api)"
+      ],
+      "created": "2026-10-29T05:54:34Z",
+      "last_seen": "2026-10-29T05:54:34Z"
+    },
+    {
+      "id": "L-010",
+      "key": "ac_gap::force alteracoes concorrentes enquanto a operacao aguarda a trava para testar revalidacao",
+      "text": "Force alteracoes concorrentes enquanto a operacao aguarda a trava para testar revalidacao.",
+      "signal": "ac_gap",
+      "scope": "api",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC7-trava (api)"
+      ],
+      "created": "2026-10-29T05:54:34Z",
+      "last_seen": "2026-10-29T05:54:34Z"
+    },
+    {
+      "id": "L-011",
+      "key": "ac_gap::teste replay contra revogacao de cada vinculo e substituicao do identificador da sessao",
+      "text": "Teste replay contra revogacao de cada vinculo e substituicao do identificador da sessao.",
+      "signal": "ac_gap",
+      "scope": "api",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC7-replay (api)"
+      ],
+      "created": "2026-10-29T05:54:35Z",
+      "last_seen": "2026-10-29T05:54:35Z"
+    },
+    {
+      "id": "L-012",
+      "key": "ac_gap::verifique que mensagens locais de erro nao variam com o conteudo do servidor",
+      "text": "Verifique que mensagens locais de erro nao variam com o conteudo do servidor.",
+      "signal": "ac_gap",
+      "scope": "mobile",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC9-mensagens (mobile)"
+      ],
+      "created": "2026-10-29T05:58:36Z",
+      "last_seen": "2026-10-29T05:58:36Z"
+    },
+    {
+      "id": "L-013",
+      "key": "ac_gap::teste preflight com pendencias duraveis nao carregadas antes de cada chamada remota",
+      "text": "Teste preflight com pendencias duraveis nao carregadas antes de cada chamada remota.",
+      "signal": "ac_gap",
+      "scope": "mobile",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC10-sqlite (mobile)"
+      ],
+      "created": "2026-10-29T05:58:36Z",
+      "last_seen": "2026-10-29T05:58:36Z"
+    },
+    {
+      "id": "L-014",
+      "key": "ac_gap::teste cada componente do vinculo e a ordem de validacao antes da persistencia segura",
+      "text": "Teste cada componente do vinculo e a ordem de validacao antes da persistencia segura.",
+      "signal": "ac_gap",
+      "scope": "mobile",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC11-vinculos (mobile)"
+      ],
+      "created": "2026-10-29T05:58:37Z",
+      "last_seen": "2026-10-29T05:58:37Z"
+    },
+    {
+      "id": "L-015",
+      "key": "ac_gap::teste adocao parcial contra contexto externo sem sessao e divergencias individuais de identidade e perfil",
+      "text": "Teste adocao parcial contra contexto externo sem sessao e divergencias individuais de identidade e perfil.",
+      "signal": "ac_gap",
+      "scope": "mobile",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC11-adocao (mobile)"
+      ],
+      "created": "2026-10-29T05:58:37Z",
+      "last_seen": "2026-10-29T05:58:37Z"
+    },
+    {
+      "id": "L-016",
+      "key": "ac_gap::asserte os dados e avisos especificos exigidos na confirmacao da interface",
+      "text": "Asserte os dados e avisos especificos exigidos na confirmacao da interface.",
+      "signal": "ac_gap",
+      "scope": "mobile",
+      "status": "candidate",
+      "features": [
+        "recuperacao-aparelho"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "AC12-texto (mobile)"
+      ],
+      "created": "2026-10-29T05:58:38Z",
+      "last_seen": "2026-10-29T05:58:38Z"
     }
   ]
 }

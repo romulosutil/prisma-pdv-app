@@ -1,6 +1,6 @@
 # Checkpoint da execução do plano de produção
 
-Referência: 29/10/2026, após acesso mobile e limites compartilhados de autenticação. Goal persistente **ativo**. Este checkpoint não encerra o trabalho executável e não aprova produção.
+Referência: 29/10/2026, após recuperação consentida do aparelho perdido, até70886f9. Goal persistente **ativo**. Este checkpoint não encerra o trabalho executável e não aprova produção.
 
 ## Entregas locais aceitas
 
@@ -27,6 +27,16 @@ Referência: 29/10/2026, após acesso mobile e limites compartilhados de autenti
 | fe56478 | Limites nas rotas, erros esperados confirmam contadores e retenção preparada | P0-03-B API |
 | 355b89a | Mensagem local de espera em429 sem invalidar credencial | P0-03-B cliente |
 | 1fb5255 | Provas isoladas do rollback de emissão e teto próprio do código legado | P0-03-B AC6 |
+| a863dae | Checkpoint de limites compartilhados | Documentação |
+| 04b314c | Decisões e critérios de recuperação por prova restrita | P0-03-F planejamento |
+| b717dfc | Schemas públicos de desafio e consentimento | P0-03-F shared |
+| 235363b | Transporte público, erros locais e recusa explícita no demo | P0-03-F cliente |
+| 4a7184d | Desafio5min, substituição transacional, revogação e replay idempotente | P0-03-F API |
+| a47cc81 | Geração, preflight, perfil/cofre e retry após aplicação parcial | P0-03-D/E/F Dados |
+| 04c4922 | Triagem do audit, sem alteração de dependências | Preparação de remediação |
+| 2f62ffb | Escolha e consentimento no login, retomada por visão somente em memória | P0-03-F UI |
+| 82970f6 | Provas de filtros, estado integral, concorrência e replay | P0-03-F AC2–7 |
+| 70886f9 | Provas de preflight SQLite, vínculos/cofre e textos da recuperação | P0-03-F AC9–12 |
 
 O escopo de uma loja, operador e aparelho com dinheiro/cartão manual/Pix estático está registrado em AD-001 e P0-06-A. As capacidades e a oferta ainda precisam refletir essa decisão em P0-06-B/P1-10-A.
 
@@ -34,22 +44,24 @@ O escopo de uma loja, operador e aparelho com dinheiro/cartão manual/Pix estát
 
 | Comando | Resultado final | Ambiente e limite |
 |---|---|---|
-| `rtk proxy npm run test --workspace=@pdv/mobile -- --maxWorkers=1` | 353 testes, 35 arquivos, passou | Node24; SQLite real; 5 cenários com API Fastify/PGlite em processo; cofre e hosts nativos simulados |
-| `rtk proxy npm run test --workspace=@pdv/shared` | 136 testes, 9 arquivos, passou | Node |
-| `rtk proxy npm run test --workspace=@pdv/api -- --maxWorkers=1` | 152 testes PGlite e156 PostgreSQL, 11 arquivos, passou | PostgreSQL17 local dedicado via PDV_TEST_POSTGRES_URL. Quatro cenários adicionais só entram com PostgreSQL; há testes unitários sem banco e migração legada em PGlite |
+| `rtk proxy npm run test --workspace=@pdv/mobile -- --maxWorkers=1` | 433 testes, 39 arquivos, passou | Node24; SQLite real; API Fastify/PGlite em processo nos testes de integração; cofre e hosts nativos simulados |
+| `rtk proxy npm run test --workspace=@pdv/shared -- --maxWorkers=1` | 148 testes, 10 arquivos, passou | Node |
+| `rtk proxy npm run test --workspace=@pdv/api -- --maxWorkers=1` | 185 testes PGlite e193 PostgreSQL, 12 arquivos, passou | PostgreSQL17 local dedicado via PDV_TEST_POSTGRES_URL. Oito cenários adicionais só entram com PostgreSQL; há testes unitários sem banco e migração legada em PGlite |
 | `rtk proxy npm run typecheck` | Passou nos três workspaces | TypeScript |
 | `rtk git diff --check` | Passou | Árvore da entrega |
 | Validadores da skill para spec/tasks/state aplicáveis | Passaram | Evidências em `.specs/` |
 
-Total das três suítes finais usando API/PostgreSQL: **645 testes aprovados** (156 API,353 mobile,136 shared). Com API/PGlite, a alternativa é641; não somar as duas execuções da API como casos distintos. O checkpoint anterior tinha612 no conjunto comparável com PGlite. Nenhuma contagem comprova Android, entrega de e-mail, Google Play ou produção.
+Total das três suítes finais usando API/PostgreSQL: **774 testes aprovados** (193 API,433 mobile,148 shared). Com API/PGlite, a alternativa é766; não somar as duas execuções da API como casos distintos. Nenhum teste registrado foi pulado. Nenhuma contagem comprova Android, entrega de e-mail, Google Play ou produção.
 
-O executor rodou as suítes completas API152/156 após os três testes adicionais. O gestor repetiu a suíte API antes desses testes, os15 testes finais de rotas no PGlite e a suíte mobile353/typecheck todos. O verificador final executou os três workspaces/typecheck em355b89a e repetiu os alvos27 PGlite/31 PostgreSQL em1fb5255. Essa última revisão mudou apenas testes, preservando a fonte já verificada; não se afirma uma repetição independente da suíte completa156 no último HEAD.
+O verificador final de recuperação executou as quatro variantes completas acima, typecheck todos e diff--check após os reforços T6/T7, então ainda no working tree. Depois confirmou igualdade dos cinco arquivos testados com os commits82970f6/70886f9; não se afirma nova execução após os commits. O gestor leu as fontes críticas, a migração e os diffs de testes e repetiu37 alvos API/PostgreSQL e80 nos quatro arquivos mobile. O relatório independente identifica o conteúdo executado em recuperacao-aparelho/validation.md.
 
 O primeiro comando padrão da suíte API esgotou memória com workers paralelos. O mesmo conjunto passou com `--maxWorkers=1`. Dois cenários comerciais que avançam mais de 30 dias passaram a renovar explicitamente a sessão pelas rotas de autenticação; as expectativas financeiras foram preservadas.
 
 PostgreSQL foi criado num container descartável com porta vinculada somente a loopback e banco dedicado `pdv_test`. O helper recusa URL fora de loopback ou com outro banco, pois executa TRUNCATE. O container exato criado para este Goal foi parado e removido com seus volumes ao fim da verificação. Não houve alteração em banco externo.
 
 No lote de limites, foi criado outro container próprio: `codex-prisma-pdv-auth-pg`, id `ec55d9072c81ad93e60e3ed3c59f86a9c76edecbcddae8ef57c26c6dd54b5b80`, imagem `postgres:17-alpine`, porta `127.0.0.1:52490`. Ele também foi parado e removido com volumes depois de liberar os testes. Nenhum container de outros projetos foi alterado. As execuções PostgreSQL foram serializadas após uma possível interferência inicial no banco compartilhado de teste; duas repetições exclusivas e revisões posteriores passaram.
+
+Na recuperação, o container próprio `codex-prisma-pdv-recovery-pg`, id `1d781cefcfb6ea9ac8f4ecff55229c4d34eed2127fa5547635eb1abc5c6f9de0`, PostgreSQL17/porta127.0.0.1:59584/banco pdv_test foi usado exclusivamente por um executor/revisor por vez. Após liberar todos os testes, o gestor conferiu ID/imagem/porta/volume, parou e removeu somente esse container com seu volume anônimo. Nenhum banco externo foi alterado.
 
 ## Revisão independente e falhas corrigidas
 
@@ -70,6 +82,12 @@ No lote de limites, a revisão corrigiu abertura antecipada da janela após veri
 
 O verificador final de limites rejeitou inicialmente AC6 por ausência de duas provas, sem demonstrar defeito funcional. O commit1fb5255 acrescentou falha de emissão com/sem código anterior e código legado com quatro erros, isolando seu teto próprio do limite agregado por e-mail. A reavaliação aceitou os nove critérios. Cinco mutações em355b89a e outra em1fb5255 foram detectadas por asserções; nenhuma sobreviveu. O relatório `.specs/features/limites-auth/validation.md` identifica os HEADs e limites. Duas lições candidatas foram registradas pelo script da skill e não foram promovidas a orientações confirmadas.
 
+Na recuperação, o OTP prova a conta e abre um desafio restrito de cinco minutos, sem acesso privado antes do consentimento. A confirmação trava a conta, revalida alvo/capacidade e revoga origem/todas as sessões, criando o novo acesso em um commit. Replay idêntico recupera a mesma sessão enquanto válida; não renova nem reativa acesso. Os testes com duas instalações SQLite e API real em processo preservam produto, caixa, parcela1000 e saldo1500 na origem e todas as tabelas financeiras do servidor. Não há promessa de transferência ou restauração de vendas no novo aparelho.
+
+A revisão de Dados reproduziu um defeito: após registrar a nova identidade e falhar ao carregar seus dados, o retry ainda comparava o vínculo anterior. A adoção da própria aplicação parcial agora exige mesma tentativa/geração, sessão ausente e igualdade integral de identidade/perfil; outro contexto não é adotado. A UI retoma a visão sem segredo após remontagem, exige seleção/consentimento e protege callbacks atrasados. Cofre e hosts nativos continuam simulados nos testes.
+
+O verificador final inicialmente manteve FAIL por lacunas de prova, sem novo defeito funcional demonstrado. Os reforços82970f6/70886f9 acrescentaram candidatos adversariais, snapshots integrais, múltiplas sessões, mudanças enquanto aguardava trava comprovada por pg_blocking_pids, preflight SQLite durável e validações antes do cofre. A reavaliação aprovou13ACs locais. Cinco mutações na fonte2f62ffb foram detectadas por asserções em scratch isolado: TTL, expiração, revogação em replay, geração e ID da visão. Essa fonte permaneceu igual nos commits de testes, por isso o sensor não foi repetido; a árvore real ficou intacta. validate_state passou. Lições da auditoria são candidatas, registradas pelo script da skill.
+
 ## Pendências externas e limites
 
 - Android e artefato final: não houve execução em aparelho. `adb` não foi encontrado no PATH. Reinício forçado, atualização, scanner, câmera e pagamentos manuais precisam de roteiro no artefato exato.
@@ -79,16 +97,15 @@ O verificador final de limites rejeitou inicialmente AC6 por ausência de duas p
 - Infraestrutura: inventário Easypanel, domínio/HTTPS, backups/restauração, alertas, réplicas e retorno de versão ainda não foram exercitados externamente.
 - Produção recusa billing mock. É um bloqueio intencional; não deve ser contornado para implantar.
 - SecureStore físico, fluxo visual/interativo e acessibilidade em Android ainda não foram executados. Se metadata e cofre falharem juntos ao retirar credencial, não há promessa de exclusão durável; acesso em memória é negado e finanças preservadas. Reset dev possui janela documentada para credencial órfã.
-- O audit após instalar expo-sqlite informou 9 vulnerabilidades (5 low, 4 high). A classificação/remediação ainda é trabalho local pendente; nenhum `audit fix --force` foi aplicado.
+- Audit classificado em docs/triagem-dependencias.md:13 entradas completas(5low/4moderate/4high),9 com omit-dev(5low/4high). Entradas propagadas não equivalem a CVEs independentes. Nenhuma dependência foi alterada, nenhuma remediação ou análise do alcance do APK concluída; nenhum `audit fix --force` aplicado.
 - Nenhum push, publicação, contratação, cobrança real ou mudança de produção foi executado.
 
 ## Próximos lotes executáveis
 
-1. Completar recuperação do dono quando o aparelho original está perdido e o limite está ocupado: o login do substituto ainda encontra `limite_aparelhos` e não dispõe de sessão privada para revogar o perdido. Preparar confirmação autenticada por código, substituição explícita e idempotente, sem apagar operações da origem nem reativar aparelho silenciosamente. Esse fluxo não foi dado como concluído pela gestão de aparelhos já entregue.
-2. Implementar entrega transacional de e-mail, retentativa e tratamento de falha, deixando a homologação de entrega bloqueada enquanto faltarem configuração, destinatário de teste autorizado e acesso externos. Limites compartilhados de emissão/tentativas já estão comprovados localmente em P0-03-B; não repetir sua implementação. Integrar a recuperação autenticada aos mesmos limites, sem abrir orçamento paralelo.
-3. P0-04: consistência financeira e autorização no servidor, vínculo caixaId no contrato/bancos/checkout e ajustes posteriores ao fechamento. O vínculo de caixa atual é local; não concluir P0-01-E integral antes desse contrato.
-4. P0-02: outbox para todas as mutações, envio/ack/retry, pull paginado/cursor transacional, conflitos e recuperação autenticada.
-5. Capacidades de produção e oferta coerente, assinatura real, build/CI, operação e mínimos P1 obrigatórios. Continuar as partes independentes enquanto homologações externas estiverem bloqueadas.
+1. Implementar entrega transacional de e-mail, retentativa e tratamento de falha P0-03-A, incluindo protocolo real em ambiente local. Homologação externa fica bloqueada enquanto faltarem configuração, destinatário de teste autorizado e acesso. Limites e recuperação usam os mesmos orçamentos já entregues; não abrir orçamento paralelo. Código devolvido em desenvolvimento não é entrega real.
+2. P0-04: consistência financeira e autorização no servidor, vínculo caixaId no contrato/bancos/checkout e ajustes posteriores ao fechamento. O vínculo de caixa atual é local; não concluir P0-01-E integral antes desse contrato.
+3. P0-02: outbox para todas as mutações, envio/ack/retry, pull paginado/cursor transacional, conflitos e recuperação autenticada. A recuperação de acesso entregue não substitui esse bloco.
+4. Capacidades de produção e oferta coerente, assinatura real, build/CI, operação, remediação de dependências e mínimos P1 obrigatórios. Continuar as partes independentes enquanto homologações externas estiverem bloqueadas.
 
 O plano principal mantém os critérios globais sem marcação quando falta verificação exigida. O adapter browser é demonstrativo e não possui a atomicidade multi-chave do SQLite nativo. O projeto **não está pronto para produção**.
 

@@ -89,6 +89,9 @@ async function upsertProduto(c: Contexto, p: Produto): Promise<Resultado> {
   const vivoDepois = p.excluidoEm === null;
   if (!vivoAntes && vivoDepois && !dentroDoLimite(c.licenca.planoId, 'produtos', c.produtosAtivos)) return 'limite_plano';
 
+  if (!podeUsar(c.licenca.planoId, 'estoque') &&
+      (p.estoque !== (atual?.estoque ?? null) || p.estoqueMinimo !== (atual?.estoqueMinimo ?? null))) return 'recurso_plano';
+
   const campos = {
     nome: p.nome,
     ean: p.ean,

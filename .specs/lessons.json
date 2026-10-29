@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 18,
+  "next_id": 19,
   "lessons": [
     {
       "id": "L-001",
@@ -311,6 +311,24 @@
       ],
       "created": "2026-10-29T06:33:26Z",
       "last_seen": "2026-10-29T06:33:26Z"
+    },
+    {
+      "id": "L-018",
+      "key": "ac_gap::teste a autorizacao de loja para cada entidade financeira do push sem usar provas de produto como substituto de vendas",
+      "text": "Teste a autorização de loja para cada entidade financeira do push, sem usar provas de produto como substituto de vendas.",
+      "signal": "ac_gap",
+      "scope": "sync",
+      "status": "candidate",
+      "features": [
+        "valores-venda"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        ".specs/features/valores-venda/validation.md:7 (sync)"
+      ],
+      "created": "2026-10-29T13:24:14Z",
+      "last_seen": "2026-10-29T13:24:14Z"
     }
   ]
 }

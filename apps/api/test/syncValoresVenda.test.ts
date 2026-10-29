@@ -3,7 +3,7 @@ import { gerarId, type Mutacao, type Venda } from '@pdv/shared';
 import { asc, eq } from 'drizzle-orm';
 import * as schema from '../src/db/schema';
 import type { Conexao } from '../src/db/conexao';
-import { abrirBanco, chamar, contaEmTeste, criarAmbiente, enviar, INICIO, mutacao, venda, type Ambiente } from './ajuda';
+import { abrirBanco, chamar, contaEmTeste, criarAmbiente, criarConta, enviar, INICIO, mutacao, venda, type Ambiente } from './ajuda';
 
 let banco: Conexao;
 let amb: Ambiente;
@@ -26,6 +26,27 @@ async function snapshot() {
 }
 
 describe('validação de venda no push', () => {
+  it('rejeita loja divergente e ID de venda pertencente a outra loja sem escrita', async () => {
+    const a = await contaEmTeste(amb);
+    const b = await criarConta(amb);
+    const original = venda(a);
+    const primeira = mutacao('venda', original);
+    expect((await enviar(amb, a, [primeira])).corpo.aceitas).toEqual([primeira.id]);
+    const antes = await snapshot();
+    for (const [sessao, dados] of [
+      [a, { ...original, lojaId: b.lojaId }],
+      [b, original],
+      [b, { ...original, lojaId: b.lojaId }],
+    ] as const) {
+      const tentativa = mutacao('venda', dados);
+      const resposta = await enviar(amb, sessao, [tentativa]);
+      expect(resposta.status).toBe(200);
+      expect(resposta.corpo.aceitas).toEqual([]);
+      expect(resposta.corpo.rejeitadas).toEqual([{ id: tentativa.id, motivo: 'loja_invalida' }]);
+      expect(await snapshot()).toEqual(antes);
+    }
+  });
+
   it('rejeita sem escrita, aceita vizinhas e permite corrigir e retentar o mesmo ID', async () => {
     const conta = await contaEmTeste(amb);
     const caixa = { id: gerarId(), lojaId: conta.lojaId, aparelhoId: conta.aparelhoId, operadorId: conta.operadorId,

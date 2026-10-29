@@ -17,6 +17,7 @@
 
 ```text
 T1 -> T2
+T2 -> T3
 ```
 
 ## Task Breakdown
@@ -36,3 +37,11 @@ Tests: AC1–5, testes primeiro a partir do contrato; snapshots totais de vendas
 Gate: build
 Done when: gates passam, gestor revisa diretamente persistência/sync, revisor novo aceita com evidências; commit central e verificador final novo com sensor antes de aceitar a feature.
 Status: implementado e aceito no escopo T2 pelo gestor após revisão independente revisao.md PASS. Gates finais seriais:359API/PGlite,392API comPostgreSQL,433mobile,148shared,typecheck todos. Revisor repetiu24alvos por banco e typecheckAPI; snapshots completos e provas isoladas reforçados após achados. Nenhuma asserção legada removida/enfraquecida, fixture somente líquido700. Verificador FINAL novo e sensor ainda pendentes antes do aceite da feature.
+
+### T3: Provar rejeição de venda entre lojas
+Depends on: T2
+Where: apps/api/test/syncValoresVenda.test.ts e documentos da feature/lessons via script pelo gestor.
+Tests: AC4 três variantes: payload com loja diferente da sessão em ambas direções e ID existente de outra loja com loja forjada igual à sessão; HTTP200, aceitas vazio, motivo loja_invalida, snapshot integral inalterado em PGlite/PostgreSQL. Revisor final repete verificação após correção.
+Gate: quick
+Done when: casos faltantes passam nos dois bancos e typecheck, nenhuma fonte alterada, verificador reavalia a lacuna e mantém evidências do sensor já executado na fonte idêntica.
+Status: correção de provas implementada pelo gestor após validation.md FAIL. Quick25/25 em PGlite e25/25 PostgreSQL, typecheckAPI PASS; fontes idênticas610afad. L018 candidata registrada via script, sem promoção. Aguardando nova revisão final antes do aceite; gates amplos do código610afad continuam válidos, sem afirmar novos totais amplos não executados.

@@ -116,6 +116,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: .specs/features/canal-email/revisao-contrato.md:15 (git)
 - last seen: 2026-10-29T06:33:26Z
 
+### L-018 - Teste a autorização de loja para cada entidade financeira do push, sem usar provas de produto como substituto de vendas.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `sync` · harmful: 0
+- features: valores-venda
+- evidence: .specs/features/valores-venda/validation.md:7 (sync)
+- last seen: 2026-10-29T13:24:14Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

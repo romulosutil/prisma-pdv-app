@@ -364,6 +364,8 @@ Evidências locais, com escopo limitado ao resultado descrito. Homologação And
 
 ### Condição de liberação
 
+29/10, vínculo por conta: instalação global estável e aparelho lógico por e-mail/conta, conforme vínculo da API existente. API real em processo (PGlite) + SQLite verificou A→B→A, um aparelho ativo por conta e bloqueio de pendências antes de request/mapeamento novo. Revisão independente `acesso-mobile/revisao-vinculo.md` e43 testes focados passaram. Falta homologação Android/cofre físico; não aprova os ACs globais.
+
 29/10, integração local P0-03-D/E/F: 335 testes mobile passaram e typecheck todos passou; API real em processo com PGlite + SQLite testou expiração31dias, perfil e revogação (3 casos). Cofre/transportes e hosts de UI continuam simulados nas respectivas suítes. Isolamento controller A->B->A passou, mas falta prova com duas contas na API real e Android. Revisões em `acesso-mobile/revisao-dados.md` e `revisao-ui.md`; blocos globais seguem pendentes.
 
 29/10, transporte P0-03-D/F: BackendHttp usa GET /conta, GET/DELETE /aparelhos e POST /auth/logout; callback somente401protegido e deadline inclui leitura de corpo. Revisão `acesso-mobile/revisao-adapters.md` PASS e16 testes com fetch simulado passaram. Não comprova entrega externa nem integração UI.

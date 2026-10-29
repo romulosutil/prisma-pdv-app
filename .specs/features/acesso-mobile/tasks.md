@@ -67,4 +67,4 @@ Where: identidade da instalação, integração Dados e testes API local de duas
 Tests: ACCESS-03 com duas contas autenticadas na API real, mesma instalação, sem pendências; origem e retorno preservados, um aparelho ativo por conta.
 Gate: build
 Done when: o ID da instalação é estável e seus aparelhos lógicos respeitam a vinculação por conta existente na API; logins repetidos não consomem novos aparelhos; pendências impedem troca antes de criar sessão/conta; revisão independente aprova sem fingir API real a partir do controller simulado.
-Status: próxima entrega, decisão técnica a registrar antes da implementação.
+Status: aceita localmente após correção de corrida mantendo freeze durante rede; 43 testes focados e revisao-vinculo.md PASS. API real em processo/PGlite e SQLite comprovam duas contas e IDs por conta estáveis; SecureStore e Android físicos pendentes globalmente.

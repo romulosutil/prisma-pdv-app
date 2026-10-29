@@ -2,7 +2,7 @@ import { Stack, useRootNavigationState, useRouter, useSegments } from 'expo-rout
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, ScrollView, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ToastProvider, useToast } from '@/componentes/Toast';
@@ -76,7 +76,9 @@ function GuardaDeFluxo() {
   const router = useRouter();
   const segmentos = useSegments();
   const navegacaoPronta = useRootNavigationState()?.key !== undefined;
-  const { temConta, reautenticacaoNecessaria, carregandoConta } = useConta();
+  const { temConta, identidade, reautenticacaoNecessaria, carregandoConta } = useConta();
+  const escopo = identidade ? JSON.stringify([identidade.contaId, identidade.lojaId]) : null;
+  const escopoAnterior = useRef(escopo);
   const carrinho = useCarrinho();
   const { assinatura, agora, servico } = useAssinatura();
 
@@ -85,11 +87,16 @@ function GuardaDeFluxo() {
   const destino = navegacaoPronta && !carregandoConta ? decidirRota({ temConta, assinatura, agora, reautenticacaoNecessaria, vendaEmAndamento: !carrinho.vazio }, segmentos) : null;
 
   useEffect(() => {
-    if (destino) {
-      registrar('navegacao', 'redirecionado pelo guarda de fluxo', { destino: String(destino) });
-      router.replace(destino);
+    if (!navegacaoPronta || carregandoConta) return;
+    const mudou = escopoAnterior.current !== null && escopo !== null && escopoAnterior.current !== escopo;
+    escopoAnterior.current = escopo;
+    if (mudou && router.canDismiss()) router.dismissAll();
+    if (destino || mudou) {
+      const rota = destino ?? '/';
+      registrar('navegacao', 'redirecionado pelo guarda de fluxo', { destino: String(rota) });
+      router.replace(rota);
     }
-  }, [destino, router]);
+  }, [destino, router, escopo, carregandoConta, navegacaoPronta]);
 
   useEffect(() => {
     if (navegacaoPronta && !destino) SplashScreen.hideAsync().catch(() => undefined);
@@ -105,7 +112,7 @@ function GuardaDeFluxo() {
 
   return <View style={{ flex: 1 }}>
     <View style={{ flex: 1 }} accessibilityElementsHidden={carregandoConta} importantForAccessibility={carregandoConta ? 'no-hide-descendants' : 'auto'}>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.bg } }} />
+      <Stack key={escopo ?? 'sem-conta'} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.bg } }} />
     </View>
     {carregandoConta ? <View accessibilityRole="progressbar" accessibilityLabel="Carregando dados da conta" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, justifyContent: 'center', alignItems: 'center', gap: 16, backgroundColor: cores.bg }}><ActivityIndicator /><Texto>Carregando seus dados…</Texto></View> : null}
   </View>;

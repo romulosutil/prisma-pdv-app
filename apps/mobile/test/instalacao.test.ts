@@ -28,7 +28,8 @@ describe('identidade de instalação', () => {
     expect(primeiro.entrar.mock.calls.map(([p]) => p.aparelhoId)).toEqual([id(1), id(1), id(1)]);
     expect(primeiro.criarConta.mock.calls[0]![0].aparelhoId).toBe(id(1));
     const segundo = criarDados(armazenamento, () => id(99));
-    await segundo.dados.entrar('outra@example.test', '123456');
+    // A mesma conta reutiliza o aparelho; duas contas têm vínculos próprios (AD-019/trocaContasApi).
+    await segundo.dados.entrar('ana@example.test', '123456');
     expect(segundo.entrar.mock.calls[0]![0].aparelhoId).toBe(id(1));
     expect(await armazenamento.obter('instalacao')).toEqual({ aparelhoId: id(1) });
   });
@@ -46,7 +47,7 @@ describe('identidade de instalação', () => {
   it('compartilha a criação entre requisições concorrentes', async () => {
     const armazenamento = new ArmazenamentoMemoria(); const novoId = vi.fn(criarContadorDeIds());
     const { dados, entrar } = criarDados(armazenamento, novoId);
-    await Promise.all([dados.entrar('a@example.test', '1'), dados.entrar('b@example.test', '2'), dados.entrar('c@example.test', '3')]);
+    await Promise.all(['111111', '222222', '333333'].map((codigo) => dados.entrar('ana@example.test', codigo)));
     expect(novoId).toHaveBeenCalledOnce();
     expect(entrar.mock.calls.map(([p]) => p.aparelhoId)).toEqual([id(1), id(1), id(1)]);
     expect(await armazenamento.obter('instalacao')).toEqual({ aparelhoId: id(1) });
@@ -105,14 +106,16 @@ describe('identidade de instalação', () => {
     expect(novoId).toHaveBeenCalledOnce();
   });
 
-  it('prioriza ID salvo sobre ID da sessão legada sem gerar ou regravar', async () => {
+  it('preserva a instalação global e o aparelho autorizado da sessão legada sem gerar outro', async () => {
     const armazenamento = new ArmazenamentoMemoria();
     await armazenamento.gravar('instalacao', { aparelhoId: id(7) });
     await armazenamento.gravar('conta', { sessao: sessao(id(42)), perfil: null });
     const gravar = vi.spyOn(armazenamento, 'gravar'); const novoId = vi.fn(() => id(8));
     const { dados, entrar } = criarDados(armazenamento, novoId);
     await dados.conta.carregar(); await dados.entrar('ana@example.test', '123456');
-    expect(entrar.mock.calls[0]![0].aparelhoId).toBe(id(7));
+    expect(entrar.mock.calls[0]![0].aparelhoId).toBe(id(42));
+    expect(await armazenamento.obter('instalacao')).toEqual({ aparelhoId: id(7) });
+    expect(await armazenamento.obter('instalacao_aparelhos')).toEqual({ versao: 1, aparelhos: { 'ana@example.test': id(42) } });
     expect(gravar.mock.calls.filter(([chave]) => chave === 'instalacao')).toHaveLength(0);
     expect(novoId).not.toHaveBeenCalled();
     expect(await armazenamento.obter('instalacao')).toEqual({ aparelhoId: id(7) });

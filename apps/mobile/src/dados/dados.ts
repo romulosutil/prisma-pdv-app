@@ -118,7 +118,11 @@ export class Dados {
 
   async criarConta(formulario: FormularioConta): Promise<void> {
     return this.executarAcesso(async () => {
-    const aparelhoId = await this.instalacao.obterOuCriar(this.conta.obter().identidade?.aparelhoId);
+    await this.preflightTroca(formulario.email);
+    const anterior = this.conta.obter();
+    if (anterior.identidade && !anterior.perfil) throw new ErroBackend('conflito', 'Recupere primeiro o acesso à conta original antes de criar outra conta.');
+    const legado = anterior.identidade && anterior.perfil ? { email: anterior.perfil.email, aparelhoId: anterior.identidade.aparelhoId } : undefined;
+    const aparelhoId = await this.instalacao.aparelhoDaConta(formulario.email, legado);
     const sessao = await this.backend.criarConta({
       email: formulario.email,
       nomeResponsavel: formulario.nomeResponsavel,
@@ -127,6 +131,7 @@ export class Dados {
       aparelhoId,
       aparelhoNome: NOME_APARELHO_PADRAO,
     });
+    if (sessao.aparelhoId !== aparelhoId) throw new ErroBackend('resposta_invalida', 'O aparelho retornado não corresponde ao solicitado.');
     await this.aplicarAcesso(sessao, {
       nomeResponsavel: formulario.nomeResponsavel,
       nomeLoja: formulario.nomeLoja,
@@ -139,10 +144,20 @@ export class Dados {
 
   async entrar(email: string, codigo: string): Promise<void> {
     return this.executarAcesso(async () => {
-    const aparelhoId = await this.instalacao.obterOuCriar(this.conta.obter().identidade?.aparelhoId);
+    await this.preflightTroca(email);
+    const anterior = this.conta.obter();
+    const semPerfil = anterior.identidade !== null && anterior.perfil === null;
+    const legado = anterior.identidade && anterior.perfil ? { email: anterior.perfil.email, aparelhoId: anterior.identidade.aparelhoId } : undefined;
+    const aparelhoId = semPerfil ? anterior.identidade!.aparelhoId : await this.instalacao.aparelhoDaConta(email, legado);
     const sessao = await this.backend.entrar({ email, codigo, aparelhoId, aparelhoNome: NOME_APARELHO_PADRAO });
+    if (sessao.aparelhoId !== aparelhoId) throw new ErroBackend('resposta_invalida', 'O aparelho retornado não corresponde ao solicitado.');
     const perfil = await this.backend.obterPerfil(sessao.token);
     this.validarPerfil(sessao, perfil);
+    if (semPerfil) {
+      if (sessao.contaId !== anterior.identidade!.contaId || sessao.lojaId !== anterior.identidade!.lojaId) throw new ErroBackend('conflito', 'Recupere primeiro o acesso à conta original.');
+      const associado = await this.instalacao.aparelhoDaConta(perfil.email, { email: perfil.email, aparelhoId });
+      if (associado !== aparelhoId) throw new ErroBackend('conflito', 'O aparelho da conta não corresponde à identidade recuperada.');
+    }
     await this.aplicarAcesso(sessao, {
       nomeResponsavel: perfil.nomeResponsavel,
       nomeLoja: perfil.nomeLoja,
@@ -160,7 +175,11 @@ export class Dados {
   private executarAcesso(tarefa: () => Promise<void>): Promise<void> {
     const resultado = this.filaAcesso.then(async () => {
       if (!this.contaCarregada) { await this.conta.carregar(); this.contaCarregada = true; }
-      await tarefa();
+      try { await tarefa(); }
+      finally {
+        this.armazenamentoDaLoja.bloquearAlteracoes(false);
+        this.conta.transicao.alterar(false);
+      }
     });
     this.filaAcesso = resultado.then(() => undefined, () => undefined);
     return resultado;
@@ -168,6 +187,20 @@ export class Dados {
 
   private async aguardarGravacoes(): Promise<void> {
     await Promise.all([this.produtos.aguardarGravacoes(), this.vendas.aguardarGravacoes(), this.caixa.aguardarGravacoes(), this.preferencias.aguardarGravacoes(), this.ordemAtalhos.aguardarGravacoes(), this.carrinho.aguardarGravacoes()]);
+  }
+
+  private async preflightTroca(email: string): Promise<void> {
+    const anterior = this.conta.obter();
+    if (!anterior.identidade || !anterior.perfil || anterior.perfil.email.trim().toLowerCase() === email.trim().toLowerCase()) return;
+    this.conta.transicao.alterar(true);
+    this.armazenamentoDaLoja.bloquearAlteracoes(true);
+    await this.aguardarGravacoes();
+    // Uma tentativa de acesso pode preceder iniciar(); consulte o estado durável
+    // antes de decidir se a conta anterior está livre de pendências.
+    if (!(this.armazenamento instanceof ArmazenamentoSqlite)) {
+      await Promise.all([this.produtos.carregar(), this.vendas.carregar(), this.caixa.carregar(), this.carrinho.carregar()]);
+    }
+    if (await this.possuiPendencias()) throw new ErroBackend('conflito', 'Há operações locais pendentes. Entre na mesma conta para recuperar e sincronizar antes de trocar.');
   }
 
   private async possuiPendencias(): Promise<boolean> {

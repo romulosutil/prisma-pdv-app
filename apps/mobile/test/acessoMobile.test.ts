@@ -30,15 +30,17 @@ const vazio = (status: number) => new Response(null, { status });
 async function criar() {
   const raw = new DatabaseSync(':memory:');
   const base = new Memoria(); const cofre = new Cofre(); let n = 100;
+  // A API devolve o aparelho solicitado; a fixture fixa a instalação A e respeita AD-019 para B.
+  await base.gravar('instalacao', { aparelhoId: identidade.aparelhoId });
   const seguro = new ArmazenamentoSessaoSegura(base, cofre, () => id(n++));
   const sqlite = new ArmazenamentoSqlite(async () => sqliteBanco(raw), seguro);
   const dados = new Dados(sqlite, () => id(n++), 'https://api.test');
   let login = sessao('novo'); let respostaPerfil: () => Promise<Response> = async () => json(perfil);
-  let respostaLogin: () => Promise<Response> = async () => json(login);
+  let respostaLogin: (aparelhoId: string) => Promise<Response> = async (aparelhoId) => json({ ...login, aparelhoId });
   let logout: () => Promise<Response> = async () => vazio(204);
   let protegido: () => Promise<Response> = async () => vazio(404);
   const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
-    if (url.endsWith('/auth/login')) return respostaLogin();
+    if (url.endsWith('/auth/login')) return respostaLogin(JSON.parse(String(init.body)).aparelhoId);
     if (url.endsWith('/conta')) return respostaPerfil();
     if (url.endsWith('/auth/logout')) return logout();
     if (url.endsWith('/assinatura')) return protegido();

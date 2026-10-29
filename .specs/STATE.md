@@ -20,6 +20,7 @@
 - AD-016: 401 remove a credencial preservando identidade financeira. Se metadata falha, negar em memória e tentar retirar do cofre somente o token rejeitado. Se ambos os armazenamentos falharem, não prometer exclusão durável. Logout/401 atrasados nunca retiram a credencial de um login posterior.
 - AD-017: cache, preferências, Pix e licença são particionados por conta/loja. Operações capturam vínculo antes de rede/armazenamento, descartam respostas de origem antiga e não publicam snapshots de outra conta. Até P0-02 comprovar ACK, registros financeiros locais são conservadoramente pendentes e impedem troca.
 - AD-018: react-test-renderer19.3.0 é dependência apenas de teste, fixada à versão React do app. Está depreciado; os testes exercitam hooks React reais com hosts simulados e não substituem Android, acessibilidade ou navegação nativa. Usado para reproduzir corridas de estado/revogação, não para declarar homologação visual.
+- AD-019: a API existente vincula um aparelho lógico a uma conta. Manter um UUID global da instalação e um mapeamento durável email normalizado -> aparelho lógico, reutilizado em cadastro/login dessa conta. A primeira conta e o legado preservam seu ID atual; outra conta recebe outro ID lógico, sem alterar o schema/API nem criar aparelho novo a cada login. Essa decisão refina AD-011: a instalação continua global e estável; o vínculo de autorização é por conta. Não trocar nem gerar vínculo novo enquanto houver pendências da conta anterior.
 
 ## Handoff
 

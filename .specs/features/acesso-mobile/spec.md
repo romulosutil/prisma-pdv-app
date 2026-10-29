@@ -41,5 +41,5 @@ Acceptance Criteria:
 |---|---|---|---|
 | ACCESS-01 | 1, 2 | P0-03-D (adapter de credencial; integração em andamento) | verified |
 | ACCESS-02 | 3, 4, 5 | P0-03-D/F (sessão e perfil, contrato local) | verified |
-| ACCESS-03 | 6, 7 | P0-03-E, ainda falta troca de duas contas com API real | implementing |
+| ACCESS-03 | 6, 7 | P0-03-E, contrato local incluindo duas contas com API real em processo | verified |
 | ACCESS-04 | 8 | P0-03-F (contrato local; Android pendente globalmente) | verified |

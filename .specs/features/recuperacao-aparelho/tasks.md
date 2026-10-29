@@ -36,7 +36,9 @@ Where: packages/shared/src/contrato.ts e packages/shared/test/recuperacaoContrat
 Tests: DTOs e invariantes AC2/3/4, consentimento literal, IDs únicos e novo fora dos candidatos.
 Gate: quick
 Done when: contratos explícitos e compatíveis com endpoints de sessão existentes, schemas/typecheck aprovados e revisão de contrato aceita.
-Status: pending.
+Status: aceita localmente;12 casos novos e148 shared no total, typecheck shared e revisão independente de contrato PASS. Cinco ambiguidades de API/concorrência/geração foram fechadas antes da delegação. Contratos ainda não comprovam entrega real de email/Android.
+
+Adequação T1: recuperacaoContrato.test.ts:21/22 prova pedido preservado e código inválido; :26/27 DTOs completos; :31 literaltrue, :35/36 segredo43, :40-42 candidatos, :46-49 perfil/data/campos fora do contrato. Todos os12 casos mapeiam AC2/3/4; nenhuma asserção legada removida, enfraquecida ou pulada. Os casos de schema não comprovam tempo de execução300000ms, que pertence a T2.
 
 ### T2: Recuperação transacional no servidor
 Depends on: T1

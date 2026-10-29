@@ -158,6 +158,36 @@ export type LoginReq = z.infer<typeof LoginReqSchema>;
 export const LoginResSchema = SessaoSchema;
 export type LoginRes = Sessao;
 
+// Prova restrita de recuperação: não autoriza rotas de negócio como uma sessão.
+const TokenRecuperacaoSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
+export const IniciarRecuperacaoReqSchema = LoginReqSchema;
+export type IniciarRecuperacaoReq = z.infer<typeof IniciarRecuperacaoReqSchema>;
+export const AparelhoRecuperacaoSchema = z.object({
+  id: IdSchema,
+  nome: z.string().min(1),
+  ultimoAcessoEm: DataIsoSchema,
+}).strict();
+export const RecuperacaoAparelhoSchema = z.object({
+  id: IdSchema,
+  token: TokenRecuperacaoSchema,
+  expiraEm: DataIsoSchema,
+  perfil: PerfilResSchema.extend({ papel: z.literal('dono') }),
+  aparelhoNovoId: IdSchema,
+  aparelhoNovoNome: z.string().min(1),
+  aparelhos: z.array(AparelhoRecuperacaoSchema).min(1),
+}).strict().refine((d) => {
+  const ids = d.aparelhos.map((a) => a.id);
+  return new Set(ids).size === ids.length && !ids.includes(d.aparelhoNovoId);
+}, 'Os alvos devem ser únicos e diferentes do aparelho novo.');
+export type RecuperacaoAparelho = z.infer<typeof RecuperacaoAparelhoSchema>;
+export const ConfirmarRecuperacaoReqSchema = z.object({
+  id: IdSchema,
+  token: TokenRecuperacaoSchema,
+  aparelhoSubstituidoId: IdSchema,
+  confirmar: z.literal(true),
+}).strict();
+export type ConfirmarRecuperacaoReq = z.infer<typeof ConfirmarRecuperacaoReqSchema>;
+
 // ---------- Assinatura e licença ----------
 
 const CartaoSalvoSchema = z.object({

@@ -41,3 +41,5 @@ Acceptance Criteria:
 | VALUES-01 | 1,2 | P0-04-A/AC-P0-04-1 | PASS local5ACs, validation.md fonte933db20 |
 | VALUES-02 | 3,5 | P0-04-A rejeição sem parcial | PASS local5ACs, validation.md fonte933db20 |
 | VALUES-03 | 4 | P0-04-A preservação financeira | PASS local5ACs, validation.md fonte933db20 |
+
+Seguimento P0-04-A2 resolvido depois desta entrega: e582c09 corrige cálculo shared por quociente/resto. arredondamento-seguro/validation.md3ACsPASS e5/5mutações, SQLite de arquivo e API/bancos locais comprovados, Android ainda não executado.

@@ -21,4 +21,4 @@ Mapeamento reverso: os dois novos testes de dinheiro mapeiam AC1/2; um novo chec
 
 ## Gates
 
-Alvos após a correção: dinheiro19/19, checkout18/18, syncValoresVenda/PGlite8/8 PASS, sem filtro. Gates completos em série:150shared/10arquivos,434mobile/39arquivos,361API/PGlite e394API comPostgreSQL/24arquivos, typecheck todos PASS. Total978na variantePG ou945PGlite; não somar variantes. Fontes API/persistência não mudaram. Nenhum teste registrado pulado nos gates finais. Verificador independente ainda não executado, feature não aceita.
+Alvos após a correção: dinheiro19/19, checkout18/18, syncValoresVenda/PGlite8/8 PASS, sem filtro. Gates completos em série:150shared/10arquivos,434mobile/39arquivos,361API/PGlite e394API comPostgreSQL/24arquivos, typecheck todos PASS. Total978na variantePG ou945PGlite; não somar variantes. Fontes API/persistência não mudaram. Nenhum teste registrado pulado nos gates finais. Verificador independente posterior aprovou3ACs e sensor5/5 conforme validation.md, validate_state0; feature aceita localmente.

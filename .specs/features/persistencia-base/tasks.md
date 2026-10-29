@@ -32,7 +32,7 @@ Where: apps/mobile/src/dados/sqlite/ (driver e schema); teste sqliteSchema.
 Tests: LOCAL-01, critérios 1 e 2 do spec, SQLite real.
 Gate: build
 Done when: schema de produtos/caixas/vendas/itens/pagamentos/rascunho/outbox e metadata tem partição e IDs estáveis, inicialização idempotente, versão futura recusada, rollback e FKs verificados; revisor aprova.
-Status: em implementação.
+Status: concluída e aceita pelo gestor após revisão independente em revisao-t1-t2.md e testes SQLite real.
 
 ### T2: Publicação durável do observável
 Depends on: none

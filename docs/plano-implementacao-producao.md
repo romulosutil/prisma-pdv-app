@@ -2,13 +2,13 @@
 
 Data de referência: 28/10/2026.
 
-Status: planejamento; implementação não iniciada por este documento. Todas as tarefas e critérios abaixo estão pendentes. O diagnóstico vem da leitura do repositório, sem execução de testes ou inspeção da infraestrutura externa.
+Status: implementação local em andamento sob Goal persistente. Checkpoints, decisões e retomada em .specs/STATE.md. Somente itens com evidências estão verificados; homologação externa e critérios globais permanecem pendentes. O projeto ainda não está pronto para produção.
 
 ## Objetivo e escopo
 
 Colocar o PDV Android em operação comercial com vendas duráveis, recuperação de dados, autenticação real, assinatura validada e uma versão de produção homologada.
 
-Escopo recomendado para a primeira versão: uma loja, um operador, um aparelho, cadastro de produtos, venda por unidade/peso/valor avulso, caixa, histórico, exportação, sincronização e recuperação. Pagamentos iniciais: dinheiro, cartão registrado manualmente e Pix estático confirmado pelo operador. Essa redução é uma recomendação a consolidar na tarefa P0-06-A; não altera os planos atuais automaticamente.
+Escopo inicial autorizado para a primeira versão: uma loja, um operador, um aparelho, cadastro de produtos, venda por unidade/peso/valor avulso, caixa, histórico, exportação, sincronização e recuperação. Pagamentos iniciais: dinheiro, cartão registrado manualmente e Pix estático confirmado pelo operador. Decisão AD-001 registrada; aplicar às capacidades e à oferta em P0-06-B/P1-10-A.
 
 Manter Fastify, Drizzle/PostgreSQL, Expo/React Native e o domínio em `packages/shared`. Evoluir os contratos compartilhados e os repositórios existentes. Recursos não entregues devem ficar fora da oferta e da navegação de produção.
 
@@ -46,7 +46,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 **Tarefas**
 
-- [ ] **P0-01-A:** definir schema SQLite versionado para produtos, caixas, vendas, itens, pagamentos, venda em andamento e outbox, com partição por conta/loja e IDs estáveis.
+- [x] **P0-01-A:** definir schema SQLite versionado para produtos, caixas, vendas, itens, pagamentos, venda em andamento e outbox, com partição por conta/loja e IDs estáveis.
 - [ ] **P0-01-B:** implementar migração idempotente dos dados atuais, preservando a origem até validar contagens e totais; manter um adaptador explícito para testes/navegador sem fallback silencioso no Android de produção.
 - [ ] **P0-01-C:** substituir a gravação de agregados críticos por transações; confirmar sucesso na interface somente após persistência e tratar disco cheio, falha de escrita e leitura inválida.
 - [ ] **P0-01-D:** persistir venda em andamento e cada parcela recebida; retomar o checkout após reinício e concluir com o mesmo ID, inclusive se o processo cair entre gravação e navegação.
@@ -349,10 +349,11 @@ Os comandos atuais não substituem os testes de integração PostgreSQL, SQLite 
 
 ### Registro de evidências
 
-Preencher uma linha por entrega; o registro começa vazio porque este documento não executa as implementações.
+Evidências locais por entrega. Revisões em .specs/features/persistencia-base/. Critérios globais exigem também homologação definida acima.
 
 | Tarefa/critério | Commit ou versão | Teste/comando/roteiro | Ambiente/aparelho | Resultado e evidência |
 |---|---|---|---|---|
+| P0-01-A | commit desta entrega | teste sqliteSchema: 4 passaram; typecheck mobile passou; revisão T1/T2 PASS parcial | Node 24.14.1, SQLite real (node:sqlite) | Schema v1, FKs, reabertura, rollback e versão futura; não homologa Android |
 
 ### Condição de liberação
 

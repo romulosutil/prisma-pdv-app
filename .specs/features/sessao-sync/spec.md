@@ -35,5 +35,5 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| SYNCAUTH-01 | 1,2 | Parte P0-04-B autorização atual | Planejado |
-| SYNCAUTH-02 | 3,4 | Parte P0-04-B concorrência/relógio | Planejado |
+| SYNCAUTH-01 | 1,2 | Parte P0-04-B autorização atual | Implementado/gates PASS; final pendente |
+| SYNCAUTH-02 | 3,4 | Parte P0-04-B concorrência/relógio | Implementado/gates PASS; final pendente |

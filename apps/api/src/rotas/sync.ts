@@ -18,7 +18,7 @@ export function rotasSync(app: FastifyInstance, { db, relogio }: Deps): void {
     if (req.aparelhoId !== request.sessao.aparelhoId) {
       throw new ErroApi(403, 'aparelho_invalido', 'O aparelho informado não é o da sessão.');
     }
-    return SyncPushResSchema.parse(await aplicarPush(db, request.sessao, req, relogio.agora()));
+    return SyncPushResSchema.parse(await aplicarPush(db, request.sessaoId, request.sessao, req, relogio));
   });
 
   app.get('/sync/pull', async (request) => {

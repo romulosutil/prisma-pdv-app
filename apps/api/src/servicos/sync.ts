@@ -13,14 +13,16 @@ import {
   type Mudanca,
   type Mutacao,
   type Produto,
+  type Relogio,
   type SyncPullRes,
   type SyncPushReq,
   type SyncPushRes,
   type Venda,
 } from '@pdv/shared';
-import type { SessaoAutenticada } from '../auth';
+import { revalidarSessaoSync, type SessaoAutenticada } from '../auth';
 import type { Db } from '../db/conexao';
-import { caixas, itensVenda, movimentosCaixa, mudancas, mutacoesAplicadas, pagamentosVenda, produtos, vendas } from '../db/schema';
+import { contas, sessoes, caixas, itensVenda, movimentosCaixa, mudancas, mutacoesAplicadas, pagamentosVenda, produtos, vendas } from '../db/schema';
+import { ErroApi } from '../erros';
 import { carregarAssinatura } from './assinatura';
 import { vendaConsistente } from './valoresVenda';
 
@@ -262,9 +264,14 @@ async function aplicar(c: Contexto, m: Mutacao): Promise<Resultado> {
  * Aplica o lote numa transação por loja (lock advisory): os `seq` de uma loja
  * são gravados em ordem de commit, então nenhum pull enxerga um buraco que depois se preenche.
  */
-export function aplicarPush(db: Db, sessao: SessaoAutenticada, req: SyncPushReq, agora: Date): Promise<SyncPushRes> {
+export function aplicarPush(db: Db, sessaoId: string, sessao: SessaoAutenticada, req: SyncPushReq, relogio: Relogio): Promise<SyncPushRes> {
   return db.transaction(async (tx) => {
+    const [conta] = await tx.select({ id: contas.id }).from(contas).where(eq(contas.id, sessao.contaId)).for('update');
+    const [linha] = await tx.select({ id: sessoes.id }).from(sessoes).where(eq(sessoes.id, sessaoId)).for('update');
+    if (!conta || !linha) throw new ErroApi(401, 'nao_autenticado', 'Sessão inválida. Entre novamente.');
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${sessao.lojaId}))`);
+    const agora = relogio.agora();
+    await revalidarSessaoSync(tx, sessaoId, sessao, agora);
 
     const { assinatura: salva } = await carregarAssinatura(tx, sessao.contaId, agora);
     const assinatura = avaliar(salva, agora);
@@ -310,7 +317,7 @@ export function aplicarPush(db: Db, sessao: SessaoAutenticada, req: SyncPushReq,
     if (novas.length > 0) await tx.insert(mutacoesAplicadas).values(novas);
 
     return { aceitas, rejeitadas, cursor: String(await posicaoAtual(tx, sessao.lojaId)) };
-  });
+  }, { isolationLevel: 'read committed' });
 }
 
 // ---------- Pull ----------

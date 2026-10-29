@@ -49,3 +49,16 @@ export function exigirSessao(db: Db, relogio: Relogio) {
     request.sessao = identidade;
   };
 }
+
+/** Revalida a identidade depois dos locks da transação de push. */
+export async function revalidarSessaoSync(tx: Db, sessaoId: string, identidade: SessaoAutenticada, agora: Date): Promise<void> {
+  const [sessao] = await tx.select({ id: sessoes.id }).from(sessoes)
+    .innerJoin(contas, eq(contas.id, sessoes.contaId))
+    .innerJoin(lojas, and(eq(lojas.id, sessoes.lojaId), eq(lojas.contaId, contas.id)))
+    .innerJoin(operadores, and(eq(operadores.id, sessoes.operadorId), eq(operadores.contaId, contas.id), eq(operadores.lojaId, lojas.id)))
+    .innerJoin(aparelhos, and(eq(aparelhos.id, sessoes.aparelhoId), eq(aparelhos.contaId, contas.id), eq(aparelhos.lojaId, lojas.id)))
+    .where(and(eq(sessoes.id, sessaoId), eq(sessoes.contaId, identidade.contaId), eq(sessoes.lojaId, identidade.lojaId),
+      eq(sessoes.operadorId, identidade.operadorId), eq(sessoes.aparelhoId, identidade.aparelhoId),
+      isNull(sessoes.revogadaEm), isNull(aparelhos.revogadoEm), gt(sessoes.expiraEm, agora)));
+  if (!sessao) throw new ErroApi(401, 'nao_autenticado', 'Sessão inválida. Entre novamente.');
+}

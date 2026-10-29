@@ -42,4 +42,4 @@ Acceptance Criteria:
 |---|---|---|---|
 | EMAIL-01 | 1 | P0-03-A contrato | PASS local T1, revisão-contrato.md |
 | EMAIL-02 | 2,3 | P0-03-A segredo da futura fila | PASS local T2, revisão-cifrador.md |
-| EMAIL-03 | 4,5,6,7,8 | P0-03-A adapter SMTP local | pending |
+| EMAIL-03 | 4,5,6,7,8 | P0-03-A adapter SMTP local | PASS módulo T3; verificação final pendente |

@@ -14,7 +14,7 @@ import {
 } from '@pdv/shared';
 import { asc, eq, getTableName, is, sql } from 'drizzle-orm';
 import { PgTable } from 'drizzle-orm/pg-core';
-import { abrirPglite, type Conexao, type Db } from '../src/db/conexao';
+import { abrirPglite, abrirPostgres, type Conexao, type Db } from '../src/db/conexao';
 import type { FonteEan } from '../src/fontes/fonte';
 import * as schema from '../src/db/schema';
 import { criarApp } from '../src/servidor';
@@ -43,7 +43,21 @@ const TABELAS = Object.values(schema)
   .join(', ');
 
 /** Um PGlite por arquivo de teste (a partida custa ~1s); cada teste começa com as tabelas vazias. */
-export const abrirBanco = (): Promise<Conexao> => abrirPglite();
+export const abrirBanco = async (): Promise<Conexao> => {
+  const endereco = process.env.PDV_TEST_POSTGRES_URL;
+  if (!endereco) return abrirPglite();
+  const url = new URL(endereco);
+  // O helper faz TRUNCATE: somente um banco local dedicado pode ser usado por este comando.
+  if (!['postgres:', 'postgresql:'].includes(url.protocol) || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname) || url.pathname !== '/pdv_test') {
+    throw new Error('PDV_TEST_POSTGRES_URL deve apontar para o banco local dedicado pdv_test.');
+  }
+  const conexao = await abrirPostgres(endereco);
+  try {
+    // Em PGlite cada arquivo recebe um banco novo; PostgreSQL também começa isolado por arquivo.
+    await conexao.db.execute(sql.raw(`truncate table ${TABELAS} restart identity cascade`));
+    return conexao;
+  } catch (erro) { await conexao.fechar(); throw erro; }
+};
 
 export async function criarAmbiente(
   conexao: Conexao,
@@ -102,6 +116,17 @@ export async function criarConta(amb: Ambiente, sobrescrever: Partial<{ email: s
   const res = await chamar<CriarContaRes>(amb, 'POST', '/contas', { corpo: dados });
   if (res.status !== 201) throw new Error(`Falha ao criar conta: ${JSON.stringify(res.corpo)}`);
   return { ...res.corpo, email: dados.email, documento: dados.documento };
+}
+
+/** Fixture explícita: cenários comerciais que passam de 30 dias exigem nova autenticação. */
+export async function reautenticar(amb: Ambiente, conta: { email: string; aparelhoId: string }) {
+  const codigo = await chamar(amb, 'POST', '/auth/codigo', { corpo: { email: conta.email } });
+  if (codigo.status !== 200) throw new Error('Falha ao emitir código da fixture de autenticação.');
+  const login = await chamar<import('@pdv/shared').Sessao>(amb, 'POST', '/auth/login', {
+    corpo: { email: conta.email, codigo: codigo.corpo.codigo, aparelhoId: conta.aparelhoId, aparelhoNome: 'Celular da Maria' },
+  });
+  if (login.status !== 200) throw new Error('Falha ao autenticar novamente a fixture.');
+  return login.corpo;
 }
 
 export async function assinar(amb: Ambiente, token: string, planoId: PlanoId = 'negocio', numero: string = NUMEROS.aprova) {

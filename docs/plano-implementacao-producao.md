@@ -170,7 +170,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 **Tarefas**
 
-- [ ] **P0-06-A:** registrar o escopo de lançamento. Recomendação: começar com recebimentos manuais/Pix estático e retirar integrações simuladas da oferta; integração real é obrigatória antes de anunciar confirmação automática ou Tap.
+- [x] **P0-06-A:** registrar o escopo de lançamento. Recomendação: começar com recebimentos manuais/Pix estático e retirar integrações simuladas da oferta; integração real é obrigatória antes de anunciar confirmação automática ou Tap.
 - [ ] **P0-06-B:** implementar configuração de capacidades e bloquear simuladores em produção, também por acesso direto à rota; conectar as capacidades às telas de planos, onboarding, ajustes e checkout.
 - [ ] **P0-06-C:** homologar dinheiro, troco, cartão manual, Pix estático e pagamento dividido, com confirmação explícita pelo operador e recuperação de P0-01.
 - [ ] **P0-06-D — condicional à oferta integrada:** escolher um provedor e implementar vínculo da cobrança à venda, referências persistentes, iniciação, consulta/retorno, confirmação confiável, expiração e conciliação após reinício.
@@ -359,8 +359,8 @@ Evidências locais, com escopo limitado ao resultado descrito. Homologação And
 | Parte P0-07-C | fbd1a3c | configuracao: 17 testes e typecheck API; reviews/configuracao-api.md | Node | API valida antes de efeitos; produção bloqueada enquanto só existe billing mock |
 | Parte P0-01-D/E, serviço | e9453f6 | checkoutSqlite: 17 testes; revisao-servico.md | SQLite real | R/R/saldoR, seis fronteiras de escrita, falha de COMMIT, outbox e conclusão únicas; caixa local preservado, contrato remoto P0-04 pendente |
 | Parte P0-01-C/D, integração | e82d1b8 | 252 testes mobile; typecheck todos; checkout-duravel/validation.md | Node/SQLite; hook com adaptadores UI simulados | Fachada aguarda gravações; recuperação antes de liberar app; retry sem duplicar parcela; navegação inspecionada, Android ainda não executado |
-
 | P0-03-C | commit desta entrega | 12 testes identidade + 7 storage; typecheck mobile; reviews/identidade-instalacao.md PASS local | Backend simulado explicitamente | UUID salvo antes do request e reutilizado; migração legada; corrupção/falhas não geram novo ID silenciosamente; reinstalação documentada, Android/API real pendentes |
+| Parte P0-03-D/F, API | commit desta entrega | 125 testes API; 12 sessões repetidos pelo revisor + sensor sem lock; typecheck todos | PostgreSQL17 local; backfill legado em PGlite | Expiração30dias/logout/perfil/revogação, locks e autorização; credencial protegida e integração mobile ainda pendentes |
 
 ### Condição de liberação
 

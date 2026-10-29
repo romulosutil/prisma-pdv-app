@@ -1,9 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
-import { gerarId, type Sessao } from '@pdv/shared';
+import { gerarId, type Relogio, type Sessao } from '@pdv/shared';
 import type { Db } from './db/conexao';
-import { sessoes } from './db/schema';
+import { aparelhos, contas, lojas, operadores, sessoes } from './db/schema';
 import { ErroApi } from './erros';
 
 export type SessaoAutenticada = Omit<Sessao, 'token'>;
@@ -11,6 +11,7 @@ export type SessaoAutenticada = Omit<Sessao, 'token'>;
 declare module 'fastify' {
   interface FastifyRequest {
     sessao: SessaoAutenticada;
+    sessaoId: string;
   }
 }
 
@@ -19,25 +20,32 @@ export const sha256 = (texto: string): string => createHash('sha256').update(tex
 /** Abre uma sessão e devolve o token em claro, que só existe aqui e no aparelho. */
 export async function criarSessao(db: Db, dados: SessaoAutenticada, agora: Date): Promise<Sessao> {
   const token = randomBytes(32).toString('base64url');
-  await db.insert(sessoes).values({ id: gerarId(), tokenHash: sha256(token), ...dados, criadoEm: agora });
+  await db.insert(sessoes).values({ id: gerarId(), tokenHash: sha256(token), ...dados, criadoEm: agora, expiraEm: new Date(agora.getTime() + 30 * 24 * 60 * 60 * 1000) });
   return { token, ...dados };
 }
 
 /** Hook `onRequest` das rotas protegidas: `Authorization: Bearer <token>`. */
-export function exigirSessao(db: Db) {
+export function exigirSessao(db: Db, relogio: Relogio) {
   return async (request: FastifyRequest): Promise<void> => {
     const token = /^Bearer (\S+)$/.exec(request.headers.authorization ?? '')?.[1];
-    if (!token) throw new ErroApi(401, 'nao_autenticado', 'Informe o token no cabeçalho Authorization: Bearer.');
+    if (!token) throw new ErroApi(401, 'nao_autenticado', 'Sessão inválida. Entre novamente.');
     const [sessao] = await db
       .select({
+        id: sessoes.id,
         contaId: sessoes.contaId,
         lojaId: sessoes.lojaId,
         operadorId: sessoes.operadorId,
         aparelhoId: sessoes.aparelhoId,
       })
       .from(sessoes)
-      .where(eq(sessoes.tokenHash, sha256(token)));
+      .innerJoin(contas, eq(contas.id, sessoes.contaId))
+      .innerJoin(lojas, and(eq(lojas.id, sessoes.lojaId), eq(lojas.contaId, contas.id)))
+      .innerJoin(operadores, and(eq(operadores.id, sessoes.operadorId), eq(operadores.contaId, contas.id), eq(operadores.lojaId, lojas.id)))
+      .innerJoin(aparelhos, and(eq(aparelhos.id, sessoes.aparelhoId), eq(aparelhos.contaId, contas.id), eq(aparelhos.lojaId, lojas.id)))
+      .where(and(eq(sessoes.tokenHash, sha256(token)), isNull(sessoes.revogadaEm), isNull(aparelhos.revogadoEm), gt(sessoes.expiraEm, relogio.agora())));
     if (!sessao) throw new ErroApi(401, 'nao_autenticado', 'Sessão inválida. Entre novamente.');
-    request.sessao = sessao;
+    const { id, ...identidade } = sessao;
+    request.sessaoId = id;
+    request.sessao = identidade;
   };
 }

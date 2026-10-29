@@ -12,6 +12,7 @@ import {
   NUMEROS,
   statusDe,
   tokenDoCartao,
+  reautenticar,
   type Ambiente,
 } from './ajuda';
 
@@ -113,7 +114,8 @@ describe('POST /assinatura/trocar-plano', () => {
     expect(await faturasDe(amb)).toHaveLength(1);
 
     await avancarEProcessar(amb, 31);
-    const depois = await chamar(amb, 'GET', '/assinatura', { token: conta.token });
+    const sessaoAtual = await reautenticar(amb, conta);
+    const depois = await chamar(amb, 'GET', '/assinatura', { token: sessaoAtual.token });
     expect(depois.corpo.assinatura).toMatchObject({ status: 'ativa', planoId: 'essencial', planoAgendado: null });
     expect((await faturasDe(amb)).at(-1)).toMatchObject({ tipo: 'renovacao', valorCentavos: 1990 });
   });

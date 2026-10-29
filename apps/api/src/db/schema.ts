@@ -75,6 +75,7 @@ export const aparelhos = pgTable('aparelhos', {
   nome: text('nome').notNull(),
   criadoEm: criadoEm(),
   ultimoAcessoEm: instante('ultimo_acesso_em').notNull(),
+  revogadoEm: instante('revogado_em'),
 });
 
 export const sessoes = pgTable('sessoes', {
@@ -94,6 +95,8 @@ export const sessoes = pgTable('sessoes', {
     .notNull()
     .references(() => aparelhos.id),
   criadoEm: criadoEm(),
+  expiraEm: instante('expira_em').notNull(),
+  revogadaEm: instante('revogada_em'),
 });
 
 export const codigosLogin = pgTable(

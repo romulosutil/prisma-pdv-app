@@ -8,7 +8,7 @@ import type { Deps } from './deps';
 import { ErroApi } from './erros';
 import { rotasAssinatura, rotasPlanos } from './rotas/assinatura';
 import { rotasCatalogo } from './rotas/catalogo';
-import { rotasConta } from './rotas/conta';
+import { rotasConta, rotasContaProtegidas } from './rotas/conta';
 import { rotasDev } from './rotas/dev';
 import { rotasSync } from './rotas/sync';
 
@@ -80,7 +80,8 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
 
   await app.register(async (privado) => {
     privado.decorateRequest('sessao');
-    privado.addHook('onRequest', exigirSessao(deps.db));
+    privado.addHook('onRequest', exigirSessao(deps.db, deps.relogio));
+    rotasContaProtegidas(privado, deps);
     rotasAssinatura(privado, deps);
     rotasSync(privado, deps);
     rotasCatalogo(privado, deps);

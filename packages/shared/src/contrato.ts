@@ -130,6 +130,10 @@ export const SessaoSchema = z.object({
 });
 export type Sessao = z.infer<typeof SessaoSchema>;
 
+export const PerfilResSchema = z.object({ contaId: IdSchema, lojaId: IdSchema, operadorId: IdSchema, email: z.email(), nomeResponsavel: z.string(), nomeLoja: z.string(), papel: z.enum(['dono', 'operador']) });
+export const AparelhoResSchema = z.object({ id: IdSchema, nome: z.string(), criadoEm: DataIsoSchema, ultimoAcessoEm: DataIsoSchema, revogadoEm: DataIsoSchema.nullable(), atual: z.boolean() });
+export const AparelhosResSchema = z.array(AparelhoResSchema);
+
 export const CriarContaReqSchema = z.object({
   email: z.email(),
   nomeResponsavel: z.string().min(1),

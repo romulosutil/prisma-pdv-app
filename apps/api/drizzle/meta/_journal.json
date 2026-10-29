@@ -15,6 +15,13 @@
       "when": 1792891214480,
       "tag": "0001_motionless_dreaming_celestial",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793241212977,
+      "tag": "0002_equal_bishop",
+      "breakpoints": true
     }
   ]
 }

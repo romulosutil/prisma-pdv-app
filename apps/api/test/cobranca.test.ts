@@ -14,6 +14,7 @@ import {
   NUMEROS,
   statusDe,
   tokenDoCartao,
+  reautenticar,
   venda,
   type Ambiente,
 } from './ajuda';
@@ -266,7 +267,8 @@ describe('vendas feitas offline e sincronizadas depois', () => {
     amb.relogio.avancarDias(3);
     const depois = venda(conta, { criadaEm: agoraIso() });
 
-    const res = await enviar(amb, conta, [mutacao('venda', antes), mutacao('venda', depois)]);
+    const sessaoAtual = await reautenticar(amb, conta);
+    const res = await enviar(amb, { ...conta, token: sessaoAtual.token }, [mutacao('venda', antes), mutacao('venda', depois)]);
     expect(res.corpo.aceitas).toHaveLength(1);
     expect(res.corpo.rejeitadas).toMatchObject([{ motivo: 'assinatura_suspensa' }]);
   });

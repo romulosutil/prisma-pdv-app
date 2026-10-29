@@ -133,6 +133,42 @@ describe.each(['pglite', ...(process.env.PDV_TEST_POSTGRES_URL ? ['postgres'] : 
       expect(mensagens).toHaveLength(2); expect(mensagens[0]).toEqual(mensagens[1]);
     } finally { await c.fechar(); }
   });
+  it.each(['sucesso', 'temporario', 'permanente'])('resultado antigo %s não altera claim ainda ativa do sucessor', async (resultadoAntigo) => {
+    const c = await abrir();
+    let liberarPrimeiro!: () => void, liberarSegundo!: () => void;
+    const esperaPrimeiro = new Promise<void>(r => { liberarPrimeiro = r; });
+    const esperaSegundo = new Promise<void>(r => { liberarSegundo = r; });
+    try {
+      const item = await inserir(c, 120); const relogio = new RelogioFalso(inicio);
+      let iniciouPrimeiro!: () => void, iniciouSegundo!: () => void;
+      const primeiroIniciado = new Promise<void>(r => { iniciouPrimeiro = r; });
+      const segundoIniciado = new Promise<void>(r => { iniciouSegundo = r; });
+      let chamadas = 0; const mensagens: unknown[] = [];
+      const op = { chaves, dominioRemetente: 'example.com', relogio, canal: { async enviar(m: unknown) {
+        mensagens.push(m);
+        if (++chamadas === 1) {
+          iniciouPrimeiro(); await esperaPrimeiro;
+          if (resultadoAntigo !== 'sucesso') throw new ErroCanalEmail(resultadoAntigo as 'temporario' | 'permanente');
+        } else { iniciouSegundo(); await esperaSegundo; }
+      } } };
+      const primeiro = processarEntregasCodigo(c.db, op); await primeiroIniciado;
+      const [claimAntiga] = await c.db.select().from(entregasCodigo).where(eq(entregasCodigo.id, item.id));
+      relogio.definir(new Date(inicio.getTime() + 60001));
+      const segundo = processarEntregasCodigo(c.db, op); await segundoIniciado;
+      const [claimNova] = await c.db.select().from(entregasCodigo).where(eq(entregasCodigo.id, item.id));
+      expect(claimNova!.estado).toBe('enviando'); expect(claimNova!.tentativas).toBe(2);
+      expect(claimNova!.leaseToken).not.toBeNull(); expect(claimNova!.leaseToken).not.toBe(claimAntiga!.leaseToken);
+      expect(claimNova!.leaseExpiraEm!.getTime()).toBe(inicio.getTime() + 120001);
+      liberarPrimeiro();
+      expect((await primeiro).ignoradas).toBe(1);
+      const [aposAntigo] = await c.db.select().from(entregasCodigo).where(eq(entregasCodigo.id, item.id));
+      expect(aposAntigo).toEqual(claimNova);
+      liberarSegundo(); expect((await segundo).aceitas).toBe(1);
+      const [final] = await c.db.select().from(entregasCodigo).where(eq(entregasCodigo.id, item.id));
+      expect([final!.estado, final!.tentativas, final!.envelope, final!.chaveId, final!.leaseToken, final!.leaseExpiraEm]).toEqual(['aceita', 2, null, null, null, null]);
+      expect(mensagens).toHaveLength(2); expect(mensagens[0]).toEqual(mensagens[1]);
+    } finally { liberarPrimeiro(); liberarSegundo(); await c.fechar(); }
+  });
   it('recupera envio aceito sem ACK após lease', async () => {
     const c = await abrir();
     try {

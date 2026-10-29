@@ -45,6 +45,8 @@ Gate: build
 Done when: invariantes do design comprovados por asserções de registros/valores integrais; nenhum lock/transação durante SMTP; revisão nova passa sem tratar mocks como SMTP externo.
 Status: aceita localmente após revisao-fila.md PASS. Alvos:20PGlite/42comURL (20PGlite+22PG), repetidos pelo revisor; gestor repetiu20PGlite e suíte completa345API/PostgreSQL, além de312API/PGlite antes dos3reforços apenas de teste,433mobile/148shared/typecheck todos. Corrigida aceitação indevida em rejeições falsy. Telemetria prova workers bloqueados; trigger SQL testa ACK e retomada; domínio/rotação/ciphertext/constraints e fairness possuem asserções. Revisão distingue canal mock de SMTP, e snapshot financeiro só tem venda preenchida; T5 completará protocolo e finanças. Nenhum teste removido/enfraquecido/pulado.
 
+Reforço T2: três cenários adicionais mantêm o sucessor ainda enviando enquanto o antigo termina; prova por snapshot integral e ignoradas discrimina fencing. Executor23PGlite/gestor48comPG passaram. Revisor confirmou adequação por inspeção, sem alegar nova execução ou sensor; revisao-fila.md atualizada. Fonte não mudou.
+
 ### T3: Configuração de chaves e ciclo do worker
 Depends on: T1
 Where: apps/api/src/email/configuracaoEntrega.ts, apps/api/src/jobsEmail.ts e test/{emailConfiguracaoEntrega,jobsEmail}.test.ts.
@@ -63,8 +65,8 @@ Status: aceita no escopo T4 após revisao-emissao.md PASS e reforço de atomicid
 
 ### T5: Bootstrap, protocolo local e comunicação
 Depends on: T4
-Where: apps/api/src/index.ts e módulo de bootstrap testável se necessário, test/emailBootstrap.test.ts e emailEntregaIntegracao.test.ts, texto de login mobile e sua regressão existente; docs operacionais pelo gestor.
+Where: apps/api/src/index.ts, iniciarApi.ts e db/conexao.ts (cleanup de erro no migrator), test/emailBootstrap.test.ts, conexaoCleanup.test.ts e emailEntregaIntegracao.test.ts, texto de login mobile e sua regressão existente; docs operacionais pelo gestor.
 Tests: AC7/8/9, config antes de efeitos/JOBS off/shutdown, Fastify+PG+SMTP TCP com código recebido e ACK perdido, perfil/código/Message-ID reais locais, snapshots financeiros preenchidos e regressões todos workspaces.
 Gate: build
 Done when: fila/worker realmente conectados ao modoSMTP, protocolo local comprova login de uso único com código recebido, erros/retomada seguros e texto honesto; verificador final novo confronta9ACs e sensor PASS; homologação externa continua pendente.
-Status: pending.
+Status: em execução por entrega_runtime, ownership de iniciarApi/index, dois testes API e texto/regressão de login mobile. PostgreSQL exclusivo concedido; não executar outro runner nesse banco.

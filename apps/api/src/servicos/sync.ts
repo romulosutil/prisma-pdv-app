@@ -5,6 +5,7 @@ import {
   CARENCIA_INADIMPLENCIA_DIAS,
   dentroDoLimite,
   licencaDe,
+  podeUsar,
   OFFLINE_MAX_DIAS,
   type Assinatura,
   type Caixa,
@@ -212,6 +213,17 @@ async function upsertCaixa(c: Contexto, cx: Caixa): Promise<Resultado> {
   const origem = atual ?? c.sessao;
   if (cx.aparelhoId !== origem.aparelhoId || cx.operadorId !== origem.operadorId) return 'origem_invalida';
 
+  const ids = cx.movimentos.map((m) => m.id);
+  if (new Set(ids).size !== ids.length) return 'movimento_invalido';
+  const confirmados = ids.length ? await c.tx.select().from(movimentosCaixa).where(inArray(movimentosCaixa.id, ids)) : [];
+  const porId = new Map(confirmados.map((m) => [m.id, m]));
+  for (const m of cx.movimentos) {
+    const anterior = porId.get(m.id);
+    if (anterior && (anterior.caixaId !== cx.id || anterior.lojaId !== cx.lojaId || anterior.tipo !== m.tipo || anterior.valorCentavos !== m.valorCentavos || anterior.motivo !== m.motivo || anterior.criadoEm.getTime() !== new Date(m.criadoEm).getTime())) return 'movimento_invalido';
+  }
+  const novos = cx.movimentos.filter((m) => !porId.has(m.id));
+  if (novos.length && !podeUsar(c.licenca.planoId, 'sangria_suprimento')) return 'recurso_plano';
+
   const campos = {
     aparelhoId: cx.aparelhoId,
     operadorId: cx.operadorId,
@@ -228,11 +240,11 @@ async function upsertCaixa(c: Contexto, cx: Caixa): Promise<Resultado> {
     await c.tx.insert(caixas).values({ id: cx.id, lojaId: cx.lojaId, ...campos, criadoEm: c.agora, versao: 1 });
   }
   // Movimentos só se acrescentam: reenvios do mesmo caixa não duplicam nem alteram os antigos.
-  if (cx.movimentos.length > 0) {
-    await c.tx
+  if (novos.length > 0) {
+    const inseridos = await c.tx
       .insert(movimentosCaixa)
       .values(
-        cx.movimentos.map((m) => ({
+        novos.map((m) => ({
           id: m.id,
           caixaId: cx.id,
           lojaId: cx.lojaId,
@@ -242,7 +254,8 @@ async function upsertCaixa(c: Contexto, cx: Caixa): Promise<Resultado> {
           criadoEm: new Date(m.criadoEm),
         })),
       )
-      .onConflictDoNothing();
+      .onConflictDoNothing().returning({ id: movimentosCaixa.id });
+    if (inseridos.length !== novos.length) throw new ErroApi(409, 'conflito_movimento', 'Movimento de caixa alterado durante a sincronização. Tente novamente.');
   }
   await registrarMudanca(c, 'caixa', cx.id);
   return null;

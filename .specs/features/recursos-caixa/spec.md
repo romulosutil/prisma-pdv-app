@@ -37,9 +37,9 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| CASH-01 | 1,2 | P0-04-C capacidades do caixa | Planejado |
-| EVENT-01 | 3,4 | Pré-requisito de C para classificar evento novo | Planejado |
-| VERIFY-01 | 5 | Verificação local e revisão independente | Planejado |
+| CASH-01 | 1,2 | P0-04-C capacidades do caixa | Implementado e gates locais PASS; revisão independente pendente |
+| EVENT-01 | 3,4 | Pré-requisito de C para classificar evento novo | Implementado e gates locais PASS; revisão independente pendente |
+| VERIFY-01 | 5 | Verificação local e revisão independente | Implementado e gates locais PASS; revisão independente pendente |
 
 ## Execution Plan
 

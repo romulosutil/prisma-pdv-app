@@ -60,6 +60,9 @@ export async function lerFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira, p: 
 export async function escreverFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira, valor: unknown, p: ParticaoLocal): Promise<void> {
   const dados = validarFinanceiro(chave, valor, p);
   const entidades: (Produto | Caixa | Venda)[] = Array.isArray(dados) ? dados : dados.vendas;
+  const vinculos = chave === 'vendas' ? new Map((await tx.getAllAsync<{ id: string; caixa_id: string | null }>(
+    'SELECT id, caixa_id FROM vendas WHERE conta_id = ? AND loja_id = ?', p.contaId, p.lojaId,
+  )).map((v) => [v.id, v.caixa_id])) : new Map<string, string | null>();
   if (chave === 'vendas') {
     await tx.runAsync('DELETE FROM vendas WHERE conta_id = ? AND loja_id = ?', p.contaId, p.lojaId);
   }
@@ -67,7 +70,7 @@ export async function escreverFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira
     if (chave === 'vendas') {
       const venda = entidade as Venda;
       // Legados não têm caixaId. P0-04 introduz o vínculo no contrato sem adivinhar associações.
-      const caixaId = (entidade as Venda & { caixaId?: string | null }).caixaId ?? null;
+      const caixaId = vinculos.get(venda.id) ?? null;
       await tx.runAsync('INSERT INTO vendas VALUES (?, ?, ?, ?, ?)', p.contaId, p.lojaId, venda.id, caixaId, JSON.stringify(venda));
       for (const [tabela, filhos] of [['itens_venda', venda.itens], ['pagamentos_venda', venda.pagamentos]] as const) {
         for (const [posicao, filho] of filhos.entries()) {

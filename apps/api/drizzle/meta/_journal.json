@@ -36,6 +36,13 @@
       "when": 1793249086300,
       "tag": "0004_lame_shiver_man",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793273913392,
+      "tag": "0005_bent_catseye",
+      "breakpoints": true
     }
   ]
 }

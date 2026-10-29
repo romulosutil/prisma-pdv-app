@@ -2,7 +2,7 @@
 
 ## Contratos e propriedade
 
-T1 gestor define tiposEntrega.ts e políticas abaixo. T2 executor possui db/schema.ts, drizzle0005/meta, email/filaCodigo.ts e test/emailFilaCodigo.test.ts. T3 outro executor possui somente email/configuracaoEntrega.ts, jobsEmail.ts e dois testes próprios. Esses executores não editam rotas/configuração legada/contrato/package/docs. T4 integra somente depois dos dois aceitos; gestor centraliza commits/plano e revisa diretamente transações/autenticação.
+T1 gestor define tiposEntrega.ts e políticas abaixo. T2 executor possui db/schema.ts, drizzle0005/meta, email/filaCodigo.ts e test/emailFilaCodigo.test.ts. T3 outro executor possui somente email/configuracaoEntrega.ts, jobsEmail.ts e dois testes próprios. Esses executores não editam rotas/configuração legada/contrato/package/docs. T4 integra rotas somente depois dos dois aceitos; T5 conecta bootstrap e protocolo real depois de T4; gestor centraliza commits/plano e revisa diretamente transações/autenticação.
 
 tiposEntrega.ts fixa ChavesCodigo={ativaId,cifradores:ReadonlyMap<string,ReturnType<typeofcriarCifradorCodigo>>}, EmissaoCodigo={modo:'desenvolvimento'}|{modo:'email';chaves;dominioRemetente}, ConfiguracaoEntregaCodigo={modo:'desenvolvimento'}|{modo:'smtp';smtp:ConfiguracaoSmtp;chaves}. ResumoEntregaCodigo tem aceitas/retentativas/canceladas/falhas/bloqueadas/ignoradas, só contadores. Motivos: substituida/usado/esgotado/expirado/permanente/temporario/tentativas_esgotadas/chave_ausente/payload_invalido/canal_incompativel. Sem material sensível em resultados/logs.
 
@@ -37,7 +37,7 @@ lerConfiguracaoEntregaCodigo(env):ConfiguracaoEntregaCodigo. EMAIL_CODIGO_MODE a
 
 agendarEntregasCodigo(processar:()=>Promise<ResumoEntregaCodigo>,registrar:(mensagem:string)=>void):()=>Promise<void>, em jobsEmail.ts. Executar primeira passada imediatamente e depois a cada5000ms; uma por processo, não sobrepor, rejeição loga texto local sem err.message/cause. Log de sucesso somente resumo de contadores. Falha do logger não pode deixar promise rejeitada sem tratamento/trava permanente. parar idempotente desarma e aguarda passada atual. Scheduler não conhece banco/SMTP, facilita teste de ciclo com promises controladas. Bootstrap usa JOBS=off para não o chamar; não alterar agendarCobranca legado neste lote.
 
-## Integração T4
+## Integração T4 e T5
 
 Deps/ConfigApp recebe emissaoCodigo opcional com desenvolvimento padrão apenas fora de produção; criarApp recusa produção sem modoemail. Bootstrap valida configlegada e email antes de abrirDB, preserva gatebillingmock; depois encerrarEntregasExpiradas e validarPendenciasEntrega antesde criarApp/listen/jobs, inclusive no modo desenvolvimento. Canal SMTP criado de configvalidada. Shutdown desarma scheduler/aguarda antesde fecharbanco. Não enviar em testes/produção automaticamente por mode ausente.
 

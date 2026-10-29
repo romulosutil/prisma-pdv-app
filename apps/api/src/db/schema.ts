@@ -19,6 +19,8 @@ import {
   type ConfiancaCatalogo,
   type FonteCatalogo,
 } from '@pdv/shared';
+import type { EnvelopeCodigo } from '../email/cifrador';
+import type { MotivoEntregaCodigo } from '../email/tiposEntrega';
 
 // `satisfies` mantém as listas alinhadas com o contrato (o enum do drizzle exige uma tupla).
 const FONTES_CATALOGO = ['proprio', 'open_food_facts'] as const satisfies readonly FonteCatalogo[];
@@ -112,6 +114,22 @@ export const codigosLogin = pgTable(
   },
   (t) => [index('codigos_login_email_idx').on(t.email)],
 );
+
+export const entregasCodigo = pgTable('entregas_codigo', {
+  id: uuid('id').primaryKey(),
+  ordemFila: bigserial('ordem_fila', { mode: 'number' }).notNull(),
+  contaId: uuid('conta_id').notNull().references(() => contas.id),
+  codigoId: uuid('codigo_id').notNull().unique().references(() => codigosLogin.id),
+  dominioRemetente: text('dominio_remetente').notNull(),
+  estado: text('estado', { enum: ['pendente', 'enviando', 'aceita', 'cancelada', 'falhou'] }).notNull(),
+  chaveId: text('chave_id'), envelope: jsonb('envelope').$type<EnvelopeCodigo>(),
+  tentativas: integer('tentativas').notNull().default(0),
+  criadoEm: criadoEm(), atualizadoEm: atualizadoEm(), expiraEm: instante('expira_em').notNull(),
+  proximaTentativaEm: instante('proxima_tentativa_em').notNull(),
+  leaseToken: uuid('lease_token'), leaseExpiraEm: instante('lease_expira_em'),
+  encerradoEm: instante('encerrado_em'), motivo: text('motivo').$type<MotivoEntregaCodigo>(),
+}, (t) => [index('entregas_codigo_estado_proxima_idx').on(t.estado, t.proximaTentativaEm),
+  index('entregas_codigo_estado_ordem_idx').on(t.estado, t.ordemFila), index('entregas_codigo_conta_idx').on(t.contaId)]);
 
 export const recuperacoesAparelho = pgTable('recuperacoes_aparelho', {
   id: uuid('id').primaryKey(),

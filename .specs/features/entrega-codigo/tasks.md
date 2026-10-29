@@ -22,6 +22,7 @@ T1 -> T2
 T1 -> T3
 T2 -> T4
 T3 -> T4
+T4 -> T5
 ```
 
 Máximo2executores: T2/T3 em paralelo independente, sem commits/novosagentes. Gestor centraliza integrações/commits/docs e revisão de auth/persistência. T4 não começa antes dos contratos dos dois módulos aceitos.
@@ -42,7 +43,7 @@ Where: apps/api/src/db/schema.ts, drizzle0005/meta, email/filaCodigo.ts e test/e
 Tests: AC3–7 PostgreSQL real e PGlite, duasinstâncias/locks/clock, falhas nas fronteiras, TTL/uso/esgotamento/substituição, retry5delays/fencing/ACK/rotação e limpeza.
 Gate: build
 Done when: invariantes do design comprovados por asserções de registros/valores integrais; nenhum lock/transação durante SMTP; revisão nova passa sem tratar mocks como SMTP externo.
-Status: em execução por executor Terra Médio em arquivos exclusivos, sem commits/novosagentes.
+Status: aceita localmente após revisao-fila.md PASS. Alvos:20PGlite/42comURL (20PGlite+22PG), repetidos pelo revisor; gestor repetiu20PGlite e suíte completa345API/PostgreSQL, além de312API/PGlite antes dos3reforços apenas de teste,433mobile/148shared/typecheck todos. Corrigida aceitação indevida em rejeições falsy. Telemetria prova workers bloqueados; trigger SQL testa ACK e retomada; domínio/rotação/ciphertext/constraints e fairness possuem asserções. Revisão distingue canal mock de SMTP, e snapshot financeiro só tem venda preenchida; T5 completará protocolo e finanças. Nenhum teste removido/enfraquecido/pulado.
 
 ### T3: Configuração de chaves e ciclo do worker
 Depends on: T1
@@ -52,10 +53,18 @@ Gate: quick
 Done when: configuração valida antes de banco/rede e ring permite antiga/nova; scheduler tem ciclo recuperável local e logs somente contadores/texto próprio; revisão nova passa.
 Status: aceita no escopo T3;36/36alvos repetidos pelo gestor,typecheckAPI/diffsemwhitespace, revisao-runtime.mdPASSnovo. Configuração normalizaNODEENVausentecomo development, ringantiga/nova decifrados independentemente, produçãoSMTPválidaapenasparser. jobsEmail.test.ts12–22comprova fronteiras4999/5000/9999/10000 e stop0timers; drain/concorrência/logger e erros sanitizados também verificados. Pureza confirmadaporfoneseminstanciaçãoDB/rede, nãotesteinstrumentado; bootstrap/JOBSoff/guardasDBaindaT4. TodososcasosmapeiamAC7parser/AC8, nenhum anteriorremovido/enfraquecido.
 
-### T4: Emissão atômica e integração local
+### T4: Emissão e consumo atômicos nas rotas
 Depends on: T2, T3
-Where: deps.ts/servidor.ts/index.ts, rotas/{conta,recuperacao}.ts, servicos/codigoLogin.ts, testesAPI de emissão/integração e texto de login mobile; docs operacionais pelo gestor.
-Tests: AC1/2/7/8/9, DBfault/ratebudget/supersessão, OTPlogin/recuperação e quinta falha, Fastify/PG/SMTP TCP com ACK perdido, runtime antesde efeitos/shutdown e regressões todosworkspaces.
+Where: apps/api/src/deps.ts, servidor.ts, rotas/{conta,recuperacao}.ts, servicos/codigoLogin.ts, test/emailEmissaoCodigo.test.ts e fixtures de produção em conta.test.ts/dev.test.ts/limitesAuthRotas.test.ts.
+Tests: AC1/2 e guarda de produção de AC7; DBfault/ratebudget/supersessão, OTP login/recuperação e quinta falha, resposta204 uniforme/503 local sem segredo, regressões de autenticação em PGlite/PostgreSQL.
 Gate: build
-Done when: fila/worker realmente conectados em modoSMTP, código recebido localautentica, resposta uniforme/sem segredo, códigoantigo/financeiro preservado emfalha; revisão finalnova9ACs e sensorPASS; externo continua pendente.
+Done when: emissão grava OTP/fila atomicos e consumo cancela fila na mesma transação; limites/finanças preservados, sem logs de OTP; revisor novo aceita as rotas. Bootstrap e SMTP real ficam em T5, sem dar entrega externa por concluída.
+Status: pending.
+
+### T5: Bootstrap, protocolo local e comunicação
+Depends on: T4
+Where: apps/api/src/index.ts e módulo de bootstrap testável se necessário, test/emailBootstrap.test.ts e emailEntregaIntegracao.test.ts, texto de login mobile e sua regressão existente; docs operacionais pelo gestor.
+Tests: AC7/8/9, config antes de efeitos/JOBS off/shutdown, Fastify+PG+SMTP TCP com código recebido e ACK perdido, perfil/código/Message-ID reais locais, snapshots financeiros preenchidos e regressões todos workspaces.
+Gate: build
+Done when: fila/worker realmente conectados ao modoSMTP, protocolo local comprova login de uso único com código recebido, erros/retomada seguros e texto honesto; verificador final novo confronta9ACs e sensor PASS; homologação externa continua pendente.
 Status: pending.

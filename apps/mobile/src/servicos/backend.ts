@@ -2,6 +2,7 @@ import type { z } from 'zod';
 import type { PerfilResSchema, AparelhosResSchema } from '@pdv/shared';
 import type {
   AssinaturaRes,
+  IniciarRecuperacaoReq, ConfirmarRecuperacaoReq, RecuperacaoAparelho,
   CriarAssinaturaReq,
   CriarContaReq,
   LoginReq,
@@ -19,6 +20,9 @@ export type CodigoErroBackend =
   | 'limite_autenticacao'
   | 'nao_encontrado'
   | 'conflito'
+  | 'limite_aparelhos' | 'aparelho_em_uso' | 'aparelho_revogado'
+  | 'aparelho_ja_autorizado' | 'recuperacao_desnecessaria' | 'recuperacao_desatualizada'
+  | 'recuperacao_indisponivel'
   | 'resposta_invalida'
   | 'desconhecido';
 
@@ -42,6 +46,13 @@ const MENSAGENS: Record<CodigoErroBackend, string> = {
   limite_autenticacao: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
   nao_encontrado: 'Não encontramos o que você pediu.',
   conflito: 'Essa ação não é possível agora. Confira a situação da assinatura.',
+  limite_aparelhos: 'O limite de aparelhos foi atingido. Você pode substituir um aparelho com segurança.',
+  aparelho_em_uso: 'Este aparelho já está vinculado a outra conta.',
+  aparelho_revogado: 'Este aparelho foi revogado e não pode ser reativado.',
+  aparelho_ja_autorizado: 'Este aparelho já está autorizado. Entre normalmente.',
+  recuperacao_desnecessaria: 'Há uma vaga disponível. Entre normalmente.',
+  recuperacao_desatualizada: 'Esta recuperação está desatualizada. Peça um novo código.',
+  recuperacao_indisponivel: 'Recuperação de aparelho indisponível no modo demo.',
   resposta_invalida: 'O servidor respondeu algo inesperado. Tente de novo em instantes.',
   desconhecido: 'Algo deu errado. Tente de novo em instantes.',
 };
@@ -68,6 +79,8 @@ export interface Backend {
   criarConta(req: CriarContaReq): Promise<Sessao>;
   pedirCodigo(email: string): Promise<void>;
   entrar(req: LoginReq): Promise<Sessao>;
+  iniciarRecuperacao(req: IniciarRecuperacaoReq): Promise<RecuperacaoAparelho>;
+  confirmarRecuperacao(req: ConfirmarRecuperacaoReq): Promise<Sessao>;
   listarPlanos(): Promise<Plano[]>;
   /** `null` quando a conta ainda não tem assinatura. */
   obterAssinatura(): Promise<AssinaturaRes | null>;

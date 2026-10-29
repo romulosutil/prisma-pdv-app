@@ -5,11 +5,14 @@ import {
   CriarContaResSchema,
   LicencaSerializadaSchema,
   LoginResSchema,
+  RecuperacaoAparelhoSchema,
+  SessaoSchema,
   PlanoIdSchema,
   type AssinaturaRes,
   type CriarAssinaturaReq,
   type CriarContaReq,
   type LoginReq,
+  type IniciarRecuperacaoReq, type ConfirmarRecuperacaoReq, type RecuperacaoAparelho,
   type Plano,
   type PlanoId,
   type Sessao,
@@ -43,6 +46,7 @@ function codigoDoStatus(status: number): CodigoErroBackend {
 }
 
 const CODIGOS_CONHECIDOS: readonly string[] = ['cartao_recusado', 'token_invalido', 'valor_invalido'];
+const CODIGOS_CONFLITO: readonly string[] = ['limite_aparelhos', 'aparelho_em_uso', 'aparelho_revogado', 'aparelho_ja_autorizado', 'recuperacao_desnecessaria', 'recuperacao_desatualizada'];
 
 interface OpcoesChamada {
   corpo?: unknown;
@@ -90,6 +94,14 @@ export class BackendHttp implements Backend {
 
   entrar(req: LoginReq): Promise<Sessao> {
     return this.chamar('POST', '/auth/login', LoginResSchema, { corpo: req, publica: true });
+  }
+
+  iniciarRecuperacao(req: IniciarRecuperacaoReq): Promise<RecuperacaoAparelho> {
+    return this.chamar('POST', '/auth/recuperacao', RecuperacaoAparelhoSchema, { corpo: req, publica: true });
+  }
+
+  confirmarRecuperacao(req: ConfirmarRecuperacaoReq): Promise<Sessao> {
+    return this.chamar('POST', '/auth/recuperacao/confirmar', SessaoSchema, { corpo: req, publica: true });
   }
 
   listarPlanos(): Promise<Plano[]> {
@@ -181,6 +193,8 @@ function safeJson(texto: string): unknown {
 function erroDaResposta(status: number, corpo: unknown): ErroBackend {
   if (status === 429) return new ErroBackend('limite_autenticacao', '', status);
   const campos = typeof corpo === 'object' && corpo !== null ? (corpo as Record<string, unknown>) : {};
+  const conflito = status === 409 ? [campos.codigo, campos.erro].find((v): v is string => typeof v === 'string' && CODIGOS_CONFLITO.includes(v)) : undefined;
+  if (conflito) return new ErroBackend(conflito as CodigoErroBackend, '', status);
   const codigoServidor = [campos.codigo, campos.erro].find((v): v is string => typeof v === 'string' && CODIGOS_CONHECIDOS.includes(v));
   const codigo = status >= 500 || status === 401 || status === 403
     ? codigoDoStatus(status)

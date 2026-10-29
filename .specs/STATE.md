@@ -28,6 +28,8 @@
 
 ## Handoff
 
+- Continuação atual: feature recuperacao-aparelho. T1 contrato shared aceito b717dfc (148 testes shared). T2 executor recuperacao_servidor possui arquivosAPI/schema/drizzle0004/teste recuperação e PG exclusivo; T3 executor transporte terminou arquivosbackendmobile/testeHTTP, revisor novo em andamento. Gestor não aceitou API ainda: testes adversariais obrigatórios pendentes. T4Dados/T5UI somente apósdependências aceitas. Relatório/planocompletos serão atualizados no fechamento. Container PG LOCAL criado nesta continuação permanece ATIVO: codex-prisma-pdv-recovery-pg,id1d781cefcfb6ea9ac8f4ecff55229c4d34eed2127fa5547635eb1abc5c6f9de0,127.0.0.1:59584,pdv_test. Remover só esse container/volumes após liberar revisões; nunca rodar TRUNCATE simultâneo. README continua pré-modificado.
+
 - Goal persistente **ativo**, sem orçamento explícito: implementar docs/plano-implementacao-producao.md por dependências, continuar trabalho local executável; não marcar complete/blocked por homologações externas pendentes. Branch main, checkout existente. Base original e024d45.
 - README.md tem alteração prévia do usuário (duas linhas) e continua fora dos commits. Nenhum push/deploy/produção/contratação/cobrança real foi feito. Gestor centraliza integração, revisão direta de persistência/auth/sync/billing e commits.
 - Estado aceito: base SQLite/migração/checkout durável; identidade e sessões API; acesso mobile/cofre/isolamento/perfil/aparelhos; **P0-03-B limites compartilhados localmente concluído**. P0-01-C/D/E e P0-03-D/E/F mantêm critérios físicos/externos/contratos pendentes. Não declarar produção pronta.

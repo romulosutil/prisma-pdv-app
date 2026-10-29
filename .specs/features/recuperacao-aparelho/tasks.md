@@ -54,7 +54,7 @@ Where: apps/mobile/src/servicos/backend{,Http,Local}.ts e novo test/backendRecup
 Tests: AC9, schemas/routes/payload, status e erro estável,429 e401 público, demo rejeita sem escrita.
 Gate: quick
 Done when: assinatura dos métodos fixada, DTO real público sem token antigo e sem falsa recuperação demo, erro409limite é identificável pela UI; revisão independente aprova.
-Status: pending.
+Status: aceita no contrato local de transporte;18 testes novos,371 mobile no total e typecheck mobile passaram. Revisor novo repetiu18 casos e typecheck; gestor repetiu18 casos e leu fonte. revisao-transporte.md PASS; fetch/armazenamento fake não provam API real/Android. Adequação AC9 em backendRecuperacao.test.ts:21 DTO/rotas/corpo, :38 token/callback, :49 códigos409, :57 status adversarial, :64 JSON/429, :71/:76 schemas e :81 demo sem leitura/escrita. Todos18 casos mapeiam AC9; nenhuma asserção legada alterada ou pulada.
 
 ### T4: Controle de recuperação local e integração
 Depends on: T2, T3

@@ -24,6 +24,7 @@ import {
   type CriarAssinaturaReq,
   type CriarContaReq,
   type LoginReq,
+  type IniciarRecuperacaoReq, type ConfirmarRecuperacaoReq, type RecuperacaoAparelho,
   type Plano,
   type PlanoId,
   type Relogio,
@@ -106,6 +107,14 @@ export class BackendLocal implements Backend {
       throw new ErroBackend('nao_autorizado', 'Não encontramos uma conta com este e-mail neste aparelho.');
     }
     return { ...estado.sessao, aparelhoId: req.aparelhoId };
+  }
+
+  async iniciarRecuperacao(_req: IniciarRecuperacaoReq): Promise<RecuperacaoAparelho> {
+    throw new ErroBackend('recuperacao_indisponivel', 'Recuperação de aparelho indisponível no modo demo.');
+  }
+
+  async confirmarRecuperacao(_req: ConfirmarRecuperacaoReq): Promise<Sessao> {
+    throw new ErroBackend('recuperacao_indisponivel', 'Recuperação de aparelho indisponível no modo demo.');
   }
 
   async listarPlanos(): Promise<Plano[]> {

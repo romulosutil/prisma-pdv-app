@@ -95,4 +95,25 @@ describe('armazenamento seguro', () => {
     await adaptador.limpar(); expect(await base.obter('cofre_sessao_pendentes')).toEqual([id(10)]);
     cofre.falha = null; await adaptador.obter('conta'); expect(cofre.dados.size).toBe(0);
   });
+  it('retira token rejeitado mesmo quando falha a gravação dos metadados', async () => {
+    const { base, cofre, adaptador } = criar(); await adaptador.gravar('conta', conta);
+    base.falharChave = 'conta';
+    await expect(adaptador.gravar('conta', { sessao: null, perfil, identidade: { contaId: id(1), lojaId: id(2), aparelhoId: id(3), operadorId: id(4) }, reautenticacaoNecessaria: true })).rejects.toThrow();
+    await adaptador.retirarCredencial('segredo');
+    expect(cofre.dados.size).toBe(0);
+    expect(await adaptador.obter('conta')).toMatchObject({ sessao: null, identidade: { contaId: id(1) }, perfil, reautenticacaoNecessaria: true });
+    expect(JSON.stringify(base.escritas)).not.toContain('segredo');
+  });
+  it('não retira novo token quando a rejeição é de token antigo', async () => {
+    const { adaptador, cofre } = criar(); await adaptador.gravar('conta', conta);
+    await adaptador.gravar('conta', { ...conta, sessao: { ...sessao, token: 'novo' } });
+    await adaptador.retirarCredencial('segredo');
+    expect(await adaptador.obter('conta')).toMatchObject({ sessao: { token: 'novo' } });
+    expect([...cofre.dados.values()]).toEqual(['novo']);
+  });
+  it('sanitiza falha ao retirar credencial e mantém identidade', async () => {
+    const { adaptador, cofre } = criar(); await adaptador.gravar('conta', conta); cofre.falha = 'remover';
+    await expect(adaptador.retirarCredencial('segredo')).rejects.toThrow('armazenamento seguro');
+    expect(await adaptador.obter('conta')).toMatchObject({ identidade: { contaId: id(1) }, perfil, sessao });
+  });
 });

@@ -21,6 +21,8 @@
 T1 -> T3
 T2 -> T3
 T3 -> T4
+T3 -> T5
+T4 -> T5
 ```
 
 T1 e T2 independentes, executores Terra Médio em arquivos separados. Gestor integra T3 e T4, revisa persistência/autenticação diretamente e centraliza commits.
@@ -49,7 +51,7 @@ Where: ContaRepo/Dados, escopo, observável, assinatura e checkout SQLite; novos
 Tests: critérios3a7, inclusive respostas tardias e falhas de armazenamento com SQLite real.
 Gate: build
 Done when: localidentity sobrevive a 401/cofre ausente, novo perfil validado antes de trocar sessão, dados e licença particionados, pendências bloqueiam troca e reauth mesma conta recupera venda.
-Status: implementação pelo gestor.
+Status: contrato local aceito após revisão-dados, 15 testes controller, 6 de escopo e 3 com API local/PGlite+SQLite. Falta comprovação de troca de duas contas na API real, tratada em T5; não aprovar P0-03-E global.
 
 ### T4: UI de reauth e aparelhos
 Depends on: T3
@@ -57,4 +59,12 @@ Where: hooks/fluxo/raiz, login, chave Pix e ajustes/aparelhos.
 Tests: critérios3/4/8, regras de navegação e falha sem falso sucesso; Android pendente explicitamente.
 Gate: build
 Done when: login recuperável preserva checkout, aparelhos usam endpoints verdadeiros e só apresentam sucesso após resposta; revisão nova aceita recorte local e identifica homologação física pendente.
-Status: pendente.
+Status: recorte Node/código aceito após revisão-ui e 9 testes com hooks React reais e hosts simulados; UI/Android físicos permanecem pendentes no plano global.
+
+### T5: Vincular identidade da instalação ao aparelho lógico de cada conta
+Depends on: T3, T4
+Where: identidade da instalação, integração Dados e testes API local de duas contas.
+Tests: ACCESS-03 com duas contas autenticadas na API real, mesma instalação, sem pendências; origem e retorno preservados, um aparelho ativo por conta.
+Gate: build
+Done when: o ID da instalação é estável e seus aparelhos lógicos respeitam a vinculação por conta existente na API; logins repetidos não consomem novos aparelhos; pendências impedem troca antes de criar sessão/conta; revisão independente aprova sem fingir API real a partir do controller simulado.
+Status: próxima entrega, decisão técnica a registrar antes da implementação.

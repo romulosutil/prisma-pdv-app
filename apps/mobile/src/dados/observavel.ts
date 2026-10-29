@@ -39,23 +39,34 @@ export class Persistido<T> extends Observavel<T> {
   constructor(
     private readonly armazenamento: Armazenamento,
     private readonly chave: string,
-    inicial: T,
+    private readonly inicial: T,
   ) {
     super(inicial);
   }
 
   async carregar(): Promise<void> {
     return this.enfileirar(async () => {
+      const escopo = this.armazenamento.obterEscopo?.();
       const salvo = await this.armazenamento.obter<T>(this.chave);
-      if (salvo !== null) this.definir(salvo);
+      if (escopo !== this.armazenamento.obterEscopo?.()) throw new Error('A conta mudou durante a leitura. Tente novamente.');
+      this.definir(this.validarCarregado(salvo ?? this.inicial));
     });
   }
+
+  protected validarCarregado(valor: T): T { return valor; }
+
+  aguardarGravacoes(): Promise<void> { return this.fila; }
+  /** Troca de escopo: limpa somente o snapshot; o armazenamento da conta anterior permanece. */
+  limparMemoria(): void { this.definir(this.inicial); }
 
   /** Publica o novo estado somente após a gravação bem-sucedida. */
   protected async modificar(mudar: (atual: T) => T): Promise<T> {
     return this.enfileirar(async () => {
+      const escopo = this.armazenamento.obterEscopo?.();
       const novo = mudar(this.obter());
+      if (novo === this.obter()) return novo;
       await this.armazenamento.gravar(this.chave, novo);
+      if (escopo !== this.armazenamento.obterEscopo?.()) throw new Error('A conta mudou durante a gravação. Recarregue os dados.');
       this.definir(novo);
       return novo;
     });

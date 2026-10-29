@@ -12,6 +12,8 @@ function criarDados(armazenamento: ArmazenamentoMemoria, novoId = criarContadorD
   const dados = new Dados(armazenamento, novoId, 'https://example.test');
   const entrar = vi.spyOn(dados.backend, 'entrar').mockImplementation(async (entrada) => sessao(entrada.aparelhoId));
   const criarConta = vi.spyOn(dados.backend, 'criarConta').mockImplementation(async (entrada) => sessao(entrada.aparelhoId));
+  // Perfil passou a ser obrigatório no login; esta fixture continua testando identidade, sem rede real.
+  vi.spyOn(dados.backend, 'obterPerfil').mockResolvedValue({ contaId: id(10), lojaId: id(11), operadorId: id(12), email: 'ana@example.test', nomeResponsavel: 'Ana', nomeLoja: 'Loja real', papel: 'dono' });
   vi.spyOn(dados.assinatura, 'sincronizar').mockResolvedValue(undefined);
   vi.spyOn(dados.carrinho, 'carregar').mockResolvedValue(undefined);
   return { dados, entrar, criarConta };

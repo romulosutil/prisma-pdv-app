@@ -5,6 +5,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * navegador); a troca por SQLite acontece antes do beta, sem mudar as telas.
  */
 export interface Armazenamento {
+  /** Identidade da partição em memória, quando o adapter é vinculado a uma conta. */
+  obterEscopo?(): string | null;
+  /** Retira somente a credencial rejeitada, preservando identidade e dados, mesmo se metadata falhou. */
+  retirarCredencial?(tokenUsado: string): Promise<void>;
   /** Retorna null somente quando a chave está ausente; null como valor raiz é inválido. */
   obter<T>(chave: string): Promise<T | null>;
   gravar<T>(chave: string, valor: T): Promise<void>;

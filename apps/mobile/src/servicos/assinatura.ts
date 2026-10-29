@@ -3,6 +3,7 @@ import {
   desserializarAssinatura,
   desserializarLicenca,
   PLANOS,
+  AssinaturaResSchema,
   type Assinatura,
   type AssinaturaRes,
   type Centavos,
@@ -47,22 +48,29 @@ export class AssinaturaServico extends Observavel<EstadoAssinatura> {
     private readonly relogio: Relogio,
     private readonly backend: Backend,
     private readonly temSessao: () => boolean,
+    private readonly obterContaId?: () => string | null,
   ) {
     super({ assinatura: null, licenca: null, agora: relogio.agora(), offline: false });
   }
 
   async carregar(): Promise<void> {
+    const escopo = this.armazenamento.obterEscopo?.();
     const salvo = await this.armazenamento.obter<AssinaturaRes>(CHAVE);
-    if (salvo) this.aplicarEmMemoria(salvo);
+    if (escopo !== this.armazenamento.obterEscopo?.()) throw new ErroBackend('conflito', 'A conta mudou durante a carga da licença.');
+    if (salvo) { this.validarConta(salvo); this.aplicarEmMemoria(AssinaturaResSchema.parse(salvo)); }
+    else this.limparMemoria();
   }
 
   async sincronizar(): Promise<void> {
     if (!this.temSessao()) return;
+    const vinculo = this.vinculo();
     try {
       const res = await this.backend.obterAssinatura();
+      if (vinculo !== this.vinculo()) return;
       if (res) await this.aplicar(res);
       else this.definir({ ...this.obter(), agora: this.relogio.agora(), offline: false });
     } catch (erro) {
+      if (vinculo !== this.vinculo()) return;
       if (!(erro instanceof ErroBackend)) throw erro;
       const offline = erro.codigo === 'rede';
       if (offline !== this.obter().offline) registrar('assinatura', offline ? 'sem conexão: usando a licença em cache' : 'sincronização falhou', { codigo: erro.codigo });
@@ -72,23 +80,23 @@ export class AssinaturaServico extends Observavel<EstadoAssinatura> {
 
   /** Cria a assinatura com 7 dias grátis. `tokenCartao` vem de `tokenizarCartaoMock` (ou do SDK do gateway). */
   async iniciarTeste(planoId: PlanoId, tokenCartao: string): Promise<void> {
-    await this.aplicar(await this.backend.criarAssinatura({ planoId, tokenCartao }));
+    await this.alterar(() => this.backend.criarAssinatura({ planoId, tokenCartao }));
   }
 
   async trocarPlano(planoId: PlanoId): Promise<void> {
-    await this.aplicar(await this.backend.trocarPlano(planoId));
+    await this.alterar(() => this.backend.trocarPlano(planoId));
   }
 
   async cancelar(): Promise<void> {
-    await this.aplicar(await this.backend.cancelarAssinatura());
+    await this.alterar(() => this.backend.cancelarAssinatura());
   }
 
   async reativar(planoId: PlanoId): Promise<void> {
-    await this.aplicar(await this.backend.reativarAssinatura(planoId));
+    await this.alterar(() => this.backend.reativarAssinatura(planoId));
   }
 
   async atualizarCartao(tokenCartao: string): Promise<void> {
-    await this.aplicar(await this.backend.atualizarCartao(tokenCartao));
+    await this.alterar(() => this.backend.atualizarCartao(tokenCartao));
   }
 
   /** O que a troca para `planoId` vai fazer, para mostrar antes de confirmar. `null` se não houver troca possível. */
@@ -105,13 +113,34 @@ export class AssinaturaServico extends Observavel<EstadoAssinatura> {
   }
 
   async limpar(): Promise<void> {
-    this.definir({ assinatura: null, licenca: null, agora: this.relogio.agora(), offline: false });
+    const vinculo = this.vinculo();
     await this.armazenamento.remover(CHAVE);
+    this.exigirVinculo(vinculo);
+    this.limparMemoria();
+  }
+
+  limparMemoria(): void { this.definir({ assinatura: null, licenca: null, agora: this.relogio.agora(), offline: false }); }
+
+  private vinculo(): string { return JSON.stringify([this.armazenamento.obterEscopo?.(), this.obterContaId?.()]); }
+  private exigirVinculo(esperado: string): void { if (esperado !== this.vinculo()) throw new ErroBackend('conflito', 'A conta mudou durante a operação.'); }
+  private async alterar(operacao: () => Promise<AssinaturaRes>): Promise<void> {
+    const vinculo = this.vinculo();
+    const resultado = await operacao();
+    this.exigirVinculo(vinculo);
+    await this.aplicar(resultado);
+  }
+
+  private validarConta(res: AssinaturaRes): void {
+    if (this.obterContaId && res.assinatura.contaId !== this.obterContaId()) throw new ErroBackend('conflito', 'A licença recebida pertence a outra conta.');
   }
 
   private async aplicar(res: AssinaturaRes): Promise<void> {
-    this.aplicarEmMemoria(res);
+    const escopo = this.armazenamento.obterEscopo?.();
+    this.validarConta(res);
     await this.armazenamento.gravar(CHAVE, res);
+    if (escopo !== this.armazenamento.obterEscopo?.()) throw new ErroBackend('conflito', 'A conta mudou durante a atualização da licença.');
+    this.validarConta(res);
+    this.aplicarEmMemoria(res);
   }
 
   private aplicarEmMemoria(res: AssinaturaRes): void {

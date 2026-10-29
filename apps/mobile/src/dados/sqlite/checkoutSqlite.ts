@@ -1,4 +1,5 @@
-import { MeioPagamentoSchema, MutacaoSchema, ProvedorPagamentoSchema, SessaoSchema, VendaSchema, multiplicarPreco, somar, type Venda } from '@pdv/shared';
+import { MeioPagamentoSchema, MutacaoSchema, ProvedorPagamentoSchema, VendaSchema, multiplicarPreco, somar, type Venda } from '@pdv/shared';
+import { IdentidadeLocalSchema } from '../estadoConta';
 import { z } from 'zod';
 import type { PersistenciaCheckout, RegistroCheckout } from '../checkoutTipos';
 import type { EstadoVendas } from '../vendas';
@@ -95,13 +96,14 @@ export class CheckoutSqlite implements PersistenciaCheckout {
   }
 
   async concluir(): Promise<Venda> {
-    const conta = await this.armazenamento.obter<{ sessao?: unknown }>('conta');
-    const sessao = SessaoSchema.safeParse(conta?.sessao);
+    const conta = await this.armazenamento.obter<{ sessao?: unknown; identidade?: unknown }>('conta');
+    const sessao = IdentidadeLocalSchema.safeParse(conta?.identidade ?? conta?.sessao);
     if (!sessao.success) throw new Error('Sessão local inválida.');
     let resultado: Venda | null = null;
     await this.armazenamento.transacao(async (tx, p) => {
       // A autoria é capturada na conclusão; P0-03 deverá fixá-la ao iniciar o checkout.
-      const atual = SessaoSchema.safeParse((await this.armazenamento.obter<{ sessao?: unknown }>('conta'))?.sessao);
+      const contaAtual = await this.armazenamento.obter<{ sessao?: unknown; identidade?: unknown }>('conta');
+      const atual = IdentidadeLocalSchema.safeParse(contaAtual?.identidade ?? contaAtual?.sessao);
       if (!atual.success || sessao.data.contaId !== p.contaId || sessao.data.lojaId !== p.lojaId ||
         atual.data.contaId !== sessao.data.contaId || atual.data.lojaId !== sessao.data.lojaId ||
         atual.data.aparelhoId !== sessao.data.aparelhoId || atual.data.operadorId !== sessao.data.operadorId) throw new Error('Sessão alterada durante o checkout.');

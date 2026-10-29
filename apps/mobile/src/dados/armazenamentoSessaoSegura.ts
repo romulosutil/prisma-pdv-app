@@ -131,6 +131,16 @@ export class ArmazenamentoSessaoSegura implements Armazenamento {
       await this.salvar(estado, anterior);
     });
   }
+  async retirarCredencial(tokenUsado: string): Promise<void> {
+    return this.executar(async () => {
+      const meta = await this.lerMeta();
+      if (!meta?.referenciaCredencial) return;
+      const chave = chaveCofre(meta.referenciaCredencial);
+      try {
+        if (await this.cofre.obter(chave) === tokenUsado) await this.cofre.remover(chave);
+      } catch { throw erro(); }
+    });
+  }
   async remover(chave: string): Promise<void> {
     if (chave !== 'conta') return this.base.remover(chave);
     return this.executar(async () => {

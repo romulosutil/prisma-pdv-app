@@ -10,6 +10,12 @@ const armazenamento = criarArmazenamento();
 export const dados = new Dados(armazenamento, novoId, urlApi);
 
 // O catálogo de códigos de barras usa a mesma API e a mesma sessão; sem API, fica a base simulada.
-configurarCatalogoEan(
-  urlApi ? { urlApi: urlApi.replace(/\/+$/, ''), obterToken: () => dados.conta.obter().sessao?.token ?? null, armazenamento } : null,
-);
+let escopoCatalogo: string | null | undefined;
+function configurarCatalogoDaConta(): void {
+  const escopo = dados.armazenamentoDaLoja.obterEscopo();
+  if (escopo === escopoCatalogo) return;
+  escopoCatalogo = escopo;
+  configurarCatalogoEan(urlApi ? { urlApi: urlApi.replace(/\/+$/, ''), obterToken: () => dados.conta.obter().sessao?.token ?? null, aoSessaoInvalida: (token) => dados.conta.invalidarSessao(token), armazenamento: dados.armazenamentoDaLoja } : null);
+}
+configurarCatalogoDaConta();
+dados.conta.assinar(configurarCatalogoDaConta);

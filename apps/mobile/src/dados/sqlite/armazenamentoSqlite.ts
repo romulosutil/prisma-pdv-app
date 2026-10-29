@@ -1,4 +1,4 @@
-import { SessaoSchema } from '@pdv/shared';
+import { IdentidadeLocalSchema } from '../estadoConta';
 import type { Armazenamento } from '../armazenamento';
 import type { BancoSqlite, SqlExecutor } from './driver';
 import { ehFinanceira, escreverFinanceiro, lerFinanceiro, validarFinanceiro, type ChaveFinanceira, type ParticaoLocal } from './financeiro';
@@ -15,6 +15,10 @@ export class ArmazenamentoSqlite implements Armazenamento {
 
   constructor(private readonly abrir: () => Promise<BancoSqlite>, private readonly legado: Armazenamento) {}
 
+  retirarCredencial(tokenUsado: string): Promise<void> {
+    return this.legado.retirarCredencial?.(tokenUsado) ?? Promise.resolve();
+  }
+
   private enfileirar<T>(tarefa: () => Promise<T>): Promise<T> {
     const resultado = this.fila.then(tarefa);
     this.fila = resultado.then(() => undefined, () => undefined);
@@ -30,9 +34,10 @@ export class ArmazenamentoSqlite implements Armazenamento {
   }
 
   private async particao(): Promise<ParticaoLocal | null> {
-    const conta = await this.legado.obter<{ sessao?: unknown }>('conta');
-    if (!conta?.sessao) return null;
-    const sessao = SessaoSchema.safeParse(conta.sessao);
+    const conta = await this.legado.obter<{ sessao?: unknown; identidade?: unknown }>('conta');
+    const identidade = conta?.identidade ?? conta?.sessao;
+    if (!identidade) return null;
+    const sessao = IdentidadeLocalSchema.safeParse(identidade);
     if (!sessao.success) throw new Error('Identidade local inválida. Recupere o acesso sem apagar os dados.');
     return { contaId: sessao.data.contaId, lojaId: sessao.data.lojaId };
   }
@@ -85,6 +90,7 @@ export class ArmazenamentoSqlite implements Armazenamento {
   }
 
   async gravar<T>(chave: string, valor: T): Promise<void> {
+    if (chave === 'conta') return this.enfileirar(() => this.legado.gravar(chave, valor));
     if (!ehFinanceira(chave)) return this.legado.gravar(chave, valor);
     await this.transacao(async (tx, p) => escreverFinanceiro(tx, chave, valor, p));
   }

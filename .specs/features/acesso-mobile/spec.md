@@ -40,6 +40,6 @@ Acceptance Criteria:
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
 | ACCESS-01 | 1, 2 | P0-03-D (adapter de credencial; integração em andamento) | verified |
-| ACCESS-02 | 3, 4, 5 | P0-03-D/F (sessão e perfil) | pending |
-| ACCESS-03 | 6, 7 | P0-03-E | pending |
-| ACCESS-04 | 8 | P0-03-F (aparelhos) | pending |
+| ACCESS-02 | 3, 4, 5 | P0-03-D/F (sessão e perfil, contrato local) | verified |
+| ACCESS-03 | 6, 7 | P0-03-E, ainda falta troca de duas contas com API real | implementing |
+| ACCESS-04 | 8 | P0-03-F (contrato local; Android pendente globalmente) | verified |

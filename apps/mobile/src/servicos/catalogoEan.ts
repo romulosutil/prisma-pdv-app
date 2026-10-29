@@ -44,6 +44,7 @@ export interface ConfigCatalogoApi {
   urlApi: string;
   /** Token da sessão; sem sessão não há consulta (a rota é privada). */
   obterToken: () => string | null;
+  aoSessaoInvalida?: (tokenUsado: string) => Promise<void> | void;
   /** Onde fica o cache local dos códigos já achados. */
   armazenamento: Armazenamento;
   /** `fetch` a usar (testes injetam um falso). */
@@ -77,10 +78,13 @@ export class CatalogoEan {
   /** Do mais antigo para o mais novo (ordem de inserção). */
   private readonly cache = new Map<string, ProdutoCatalogo>();
   private carregamento: Promise<void> | null = null;
+  private readonly escopo: string | null | undefined;
 
   constructor(private readonly config: ConfigCatalogoApi | null) {
+    this.escopo = config?.armazenamento.obterEscopo?.();
     if (config) void this.carregarCache();
   }
+  private mesmoEscopo(): boolean { return this.escopo === this.config?.armazenamento.obterEscopo?.(); }
 
   get comApi(): boolean {
     return this.config !== null;
@@ -88,6 +92,7 @@ export class CatalogoEan {
 
   /** Consulta instantânea e sem rede: cache local (com API) ou base simulada (demo). */
   buscarLocal(ean: string): ResultadoCatalogo {
+    if (!this.mesmoEscopo()) return { achou: false };
     if (this.config) {
       const codigo = normalizarEan(ean);
       const guardado = codigo ? this.cache.get(codigo) : undefined;
@@ -121,6 +126,7 @@ export class CatalogoEan {
   }
 
   private async consultarNaApi(config: ConfigCatalogoApi, ean: string, sinal?: AbortSignal): Promise<ResultadoCatalogo> {
+    if (!this.mesmoEscopo()) return { achou: false };
     const inicio = Date.now();
     const codigo = normalizarEan(ean);
     if (!codigo) {
@@ -129,6 +135,7 @@ export class CatalogoEan {
     }
 
     await this.carregarCache();
+    if (!this.mesmoEscopo()) return { achou: false };
     const guardado = this.cache.get(codigo);
     if (guardado) {
       registrar('leitura', 'consulta de catálogo', { fonte: 'cache', achou: true, ms: Date.now() - inicio, ean: codigo });
@@ -136,6 +143,7 @@ export class CatalogoEan {
     }
 
     const produto = await this.pedirNaApi(config, codigo, sinal);
+    if (!this.mesmoEscopo()) return { achou: false };
     registrar('leitura', 'consulta de catálogo', { fonte: 'api', achou: produto !== null, ms: Date.now() - inicio, ean: codigo });
     if (!produto) return { achou: false };
     this.guardar(config, produto);
@@ -159,6 +167,7 @@ export class CatalogoEan {
           headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
           signal: controle.signal,
         });
+        if (resposta.status === 401) await config.aoSessaoInvalida?.(token);
         if (!resposta.ok) return null;
         const lido = ProdutoCatalogoSchema.safeParse(await resposta.json());
         return lido.success ? { ...lido.data, ean: codigo } : null;
@@ -177,7 +186,7 @@ export class CatalogoEan {
   /** Avisa a API do nome que o lojista salvou. Nunca lança e nunca atrasa a tela. */
   async confirmar(ean: string, nome: string): Promise<void> {
     const config = this.config;
-    if (!config) return;
+    if (!config || !this.mesmoEscopo()) return;
     try {
       const codigo = normalizarEan(ean);
       const nomeLimpo = nome.trim();
@@ -187,7 +196,7 @@ export class CatalogoEan {
       const prazo = setTimeout(() => controle.abort(), PRAZO_CONFIRMACAO_MS);
       try {
         const buscar = config.buscar ?? fetch;
-        await Promise.race([
+        const resposta = await Promise.race([
           buscar(`${config.urlApi}/catalogo/ean/${codigo}/confirmacao`, {
             method: 'POST',
             headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -196,6 +205,7 @@ export class CatalogoEan {
           }),
           quandoAbortar(controle.signal),
         ]);
+        if (resposta.status === 401) await config.aoSessaoInvalida?.(token);
       } finally {
         clearTimeout(prazo);
       }
@@ -208,6 +218,7 @@ export class CatalogoEan {
     this.carregamento ??= (async () => {
       try {
         const salvos = await this.config?.armazenamento.obter<unknown[]>(CHAVE_CACHE);
+        if (!this.mesmoEscopo()) return;
         if (!Array.isArray(salvos)) return;
         // O que chegou durante a leitura é mais novo que o que estava salvo.
         const recentes = [...this.cache.values()];
@@ -229,6 +240,7 @@ export class CatalogoEan {
   }
 
   private guardar(config: ConfigCatalogoApi, produto: ProdutoCatalogo): void {
+    if (!this.mesmoEscopo()) return;
     this.cache.delete(produto.ean);
     this.cache.set(produto.ean, produto);
     this.aparar();

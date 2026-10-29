@@ -11,13 +11,18 @@ export class CarrinhoDuravel extends Observavel<EstadoCarrinho> {
   private registro: RegistroCheckout | null = null;
   private fila: Promise<void> = Promise.resolve();
   private persistencia: PersistenciaCheckout | null = null;
-  private contexto: { novoId: () => string; agora: () => string; caixaId: () => string | null; aposConcluir?: () => Promise<void> } | null = null;
+  private contexto: { novoId: () => string; agora: () => string; caixaId: () => string | null; aposConcluir?: () => Promise<void>; podeAlterar?: () => boolean; podeIniciar?: () => boolean } | null = null;
 
   constructor() { super(vazio()); }
 
   configurar(persistencia: PersistenciaCheckout, contexto: NonNullable<CarrinhoDuravel['contexto']>): void {
     this.persistencia = persistencia;
     this.contexto = contexto;
+  }
+  aguardarGravacoes(): Promise<void> { return this.fila; }
+  limparMemoria(): void { this.registro = null; this.definir(vazio()); }
+  private exigirDisponivel(): void {
+    if (this.contexto?.podeAlterar?.() === false) throw new Error('Aguarde a troca de conta antes de alterar o checkout.');
   }
 
   private enfileirar<T>(tarefa: () => Promise<T>): Promise<T> {
@@ -38,6 +43,8 @@ export class CarrinhoDuravel extends Observavel<EstadoCarrinho> {
   private mudar(operacao: (redutor: Carrinho) => void): Promise<void> {
     return this.enfileirar(async () => {
       if (!this.persistencia || !this.contexto) throw new Error('Persistência do checkout não configurada.');
+      this.exigirDisponivel();
+      if (this.obter().itens.length === 0 && this.contexto.podeIniciar?.() === false) throw new Error('Entre novamente antes de iniciar uma nova venda.');
       if (this.obter().concluidaId) throw new Error('Esta venda já foi concluída. Inicie uma nova venda.');
       const redutor = new Carrinho();
       redutor.restaurar(this.obter());
@@ -68,6 +75,7 @@ export class CarrinhoDuravel extends Observavel<EstadoCarrinho> {
 
   readonly limpar = (): Promise<void> => this.enfileirar(async () => {
     if (!this.persistencia) throw new Error('Persistência do checkout não configurada.');
+    this.exigirDisponivel();
     if (this.obter().parcelas.length > 0 && !this.obter().concluidaId) throw new Error('Há valores recebidos. Conclua a venda antes de limpar.');
     await this.persistencia.salvar(null);
     this.registro = null;
@@ -76,6 +84,7 @@ export class CarrinhoDuravel extends Observavel<EstadoCarrinho> {
 
   readonly concluir = (): Promise<Venda> => this.enfileirar(async () => {
     if (!this.persistencia) throw new Error('Persistência do checkout não configurada.');
+    this.exigirDisponivel();
     const venda = await this.persistencia.concluir();
     await this.contexto?.aposConcluir?.();
     // Não há segunda gravação: o serviço já confirmou venda/outbox/rascunho no mesmo commit.

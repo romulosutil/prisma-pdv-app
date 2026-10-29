@@ -1,6 +1,6 @@
 # Checkpoint da execução do plano de produção
 
-Referência: 28/10/2026. Goal persistente **ativo**. Este checkpoint não encerra o trabalho executável e não aprova produção.
+Referência: 29/10/2026, após o lote de acesso mobile. Goal persistente **ativo**. Este checkpoint não encerra o trabalho executável e não aprova produção.
 
 ## Entregas locais aceitas
 
@@ -15,6 +15,12 @@ Referência: 28/10/2026. Goal persistente **ativo**. Este checkpoint não encerr
 | e82d1b8 | Fachada durável, recuperação na carga, telas aguardando persistência e retry sem nova parcela | Parte P0-01-C/D |
 | 9a122f2 | Identidade da instalação persistida antes do request, reutilizada em cadastro/login; migração de identidade legada | P0-03-C |
 | a0be2d2 | Expiração de sessão em 30 dias, logout, perfil real, gestão/revogação de aparelhos, autorização e locks | Parte servidor P0-03-D/F |
+| d3ad1f7 | Checkpoint anterior com testes e pendências | Documentação |
+| c1f879c | Cofre nativo, migração/rotação e journal sem tokens na base comum | Parte P0-03-D |
+| 5484025 | Endpoints de perfil/aparelhos/logout, callback401 e deadline HTTP completo | Parte P0-03-D/F |
+| 41185d8 | Identidade sem credencial, reauth recuperável, isolamento e descarte de respostas antigas | Parte P0-03-D/E |
+| cd9b513 | Telas de recuperação e aparelhos, Pix por conta e regressões React | Parte P0-03-F |
+| cdb09b3 | Aparelho lógico por conta, instalação estável e bloqueio da troca durante handshake | Parte P0-03-C/E |
 
 O escopo de uma loja, operador e aparelho com dinheiro/cartão manual/Pix estático está registrado em AD-001 e P0-06-A. As capacidades e a oferta ainda precisam refletir essa decisão em P0-06-B/P1-10-A.
 
@@ -22,14 +28,14 @@ O escopo de uma loja, operador e aparelho com dinheiro/cartão manual/Pix estát
 
 | Comando | Resultado final | Ambiente e limite |
 |---|---|---|
-| `rtk proxy npm run test --workspace=@pdv/mobile -- --maxWorkers=1` | 265 testes, 24 arquivos, passou | Node24; testes SQLite usam node:sqlite real com reabertura; UI usa adapters simulados explicitamente |
+| `rtk proxy npm run test --workspace=@pdv/mobile -- --maxWorkers=1` | 351 testes, 35 arquivos, passou | Node24; SQLite real; 5 cenários com API Fastify/PGlite em processo; cofre e hosts nativos simulados |
 | `rtk proxy npm run test --workspace=@pdv/shared` | 136 testes, 9 arquivos, passou | Node |
-| `rtk proxy npm run test --workspace=@pdv/api -- --maxWorkers=1` com `PDV_TEST_POSTGRES_URL` local | 125 testes, 9 arquivos, passou | PostgreSQL17 local; o teste de backfill legado usa PGlite; há testes unitários sem banco |
+| `rtk proxy npm run test --workspace=@pdv/api -- --maxWorkers=1` | 125 testes, 9 arquivos, passou | PGlite nesta continuação; o checkpoint anterior também passou com PostgreSQL17 local. Há testes unitários sem banco |
 | `rtk proxy npm run typecheck` | Passou nos três workspaces | TypeScript |
 | `rtk git diff --check` | Passou | Árvore da entrega |
 | Validadores da skill para spec/tasks/state aplicáveis | Passaram | Evidências em `.specs/` |
 
-Total das suítes finais: **526 testes aprovados**. Não equivale a 526 integrações reais e não comprova Android, e-mail, Google Play ou produção.
+Total das suítes finais: **612 testes aprovados**. Não equivale a 612 integrações reais e não comprova Android, e-mail, Google Play ou produção. O verificador final repetiu os três workspaces e typecheck, sem falhas ou skips.
 
 O primeiro comando padrão da suíte API esgotou memória com workers paralelos. O mesmo conjunto passou com `--maxWorkers=1`. Dois cenários comerciais que avançam mais de 30 dias passaram a renovar explicitamente a sessão pelas rotas de autenticação; as expectativas financeiras foram preservadas.
 
@@ -46,6 +52,10 @@ Cada entrega relevante teve revisor que não escreveu a implementação. Os rela
 
 Sensores em cópias temporárias confirmaram detecção de publicação antecipada e versão futura, ausência de escrita de outbox e remoção da trava de login. O revisor repetiu 12 testes de sessões no PostgreSQL local. Sem a trava de login, três falharam, incluindo duas aprovações concorrentes para limite de um aparelho. A árvore real permaneceu intacta.
 
+No acesso mobile, as revisões também corrigiram invalidação de token novo por logout antigo, licença/catálogo de origem antiga, janela de escrita após preflight, lista e revogação atrasadas na tela de aparelhos e erro de gravação que deixava o formulário Pix ocupado. O teste React usa `react-test-renderer`19.3.0, dependência apenas de desenvolvimento e depreciada; hooks são reais, hosts nativos são simulados. Não é homologação de Android.
+
+O verificador novo confrontou os oito critérios locais com asserções em arquivo/linha em `.specs/features/acesso-mobile/validation.md`. Em `git archive HEAD` isolado, retirou a guarda de token antigo e observou três falhas, incluindo 401/logout atrasados. Scratch descartado e Git real inalterado. O veredito é PASS do contrato local, sem aprovar P0-03 global.
+
 ## Pendências externas e limites
 
 - Android e artefato final: não houve execução em aparelho. `adb` não foi encontrado no PATH. Reinício forçado, atualização, scanner, câmera e pagamentos manuais precisam de roteiro no artefato exato.
@@ -53,13 +63,14 @@ Sensores em cópias temporárias confirmaram detecção de publicação antecipa
 - Google Play: produtos, credenciais, compra/restauração/notificações e contas de teste ainda não foram integrados/homologados. Mock não conta como assinatura real.
 - Infraestrutura: inventário Easypanel, domínio/HTTPS, backups/restauração, alertas, réplicas e retorno de versão ainda não foram exercitados externamente.
 - Produção recusa billing mock. É um bloqueio intencional; não deve ser contornado para implantar.
+- SecureStore físico, fluxo visual/interativo e acessibilidade em Android ainda não foram executados. Se metadata e cofre falharem juntos ao retirar credencial, não há promessa de exclusão durável; acesso em memória é negado e finanças preservadas. Reset dev possui janela documentada para credencial órfã.
 - O audit após instalar expo-sqlite informou 9 vulnerabilidades (5 low, 4 high). A classificação/remediação ainda é trabalho local pendente; nenhum `audit fix --force` foi aplicado.
 - Nenhum push, publicação, contratação, cobrança real ou mudança de produção foi executado.
 
 ## Próximos lotes executáveis
 
-1. Completar P0-03 no mobile: armazenamento nativo de token, identidade local separada da credencial, 401/reauth sem perder rascunhos, perfil real e gestão de aparelhos. Isolar dados/licença/carrinho por conta e impedir troca com pendências. Projetar a recuperação quando SecureStore estiver ausente sem apagar dados financeiros.
-2. Implementar entrega de e-mail e limites compartilhados de emissão/tentativas, deixando a homologação de entrega bloqueada enquanto faltarem configuração e acesso externos.
+1. Completar recuperação do dono quando o aparelho original está perdido e o limite está ocupado: o login do substituto ainda encontra `limite_aparelhos` e não dispõe de sessão privada para revogar o perdido. Preparar confirmação autenticada por código, substituição explícita e idempotente, sem apagar operações da origem nem reativar aparelho silenciosamente. Esse fluxo não foi dado como concluído pela gestão de aparelhos já entregue.
+2. Implementar entrega de e-mail e limites compartilhados de emissão/tentativas, deixando a homologação de entrega bloqueada enquanto faltarem configuração e acesso externos. Preparar cenários de duas instâncias e substituição com recuperação autenticada.
 3. P0-04: consistência financeira e autorização no servidor, vínculo caixaId no contrato/bancos/checkout e ajustes posteriores ao fechamento. O vínculo de caixa atual é local; não concluir P0-01-E integral antes desse contrato.
 4. P0-02: outbox para todas as mutações, envio/ack/retry, pull paginado/cursor transacional, conflitos e recuperação autenticada.
 5. Capacidades de produção e oferta coerente, assinatura real, build/CI, operação e mínimos P1 obrigatórios. Continuar as partes independentes enquanto homologações externas estiverem bloqueadas.

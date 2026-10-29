@@ -40,7 +40,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 ### P0-01 — Persistência transacional e recuperação da venda
 
-**Situação:** os repositórios gravam JSON no AsyncStorage; `Persistido.modificar` muda a memória antes de confirmar a gravação. Carrinho e parcelas recebidas ficam em memória.
+**Diagnóstico inicial:** os repositórios gravam JSON no AsyncStorage; `Persistido.modificar` muda a memória antes de confirmar a gravação. Carrinho e parcelas recebidas ficam em memória.
 
 **Arquivos de referência:** `apps/mobile/src/dados/{armazenamento,observavel,vendas,carrinho,dados}.ts`, `apps/mobile/src/telas/pagar/useCobranca.ts` e `apps/mobile/test/{repositorios,carrinho,fluxo}.test.ts`.
 
@@ -63,7 +63,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 ### P0-02 — Sincronização completa e recuperação em outro aparelho
 
-**Situação:** a API tem push/pull e idempotência; o cliente ainda não envia produtos, vendas e caixas. A regra atual rejeita vendas com mais de sete dias.
+**Diagnóstico inicial:** a API tem push/pull e idempotência; o cliente ainda não envia produtos, vendas e caixas. A regra atual rejeita vendas com mais de sete dias.
 
 **Arquivos de referência:** `apps/api/src/{rotas,servicos}/sync.ts`, `packages/shared/src/contrato.ts`, `apps/mobile/src/servicos/backend{,Http}.ts`, `apps/mobile/src/dados/dados.ts`, `apps/mobile/src/telas/caixa/StatusSincronizacao.tsx` e `apps/api/test/sync.test.ts`. Novos módulos: serviço de sincronização e repositório da outbox no mobile.
 
@@ -88,7 +88,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 ### P0-03 — Login real, identidade do aparelho e sessões
 
-**Situação:** o envio de código por e-mail não existe; o login gera um novo `aparelhoId`; a sessão não tem expiração/revogação no fluxo atual e o token fica no armazenamento comum.
+**Diagnóstico inicial:** o envio de código por e-mail não existe; o login gera um novo `aparelhoId`; a sessão não tem expiração/revogação no fluxo atual e o token fica no armazenamento comum.
 
 **Arquivos de referência:** `apps/api/src/{auth.ts,rotas/conta.ts,db/schema.ts}`, `apps/mobile/src/dados/{conta,dados,instancia}.ts`, `apps/mobile/src/servicos/backend{,Http}.ts` e `apps/api/test/conta.test.ts`.
 
@@ -115,7 +115,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 ### P0-04 — Integridade financeira, caixa e autorização no servidor
 
-**Situação:** os schemas validam campos, mas o push recebe totais do cliente sem recalcular toda a consistência financeira. As vendas não têm vínculo explícito com caixa e o cálculo local usa a data de abertura.
+**Diagnóstico inicial:** os schemas validam campos, mas o push recebe totais do cliente sem recalcular toda a consistência financeira. As vendas não têm vínculo explícito com caixa e o cálculo local usa a data de abertura.
 
 **Arquivos de referência:** `packages/shared/src/{contrato,dinheiro}.ts`, `apps/api/src/{servicos/sync.ts,auth.ts,db/schema.ts}`, `apps/mobile/src/dados/{vendas,caixa}.ts`, `apps/api/test/sync.test.ts` e `apps/mobile/test/caixaLogica.test.ts`.
 
@@ -138,7 +138,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 ### P0-05 — Assinatura real e licença
 
-**Situação:** só existe `MockBillingProvider`. O documento de produto registra Google Play Billing no Android e Asaas em sandbox; o papel do Asaas em site/desktop permanece aberto.
+**Diagnóstico inicial:** só existe `MockBillingProvider`. O documento de produto registra Google Play Billing no Android e Asaas em sandbox; o papel do Asaas em site/desktop permanece aberto.
 
 **Arquivos de referência:** `docs/produto-planos-e-cobranca.md`, `packages/shared/src/{assinatura,billing,licenca,contrato}.ts`, `apps/api/src/{billing.ts,jobs.ts,rotas/assinatura.ts,servicos/assinatura.ts,servicos/cobranca.ts}`, `apps/mobile/src/servicos/assinatura.ts` e telas de onboarding/assinatura.
 
@@ -164,7 +164,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 ### P0-06 — Pagamentos de produção e corte de escopo
 
-**Situação:** Pix dinâmico e aproximação usam `SimuladorProvedores`, mesmo que os botões de simulação sejam escondidos.
+**Diagnóstico inicial:** Pix dinâmico e aproximação usam `SimuladorProvedores`, mesmo que os botões de simulação sejam escondidos.
 
 **Arquivos de referência:** `apps/mobile/src/servicos/provedoresPagamento.ts`, `apps/mobile/src/telas/pagar/{meiosDisponiveis,PixEstatico,PixDinamico,TelaTap,useCobranca}.tsx` ou `.ts` conforme o módulo, e `apps/mobile/test/provedoresPagamento.test.ts`.
 
@@ -187,7 +187,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 ### P0-07 — Implantação, backups e operação
 
-**Situação:** há conexão PostgreSQL, migrações na inicialização e job em `setInterval`; não foi encontrada configuração de CI/implantação no repositório. A existência de serviços externos ainda precisa ser inventariada.
+**Diagnóstico inicial:** há conexão PostgreSQL, migrações na inicialização e job em `setInterval`; não foi encontrada configuração de CI/implantação no repositório. A existência de serviços externos ainda precisa ser inventariada.
 
 **Arquivos de referência:** `apps/api/src/{index.ts,jobs.ts,billing.ts,db/conexao.ts}`, `apps/api/drizzle/`, `apps/api/README.md` e `package.json`. Novos artefatos: configuração de build/deploy, CI, exemplo de ambiente sem segredos e runbook em `docs/`.
 
@@ -211,7 +211,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 ### P0-08 — Artefato de produção e homologação final
 
-**Situação:** `eas.json` tem somente perfil de testes. O README documenta assinatura debug no APK local e histórico de falha do scanner com minificação.
+**Diagnóstico inicial:** `eas.json` tem somente perfil de testes. O README documenta assinatura debug no APK local e histórico de falha do scanner com minificação.
 
 **Arquivos de referência:** `apps/mobile/{eas.json,app.json}`, `apps/mobile/src/{dados/instancia.ts,util/ferramentasTeste.ts}`, `apps/mobile/test/flagFerramentasTeste.test.ts`, `README.md` e `docs/produto-catalogo-ean.md`.
 
@@ -361,16 +361,14 @@ Evidências locais, com escopo limitado ao resultado descrito. Homologação And
 | Parte P0-01-C/D, integração | e82d1b8 | 252 testes mobile; typecheck todos; checkout-duravel/validation.md | Node/SQLite; hook com adaptadores UI simulados | Fachada aguarda gravações; recuperação antes de liberar app; retry sem duplicar parcela; navegação inspecionada, Android ainda não executado |
 | P0-03-C | 9a122f2 | 12 testes identidade + 7 storage; typecheck mobile; reviews/identidade-instalacao.md PASS local | Backend simulado explicitamente | UUID salvo antes do request e reutilizado; migração legada; corrupção/falhas não geram novo ID silenciosamente; reinstalação documentada, Android/API real pendentes |
 | Parte P0-03-D/F, API | a0be2d2 | 125 testes API; 12 sessões repetidos pelo revisor + sensor sem lock; typecheck todos | PostgreSQL17 local; backfill legado em PGlite | Expiração30dias/logout/perfil/revogação, locks e autorização; credencial protegida e integração mobile ainda pendentes |
+| Parte P0-03-D, cofre | c1f879c | sessaoSegura:19 casos no estado final; revisao-cofre.md e validation.md | Cofre simulado, plugin/fábrica nativos por inspeção | Migração/journal/rotação, token fora da base comum; Android físico pendente |
+| Parte P0-03-D/F, transporte | 5484025 | backendAcesso e assinatura; revisão independente | Fetch simulado | Perfil/aparelhos/logout e 401 condicionado ao token, deadline de corpo e erros sanitizados |
+| Parte P0-03-D/E, dados | 41185d8 | acessoMobile/isolamento/assinaturaEscopo/catalogoEscopo; revisão-dados | SQLite real, HTTP/cofre simulados | Reauth preserva identidade/finanças/licença, respostas antigas descartadas e troca bloqueada com pendências |
+| Parte P0-03-F, UI | cd9b513 | aparelhosTela:9, fluxoAcesso:4; revisão-ui | React real, hosts nativos simulados | Revogação somente após confirmação, corridas de tela bloqueadas; UI/Android físico pendente |
+| Parte P0-03-C/E, duas contas | cdb09b3 | trocaContasApi:2, aparelhosPorConta:14, instalação:12; revisão-vinculo | API Fastify/PGlite em processo, SQLite real, cofre simulado | UUID global e aparelho lógico por conta, retorno A/B e bloqueio de escrita durante handshake |
+| Contrato local de acesso | cdb09b3 | verificador novo:351 mobile,125 API,136 shared,typecheck; sensor:3 falhas sem guarda de token | Node, API local/SQLite; sem homologação externa | PASS local em acesso-mobile/validation.md; não conclui P0-03 global |
 
 ### Condição de liberação
-
-29/10, vínculo por conta: instalação global estável e aparelho lógico por e-mail/conta, conforme vínculo da API existente. API real em processo (PGlite) + SQLite verificou A→B→A, um aparelho ativo por conta e bloqueio de pendências antes de request/mapeamento novo. Revisão independente `acesso-mobile/revisao-vinculo.md` e43 testes focados passaram. Falta homologação Android/cofre físico; não aprova os ACs globais.
-
-29/10, integração local P0-03-D/E/F: 335 testes mobile passaram e typecheck todos passou; API real em processo com PGlite + SQLite testou expiração31dias, perfil e revogação (3 casos). Cofre/transportes e hosts de UI continuam simulados nas respectivas suítes. Isolamento controller A->B->A passou, mas falta prova com duas contas na API real e Android. Revisões em `acesso-mobile/revisao-dados.md` e `revisao-ui.md`; blocos globais seguem pendentes.
-
-29/10, transporte P0-03-D/F: BackendHttp usa GET /conta, GET/DELETE /aparelhos e POST /auth/logout; callback somente401protegido e deadline inclui leitura de corpo. Revisão `acesso-mobile/revisao-adapters.md` PASS e16 testes com fetch simulado passaram. Não comprova entrega externa nem integração UI.
-
-29/10, parte de P0-03-D (adapter): SecureStore ligado à fábrica nativa, migração/rotação com journal sem token e erros sanitizados. 16 testes de storage passaram e revisão independente `acesso-mobile/revisao-cofre.md` conferiu código/plugin. Cofre dos testes é simulado; não comprova Android nem conclui o bloco global.
 
 - [ ] Todos os critérios P0 aplicáveis estão atendidos; condicionais de integração ficam explicitamente desabilitados e fora da oferta quando não implementados.
 - [ ] Os mínimos obrigatórios de P1-10/P1-11 estão atendidos; recursos adicionais só são ofertados após seu aceite.

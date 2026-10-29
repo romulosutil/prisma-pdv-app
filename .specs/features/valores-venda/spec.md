@@ -38,6 +38,6 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| VALUES-01 | 1,2 | P0-04-A/AC-P0-04-1 | Implementado/gates PASS; final pendente |
-| VALUES-02 | 3,5 | P0-04-A rejeição sem parcial | Implementado/gates PASS; final pendente |
-| VALUES-03 | 4 | P0-04-A preservação financeira | Implementado/gates PASS; final pendente |
+| VALUES-01 | 1,2 | P0-04-A/AC-P0-04-1 | PASS local5ACs, validation.md fonte933db20 |
+| VALUES-02 | 3,5 | P0-04-A rejeição sem parcial | PASS local5ACs, validation.md fonte933db20 |
+| VALUES-03 | 4 | P0-04-A preservação financeira | PASS local5ACs, validation.md fonte933db20 |

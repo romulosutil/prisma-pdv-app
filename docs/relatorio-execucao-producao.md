@@ -1,6 +1,6 @@
 # Checkpoint da execução do plano de produção
 
-Referência: 29/10/2026, após o fluxo local integrado de e-mail, fonte5651212. O Goal consta **active** na consulta mais recente; antes desta retomada a ferramenta havia retornado blocked, sem ação de retomada disponível ao agente. O gestor não alterou manualmente o controle. Objetivo persistente ainda não concluído. Este checkpoint não encerra o trabalho executável e não aprova produção.
+Referência: 29/10/2026, após validação financeira local do servidor, fonte610afad e reforço de provas933db20. O Goal consta **active** na consulta mais recente; antes desta retomada a ferramenta havia retornado blocked, sem ação de retomada disponível ao agente. O gestor não alterou manualmente o controle. Objetivo persistente ainda não concluído. Este checkpoint não encerra o trabalho executável e não aprova produção.
 
 ## Entregas locais aceitas
 
@@ -49,6 +49,10 @@ Referência: 29/10/2026, após o fluxo local integrado de e-mail, fonte5651212. 
 | b3bed4d | Emissão e consumo transacionais, resposta genérica e logs sem OTP | Parte P0-03-A |
 | c7cbee0 | Prova discriminante com sucessor ainda enviando | P0-03-A fencing |
 | 5651212 | Bootstrap/shutdown, cleanup do migrador, SMTP real local e texto honesto | P0-03-A integração local |
+| 0584b03 | Checkpoint do fluxo de e-mail local verificado | Documentação |
+| 9beba70 | Contratos de valor líquido, faixa e preservação histórica | P0-04-A planejamento |
+| 610afad | Aritmética exata, rejeição antes da escrita e comparação financeira imutável | P0-04-A API |
+| 933db20 | Provas de venda entre lojas e registro do gap de AC4 | P0-04-A verificação |
 
 O escopo de uma loja, operador e aparelho com dinheiro/cartão manual/Pix estático está registrado em AD-001 e P0-06-A. As capacidades e a oferta ainda precisam refletir essa decisão em P0-06-B/P1-10-A.
 
@@ -58,12 +62,12 @@ O escopo de uma loja, operador e aparelho com dinheiro/cartão manual/Pix estát
 |---|---|---|
 | `rtk proxy npm run test --workspace=@pdv/mobile -- --maxWorkers=1` | 433 testes, 39 arquivos, passou | Node24; SQLite real; API Fastify/PGlite em processo nos testes de integração; cofre e hosts nativos simulados |
 | `rtk proxy npm run test --workspace=@pdv/shared -- --maxWorkers=1` | 148 testes, 10 arquivos, passou | Node |
-| `rtk proxy npm run test --workspace=@pdv/api -- --maxWorkers=1` | 351 testes PGlite e384 na variante com PostgreSQL,22arquivos, passou | Variantes executadas em série. A seleção com PostgreSQL também contém testes unitários e alguns PGlite; não são384testes de rede/banco |
+| `rtk proxy npm run test --workspace=@pdv/api -- --maxWorkers=1` | 359 testes PGlite e392 na variante com PostgreSQL,24arquivos, passou no conteúdo610afad | Variantes em série. A seleção PostgreSQL também contém unitários/PGlite; não são392testes de rede/banco. Após933db20, somente provas novas, quick25por banco e typeAPI repetidos |
 | `rtk proxy npm run typecheck` | Passou nos três workspaces | TypeScript |
 | `rtk git diff --check` | Passou | Árvore da entrega |
 | Validadores da skill para spec/tasks/state aplicáveis | Passaram | Evidências em `.specs/` |
 
-Total das três suítes completas mais recentes: **965 testes aprovados** usando a variante API com PostgreSQL (384 API,433 mobile,148 shared). A alternativa com API/PGlite soma932. Não somar as duas execuções da API nem repetições como casos distintos. Os33casos adicionais da seleção PostgreSQL não se registram na seleção PGlite. Nenhum teste registrado foi pulado. Nenhuma contagem comprova Android, entrega externa de e-mail, Google Play ou produção.
+Total das três suítes completas mais recentes: **973 testes aprovados** usando a variante API com PostgreSQL (392 API,433 mobile,148 shared), fonte610afad. A alternativa com API/PGlite soma940. Após acrescentar um teste em933db20, não se afirma nova execução ampla ou total ampliado; quick25/25 nos dois bancos e typecheckAPI passaram no novo conteúdo. Fontes de produção permaneceram idênticas. Não somar variantes ou repetições. Os33casos condicionais PostgreSQL não se registram em PGlite. Nenhum teste registrado foi pulado. Nenhuma contagem comprova Android, entrega externa de e-mail, Google Play ou produção.
 
 O verificador final de recuperação executou API185PGlite/193PostgreSQL, mobile433 e shared148, typecheck todos e diff--check após os reforços T6/T7, então ainda no working tree. Depois confirmou igualdade dos cinco arquivos testados com os commits82970f6/70886f9; não se afirma nova execução após os commits. O gestor leu as fontes críticas, a migração e os diffs de testes e repetiu37 alvos API/PostgreSQL e80 nos quatro arquivos mobile. O relatório independente identifica o conteúdo executado em recuperacao-aparelho/validation.md.
 
@@ -84,6 +88,12 @@ Na recuperação, o container próprio `codex-prisma-pdv-recovery-pg`, id `1d781
 Na entrega integrada de e-mail, o primeiro container próprio `codex-prisma-pdv-email-pg`, id `ffb058ed0c8722719a69f359711710d64f8bf140a31cf415e4427071ca930ae9`, usou127.0.0.1:63360/pdv_test. Após a rodada interrompida, havia zero conexões; ele foi removido com o volume e recriado no mesmo endereço com id `ac13ce979bec442d4a984f88213106523cbd11d590aeed1cdf24ae05bc93682e`, para uma validação limpa. Esse segundo container foi conferido e removido com seu volume após o verificador final liberar todos os runners. Nenhum container de outro projeto foi alterado.
 
 ## Revisão independente e falhas corrigidas
+
+No lote financeiro, o gestor executou gates amplos seriais e revisou diretamente sync/persistência. O revisor independente reforçou rejeições isoladas e imutabilidade no mesmo status, nos extremos e no tamanho das listas. O verificador final encontrou falta de asserção de loja para vendas: provas de produto não a substituem.933db20 acrescentou três variantes entre lojas, todas com HTTP200, aceitas vazio, loja_invalida e snapshot de sete tabelas intacto. Reavaliação25PGlite/25PostgreSQL/typeAPI PASS;5ACs aceitos e9/9mutações detectadas emscratch, sem alterar árvore real. L018 é candidata, registrada pelo script. validate_state0. O PostgreSQL próprio317f7221b2f656ba7c710224a037a42c1774c4f65c28aee758690354d494dd88,127.0.0.1:58159/pdv_test, foi removido com volume após liberar runners.
+
+Novas vendas exigem fórmula exata do item, somas líquidas e troco seguro só em dinheiro; rejeição preserva dados anteriores e permite vizinhas válidas/retry. Replay/cancelamento compara origem e conteúdo ordenado completo, conservando valores históricos inclusive aritmética antiga inválida; criadaEm salva nunca é reescrita. Não há migração financeira neste lote. A fixture API foi alinhada ao app:700líquidos+troco300, preservando asserções comerciais. Ainda faltam autorização de novas origens/recursos, caixaId e ajustes auditáveis após fechamento.
+
+Foi reproduzida uma divergência executável no shared: preço9007199254740499/q1 produz9007199254741 pela soma intermediária antiga; exato9007199254740. A API nova usa BigInt e rejeita o valor incorreto. P0-04-A2 registra correção do cálculo compartilhado em próximo lote, antes de B; a fronteira mobile ainda não está validada.
 
 Cada entrega relevante teve revisor que não escreveu a implementação. Os relatórios estão em `.specs/features/` e `.specs/reviews/`.
 
@@ -130,7 +140,7 @@ O verificador final de entrega-codigo aprovou9ACs e matou5mutações por asserç
 
 ## Próximos lotes executáveis
 
-1. P0-04-A: começar pela validação aritmética das vendas no servidor, com contratos explícitos de pagamentos/troco e preservação do histórico. O servidor ainda grava totais recebidos sem recalcular toda a consistência.
+1. P0-04-A2: corrigir arredondamento compartilhado em limite alto e provar checkout/outbox/API; validação aritmética do servidor e preservação histórica já foram aceitas localmente em P0-04-A.
 2. P0-04-B/C/D/E: autorização e capacidades, vínculo caixaId no contrato/bancos/checkout e ajustes após fechamento. O vínculo atual é local; não concluir P0-01-E integral antes desse contrato.
 3. P0-02: outbox completa, envio/ack/retry, pull paginado/cursor transacional, conflitos e recuperação autenticada. A recuperação de acesso entregue não substitui esse bloco.
 4. Homologação externa de e-mail quando houver acesso autorizado; capacidades/oferta, assinatura real, build/CI, operação, remediação de dependências e mínimos P1. Continuar as partes locais independentes enquanto faltarem acessos externos.

@@ -1,10 +1,20 @@
-# FAIL: validação de valores da venda
+# Validação de valores da venda
 
-**Result**: FAIL
+**Result**: PASS
+
+## Revalidação final de T3
+
+O achado anterior de AC4 foi resolvido em `933db20`: `apps/api/test/syncValoresVenda.test.ts:29`–`:47` cria venda da loja A e testa sessão A com payload da loja B, sessão B com payload da loja A, e sessão B forjando loja B com ID da venda A. Cada variante exige HTTP 200 (`:43`), `aceitas` vazio (`:44`), `loja_invalida` (`:45`) e snapshot integral igual (`:46`). Assim, os cinco critérios estão cobertos. As referências ao teste de integração no registro histórico abaixo dizem respeito a `610afad`; a inserção deslocou suas linhas em 21 no commit final.
+
+Execução independente em série sobre `933db20`: quick com PGlite 25/25 e PostgreSQL dedicado 25/25, sem falhas ou skips reportados; typecheck API exit 0. As fontes de produção são idênticas às de `610afad`, de modo que os sete resultados do sensor anterior permanecem aplicáveis. Dois sensores adicionais em scratch `git archive 933db20` detectaram a remoção da guarda de loja da sessão (`AssertionError` em `apps/api/test/syncValoresVenda.test.ts:44`) e da guarda de loja da venda existente (`AssertionError` em `:45`). Ambos usaram PGlite com URL PostgreSQL vazia e `--maxWorkers=1`. Resultado acumulado: 9/9 detectados. Junction removida separadamente e scratch removido após conferir caminho em TEMP; porcelain antes e depois: apenas ` M README.md` preexistente.
+
+Os gates amplos relatados pelo gestor abaixo foram executados em `610afad`; não foram reexecutados após o acréscimo do teste e não se atribuem contagens ampliadas ao gate completo. A correção T3 foi verificada pelo quick gate acima. A lesson L018 foi registrada pelo gestor como candidata, sem promoção. VALUES-01, VALUES-02 e VALUES-03 ficam verificados nesta revalidação; a atualização de outros arquivos cabe ao gestor.
+
+## Histórico da primeira validação em 610afad
 
 **Data:** 2026-10-29. **Verificador:** independente, não autor. **Diff:** `9beba70..610afad`. **Spec:** `.specs/features/valores-venda/spec.md`. T1 e T2 constam concluídas em `tasks.md`; o aceite final depende desta validação.
 
-AC4 tem uma lacuna de teste: não encontrei asserção de `loja_invalida` para venda existente pertencente a outra loja. A guarda existe em `apps/api/src/servicos/sync.ts:131` e `:135`, mas inspeção não substitui asserção. `apps/api/test/sync.test.ts:99` e `:101` testam produto, não venda. Os demais resultados abaixo não comprovam esse caso.
+AC4 tinha uma lacuna de teste: não encontrei asserção de `loja_invalida` para venda existente pertencente a outra loja. A guarda existe em `apps/api/src/servicos/sync.ts:131` e `:135`, mas inspeção não substitui asserção. `apps/api/test/sync.test.ts:99` e `:101` testam produto, não venda. Resolvida pela revalidação acima.
 
 ## Critérios derivados da spec
 

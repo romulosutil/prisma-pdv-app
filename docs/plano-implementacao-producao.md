@@ -123,7 +123,8 @@ Contrato local implementado para perda do único aparelho: `POST /auth/recuperac
 
 **Tarefas**
 
-- [ ] **P0-04-A:** validar no servidor preços, quantidades, arredondamento, totais dos itens e da venda, parcelas e troco, rejeitando inconsistências com código estável.
+- [x] **P0-04-A:** validar no servidor preços, quantidades, arredondamento, totais dos itens e da venda, parcelas e troco, rejeitando inconsistências com código estável. Verificado localmente em610afad/933db20: venda_inconsistente antes da escrita, pagamentos líquidos, histórico imutável;5ACs PASS em valores-venda/validation.md,9mutações detectadas. Autorização de origem/recursos e caixa/ajustes continuam nos itens seguintes.
+- [ ] **P0-04-A2 — seguimento local:** corrigir multiplicarPreco compartilhado para evitar soma intermediária insegura no arredondamento; preço9007199254740499 e quantidade1 devem resultar9007199254740, e não9007199254741. Provar consistência de cálculo, checkout/outbox e API nessa fronteira, sem BigInt novo no runtime mobile. Executar antes de B.
 - [ ] **P0-04-B:** validar vínculo de loja, aparelho e operador e permissões da operação; restringir a identidade de origem conforme sessão e distinguir restauração/reenvio de criação indevida por outro aparelho.
 - [ ] **P0-04-C:** revalidar recursos e limites do plano na API, incluindo sangria/suprimento; manter o comportamento recuperável para vendas concluídas offline e para downgrade.
 - [ ] **P0-04-D:** introduzir `caixaId` no contrato, bancos e checkout; definir migração de vendas antigas sem inventar associação quando houver ambiguidade; ordenar a sincronização para resolver os vínculos.
@@ -131,7 +132,7 @@ Contrato local implementado para perda do único aparelho: `POST /auth/recuperac
 
 **Critérios de aceite**
 
-- [ ] **AC-P0-04-1:** dois itens de R$ 10,00 e um de R$ 5,00 exigem total de R$ 25,00 e pagamentos líquidos de R$ 25,00; payload com R$ 24,99 é rejeitado sem escrita parcial.
+- [x] **AC-P0-04-1:** dois itens de R$ 10,00 e um de R$ 5,00 exigem total de R$ 25,00 e pagamentos líquidos de R$ 25,00; payload com R$ 24,99 é rejeitado sem escrita parcial. Fastify/PGlite/PostgreSQL reais locais, snapshots completos e retry; ver valores-venda/validation.md. Não equivale à homologação de pagamento ou Android.
 - [ ] **AC-P0-04-2:** chamadas diretas com operador/aparelho de outra loja ou recurso não autorizado são rejeitadas, mesmo que a interface tenha sido contornada.
 - [ ] **AC-P0-04-3:** vendas de dois caixas/aparelhos não se misturam no fechamento; reenviar a mesma operação não altera o resultado já consolidado.
 - [ ] **AC-P0-04-4:** cancelar uma venda após o fechamento mantém o fechamento histórico e cria ajuste rastreável; eventual estorno financeiro tem estado próprio.
@@ -381,6 +382,7 @@ Evidências locais, com escopo limitado ao resultado descrito. Homologação And
 | Parte P0-03-A, fila e ciclo | facef7f,80da210,c7cbee0 | Alvo fila48 comURL/23PGlite, scheduler/config36; revisão nova | PostgreSQL17 local, PGlite, promises/timers controlados | Lease60s/fencing,5tentativas, domínio fixo/rotação/fairness, erroSQL no ACK e payload limpo; canal de fronteira simulado, não SMTP externo |
 | Parte P0-03-A, emissão e consumo | b3bed4d | API333PGlite/363comPostgreSQL na etapa;6falhas de emissão/3de consumo com triggers e retry | Bancos locais reais; cifra de teste | OTP/fila/rate/desafio no mesmo commit,204 uniforme, código antigo utilizável após falha, logs sem OTP; nenhum envio externo |
 | Parte P0-03-A, integração final | 5651212 | Final92PGlite/117comPG/13UI; suites amplas351API PGlite/384comPG,433mobile,148shared,typecheck;5/5 mutações | Fastify inject + SMTP TCP loopback + PG dedicado; bootstrap/migrador com mocks declarados |9ACs locais PASS; código recebido autentica uma vez, ACK perdido mantém código/ID/prazo,5tabelas financeiras preenchidas intactas. Artefato/Android/sinais de processo/serviço externo não homologados |
+| P0-04-A e AC-P0-04-1 | 610afad,933db20 | valores-venda/validation.md5ACsPASS;9/9mutações; broad359API/PGlite ou392comPG,433mobile,148shared,typecheck todos em610afad; quick25porbanco/typeAPI após reforço933db20 | Fastify inject e PGlite/PostgreSQL17 dedicados reais; scratch de sensores | Pagamentos líquidos/troco, fórmula exata, duplicatas, rejeição sem parcial e lote misto/retry, legado/imutabilidade e lojas. Fronteira shared descoberta ainda em P0-04-A2; origem/recursos/caixaId/ajustes pendentes |
 
 ### Condição de liberação
 

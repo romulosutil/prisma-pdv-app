@@ -35,11 +35,14 @@ describe('recuperação na tela de entrada', () => {
     m.confirmar.mockResolvedValue(undefined);
     await preparar(); await clicar('Entrar'); await clicar('Recuperar acesso neste aparelho');
     expect(JSON.stringify(r.toJSON())).toContain('Loja real'); expect(JSON.stringify(r.toJSON())).toContain('Caixa antigo');
+    expect(JSON.stringify(r.toJSON())).toContain('dona@example.com');
     expect(botao('Continuar').props.desabilitado).toBe(true); expect(m.confirmar).not.toHaveBeenCalled();
     const opcoes = r.root.findAll(n => n.type === ('pressable' as any) && n.props.accessibilityRole === 'radio');
     expect(opcoes[0]!.props.accessibilityState.checked).toBe(false);
     await act(async () => opcoes[0]!.props.onPress()); await clicar('Continuar');
     expect(JSON.stringify(r.toJSON())).toContain('não transfere vendas'); expect(m.confirmar).not.toHaveBeenCalled();
+    const aviso = r.root.findAll(n => n.type === ('texto' as any)).map(n => React.Children.toArray(n.props.children).join(''));
+    expect(aviso).toContain('O acesso de Caixa antigo será revogado. Esta ação não transfere vendas para este aparelho.');
     await clicar('Confirmar substituição'); expect(m.confirmar).toHaveBeenCalledWith('a');
   });
   it.each([['limite_aparelhos', 400, 'http'], ['conflito', 409, 'http'], ['limite_aparelhos', 409, 'demo']] as const)('não oferece para %s %s %s', async (codigo, status, modo) => {

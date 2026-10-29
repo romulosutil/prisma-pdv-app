@@ -43,7 +43,7 @@ function montar() {
   const seguro = new ArmazenamentoSessaoSegura(base, cofre, randomUUID);
   const raw = new DatabaseSync(':memory:'); abertos.push(raw);
   const sqlite = new ArmazenamentoSqlite(async () => sqliteBanco(raw), seguro);
-  return { base, cofre, raw, dados: new Dados(sqlite, randomUUID, 'http://api.local') };
+  return { base, cofre, raw, sqlite, dados: new Dados(sqlite, randomUUID, 'http://api.local') };
 }
 async function codigo(email: string) {
   const resposta = await app.inject({ method: 'POST', url: '/auth/codigo', payload: { email } });
@@ -70,11 +70,21 @@ it('recupera em duas instalações SQLite com API real, retry e finanças preser
   const visao = await nova.dados.iniciarRecuperacao(email, codigoLogin);
   expect(visao).not.toHaveProperty('token'); expect(visao.perfil).toMatchObject({ email, nomeLoja: 'Loja Real', nomeResponsavel: 'Ana Real' });
   expect(visao.aparelhos.map(a => a.id)).toEqual([anterior.aparelhoId]);
+  let perfilConcluido = false;
+  const obterPerfil = nova.dados.backend.obterPerfil.bind(nova.dados.backend);
+  vi.spyOn(nova.dados.backend, 'obterPerfil').mockImplementation(async token => {
+    perfilConcluido = false; const resposta = await obterPerfil(token); perfilConcluido = true; return resposta;
+  });
+  const gravarCofre = nova.cofre.gravar.bind(nova.cofre);
+  const escritaCofre = vi.spyOn(nova.cofre, 'gravar').mockImplementation(async (chave, valor) => {
+    expect(perfilConcluido).toBe(true); await gravarCofre(chave, valor);
+  });
   perderResposta = true;
   await expect(nova.dados.confirmarRecuperacao(anterior.aparelhoId)).rejects.toMatchObject({ codigo: 'rede' });
   nova.cofre.falhar = true;
   await expect(nova.dados.confirmarRecuperacao(anterior.aparelhoId)).rejects.toThrow('armazenamento seguro');
   await nova.dados.confirmarRecuperacao(anterior.aparelhoId);
+  expect(escritaCofre).toHaveBeenCalledTimes(2);
   expect(confirmacoes).toHaveLength(3); expect(confirmacoes[0]!.corpo).toBe(confirmacoes[1]!.corpo); expect(confirmacoes[1]!.corpo).toBe(confirmacoes[2]!.corpo); expect(confirmacoes[0]!.resposta).toBe(confirmacoes[1]!.resposta); expect(confirmacoes[1]!.resposta).toBe(confirmacoes[2]!.resposta);
   const atual = nova.dados.conta.obter().sessao!;
   expect(atual.aparelhoId).not.toBe(anterior.aparelhoId); expect(atual.contaId).toBe(anterior.contaId);
@@ -117,4 +127,37 @@ it('retry após metadata confirmada e exceção preserva cofre e sessão única'
   expect(nova.dados.conta.obter().sessao).toMatchObject({ token: resposta.token, aparelhoId: visao.aparelhoNovoId });
   expect((await conexao.db.select().from(sessoes)).filter(s => s.aparelhoId === resposta.aparelhoId)).toHaveLength(1);
   expect((await conexao.db.select().from(aparelhos)).filter(a => a.contaId === anterior.contaId && !a.revogadoEm)).toHaveLength(1);
+}, 30000);
+
+it('preflight consulta pendências SQLite duráveis não carregadas nas duas fases', async () => {
+  const local = montar(); const contaB = montar();
+  const emailA = 'duravel-a@exemplo.com'; const emailB = 'duravel-b@exemplo.com';
+  await local.dados.criarConta({ email: emailA, nomeResponsavel: 'A', nomeLoja: 'Loja A', documento: '00000000041', tipoLoja: 'Mercado' });
+  await contaB.dados.criarConta({ email: emailB, nomeResponsavel: 'B', nomeLoja: 'Loja B', documento: '00000000042', tipoLoja: 'Mercado' });
+  const antigoB = contaB.dados.conta.obter().sessao!;
+  const tentativa = new Dados(local.sqlite, randomUUID, 'http://api.local');
+  const iniciar = vi.spyOn(tentativa.backend, 'iniciarRecuperacao');
+  const confirmar = vi.spyOn(tentativa.backend, 'confirmarRecuperacao');
+  const codigoB = await codigo(emailB);
+  const visao = await tentativa.iniciarRecuperacao(emailB, codigoB);
+  expect(visao.aparelhos[0]?.id).toBe(antigoB.aparelhoId);
+  expect(tentativa.produtos.obter()).toEqual([]);
+  const produto = await local.dados.produtos.criar({ nome: 'Pendente durável', precoCentavos: 2500 });
+  const caixa = await local.dados.caixa.abrir(500);
+  await local.dados.carrinho.adicionarProduto(produto); await local.dados.carrinho.adicionarParcela({ meio: 'pix', valorCentavos: 1000 });
+  const tabelas = ['produtos', 'caixas', 'rascunhos', 'outbox'];
+  const estado = () => tabelas.map(t => local.raw.prepare(`SELECT * FROM ${t} ORDER BY rowid`).all());
+  const antes = estado();
+  expect(tentativa.produtos.obter()).toEqual([]);
+  await expect(tentativa.confirmarRecuperacao(antigoB.aparelhoId)).rejects.toMatchObject({ codigo: 'conflito' });
+  expect(confirmar).not.toHaveBeenCalled(); expect(estado()).toEqual(antes);
+  const novaTentativa = new Dados(local.sqlite, randomUUID, 'http://api.local');
+  const iniciarNova = vi.spyOn(novaTentativa.backend, 'iniciarRecuperacao');
+  expect(novaTentativa.produtos.obter()).toEqual([]);
+  await expect(novaTentativa.iniciarRecuperacao(emailB, codigoB)).rejects.toMatchObject({ codigo: 'conflito' });
+  expect(iniciarNova).not.toHaveBeenCalled(); expect(iniciar).toHaveBeenCalledTimes(1);
+  expect(estado()).toEqual(antes);
+  expect(local.dados.produtos.obter()).toEqual([produto]); expect(local.dados.caixa.atual()).toEqual(caixa);
+  expect(totalDoCarrinho(local.dados.carrinho.obter().itens)).toBe(2500);
+  expect(valorRestante(2500, local.dados.carrinho.obter().parcelas)).toBe(1500);
 }, 30000);

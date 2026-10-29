@@ -18,6 +18,23 @@ const resposta = (status: number, corpo: unknown) => new Response(typeof corpo =
 afterEach(() => vi.unstubAllGlobals());
 
 describe('transporte de recuperação AC9', () => {
+  it.each([
+    ['limite_aparelhos', 'O limite de aparelhos foi atingido. Você pode substituir um aparelho com segurança.'],
+    ['aparelho_em_uso', 'Este aparelho já está vinculado a outra conta.'],
+    ['aparelho_revogado', 'Este aparelho foi revogado e não pode ser reativado.'],
+    ['aparelho_ja_autorizado', 'Este aparelho já está autorizado. Entre normalmente.'],
+    ['recuperacao_desnecessaria', 'Há uma vaga disponível. Entre normalmente.'],
+    ['recuperacao_desatualizada', 'Esta recuperação está desatualizada. Peça um novo código.'],
+  ])('mensagem fixa de %s independe do corpo do servidor', async (codigo, mensagem) => {
+    const fetch = vi.fn().mockResolvedValueOnce(resposta(409, { codigo, mensagem: 'texto do servidor A' })).mockResolvedValueOnce(resposta(409, { erro: codigo, mensagem: 'texto do servidor B', detalhes: 'segredo' }));
+    vi.stubGlobal('fetch', fetch);
+    const backend = new BackendHttp('', () => null);
+    for (let i = 0; i < 2; i++) {
+      const erro = await backend.iniciarRecuperacao(inicio).catch((e: ErroBackend) => e);
+      expect(erro).toMatchObject({ codigo, status: 409 });
+      expect(mensagemDeErro(erro)).toBe(mensagem);
+    }
+  });
   it('envia DTOs públicos exatos e valida as duas respostas', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(resposta(200, desafio)).mockResolvedValueOnce(resposta(200, sessao));
     vi.stubGlobal('fetch', fetch);

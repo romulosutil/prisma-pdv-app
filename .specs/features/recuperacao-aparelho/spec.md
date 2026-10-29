@@ -48,5 +48,5 @@ Acceptance Criteria:
 |---|---|---|---|
 | RECOVERY-01 | 1,2,3,4 | P0-03-F prova e contrato restrito | PASS local; validation.md AC1–4 |
 | RECOVERY-02 | 5,6,7,8 | P0-03-F substituição transacional | PASS local; validation.md AC5–8 |
-| RECOVERY-03 | 9,10,11 | P0-03-D/E/F cliente e cofre | pending |
-| RECOVERY-04 | 12,13 | P0-03-F fluxo e integração local | pending |
+| RECOVERY-03 | 9,10,11 | P0-03-D/E/F cliente e cofre | PASS local; validation.md AC9–11 |
+| RECOVERY-04 | 12,13 | P0-03-F fluxo e integração local | PASS local; validation.md AC12–13, sem Android |

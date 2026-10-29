@@ -74,6 +74,34 @@ describe('Dados recuperação AC10 e AC11', () => {
     expect(dados.conta.obter().sessao).toBeNull();
   });
 
+  it.each(['contaId', 'lojaId', 'operadorId', 'aparelhoId'] as const)('rejeita sessão com %s divergente antes de registrar', async campo => {
+    const { dados, iniciar, confirmar, obter } = montar(); await dados.iniciarRecuperacao(perfil.email, '123456');
+    confirmar.mockResolvedValueOnce({ ...sessao, aparelhoId: iniciar.mock.calls[0]![0].aparelhoId, [campo]: id(99) });
+    const registrar = vi.spyOn(dados.conta, 'registrar');
+    await expect(dados.confirmarRecuperacao(id(6))).rejects.toMatchObject({ codigo: 'resposta_invalida' });
+    expect(obter).not.toHaveBeenCalled(); expect(registrar).not.toHaveBeenCalled(); expect(dados.conta.obter().sessao).toBeNull();
+  });
+
+  it.each(['contaId', 'lojaId', 'operadorId', 'email', 'papel'] as const)('rejeita perfil com %s divergente antes de registrar', async campo => {
+    const { dados, obter } = montar(); await dados.iniciarRecuperacao(perfil.email, '123456');
+    const divergente = campo === 'email' ? 'outra@exemplo.com' : campo === 'papel' ? 'operador' : id(99);
+    obter.mockResolvedValueOnce({ ...perfil, [campo]: divergente } as typeof perfil);
+    const registrar = vi.spyOn(dados.conta, 'registrar');
+    await expect(dados.confirmarRecuperacao(id(6))).rejects.toMatchObject({ codigo: 'resposta_invalida' });
+    expect(obter).toHaveBeenCalledTimes(1); expect(registrar).not.toHaveBeenCalled(); expect(dados.conta.obter().sessao).toBeNull();
+  });
+
+  it('conclui GET de perfil antes de qualquer gravação da conta', async () => {
+    const { dados, obter, base } = montar(); await dados.iniciarRecuperacao(perfil.email, '123456');
+    const bloqueio = pendente<typeof perfil>(); obter.mockReturnValueOnce(bloqueio.promessa);
+    const registrar = vi.spyOn(dados.conta, 'registrar'); const gravar = vi.spyOn(base, 'gravar');
+    const chamada = dados.confirmarRecuperacao(id(6));
+    await vi.waitFor(() => expect(obter).toHaveBeenCalledTimes(1));
+    expect(registrar).not.toHaveBeenCalled(); expect(gravar.mock.calls.filter(([chave]) => chave === 'conta')).toHaveLength(0);
+    bloqueio.resolver(perfil); await chamada;
+    expect(registrar).toHaveBeenCalledOnce(); expect(gravar.mock.calls.filter(([chave]) => chave === 'conta')).toHaveLength(1);
+  });
+
   it('recusa desafio de outra conta quando email já corresponde à identidade', async () => {
     const { dados, iniciar } = montar();
     await dados.conta.registrar({ ...sessao, contaId: id(80) }, { email: perfil.email, nomeResponsavel: 'Ana', nomeLoja: 'Loja', aparelhoNome: 'Novo' });
@@ -135,6 +163,39 @@ describe('Dados recuperação AC10 e AC11', () => {
     expect(dados.conta.obter().sessao).toEqual(externa);
     await expect(dados.confirmarRecuperacao(id(6))).rejects.toMatchObject({ codigo: 'conflito' });
     expect(confirmar).toHaveBeenCalledTimes(1); expect(dados.conta.obter().sessao).toEqual(externa);
+  });
+
+  it.each(['contaId', 'lojaId', 'operadorId', 'aparelhoId', 'email', 'nomeResponsavel', 'nomeLoja', 'aparelhoNome', 'tipoLoja'] as const)('não adota contexto externo sem sessão com %s alterado', async campo => {
+    const { dados, confirmar, iniciar } = montar(); await dados.iniciarRecuperacao(perfil.email, '123456');
+    const identidade = { ...sessao, token: 'externo', aparelhoId: iniciar.mock.calls[0]![0].aparelhoId };
+    const perfilLocal = { email: perfil.email, nomeResponsavel: perfil.nomeResponsavel, nomeLoja: perfil.nomeLoja, aparelhoNome: 'Celular do balcão' };
+    const emIdentidade = ['contaId', 'lojaId', 'operadorId', 'aparelhoId'].includes(campo);
+    const outraSessao = emIdentidade ? { ...identidade, [campo]: id(99) } : identidade;
+    const outroPerfil = emIdentidade ? perfilLocal : { ...perfilLocal, [campo]: campo === 'email' ? 'outra@exemplo.com' : 'Alterado' };
+    vi.spyOn(dados.assinatura, 'carregar').mockResolvedValue();
+    vi.spyOn(dados.preferencias, 'carregar').mockResolvedValue();
+    vi.spyOn(dados.ordemAtalhos, 'carregar').mockResolvedValue();
+    vi.spyOn(dados.vendas, 'carregar').mockResolvedValue();
+    vi.spyOn(dados.caixa, 'carregar').mockResolvedValue();
+    vi.spyOn(dados.carrinho, 'carregar').mockResolvedValue();
+    vi.spyOn(dados.produtos, 'carregar').mockImplementationOnce(async () => {
+      await dados.conta.registrar(outraSessao, outroPerfil); await dados.conta.invalidarSessao('externo');
+      throw new Error('contexto externo');
+    });
+    await expect(dados.confirmarRecuperacao(id(6))).rejects.toThrow('contexto externo');
+    const estado = structuredClone(dados.conta.obter()); expect(estado.sessao).toBeNull();
+    await expect(dados.confirmarRecuperacao(id(6))).rejects.toMatchObject({ codigo: 'conflito' });
+    expect(confirmar).toHaveBeenCalledTimes(1); expect(dados.conta.obter()).toEqual(estado);
+  });
+
+  it('cancelamento durante carga posterior ao registro não adota nem restaura a tentativa', async () => {
+    const { dados, confirmar } = montar(); await dados.iniciarRecuperacao(perfil.email, '123456');
+    vi.spyOn(dados.produtos, 'carregar').mockImplementationOnce(async () => { dados.cancelarRecuperacao(); throw new Error('carga cancelada'); });
+    await expect(dados.confirmarRecuperacao(id(6))).rejects.toThrow('carga cancelada');
+    const estado = structuredClone(dados.conta.obter()); expect(estado.sessao).toBeNull();
+    expect(dados.obterRecuperacaoPendente()).toBeNull();
+    await expect(dados.confirmarRecuperacao(id(6))).rejects.toMatchObject({ codigo: 'conflito' });
+    expect(confirmar).toHaveBeenCalledTimes(1); expect(dados.conta.obter()).toEqual(estado);
   });
 
   it('cancelar após início da aplicação conclui commit e serializa login seguinte', async () => {

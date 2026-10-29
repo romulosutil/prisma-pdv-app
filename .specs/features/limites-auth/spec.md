@@ -43,7 +43,7 @@ Acceptance Criteria:
 
 | ID | Critérios | Plano | Status |
 |---|---|---|---|
-| RATE-01 | 1, 7, 8 | P0-03-B armazenamento compartilhado | pending |
-| RATE-02 | 2, 3 | P0-03-B emissão | pending |
-| RATE-03 | 4, 5, 6 | P0-03-B tentativas | pending |
-| RATE-04 | 9 | P0-03-B comunicação no mobile | pending |
+| RATE-01 | 1, 7, 8 | P0-03-B armazenamento compartilhado | verified localmente; validation.md PASS |
+| RATE-02 | 2, 3 | P0-03-B emissão | verified localmente; e-mail real fora deste lote |
+| RATE-03 | 4, 5, 6 | P0-03-B tentativas | verified localmente; inclui provas isoladas AC6 |
+| RATE-04 | 9 | P0-03-B comunicação no mobile | verified localmente; fetch simulado explícito |

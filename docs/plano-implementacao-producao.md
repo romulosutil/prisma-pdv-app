@@ -95,7 +95,7 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 **Tarefas**
 
 - [ ] **P0-03-A:** integrar provedor de e-mail transacional, entrega com retentativa e tratamento de falhas; não retornar/logar o código em produção nem revelar se a conta existe.
-- [ ] **P0-03-B:** limitar emissão e tentativas por e-mail/IP, com armazenamento compartilhado entre instâncias, respostas estáveis e proteção contra reenvio contínuo que reinicie a contagem de tentativas.
+- [x] **P0-03-B:** limitar emissão e tentativas por e-mail/IP, com armazenamento compartilhado entre instâncias, respostas estáveis e proteção contra reenvio contínuo que reinicie a contagem de tentativas. Implementação local verificada com duas instâncias Fastify e PostgreSQL17; proxy/relógios do ambiente de implantação permanecem pendentes, assim como entrega real de e-mail em P0-03-A.
 - [x] **P0-03-C:** criar uma identidade persistente por instalação, reutilizada no cadastro/login; documentar reinstalação, substituição de aparelho e recuperação quando o limite estiver atingido.
 - [ ] **P0-03-D:** proteger o token no armazenamento nativo; implementar duração, renovação ou nova autenticação, logout e revogação no servidor, compatíveis com a operação offline.
 - [ ] **P0-03-E:** isolar os dados por conta/loja e impedir troca de conta com perda de operações pendentes; limpar a sessão em memória sem apagar vendas por efeito colateral.
@@ -367,6 +367,10 @@ Evidências locais, com escopo limitado ao resultado descrito. Homologação And
 | Parte P0-03-F, UI | cd9b513 | aparelhosTela:9, fluxoAcesso:4; revisão-ui | React real, hosts nativos simulados | Revogação somente após confirmação, corridas de tela bloqueadas; UI/Android físico pendente |
 | Parte P0-03-C/E, duas contas | cdb09b3 | trocaContasApi:2, aparelhosPorConta:14, instalação:12; revisão-vinculo | API Fastify/PGlite em processo, SQLite real, cofre simulado | UUID global e aparelho lógico por conta, retorno A/B e bloqueio de escrita durante handshake |
 | Contrato local de acesso | cdb09b3 | verificador novo:351 mobile,125 API,136 shared,typecheck; sensor:3 falhas sem guarda de token | Node, API local/SQLite; sem homologação externa | PASS local em acesso-mobile/validation.md; não conclui P0-03 global |
+| P0-03-B, orçamento no banco | 3325a48 | 12 testes PGlite e14 PostgreSQL; revisão-banco PASS | PostgreSQL17 local; reabertura PGlite | Criação concorrente, prazos inclusivos, recuo e primeiro consumo; migração0003 só cria limites_auth |
+| P0-03-B, rotas e operação | fe56478 | API149 PGlite/153 PostgreSQL; revisão-rotas PASS | Duas instâncias Fastify em processo; PostgreSQL real local | Emissão3/email e20/IP, falhas5/email sem reset, login50/IP; código anterior e contadores preservados; retenção preparada/testada localmente |
+| P0-03-B, orientação cliente | 355b89a | Mobile353,shared136,typecheck; dois casos novos red/green | Fetch simulado explícito | 429 mostra mensagem local, preserva token e permite retentativa; não homologa Android |
+| P0-03-B, verificação final | 1fb5255 | API152 PGlite/156 PostgreSQL; verificador27/31 alvos e6/6 mutações detectadas | Triggers reais de falha no banco local; scratch isolado | AC6 inicialmente rejeitado por duas provas ausentes, corrigidas; limites-auth/validation.md PASS. Nenhum e-mail entregue ou proxy externo homologado |
 
 ### Condição de liberação
 

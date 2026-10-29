@@ -20,9 +20,10 @@
 ```text
 T1 -> T2
 T2 -> T3
+T3 -> T4
 ```
 
-Três lotes sequenciais, gestor centraliza revisão direta de autenticação, integração e commits. Executores/revisores Terra Médio conforme AD-005. Nenhum agente cria subagente.
+Três lotes sequenciais e um reforço de cobertura solicitado pelo verificador, gestor centraliza revisão direta de autenticação, integração e commits. Executores/revisores Terra Médio conforme AD-005. Nenhum agente cria subagente.
 
 ## Task Breakdown
 
@@ -65,3 +66,24 @@ Status: execução concluída, aguardando verificador final novo; mobile353/353,
 | backendAcesso.test.ts:28-30, dois casos | AC9 retentativa e autorização | Manter, verifica resultado e cabeçalhos |
 
 Adequação: critérios locais cobertos, sem exclusão/skip/enfraquecimento de testes; mesmos padrões Vitest do projeto. Fetch simulado explícito; UI nativa permanece pendente globalmente.
+
+### T4: Isolar provas de rollback de emissão e teto do código
+Depends on: T3
+Where: apps/api/test/limitesAuthRotas.test.ts.
+Tests: AC6, falha no insert de código após invalidar anterior, snapshots de códigos/limites intactos e retry; código legado com quatro erros, orçamento de email livre, quinto erro bloqueia só esse código e novo código pode autenticar.
+Gate: build
+Done when: testes isolam os dois comportamentos sem enfraquecer asserções anteriores e verificador novo da feature reavalia a correção e o sensor em scratch.
+Status: execução concluída, aguarda revalidação final; API152/152 PGlite,156/156 PostgreSQL17 e typecheck API passaram. Gestor repetiu15/15 rotas no PGlite e inspecionou asserções. Verificação final inicial rejeitou AC6 por falta dessas provas, sem defeito funcional demonstrado; os outros oito critérios passaram e cinco mutações foram detectadas. Lições candidatas registradas pelo script da skill, sem promoção a orientação confirmada.
+
+| Critério | Asserção localizada | Resultado exigido |
+|---|---|---|
+| AC6 rollback emissão | apps/api/test/limitesAuthRotas.test.ts:213 status500; :214 `expect(await amb.db.select().from(codigosLogin)).toEqual(codigosAntes)`; :215 limites iguais | Primeira emissão ou reemissão não persiste parcial, código anterior preservado |
+| AC6 recuperação emissão | apps/api/test/limitesAuthRotas.test.ts:220 login200; :221 emissão200; :223 usos2ou1; :224 códigos2ou1 | Código anterior utilizável, retry consome apenas uma emissão |
+| AC6 teto próprio OTP | apps/api/test/limitesAuthRotas.test.ts:234 tentativas5; :236 falhasemail1; :238 401codigo_invalido; :239 sessão1; :240 usadoEmnull; :241 falhasemail2; :245 novoOTP200 | Limite do código separado do orçamento do e-mail, que permanece disponível |
+
+| Asserções | Requisito | Necessidade |
+|---|---|---|
+| limitesAuthRotas.test.ts:213-224, dois casos | AC6 falha inesperada na emissão | Manter, cobre as duas lacunas de estado antigo/novo rejeitadas pelo verificador |
+| limitesAuthRotas.test.ts:234-245 | AC6 teto próprio5 | Manter, não é mascarado pelo orçamento global; fixture representa código legado |
+
+Adequação T4: três casos adicionais, nenhuma asserção anterior modificada ou teste removido/skip. Fonte de produção inalterada; mesmos padrões de triggers de falha já usados nesta suíte.

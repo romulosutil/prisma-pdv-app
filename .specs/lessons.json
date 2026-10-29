@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "promote_threshold": 2,
+  "window_days": 45,
+  "quarantine_threshold": 2,
+  "next_id": 3,
+  "lessons": [
+    {
+      "id": "L-001",
+      "key": "ac_gap::exigir rollback da credencial anterior e dos contadores quando a rotacao de credencial falhar",
+      "text": "Exigir rollback da credencial anterior e dos contadores quando a rotacao de credencial falhar.",
+      "signal": "ac_gap",
+      "scope": "auth",
+      "status": "candidate",
+      "features": [
+        "limites-auth"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md AC6 emissao (auth)"
+      ],
+      "created": "2026-10-29T04:22:41Z",
+      "last_seen": "2026-10-29T04:22:41Z"
+    },
+    {
+      "id": "L-002",
+      "key": "ac_gap::testar o limite proprio de cada credencial com o orcamento agregado ainda disponivel",
+      "text": "Testar o limite proprio de cada credencial com o orcamento agregado ainda disponivel.",
+      "signal": "ac_gap",
+      "scope": "auth",
+      "status": "candidate",
+      "features": [
+        "limites-auth"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md AC6 teto proprio OTP (auth)"
+      ],
+      "created": "2026-10-29T04:22:41Z",
+      "last_seen": "2026-10-29T04:22:41Z"
+    }
+  ]
+}

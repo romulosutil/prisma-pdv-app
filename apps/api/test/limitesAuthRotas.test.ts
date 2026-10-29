@@ -201,6 +201,50 @@ describe('limites de autenticação nas rotas', () => {
     expect((await login(amb.app, conta.email, codigo, conta.aparelhoId)).statusCode).toBe(200);
   });
 
+  it.each([false, true])('falha ao inserir código desfaz emissão (código anterior: %s)', async (temAnterior) => {
+    const conta = await criarConta(amb);
+    const anterior = temAnterior ? (await pedir(amb.app, conta.email)).json().codigo as string : null;
+    if (temAnterior) amb.relogio.definir(new Date(INICIO.getTime() + 60_000));
+    const codigosAntes = await amb.db.select().from(codigosLogin);
+    const limitesAntes = await amb.db.select().from(limitesAuth);
+    await amb.db.execute(sql.raw("CREATE FUNCTION falhar_codigo_teste() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'falha de banco'; END $$"));
+    await amb.db.execute(sql.raw('CREATE TRIGGER falhar_codigo_teste BEFORE INSERT ON codigos_login FOR EACH ROW EXECUTE FUNCTION falhar_codigo_teste()'));
+    try {
+      expect((await pedir(outra, conta.email)).statusCode).toBe(500);
+      expect(await amb.db.select().from(codigosLogin)).toEqual(codigosAntes);
+      expect(await amb.db.select().from(limitesAuth)).toEqual(limitesAntes);
+    } finally {
+      await amb.db.execute(sql.raw('DROP TRIGGER falhar_codigo_teste ON codigos_login'));
+      await amb.db.execute(sql.raw('DROP FUNCTION falhar_codigo_teste()'));
+    }
+    if (anterior !== null) expect((await login(amb.app, conta.email, anterior, conta.aparelhoId)).statusCode).toBe(200);
+    expect((await pedir(outra, conta.email)).statusCode).toBe(200);
+    const chave = createHash('sha256').update('emissao_email:' + conta.email).digest('hex');
+    expect((await amb.db.select().from(limitesAuth)).find((linha) => linha.chave === chave)?.usos).toBe(temAnterior ? 2 : 1);
+    expect(await amb.db.$count(codigosLogin, eq(codigosLogin.email, conta.email))).toBe(temAnterior ? 2 : 1);
+  });
+
+  it('mantém o teto próprio de cinco tentativas de um código legado', async () => {
+    const conta = await criarConta(amb);
+    const codigo = (await pedir(amb.app, conta.email)).json().codigo as string;
+    await amb.db.update(codigosLogin).set({ tentativas: 4 }).where(eq(codigosLogin.email, conta.email));
+    const errado = codigo === '000000' ? '111111' : '000000';
+    expect((await login(amb.app, conta.email, errado, conta.aparelhoId)).statusCode).toBe(401);
+    const [pendente] = await amb.db.select().from(codigosLogin).where(eq(codigosLogin.email, conta.email));
+    expect(pendente?.tentativas).toBe(5);
+    const chave = createHash('sha256').update('falha_email:' + conta.email).digest('hex');
+    expect((await amb.db.select().from(limitesAuth)).find((linha) => linha.chave === chave)?.usos).toBe(1);
+    const bloqueado = await login(outra, conta.email, codigo, conta.aparelhoId);
+    expect([bloqueado.statusCode, bloqueado.json().erro]).toEqual([401, 'codigo_invalido']);
+    expect(await amb.db.$count(sessoes, eq(sessoes.contaId, conta.contaId))).toBe(1);
+    expect((await amb.db.select().from(codigosLogin).where(eq(codigosLogin.email, conta.email)))[0]?.usadoEm).toBeNull();
+    expect((await amb.db.select().from(limitesAuth)).find((linha) => linha.chave === chave)?.usos).toBe(2);
+    amb.relogio.definir(new Date(INICIO.getTime() + 60_000));
+    const novo = await pedir(outra, conta.email);
+    expect(novo.statusCode).toBe(200);
+    expect((await login(amb.app, conta.email, novo.json().codigo, conta.aparelhoId)).statusCode).toBe(200);
+  });
+
   it('retenção preparada remove apenas linhas inativas há mais de 24 horas', async () => {
     const agora = new Date();
     await amb.db.insert(limitesAuth).values([

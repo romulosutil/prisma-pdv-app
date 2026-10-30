@@ -21,7 +21,7 @@ Reorganização autorizada em 30/10/2026. O plano de produção continua sendo o
 
 ## Estado
 
-Fase 1 aprovada pelo usuário em30/10/2026: “deu certo. pode ir para a próxima fase”. Fase 2 em implementação, com nova parada no checkpoint2. Fases3–4 não iniciadas. O controlador do Goal permanece pausado, sem comando de retomada disponível ao agente; a fase atual foi autorizada diretamente na conversa.
+Fase 1 aprovada pelo usuário em30/10/2026: “deu certo. pode ir para a próxima fase”. Fase 2 implementada e revisada tecnicamente; **parada no checkpoint2 para avaliação humana**. Fases3–4 não iniciadas. O controlador do Goal permanece pausado, sem comando de retomada disponível ao agente; a fase atual foi autorizada diretamente na conversa.
 
 ## Checkpoint 1 — 30/10/2026
 
@@ -47,3 +47,21 @@ rtk proxy python -X utf8 -c "import os,subprocess; e=dict(os.environ,CI='1',EXPO
 ```
 
 Esse processo usa um ambiente isolado para a demonstração e não altera configurações salvas do projeto. Ctrl+C encerra o servidor; não iniciar dois processos na mesma porta.
+
+## Checkpoint 2 — 30/10/2026
+
+Abrir [Caixa no app local](http://localhost:8086/caixa). Commits: `74d2c3a` contrato; `574e232` vínculo, persistência, API, migração e interface; `6681882` correção da comparação de instantes encontrada pela revisão. A URL continua na mesma origem de demonstração, preservando os testes que o usuário já fez. API externa desativada, nenhum pagamento ou estorno real.
+
+O que conferir agora, em5–10min:
+
+1. Rolar até Fechamentos anteriores: caixa terminado em `e64c061e` com esperado R$20 e contado R$20; cancelamento `#000233` aparece como ajuste comercial de -R$25 separado. O caixa anterior `9256b3ee` continua em R$100/R$100.
+2. Abrir o ajuste para ver caixa vinculado, identificação do evento, data, operador, motivo e aviso de que não houve estorno bancário. Recarregar: os registros devem permanecer.
+3. Abrir novo caixa com R$10 de troco. As vendas dos turnos anteriores não devem aumentar a gaveta. Vendas antigas sem vínculo são identificadas, sem associação presumida por horário.
+4. Criar venda avulsa de R$25. Em divisão, receber R$10 em dinheiro; recarregar a página durante a cobrança e conferir recebido R$10/saldo R$15. Concluir os R$15 por cartão manual ou Pix estático fictício.
+5. Conferir gaveta R$20 (troco10 + dinheiro10); fechar contando R$20. Em Vendas, cancelar a venda de teste; conferir evento e fechamento20/20 preservado, com ajuste separado. Não usar dados, pagamentos ou estornos reais.
+
+Conferência realizada pelo gestor via navegador: passos acima completos na venda `#000233` (id `01a18e40-7632-78c9-ac36-7d536e9eebd1`), caixa `01a18e40-2b57-7e13-84fa-8573e64c061e`, cancelamento `01a18e41-b519-7afe-a8e9-e29089bc6201`. O teste preservou49 vendas anteriores; após a nova venda havia50, e após o cancelamento49 concluídas. Reload final após correção manteve os dois fechamentos e ajuste. Isso prova somente a demonstração web, sem atomicidade multichave do adaptador browser.
+
+Evidência local adicional: SQLite real em arquivo, reabertura, rollback na outbox, vínculo conhecido/ausente/conflitante e corridas nas duas ordens; PostgreSQL17 dedicado com migração0006 e rejeições sem efeitos. Gates: mobile461/42 antes do teste temporal adicional, alvo final2/2; API443/32 em PGlite; shared159/12; todos os tipos PASS e mobile repetido após correção PASS; alvo final PostgreSQL6/6. Revisor independente: PASS, oito regressões comportamentais detectadas; relatório `.specs/features/fase-2-caixa/validation.md`. O PostgreSQL descartável foi removido; servidor web ficou ativo.
+
+Limitações e próximos passos: homologação Android e artefato distribuído continuam pendentes. Envio automático da outbox, ACK, pull e restauração financeira serão a fase3 após sua avaliação; os testes locais da API não significam que esse fluxo já esteja conectado no app. E-mail, assinatura e infraestrutura reais seguem pendentes. **Parar aqui para o usuário validar; não iniciar fase3. Projeto não pronto para produção.**

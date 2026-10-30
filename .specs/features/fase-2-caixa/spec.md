@@ -30,9 +30,9 @@ Acceptance Criteria:
 ## Requirement Traceability
 | ID | AC | Status |
 |---|---|---|
-| LINK-01 | 1,2,4 | Implementado; gates locais PASS, revisão independente pendente |
-| AUDIT-01 | 3,4 | Implementado; revisão encontrou comparação ISO textual; correção e nova revisão em andamento |
-| CHECK-02 | 5 | Pendente |
+| LINK-01 | 1,2,4 | Implementado; revisão independente PASS em6681882 |
+| AUDIT-01 | 3,4 | Implementado; falha temporal corrigida, revisão PASS e sensor cumulativo8/8 |
+| CHECK-02 | 5 | Checkpoint2 entregue com roteiro e smoke web; aguardando avaliação humana |
 
 ## Execution Plan
 1. Gestor fixa contrato shared e testes de compatibilidade; verifica e faz commit local. Dois executores Terra Médio implementam API/banco e domínio/mobile em arquivos disjuntos, sem UI/docs/commits/subdelegação. Um runner por vez.
@@ -50,10 +50,12 @@ Gates do gestor/executores: mobile461/42arquivos, API443/32arquivos em PGlite, s
 | 2/3: dois turnos, evento e fechamento imutável | apps/mobile/test/repositorios.test.ts:191 esperado2700 no segundo; :193 vínculo original; :194 evento; :195 retry igual; :196 fechamento igual ao salvo | PASS |
 | 3/4: evento, vínculo e fechamento preservados no replay/pull | apps/api/test/syncCaixaVenda.test.ts:25 lote invertido aceito; :30 vínculo imutável; :40 negócio/mudanças iguais no replay; :44 pull com evento e fechamento exatos | PASS |
 | 4: inválidos sem escrita, origens e intervalos | syncCaixaVenda.test.ts:54–55 origem incorreta/snapshot idêntico; :68–71 após fecho rejeitado e dois vínculos no pull; :85–86 ausente/outra loja e snapshot idêntico; migracaoCaixaVenda.test.ts:11 valores nulos no legado | PASS |
-| 5: comportamento visível e checkpoint | Gestor CUA em localhost8086: #233, split10+15 com recarga parcial, gaveta20 (troco10+dinheiro10), fechamento20/20 e cancelamento posterior25 separado; dois fechamentos100/20 preservados após reload | Smoke web PASS; revisão/UAT pendentes |
+| 5: comportamento visível e checkpoint | Gestor CUA em localhost8086: #233, split10+15 com recarga parcial, gaveta20 (troco10+dinheiro10), fechamento20/20 e cancelamento posterior25 separado; dois fechamentos100/20 preservados após reload | Smoke e revisão PASS; roteiro em docs/fases-e-checkpoints.md, UAT humano pendente |
 
 Necessidade: todos os novos testes shared atendem AC1/3 (compatibilidade/estado comercial); testes novos mobile atendem AC1/2/3; helper de apresentação fase2Interface.test.ts atende AC3; testes API e migração atendem AC3/4. Convenção test/**/*.test.ts e runner único/maxWorkers1 do projeto. Assertivas de payload/snapshots e valores complementam rejeições/spies; não provar banco por contagem de chamadas. API/migração PostgreSQL são locais, mocks de assinatura só fixtures de acesso. Nenhuma evidência Android, provider ou produção inferida.
 
 Decisões de integração: normalização SQLite em transação recupera somente caixa_id conhecido, aborta null explícito conflitante e mantém legado desconhecido sem associação; fechamento revalida vendas duráveis para rejeitar snapshot antigo; filas de abertura/movimentos usam estado corrente. API compara evento por campos (ordem de chaves jsonb não importa), valida origem/intervalos e mantém resultado de ACK na ordem solicitada. App não envia sync automaticamente nesta fase; isso continua fase3.
 
 Correção da revisão: helper de histórico deve comparar instantes numéricos, não strings ISO. Teste novo reproduziu erro com fechamento sem casas fracionárias e evento1ms posterior (RED1/2); cobertura inclui igual e anterior e as mesmas entradas com fechamento normalizado. Corrigir somente helper e repetir alvo/tipos e revisão independente; gates de banco e sensor7/7 anteriores conservam a superfície inalterada.
+
+Correção concluída em6681882: alvo final2/2 e typecheck mobile PASS; revisor repetiu em scratch e detectou a regressão textual, totalizando8/8. validate_state sem erros. Checkpoint2 documentado e app local atualizado; trabalho interrompido antes da fase3 para avaliação humana. Lições L019 candidatas registradas via script, sem promover a orientação confirmada.

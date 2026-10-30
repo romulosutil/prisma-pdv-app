@@ -122,6 +122,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: .specs/features/valores-venda/validation.md:7 (sync)
 - last seen: 2026-10-29T13:24:14Z
 
+### L-019 - Compare instantes ISO numericamente e teste representações com precisão fracionária diferente nos ajustes após fechamento.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `apps/mobile/src/telas/caixa` · harmful: 0
+- features: fase-2-caixa
+- evidence: apps/mobile/test/fase2Interface.test.ts:21 (apps/mobile/src/telas/caixa)
+- last seen: 2026-10-30T19:25:38Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

@@ -1,8 +1,10 @@
-# Validation: FAIL — fase 2 caixa
+# Validation: PASS — fase 2 caixa
 
-**Data:** 2026-10-30  
-**Diff:** `c87c9f6..574e232`  
-**Veredito:** FAIL — ajuste comercial posterior pode desaparecer do histórico; checkpoint humano ainda pendente.
+**Data:** 2026-10-30
+
+**Diff:** `c87c9f6..6681882`
+
+**Veredito:** PASS técnico após correção; checkpoint humano ainda pendente.
 
 ## Critérios e evidências
 
@@ -10,13 +12,13 @@
 | --- | --- |
 | 1 | PASS para os cenários testados: `apps/mobile/test/checkoutSqlite.test.ts:158` compara caixaId com o caixa; linhas 159–160 comparam coluna e mutação; 212–214 verificam recuperação idempotente e 232–234 o legado sem vínculo. Linhas 271–278 verificam perdedor da corrida sem gravação. |
 | 2 | PASS para os cenários testados: `apps/mobile/test/repositorios.test.ts:191` exige gaveta 2700 no segundo caixa com venda sem vínculo; `apps/mobile/test/checkoutSqlite.test.ts:294` exige rejeição de snapshot defasado e linha 297 usa valor atualizado. |
-| 3 | FAIL parcial: `apps/mobile/test/repositorios.test.ts:193` verifica vínculo, linha 194 operador/motivo/estorno, linhas 195–196 retry e fechamento imutável; `apps/api/test/syncCaixaVenda.test.ts:99-103` verifica evento legado e rejeição de adulteração. Porém `apps/mobile/src/telas/caixa/historicoDoCaixa.ts:7` compara datas como texto e pode ocultar ajuste posterior válido. `apps/mobile/test/fase2Interface.test.ts:6-10` usa apenas datas com três casas, não cobrindo a falha. |
+| 3 | PASS após correção: `apps/mobile/test/repositorios.test.ts:193` verifica vínculo, linha 194 operador/motivo/estorno, linhas 195–196 retry e fechamento imutável; `apps/api/test/syncCaixaVenda.test.ts:99-103` verifica evento legado e rejeição de adulteração. `apps/mobile/src/telas/caixa/historicoDoCaixa.ts:6` compara instantes; `apps/mobile/test/fase2Interface.test.ts:21` exige posterior e igualdade incluídos e anterior excluído, com precisões ISO distintas. |
 | 4 | PASS para os cenários testados: `apps/api/test/syncCaixaVenda.test.ts:25` exige lote invertido aceito na ordem original; 30 vínculo imutável; 40 snapshot igual no replay; 44 pull exato; 54–55 e 68–69 rejeições sem escrita; 85–86 ausente/outra loja; 115–117 limite do intervalo. `apps/api/test/migracaoCaixaVenda.test.ts:11` verifica null legado. |
 | 5 | Parcial: gestor relatou gates e smoke web completos; revisão presente; avaliação humana checkpoint 2 ainda pendente. Não há evidência Android ou produção. |
 
-## Achado priorizado
+## Achado anterior — corrigido
 
-**Major — AC3, ajuste omitido no histórico.** O contrato aceita ambos ISO `2026-10-30T13:00:00Z` e `2026-10-30T13:00:00.001Z` (`packages/shared/src/contrato.ts:10`, confirmado com `z.iso.datetime().safeParse`); fechamento no primeiro instante e cancelamento no segundo produzem `evento >= fechamento === false`, embora `Date.parse(evento) > Date.parse(fechamento)`. Assim o helper retorna lista vazia apesar do evento posterior. Corrigir comparação por instante e adicionar teste para precisões diferentes, incluindo igualdade e anterior; repetir revisão e UAT após correção.
+**Major — AC3, ajuste omitido no histórico.** O contrato aceita ambos ISO `2026-10-30T13:00:00Z` e `2026-10-30T13:00:00.001Z` (`packages/shared/src/contrato.ts:10`, confirmado com `z.iso.datetime().safeParse`); fechamento no primeiro instante e cancelamento no segundo produziam `evento >= fechamento === false`, embora `Date.parse(evento) > Date.parse(fechamento)`. Corrigido em `6681882` com comparação por instante e teste de posterior, igualdade e anterior.
 
 ## Sensor comportamental isolado
 
@@ -40,4 +42,8 @@ Após remover a junction separadamente e excluir o TEMP validado, `git status --
 
 Gestor informou mobile 461/42, API 443/32 em PGlite, shared 159/12 e typechecks PASS; migração 0006 e `syncCaixaVenda` 6/6 em PostgreSQL 17 local dedicado. Essas execuções não foram repetidas integralmente nesta revisão; os testes direcionados acima foram executados pelo revisor. Não existe `tasks.md` de fase 2 com comando Build gate, nem contagem anterior disponível para comparação. Diff de testes existentes conserva igualdade completa nos snapshots com novos campos null; fixture de recurso-caixa remove alteração de abertura agora imutável, mantendo assertiva de rejeição e snapshot. Sem exclusões ou skips identificados no diff. Smoke web informado pelo gestor: split 10+15 após recarga, gaveta e fechamento 20/20, cancelamento 25 separado e fechamento anterior 100/100 preservado; é evidência do gestor, não UAT humano nem homologação Android.
 
-Qualidade: alterações seguem escopo de vínculo/auditoria; a comparação temporal da apresentação impede aprovação. Persistência, origem, ordenação, replay e imutabilidade têm evidências dirigidas; cobertura não é exaustiva de todos os ramos. Nenhum arquivo de requisitos ou lições foi alterado por restrição explícita do escopo desta revisão.
+Qualidade: alterações seguem escopo de vínculo/auditoria; comparação temporal corrigida e validada. Persistência, origem, ordenação, replay e imutabilidade têm evidências dirigidas; cobertura não é exaustiva de todos os ramos. Nenhum arquivo de requisitos ou lições foi alterado pelo revisor por restrição explícita do escopo.
+
+## Revalidação da correção
+
+`6681882` altera o helper e adiciona assertivas em `apps/mobile/test/fase2Interface.test.ts:21` e :22 para precisões diferentes, igualdade e instante anterior. Em scratch extraído por `git archive 6681882`, `node ../../node_modules/vitest/vitest.mjs run test/fase2Interface.test.ts --maxWorkers=1` passou 2/2. Reverter apenas a comparação para texto no scratch fez falhar a assertiva da linha 21 (esperava posterior e igual, recebeu lista vazia): mutante morto. Sensor cumulativo 8/8; os sete anteriores permanecem válidos pois as fontes respectivas não mudaram. Gestor informou typecheck mobile PASS e registrou lição L019. Checkpoint 2 humano segue pendente; PASS técnico não significa aprovação humana nem início da fase 3.

@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 20,
+  "next_id": 21,
   "lessons": [
     {
       "id": "L-001",
@@ -347,6 +347,24 @@
       ],
       "created": "2026-10-30T19:25:38Z",
       "last_seen": "2026-10-30T19:25:38Z"
+    },
+    {
+      "id": "L-020",
+      "key": "ac_gap::ao restaurar instalacao preserve caixas historicos e teste uma nova venda com caixa e origem do aparelho atual",
+      "text": "Ao restaurar instalação, preserve caixas históricos e teste uma nova venda com caixa e origem do aparelho atual.",
+      "signal": "ac_gap",
+      "scope": "apps/mobile/src/dados",
+      "status": "candidate",
+      "features": [
+        "fase-3-sync"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "apps/mobile/test/syncIntegracao.test.ts:163 (apps/mobile/src/dados)"
+      ],
+      "created": "2026-10-30T22:47:52Z",
+      "last_seen": "2026-10-30T22:47:52Z"
     }
   ]
 }

@@ -14,7 +14,7 @@ Manter Fastify, Drizzle/PostgreSQL, Expo/React Native e o domínio em `packages/
 
 ### Como acompanhar
 
-Execução reorganizada em30/10/2026 em [fases com checkpoints no app](fases-e-checkpoints.md). Fase1 aprovada pelo usuário. Fase2 implementada localmente em `74d2c3a`/`574e232`/`6681882`, revisão técnica PASS e checkpoint2 aguardando avaliação humana. Fase3 somente após esse checkpoint; nenhuma homologação Android/produção inferida da demonstração web.
+Execução reorganizada em30/10/2026 em [fases com checkpoints no app](fases-e-checkpoints.md). Fases1–2 aprovadas pelo usuário. Fase3 implementada localmente em `d30ea9f`/`8a0b3e5`/`985c9b1`, revisão técnica PASS e checkpoint3 aguardando avaliação humana. Fase4 somente após esse checkpoint; nenhuma homologação Android/produção inferida das provas locais.
 
 - IDs `P0-01-A` identificam tarefas; IDs `AC-P0-01-1` identificam critérios de aceite.
 - Marcar uma tarefa apenas quando o resultado correspondente estiver implementado e verificado.
@@ -71,20 +71,20 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 
 **Tarefas**
 
-- [ ] **P0-02-A:** integrar todas as mutações locais à outbox de P0-01, incluindo exclusão de produto, cancelamento de venda e movimentos/fechamento do caixa.
-- [ ] **P0-02-B:** implementar envio ordenado com IDs estáveis, confirmação individual, timeout e retentativas com espera progressiva; não remover pendências antes da confirmação do servidor.
-- [ ] **P0-02-C:** implementar pull paginado, aplicação transacional das mudanças e avanço do cursor somente após gravação local; não usar o cursor do push para saltar mudanças não recebidas.
-- [ ] **P0-02-D:** definir e testar resolução de conflitos, inclusive a divergência entre a documentação de conflito por campo e o upsert atual por produto; proteger mutações locais ainda não confirmadas durante o pull.
-- [ ] **P0-02-E:** implementar restauração autenticada num aparelho autorizado, execução ao abrir/retomar o app e indicação real de pendências, falhas e última sincronização concluída.
-- [ ] **P0-02-F:** criar tratamento recuperável para rejeições permanentes e vendas antigas: manter conteúdo local, mostrar motivo e disponibilizar exportação/procedimento autenticado de revisão, sem aceitar qualquer retroação de data automaticamente.
+- [x] **P0-02-A:** integrar todas as mutações locais à outbox de P0-01, incluindo exclusão de produto, cancelamento de venda e movimentos/fechamento do caixa. Fase3 local8a0b3e5: transação SQLite/envelope navegador, bootstrap idempotente, sem eco de pull e colisão de ID rejeitada com rollback. Testes de falha/reabertura e HTTP/PG; sem homologação Android.
+- [x] **P0-02-B:** implementar envio ordenado com IDs estáveis, confirmação individual, timeout e retentativas com espera progressiva; não remover pendências antes da confirmação do servidor. Fase3 local: conjunto/cobertura de ACK validado, resposta perdida após commit e replay sem duplicação, backoff1/5/30/60s, conta/token conferidos dentro da aplicação local. Sensor e revisão em fase-3-sync/validation.md.
+- [x] **P0-02-C:** implementar pull paginado, aplicação transacional das mudanças e avanço do cursor somente após gravação local; não usar o cursor do push para saltar mudanças não recebidas. Fase3 local:503 alterações por HTTP/PG, página+cursor em mesmo commit, rollback com reabertura e proteção de cursor; fonte8a0b3e5.
+- [x] **P0-02-D:** definir e testar resolução de conflitos, inclusive a divergência entre a documentação de conflito por campo e o upsert atual por produto; proteger mutações locais ainda não confirmadas durante o pull. Política documentada: LWW do agregado por atualizadoEm; remoto diferido até último ACK da entidade e convergência da edição antiga ignorada comprovada em HTTP/PG. Não há merge por campo.
+- [x] **P0-02-E:** implementar restauração autenticada num aparelho autorizado, execução ao abrir/retomar o app e indicação real de pendências, falhas e última sincronização concluída. Fase3 local8a0b3e5/985c9b1: nova sessão API em instalação limpa de teste restaura entidades/vínculos/eventos; caixa aberto anterior permanece histórico, nova instalação abre caixa próprio e envia nova venda sem misturar. UI com fila/erros/data reais e ciclo ativo15s. Artefato Android/aparelho físico ainda pendentes.
+- [ ] **P0-02-F:** criar tratamento recuperável para rejeições permanentes e vendas antigas: manter conteúdo local, mostrar motivo e disponibilizar exportação/procedimento autenticado de revisão, sem aceitar qualquer retroação de data automaticamente. Parte local entregue na fase3: motivo, exportação sem credenciais, retry autenticado mantendo ID/data/payload e [procedimento preparado](revisao-pendencias-sync.md). Aceitação excepcional no servidor e canal real de atendimento continuam pendentes; não marcar como fluxo operacional homologado.
 
 **Critérios de aceite**
 
-- [ ] **AC-P0-02-1:** após criar produto, vender, cancelar outra venda e fechar caixa offline, reiniciar e reconectar, o servidor recebe cada evento uma única vez, mesmo com perda da resposta e reenvio.
-- [ ] **AC-P0-02-2:** um pull com mais de 500 mudanças recupera todas as entidades; queda entre aplicação e atualização do cursor não causa perda ou duplicação.
-- [ ] **AC-P0-02-3:** o aparelho autorizado de recuperação recebe os dados confirmados no servidor; a UI distingue esses dados das operações ainda pendentes no aparelho de origem.
-- [ ] **AC-P0-02-4:** uma venda legítima enviada após oito dias continua preservada e acessível para recuperação; a rejeição não elimina a venda nem bloqueia todas as outras pendências.
-- [ ] **AC-P0-02-5:** edição concorrente de produto e fechamento/cancelamento repetidos seguem a regra documentada e mantêm os mesmos totais após reconexão.
+- [x] **AC-P0-02-1:** após criar produto, vender, cancelar outra venda e fechar caixa offline, reiniciar e reconectar, o servidor recebe cada evento uma única vez, mesmo com perda da resposta e reenvio. Fase3 syncIntegracao: HTTP real/SQLite/PG, ACKs exatos e mudanças inalteradas no reenvio. Assinatura/OTP são fixtures declaradas; pagamentos manuais.
+- [x] **AC-P0-02-2:** um pull com mais de 500 mudanças recupera todas as entidades; queda entre aplicação e atualização do cursor não causa perda ou duplicação.503 mudanças e cursor503 em HTTP/PG; falha estado_local com rollback e reabertura SQLite, sem eco/outbox.
+- [x] **AC-P0-02-3:** o aparelho autorizado de recuperação recebe os dados confirmados no servidor; a UI distingue esses dados das operações ainda pendentes no aparelho de origem. Instalação limpa de teste com login API restaura exatamente os agregados; UI distingue confirmado/local/rejeitado. Seguimento985c9b1 prova caixa histórico separado do atual. Android físico não foi usado.
+- [x] **AC-P0-02-4:** uma venda legítima enviada após oito dias continua preservada e acessível para recuperação; a rejeição não elimina a venda nem bloqueia todas as outras pendências. Payload/data/ID/exportação intactos, produto vizinho confirmado em HTTP/PG. Não equivale a aceite excepcional da venda antiga no servidor.
+- [x] **AC-P0-02-5:** edição concorrente de produto e fechamento/cancelamento repetidos seguem a regra documentada e mantêm os mesmos totais após reconexão. LWW do agregado, remoto diferido e snapshots/IDs/fechamento/evento/replay verificados em fase3, sensor cumulativo6/6. Fonte8a0b3e5/985c9b1; revisão amostral dos caminhos críticos e gates do gestor, sem alegar auditoria integral.
 
 **Verificação:** testes integrados mobile/API com desconexão, respostas perdidas, paginação e conflitos; repetir contra PostgreSQL real e restaurar em instalação limpa autorizada.
 

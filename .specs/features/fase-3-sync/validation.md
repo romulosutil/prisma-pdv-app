@@ -1,5 +1,13 @@
 # Validação independente: fase 3
 
+## Seguimento AC4 — commit 985c9b1
+
+Revisão direcionada PASS para o caixa restaurado: `apps/mobile/src/dados/caixa.ts:78` seleciona aberto somente da loja e aparelho atuais; linhas 88 e 106 aplicam a mesma restrição à abertura e aos movimentos; fechamento parte de `atual()` na linha 116. `apps/mobile/src/telas/caixa/ResumoCaixa.tsx:173` informa os caixas anteriores ainda abertos. O teste HTTP/PostgreSQL em `apps/mobile/test/syncIntegracao.test.ts:162` exige histórico igual e, na linha 163, caixa atual nulo; linhas 169–177 exigem zero pendências/rejeições, histórico preservado e vendas vinculadas aos caixas e aparelho corretos.
+
+Baseline independente no scratch de `git archive 985c9b1`: `npm run test -w @pdv/mobile -- test/syncIntegracao.test.ts --maxWorkers=1`, com `PDV_TEST_POSTGRES_URL` apontando ao PostgreSQL de teste dedicado: 5/5 PASS. Após retirar somente o filtro de aparelho de `atual()` na cópia, a mesma suíte falhou 1/5 na linha 163: esperava `null`, recebeu o caixa histórico. Mutante detectado; os cinco sensores anteriores continuam aplicáveis aos arquivos inalterados. Junction removida separadamente, caminho temporário validado e scratch descartado; `git status --porcelain` antes e depois permaneceu somente ` M README.md`.
+
+O gestor informou regressão final de 489 testes/47 arquivos e typecheck mobile PASS; não foram repetidos nesta revisão. A correção documental de LWW por agregado integra o commit. A revisão permanece limitada aos caminhos e provas citados, com checkpoint 3 e avaliação humana pendentes.
+
 **Data:** 2026-10-30
 **Diff:** `4ea3832..8a0b3e5`
 **Veredito:** PASS técnico com checkpoint 3 e avaliação humana pendentes.
@@ -34,6 +42,6 @@ O gestor informou regressão mobile 487 testes/47 arquivos antes do caso LWW adi
 
 ## Qualidade e pendências
 
-Atualização do gestor após a revisão: a frase residual de LWW por campo em docs/arquitetura.md foi substituída por LWW do agregado por atualizadoEm, coerente com implementação e testes. Nenhuma fonte runtime foi alterada após8a0b3e5. A prova humana do checkpoint3 permanece pendente.
+Atualização do gestor após a revisão: a frase residual de LWW por campo em docs/arquitetura.md foi substituída por LWW do agregado por atualizadoEm, coerente com implementação e testes. O seguimento de runtime está descrito acima. A prova humana do checkpoint 3 permanece pendente.
 
-As assertivas citadas verificam estados e valores, não apenas chamadas; os testes examinados mapeiam aos ACs. A revisão não encontrou desvio técnico comprovado na amostra examinada; não constitui auditoria integral de todos os caminhos. O gestor identificou contradição documental em `docs/arquitetura.md:40`, que descreve LWW por campo apesar do contrato por agregado, e corrigirá após a limpeza do sensor. Não houve homologação humana interativa nesta revisão. O gestor deve entregar checkpoint 3 e parar para avaliação humana antes da fase 4. Contagem anterior à feature e comparação integral de todas as assertivas prévias não foram verificadas independentemente. Sem sinais de mutante sobrevivente ou falha comprovada, nenhuma lição foi adicionada.
+As assertivas citadas verificam estados e valores, não apenas chamadas; os testes examinados mapeiam aos ACs. A revisão não encontrou desvio técnico comprovado na amostra examinada; não constitui auditoria integral de todos os caminhos. A contradição documental de LWW foi corrigida no seguimento. Não houve homologação humana interativa nesta revisão. O gestor deve entregar checkpoint 3 e parar para avaliação humana antes da fase 4. Contagem anterior à feature e comparação integral de todas as assertivas prévias não foram verificadas independentemente. Sem sinais de mutante sobrevivente ou falha comprovada, nenhuma lição foi adicionada.

@@ -21,7 +21,7 @@ Reorganização autorizada em 30/10/2026. O plano de produção continua sendo o
 
 ## Estado
 
-Fases1–2 aprovadas pelo usuário; em30/10/2026 autorizou “pode fazer a próxima etapa” após o checkpoint2. Fase3 em execução, com nova parada no checkpoint3. Fase4 não iniciada. O controlador do Goal permanece pausado, sem comando de retomada disponível ao agente; a fase atual foi autorizada diretamente na conversa.
+Fases1–2 aprovadas pelo usuário; em30/10/2026 autorizou “pode fazer a próxima etapa” após o checkpoint2. Fase3 implementada e revisada tecnicamente; **parada no checkpoint3 para avaliação humana**. Fase4 não iniciada. O controlador do Goal permanece pausado, sem comando de retomada disponível ao agente; a fase atual foi autorizada diretamente na conversa.
 
 ## Checkpoint 1 — 30/10/2026
 
@@ -65,3 +65,37 @@ Conferência realizada pelo gestor via navegador: passos acima completos na vend
 Evidência local adicional: SQLite real em arquivo, reabertura, rollback na outbox, vínculo conhecido/ausente/conflitante e corridas nas duas ordens; PostgreSQL17 dedicado com migração0006 e rejeições sem efeitos. Gates: mobile461/42 antes do teste temporal adicional, alvo final2/2; API443/32 em PGlite; shared159/12; todos os tipos PASS e mobile repetido após correção PASS; alvo final PostgreSQL6/6. Revisor independente: PASS, oito regressões comportamentais detectadas; relatório `.specs/features/fase-2-caixa/validation.md`. O PostgreSQL descartável foi removido; servidor web ficou ativo.
 
 Limitações e próximos passos: homologação Android e artefato distribuído continuam pendentes. Envio automático da outbox, ACK, pull e restauração financeira serão a fase3 após sua avaliação; os testes locais da API não significam que esse fluxo já esteja conectado no app. E-mail, assinatura e infraestrutura reais seguem pendentes. **Parar aqui para o usuário validar; não iniciar fase3. Projeto não pronto para produção.**
+
+## Checkpoint 3 — 30/10/2026
+
+Abrir [Sincronização no app conectado local](http://localhost:8087/caixa/sync). Origem separada da demo8086, com APIHTTP real em127.0.0.1:3338 e PostgreSQL17 local na porta55441, banco `pdv_checkpoint_sync`. A conta fictícia `checkpoint-sync@example.invalid` já está aberta. Assinatura e código de desenvolvimento são fixtures; não há pagamento ou e-mail real. Não usar dados reais.
+
+Commits: `d30ea9f` contrato; `8a0b3e5` outbox/motor/HTTP/pull/restauração/interface; `985c9b1` isolamento do caixa atual depois da restauração em aparelho autorizado. Revisão independente PASS nos caminhos verificados, seis regressões comportamentais detectadas e validação direcionada HTTP/PG5/5. O revisor não repetiu a regressão completa nem realizou auditoria integral de todos os caminhos.
+
+Roteiro de5–10min:
+
+1. Conferir zero em Aguardando confirmação, zero em Preservados para revisão e a data da última sincronização financeira. Tocar Sincronizar agora e conferir que os números permanecem coerentes.
+2. Em Vendas, conferir a venda de teste de R$25 e troco R$5. É um registro efetivamente confirmado na API local; a demonstração antiga de8086 não foi importada.
+3. Criar outra venda manual no caixa aberto, concluir e conferir a fila; tocar Sincronizar agora ou aguardar até15s com o app ativo. A fila deve zerar após o aceite do servidor.
+4. Recarregar e conferir que vendas, vínculo e confirmação persistem. Repetir Sincronizar agora não deve duplicar vendas.
+5. Se houver registro rejeitado em testes posteriores, conferir motivo, exportar para arquivo local e seguir [revisão de pendências](revisao-pendencias-sync.md). Não apagar nem alterar a data para forçar aceite.
+
+Smoke do gestor: API desligada, abriu caixa com zero de troco e concluiu venda `01a18ef2-dc5d-723c-b114-dd3d75c4caaa` de R$25, recebidoR$30/trocoR$5. A tela mostrou2 pendências, preservadas após reload; PostgreSQL ainda tinha0vendas/0caixas/0ACK. Após reconectar e sincronizar: fila0, PG1venda25 vinculada/1caixa/2ACK, com data financeira atualizada. Reinício final usa o mesmo banco, sem semear outra cópia.
+
+Gates finais: mobile489/47arquivos PASS, usando PostgreSQL no teste integrado e SQLite real; cinco casos HTTP/PG incluem resposta perdida após commit, restauração autenticada,503 alterações paginadas, venda8dias preservada com vizinho válido, conflito LWW e isolamento de caixa no aparelho restaurado (alguns casos agrupam cenários). Tipos todos PASS antes do seguimento e mobile repetido após ele PASS. Sensor inicial5/5 e seguimento1/1, scratch removido. Servidores foram pausados durante testes após um OOM e reiniciados, sem aumentar heap ou omitir casos. API/shared runtime permaneceram inalterados, exceto launcher exclusivamente local de revisão.
+
+Ambiente de revisão deixado ativo: Metro8087 e API3338, container `pdv-fase3-pg`. `pdv_test` é descartável e exclusivo dos testes; `pdv_checkpoint_sync` contém a revisão interativa e não pode ser alvo de TRUNCATE dos testes. O container foi criado com --rm: encerrá-lo descarta estes dados fictícios; não confundir este ambiente com backup de produção. Outros projetos não foram tocados. Demo8086 conserva os dados anteriores no navegador, mas seu servidor foi pausado para liberar memória.
+
+Reiniciar API se necessário: em `apps/api`, executar com ambiente somente development e URL do banco local dedicado:
+
+```powershell
+rtk proxy python -X utf8 -c "import os,subprocess; e=dict(os.environ,NODE_ENV='development',DATABASE_URL='postgres://pdv_test:pdv_fase3_local_test@127.0.0.1:55441/pdv_checkpoint_sync'); raise SystemExit(subprocess.call(['rtk','proxy','npx.cmd','--no-install','tsx','scripts/checkpoint-sync.ts'],env=e))"
+```
+
+Reiniciar web na raiz:
+
+```powershell
+rtk proxy python -X utf8 -c "import os,subprocess; e=dict(os.environ,CI='1',EXPO_NO_TELEMETRY='1',BROWSER='none',EXPO_PUBLIC_API_URL='http://127.0.0.1:3338',EXPO_PUBLIC_FERRAMENTAS_TESTE='1',NODE_ENV='development'); raise SystemExit(subprocess.call(['rtk','proxy','npm.cmd','run','web','-w','@pdv/mobile','--','--port','8087','--localhost'],env=e))"
+```
+
+Pendentes: sua avaliação; Android/artefato exato; e-mail, assinatura, infraestrutura, operação e canal de revisão reais. A aceitação excepcional de vendas antigas não foi implementada; conteúdo continua preservado e exportável. **Não iniciar fase4 automaticamente. Projeto não pronto para produção.**

@@ -128,6 +128,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: apps/mobile/test/fase2Interface.test.ts:21 (apps/mobile/src/telas/caixa)
 - last seen: 2026-10-30T19:25:38Z
 
+### L-020 - Ao restaurar instalação, preserve caixas históricos e teste uma nova venda com caixa e origem do aparelho atual.
+- signal: `ac_gap` · recurrence: 1 feature(s) · scope: `apps/mobile/src/dados` · harmful: 0
+- features: fase-3-sync
+- evidence: apps/mobile/test/syncIntegracao.test.ts:163 (apps/mobile/src/dados)
+- last seen: 2026-10-30T22:47:52Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

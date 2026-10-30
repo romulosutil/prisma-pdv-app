@@ -138,13 +138,13 @@ describe('ArmazenamentoSqlite', () => {
     } finally { raw.close(); }
   });
 
-  it('recusa dados sem conta e mantém origem', async () => {
+  it('oculta dados sem conta e mantém origem', async () => {
     const raw = new DatabaseSync(':memory:');
     const legado = await legadoCompleto();
     try {
       await legado.remover('conta');
       const storage = new ArmazenamentoSqlite(async () => sqliteBanco(raw), legado);
-      await expect(storage.obter('vendas')).rejects.toThrow();
+      expect(await storage.obter('vendas')).toBeNull();
       expect(await legado.obter('vendas')).toEqual(vendas);
     } finally { raw.close(); }
   });

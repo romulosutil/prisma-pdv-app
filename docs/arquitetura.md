@@ -35,6 +35,8 @@ Toda linha de negócio tem `loja_id`, `criado_em`, `atualizado_em`, `excluido_em
 ## Sincronização
 - `POST /sync/push`: o aparelho envia mutações da outbox (idempotente por `id` da mutação).
 - `GET /sync/pull?desde=<cursor>`: o aparelho recebe mudanças desde o cursor.
+
+No cliente, SQLite e o envelope financeiro do navegador persistem outbox, cursor e mudanças diferidas. Cada escrita local gera uma mutação com ID estável; confirmação individual remove somente esse ID. O cursor do push não substitui o cursor do pull. Cada página recebida é aplicada junto ao avanço do cursor; alterações de entidades ainda pendentes ficam diferidas até a confirmação para evitar apagar trabalho offline. A política atual de produto é upsert do agregado completo por `atualizadoEm`, coerente com a API, sem merge por campo. Após confirmação de uma edição antiga ignorada pelo servidor, a mudança remota diferida ou o pull seguinte consolida a versão canônica.
 - Conflito: *last-write-wins* por campo de catálogo. Vendas são imutáveis (só cancelamento gera evento novo).
 
 ## Assinatura / licença

@@ -20,6 +20,10 @@ import { CheckoutNavegador } from './checkoutNavegador';
 import { ArmazenamentoSqlite } from './sqlite/armazenamentoSqlite';
 import { CheckoutSqlite } from './sqlite/checkoutSqlite';
 import { ArmazenamentoEscopo } from './armazenamentoEscopo';
+import { ArmazenamentoSyncNavegador } from './syncNavegador';
+import { RepositorioSyncSqlite } from './sqlite/syncSqlite';
+import type { RepositorioSync } from './syncTipos';
+import { SincronizacaoServico } from '@/servicos/sincronizacao';
 import type { EstadoConta, Perfil } from './estadoConta';
 import type { Sessao } from '@pdv/shared';
 
@@ -49,6 +53,8 @@ export class Dados {
   readonly assinatura: AssinaturaServico;
   readonly carrinho: CarrinhoDuravel;
   readonly armazenamentoDaLoja: ArmazenamentoEscopo;
+  readonly sincronizacao: SincronizacaoServico;
+  private readonly repositorioSync: RepositorioSync;
   private filaAcesso: Promise<void> = Promise.resolve();
   private contaCarregada = false;
   private geracaoAcesso = 0;
@@ -61,7 +67,17 @@ export class Dados {
   ) {
     this.relogio = new RelogioApp(armazenamento);
     this.conta = new ContaRepo(armazenamento);
-    this.armazenamentoDaLoja = new ArmazenamentoEscopo(armazenamento, () => this.conta.obter().identidade, armazenamento instanceof ArmazenamentoSqlite);
+    let financeiro: Armazenamento;
+    if (armazenamento instanceof ArmazenamentoSqlite) {
+      armazenamento.configurarSync(novoId, () => this.relogio.agora());
+      financeiro = armazenamento;
+      this.repositorioSync = new RepositorioSyncSqlite(armazenamento, novoId, () => this.relogio.agora());
+    } else {
+      const navegador = new ArmazenamentoSyncNavegador(armazenamento, () => this.conta.obter().identidade, novoId, () => this.relogio.agora());
+      financeiro = navegador;
+      this.repositorioSync = navegador;
+    }
+    this.armazenamentoDaLoja = new ArmazenamentoEscopo(financeiro, () => this.conta.obter().identidade, true);
     this.instalacao = new InstalacaoRepo(armazenamento, novoId);
     this.backend = urlApi
       ? new BackendHttp(urlApi.replace(/\/+$/, ''), () => this.conta.obter().sessao?.token ?? null, (token) => this.conta.invalidarSessao(token))
@@ -89,6 +105,32 @@ export class Dados {
         : new CheckoutNavegador(this.armazenamentoDaLoja, this.vendas, () => JSON.stringify([sessao().contaId, sessao().lojaId])),
       { novoId, agora: () => this.relogio.agora().toISOString(), caixaId: () => this.caixa.atual()?.id ?? null, aposConcluir: () => this.vendas.carregar(), podeAlterar: () => !this.conta.transicao.obter(), podeIniciar: () => !this.conta.obter().reautenticacaoNecessaria },
     );
+    this.sincronizacao = new SincronizacaoServico({
+      repositorio: this.repositorioSync,
+      backend: this.backend,
+      sessao: () => this.conta.obter().sessao,
+      vinculo: () => this.armazenamentoDaLoja.obterEscopo(),
+      agora: () => this.relogio.agora(),
+      aplicarLocal: (tarefa) => this.aplicarSyncLocal(tarefa),
+    });
+  }
+
+  private aplicarSyncLocal<T>(tarefa: () => Promise<T>): Promise<T> {
+    return this.executarAcesso(async () => {
+      this.conta.transicao.alterar(true);
+      this.armazenamentoDaLoja.bloquearAlteracoes(true);
+      await this.aguardarGravacoes();
+      const resultado = await tarefa();
+      await this.carregarDadosDaLoja();
+      return resultado;
+    });
+  }
+
+  async listarPendenciasSync() {
+    const escopo = this.armazenamentoDaLoja.obterEscopo();
+    if (!escopo) return [];
+    const estado = await this.repositorioSync.estado();
+    return escopo === this.armazenamentoDaLoja.obterEscopo() ? estado.entradas : [];
   }
 
   /** Carrega tudo do armazenamento e confere a assinatura (avaliação de tempo e cobranças devidas). */
@@ -100,6 +142,7 @@ export class Dados {
       this.carregarDadosDaLoja(),
     ]);
     await this.assinatura.sincronizar();
+    await this.sincronizacao.atualizarEstado();
   }
 
   private async carregarDadosDaLoja(): Promise<void> {
@@ -310,18 +353,10 @@ export class Dados {
   }
 
   private async possuiPendencias(): Promise<boolean> {
-    if (this.carrinho.obter().itens.length > 0) return true;
-    if (this.armazenamento instanceof ArmazenamentoSqlite) {
-      let pendente = false;
-      await this.armazenamento.transacao(async (tx, p) => {
-        // Até P0-02 integrar todos os eventos/ack, registros locais são conservadoramente não confirmados.
-        for (const tabela of ['outbox', 'rascunhos', 'produtos', 'vendas', 'caixas']) {
-          if (await tx.getFirstAsync(`SELECT 1 FROM ${tabela} WHERE conta_id = ? AND loja_id = ? LIMIT 1`, p.contaId, p.lojaId)) pendente = true;
-        }
-      });
-      return pendente;
-    }
-    return this.produtos.obter().length > 0 || this.vendas.obter().vendas.length > 0 || this.caixa.obter().length > 0;
+    const checkout = this.carrinho.obter();
+    if (checkout.itens.length > 0 && !checkout.concluidaId) return true;
+    await this.repositorioSync.preparar();
+    return (await this.repositorioSync.estado()).entradas.length > 0;
   }
 
   private limparMemoriaDaLoja(): void {

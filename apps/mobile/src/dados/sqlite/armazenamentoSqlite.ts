@@ -3,6 +3,7 @@ import type { Armazenamento } from '../armazenamento';
 import type { BancoSqlite, SqlExecutor } from './driver';
 import { ehFinanceira, escreverFinanceiro, lerFinanceiro, validarFinanceiro, type ChaveFinanceira, type ParticaoLocal } from './financeiro';
 import { inicializarSchema } from './schema';
+import { alterar, vazioSync } from '../syncAplicacao';
 
 const CHAVES = ['produtos', 'caixas', 'vendas'] as const;
 const PROPRIETARIO_LEGADO = 'proprietario_legado_v1';
@@ -12,6 +13,9 @@ const ERRO_MIGRACAO = 'Migração local não validada. Os dados de origem foram 
 export class ArmazenamentoSqlite implements Armazenamento {
   private banco: Promise<BancoSqlite> | null = null;
   private fila: Promise<void> = Promise.resolve();
+  private sync: { novoId: () => string; agora: () => Date } | null = null;
+
+  configurarSync(novoId: () => string, agora: () => Date): void { this.sync = { novoId, agora }; }
 
   constructor(private readonly abrir: () => Promise<BancoSqlite>, private readonly legado: Armazenamento) {}
 
@@ -77,10 +81,7 @@ export class ArmazenamentoSqlite implements Armazenamento {
     return this.enfileirar(async () => {
       const p = await this.particao();
       if (!p) {
-        // Conta ausente nunca autoriza recuperar o legado em outra identidade.
-        if ((await Promise.all(CHAVES.map((c) => this.legado.obter(c)))).some((v) => v !== null)) {
-          throw new Error('Há dados locais sem conta identificada. Preserve a origem para recuperação.');
-        }
+        // A origem permanece intacta até que exista uma identidade para atribuí-la.
         return null;
       }
       const db = await this.db();
@@ -94,7 +95,21 @@ export class ArmazenamentoSqlite implements Armazenamento {
   async gravar<T>(chave: string, valor: T): Promise<void> {
     if (chave === 'conta') return this.enfileirar(() => this.legado.gravar(chave, valor));
     if (!ehFinanceira(chave)) return this.legado.gravar(chave, valor);
-    await this.transacao(async (tx, p) => escreverFinanceiro(tx, chave, valor, p));
+    await this.transacao(async (tx, p) => {
+      const e = vazioSync();
+      (e.agregados as any)[chave] = await lerFinanceiro(tx, chave, p);
+      if (this.sync) alterar(e, chave, valor, p, this.sync.novoId, this.sync.agora);
+      await escreverFinanceiro(tx, chave, valor, p);
+      for (const entrada of e.entradas) {
+        const payload = JSON.stringify(entrada.mutacao);
+        const existente = await tx.getFirstAsync<{ conta_id: string; loja_id: string; payload_json: string }>('SELECT conta_id, loja_id, payload_json FROM outbox WHERE id = ?', entrada.mutacao.id);
+        if (existente) {
+          if (existente.conta_id !== p.contaId || existente.loja_id !== p.lojaId || existente.payload_json !== payload) throw new Error('ID de mutação já usado com conteúdo diferente. Preserve os dados para recuperação.');
+        } else {
+          await tx.runAsync('INSERT INTO outbox (conta_id, loja_id, id, payload_json) VALUES (?, ?, ?, ?)', p.contaId, p.lojaId, entrada.mutacao.id, payload);
+        }
+      }
+    });
   }
 
   /** Operações compostas (checkout/outbox) usam o mesmo commit SQLite, sem transações aninhadas. */

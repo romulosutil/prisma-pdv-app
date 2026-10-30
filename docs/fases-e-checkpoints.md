@@ -21,7 +21,7 @@ Reorganização autorizada em 30/10/2026. O plano de produção continua sendo o
 
 ## Estado
 
-Fase 1 aprovada pelo usuário em30/10/2026: “deu certo. pode ir para a próxima fase”. Fase 2 implementada e revisada tecnicamente; **parada no checkpoint2 para avaliação humana**. Fases3–4 não iniciadas. O controlador do Goal permanece pausado, sem comando de retomada disponível ao agente; a fase atual foi autorizada diretamente na conversa.
+Fases1–2 aprovadas pelo usuário; em30/10/2026 autorizou “pode fazer a próxima etapa” após o checkpoint2. Fase3 em execução, com nova parada no checkpoint3. Fase4 não iniciada. O controlador do Goal permanece pausado, sem comando de retomada disponível ao agente; a fase atual foi autorizada diretamente na conversa.
 
 ## Checkpoint 1 — 30/10/2026
 

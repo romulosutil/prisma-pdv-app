@@ -1,5 +1,6 @@
 import {
   AssinaturaResSchema,
+  SyncPushReqSchema, SyncPushResSchema, SyncPullResSchema,
   PerfilResSchema,
   AparelhosResSchema,
   CriarContaResSchema,
@@ -16,6 +17,7 @@ import {
   type Plano,
   type PlanoId,
   type Sessao,
+  type SyncPushReq,
 } from '@pdv/shared';
 import { z, type ZodType } from 'zod';
 import { ErroBackend, type Backend, type CodigoErroBackend } from './backend';
@@ -66,6 +68,15 @@ export class BackendHttp implements Backend {
     private readonly obterToken: () => string | null,
     private readonly aoSessaoInvalida?: (tokenUsado: string) => Promise<void> | void,
   ) {}
+
+  enviarMutacoes(req: SyncPushReq, token?: string) {
+    return this.chamar('POST', '/sync/push', SyncPushResSchema, { corpo: SyncPushReqSchema.parse(req), token });
+  }
+
+  receberMudancas(desde: string, token?: string) {
+    if (!/^\d+$/.test(desde)) throw new ErroBackend('valor_invalido', 'Cursor inválido.');
+    return this.chamar('GET', `/sync/pull?desde=${encodeURIComponent(desde)}`, SyncPullResSchema, { token });
+  }
 
   obterPerfil(token?: string) {
     return this.chamar('GET', '/conta', PerfilResSchema, { token });

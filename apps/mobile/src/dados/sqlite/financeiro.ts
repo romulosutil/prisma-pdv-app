@@ -84,11 +84,11 @@ export async function lerFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira, p: 
 }
 
 /** Substitui o agregado dentro da transação do chamador, preservando a API dos repositórios. */
-export async function escreverFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira, valor: unknown, p: ParticaoLocal): Promise<void> {
+export async function escreverFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira, valor: unknown, p: ParticaoLocal, remoto = false): Promise<void> {
   const dados = validarFinanceiro(chave, valor, p);
   const entidades: (Produto | Caixa | Venda)[] = Array.isArray(dados) ? dados : dados.vendas;
   const anteriores = chave === 'vendas' ? (await lerFinanceiro(tx, 'vendas', p) as EstadoVendas).vendas : [];
-  if (chave === 'caixas') {
+  if (chave === 'caixas' && !remoto) {
     const antigos = await lerFinanceiro(tx, 'caixas', p) as Caixa[];
     if (antigos.some((c) => c.fechamento && !(entidades as Caixa[]).some((e) => e.id === c.id))) throw new Error('Caixa fechado não pode ser removido.');
     for (const caixa of entidades as Caixa[]) {
@@ -119,8 +119,8 @@ export async function escreverFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira
     if (chave === 'vendas') {
       const venda = entidade as Venda;
       const anterior = anteriores.find((v) => v.id === venda.id);
-      if (anterior && (anterior.caixaId ?? null) !== (venda.caixaId ?? null)) throw new Error('Vínculo da venda não pode ser alterado.');
-      if (anterior?.cancelamento && !iguais(anterior.cancelamento, venda.cancelamento)) throw new Error('Cancelamento da venda é imutável.');
+      if (!remoto && anterior && (anterior.caixaId ?? null) !== (venda.caixaId ?? null)) throw new Error('Vínculo da venda não pode ser alterado.');
+      if (!remoto && anterior?.cancelamento && !iguais(anterior.cancelamento, venda.cancelamento)) throw new Error('Cancelamento da venda é imutável.');
       const caixaId = venda.caixaId ?? null;
       await tx.runAsync('INSERT INTO vendas VALUES (?, ?, ?, ?, ?)', p.contaId, p.lojaId, venda.id, caixaId, JSON.stringify(venda));
       for (const [tabela, filhos] of [['itens_venda', venda.itens], ['pagamentos_venda', venda.pagamentos]] as const) {
@@ -128,7 +128,7 @@ export async function escreverFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira
           await tx.runAsync(`INSERT INTO ${tabela} VALUES (?, ?, ?, ?, ?, ?)`, p.contaId, p.lojaId, venda.id, filho.id, posicao, JSON.stringify(filho));
         }
       }
-      if (venda.cancelamento && !anterior?.cancelamento) {
+      if (!remoto && venda.cancelamento && !anterior?.cancelamento) {
         const mutacao = MutacaoSchema.parse({ id: venda.cancelamento.id, criadaEm: venda.cancelamento.em, entidade: 'venda', operacao: 'upsert', dados: venda });
         await tx.runAsync('INSERT INTO outbox (conta_id, loja_id, id, payload_json) VALUES (?, ?, ?, ?)', p.contaId, p.lojaId, mutacao.id, JSON.stringify(mutacao));
       }

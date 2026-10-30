@@ -106,6 +106,12 @@ export function useVendas() {
 }
 
 /** Caixa do aparelho. `caixa` é o caixa aberto (ou `null`). */
+export function useSincronizacao() {
+  const { sincronizacao } = useDados();
+  const estado = useObservavel(sincronizacao);
+  return { ...estado, servico: sincronizacao };
+}
+
 export function useCaixa() {
   const { caixa: repo, vendas } = useDados();
   const historico = useObservavel(repo);

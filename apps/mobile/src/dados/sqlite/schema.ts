@@ -1,6 +1,6 @@
 import type { BancoSqlite } from './driver';
 
-export const VERSAO_SCHEMA = 1;
+export const VERSAO_SCHEMA = 2;
 
 // IDs são fornecidos pelo domínio; o banco nunca gera IDs de entidades ou mutações.
 // JSON preserva o contrato completo; colunas de relacionamento impõem a partição.
@@ -64,6 +64,9 @@ export async function inicializarSchema(db: BancoSqlite): Promise<void> {
     if (atual.user_version < 1) {
       await tx.execAsync(MIGRACAO_1);
       await tx.execAsync('PRAGMA user_version = 1');
+    }
+    if (atual.user_version < 2) {
+      await tx.execAsync('PRAGMA user_version = 2');
     }
   });
 }

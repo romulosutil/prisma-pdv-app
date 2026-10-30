@@ -94,7 +94,8 @@ describe('acesso com API local e SQLite', () => {
     const venda = await dados.carrinho.concluir();
     expect(venda.id).toBe(rascunho.venda_id); expect(venda.totalCentavos).toBe(2500);
     expect(venda.pagamentos.map(p => p.valorCentavos)).toEqual([1000, 1500]);
-    expect(raw.prepare('SELECT COUNT(*) AS n FROM outbox').get()).toMatchObject({ n: 1 });
+    const pendencias = raw.prepare('SELECT payload_json FROM outbox ORDER BY sequencia').all().map((r) => JSON.parse(String(r.payload_json)));
+    expect(pendencias.map((m) => [m.entidade, m.dados.id])).toEqual([['produto', produto.id], ['caixa', caixa.id], ['venda', venda.id]]);
   }, 20000);
   it('revoga o próprio aparelho na API, invalida tokens e preserva dados locais', async () => {
     const { dados } = await montar(); const sessao = dados.conta.obter().sessao!;

@@ -110,6 +110,20 @@ function GuardaDeFluxo() {
     return () => assinatura.remove();
   }, [servico, toast]);
 
+  useEffect(() => {
+    let ativo = AppState.currentState === 'active';
+    const tentar = () => {
+      if (ativo) void dados.sincronizacao.sincronizar().catch(() => undefined);
+    };
+    tentar();
+    const assinatura = AppState.addEventListener('change', (estado) => {
+      ativo = estado === 'active';
+      tentar();
+    });
+    const intervalo = setInterval(tentar, 15_000);
+    return () => { assinatura.remove(); clearInterval(intervalo); };
+  }, [escopo, reautenticacaoNecessaria]);
+
   return <View style={{ flex: 1 }}>
     <View style={{ flex: 1 }} accessibilityElementsHidden={carregandoConta} importantForAccessibility={carregandoConta ? 'no-hide-descendants' : 'auto'}>
       <Stack key={escopo ?? 'sem-conta'} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.bg } }} />

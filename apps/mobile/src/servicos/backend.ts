@@ -9,6 +9,7 @@ import type {
   Plano,
   PlanoId,
   Sessao,
+  SyncPushReq, SyncPushRes, SyncPullRes,
 } from '@pdv/shared';
 
 export type CodigoErroBackend =
@@ -72,6 +73,8 @@ export type Aparelhos = z.infer<typeof AparelhosResSchema>;
 
 export interface Backend {
   readonly modo: 'demo' | 'http';
+  enviarMutacoes?(req: SyncPushReq, token?: string): Promise<SyncPushRes>;
+  receberMudancas?(desde: string, token?: string): Promise<SyncPullRes>;
   obterPerfil(token?: string): Promise<Perfil>;
   listarAparelhos(): Promise<Aparelhos>;
   revogarAparelho(id: string): Promise<void>;

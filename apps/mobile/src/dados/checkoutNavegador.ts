@@ -15,7 +15,7 @@ export class CheckoutNavegador implements PersistenciaCheckout {
   async concluir() {
     const r = await this.carregar();
     if (!r) throw new Error('Checkout não encontrado.');
-    const venda = await this.vendas.registrar(montarVenda(r.estado.itens, r.estado.parcelas), r.vendaId);
+    const venda = await this.vendas.registrar({ ...montarVenda(r.estado.itens, r.estado.parcelas), caixaId: r.caixaId }, r.vendaId, r.criadaEm);
     await this.salvar({ ...r, estado: { ...r.estado, concluidaId: venda.id } });
     return venda;
   }

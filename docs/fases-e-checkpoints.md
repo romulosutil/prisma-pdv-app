@@ -21,7 +21,7 @@ Reorganização autorizada em 30/10/2026. O plano de produção continua sendo o
 
 ## Estado
 
-Fase 1 implementada e revisada tecnicamente em `b105d1d`; **aguardando validação humana no app**. Fases 2–4 não iniciadas nesta reorganização. O controlador do Goal permanece pausado, sem comando de retomada disponível ao agente; a fase atual foi autorizada diretamente na conversa.
+Fase 1 aprovada pelo usuário em30/10/2026: “deu certo. pode ir para a próxima fase”. Fase 2 em implementação, com nova parada no checkpoint2. Fases3–4 não iniciadas. O controlador do Goal permanece pausado, sem comando de retomada disponível ao agente; a fase atual foi autorizada diretamente na conversa.
 
 ## Checkpoint 1 — 30/10/2026
 
@@ -38,7 +38,7 @@ Conferência do gestor no navegador: venda `#000231` de R$25, parcelas R$10/R$15
 
 Gates: mobile452/41arquivos antes da sexta verificação de onboarding; alvo final independente19/19 (13domínio+6interface). Shared156/11 e typecheck de todos os workspaces PASS; mobile repetido após correções PASS. Revisor novo:6/6 mutações comportamentais detectadas, scratch removido e README do usuário preservado. Evidências detalhadas em `.specs/features/fase-1-manual/validation.md`.
 
-Ainda pendentes: validação do usuário, Android/SQLite nativo e artefato distribuído; recuperação/sync e critérios globais do plano; credenciais e homologação externas de acesso, e-mail e assinatura. Nenhuma publicação/push/produção/cobrança real. **Projeto não pronto para produção. Parar aqui antes da fase2.**
+Validação humana desta demonstração concluída pelo usuário em30/10/2026, autorizando fase2. Ainda pendentes: Android/SQLite nativo e artefato distribuído; recuperação/sync e critérios globais do plano; credenciais e homologação externas de acesso, e-mail e assinatura. Nenhuma publicação/push/produção/cobrança real. Projeto não pronto para produção.
 
 Se o servidor local encerrar, executar na raiz do repositório (Python e dependências locais já instalados):
 

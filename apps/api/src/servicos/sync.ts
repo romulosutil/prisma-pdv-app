@@ -1,4 +1,5 @@
 import { and, asc, eq, gt, inArray, isNull, max, sql } from 'drizzle-orm';
+import { randomUUID } from 'node:crypto';
 import {
   adicionarDias,
   avaliar,
@@ -64,6 +65,11 @@ const noMaximoAgora = (iso: string, agora: Date): Date => {
   const data = new Date(iso);
   return data > agora ? agora : data;
 };
+
+const eventoIgual = (a: NonNullable<Venda['cancelamento']>, b: NonNullable<Venda['cancelamento']>) =>
+  a.id === b.id && a.em === b.em && a.operadorId === b.operadorId && a.motivo === b.motivo && a.estorno === b.estorno;
+const eventoValido = (evento: NonNullable<Venda['cancelamento']>, criadaEm: Date, agora: Date) =>
+  new Date(evento.em) >= criadaEm && new Date(evento.em) <= agora;
 
 async function registrarMudanca(c: Contexto, entidade: EntidadeSync, entidadeId: string): Promise<void> {
   await c.tx.insert(mudancas).values({ lojaId: c.sessao.lojaId, entidade, entidadeId, criadoEm: c.agora });
@@ -139,15 +145,22 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
     if (atual.lojaId !== v.lojaId) return 'loja_invalida';
     const salva = (await carregarVendas(c.tx, [v.id])).get(v.id);
     if (!salva || salva.entidade !== 'venda' || salva.operacao !== 'upsert') return 'venda_imutavel';
-    const financeiro = (x: Venda) => [x.lojaId, x.aparelhoId, x.operadorId, x.totalCentavos,
+    const financeiro = (x: Venda) => [x.lojaId, x.aparelhoId, x.operadorId, x.caixaId ?? null, x.totalCentavos,
       x.itens.map(i => [i.id, i.produtoId, i.descricao, i.precoUnitarioCentavos, i.quantidadeMilesimos, i.totalCentavos]),
       x.pagamentos.map(p => [p.id, p.meio, p.provedor, p.valorCentavos, p.trocoCentavos])];
     if (JSON.stringify(financeiro(v)) !== JSON.stringify(financeiro(salva.dados))) return 'venda_imutavel';
-    if (v.status === atual.status) return null;
+    if (atual.cancelamento && v.cancelamento && !eventoIgual(atual.cancelamento, v.cancelamento)) return 'venda_imutavel';
+    if (v.status === atual.status) {
+      if (!atual.cancelamento && v.cancelamento) return 'venda_imutavel';
+      return null;
+    }
     if (v.status !== 'cancelada') return 'venda_imutavel';
+    if (v.cancelamento && v.cancelamento.operadorId !== c.sessao.operadorId) return 'origem_invalida';
+    if (v.cancelamento && !eventoValido(v.cancelamento, atual.criadoEm, c.agora)) return 'cancelamento_invalido';
+    const cancelamento = v.cancelamento ?? { id: randomUUID(), em: c.agora.toISOString(), operadorId: c.sessao.operadorId, motivo: 'Cancelamento solicitado pelo operador', estorno: 'nao_realizado' as const };
     await c.tx
       .update(vendas)
-      .set({ status: 'cancelada', atualizadoEm: c.agora, versao: atual.versao + 1 })
+      .set({ status: 'cancelada', cancelamento, atualizadoEm: c.agora, versao: atual.versao + 1 })
       .where(eq(vendas.id, v.id));
     await registrarMudanca(c, 'venda', v.id);
     return null;
@@ -156,6 +169,15 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
   if (v.aparelhoId !== c.sessao.aparelhoId || v.operadorId !== c.sessao.operadorId) return 'origem_invalida';
   // Vale o momento da venda, não o de agora: venda feita offline enquanto o app permitia nunca se perde.
   const criadoEm = noMaximoAgora(v.criadaEm, c.agora);
+  if (v.caixaId) {
+    const [caixa] = await c.tx.select().from(caixas).where(eq(caixas.id, v.caixaId));
+    const instanteVenda = new Date(v.criadaEm);
+    if (!caixa || caixa.lojaId !== v.lojaId || caixa.aparelhoId !== v.aparelhoId || caixa.operadorId !== v.operadorId || instanteVenda < caixa.abertoEm || criadoEm < caixa.abertoEm || (caixa.fechadoEm && (instanteVenda > caixa.fechadoEm || criadoEm > caixa.fechadoEm))) return 'caixa_invalido';
+  }
+  if (v.status === 'concluida' && v.cancelamento) return 'venda_imutavel';
+  if (v.cancelamento && v.cancelamento.operadorId !== c.sessao.operadorId) return 'origem_invalida';
+  if (v.cancelamento && !eventoValido(v.cancelamento, criadoEm, c.agora)) return 'cancelamento_invalido';
+  const cancelamento = v.status === 'cancelada' ? (v.cancelamento ?? { id: randomUUID(), em: c.agora.toISOString(), operadorId: c.sessao.operadorId, motivo: 'Cancelamento solicitado pelo operador', estorno: 'nao_realizado' as const }) : null;
   if (c.vendaPermitidaAte === null || criadoEm > c.vendaPermitidaAte) return 'assinatura_suspensa';
   // O app não deixa vender offline além da janela: criadaEm mais antigo que isso é retroação.
   if (criadoEm < adicionarDias(c.agora, -OFFLINE_MAX_DIAS)) return 'venda_fora_da_janela_offline';
@@ -166,6 +188,8 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
     lojaId: v.lojaId,
     aparelhoId: v.aparelhoId,
     operadorId: v.operadorId,
+    caixaId: v.caixaId ?? null,
+    cancelamento,
     totalCentavos: v.totalCentavos,
     status: v.status,
     criadoEm,
@@ -211,11 +235,17 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
 
 async function upsertCaixa(c: Contexto, cx: Caixa): Promise<Resultado> {
   if (cx.lojaId !== c.sessao.lojaId) return 'loja_invalida';
+  if (new Date(cx.abertura.em) > c.agora || (cx.fechamento && new Date(cx.fechamento.em) < new Date(cx.abertura.em))) return 'caixa_invalido';
   const [atual] = await c.tx.select().from(caixas).where(eq(caixas.id, cx.id));
   if (atual && atual.lojaId !== cx.lojaId) return 'loja_invalida';
-  if (atual?.fechadoEm) return 'caixa_fechada';
   const origem = atual ?? c.sessao;
   if (cx.aparelhoId !== origem.aparelhoId || cx.operadorId !== origem.operadorId) return 'origem_invalida';
+  if (atual && (atual.abertoEm.getTime() !== new Date(cx.abertura.em).getTime() || atual.trocoInicialCentavos !== cx.abertura.trocoInicialCentavos)) return 'caixa_imutavel';
+  if (atual?.fechadoEm) {
+    const salva = (await carregarCaixas(c.tx, [cx.id])).get(cx.id);
+    if (salva?.entidade === 'caixa' && salva.operacao === 'upsert' && JSON.stringify(salva.dados) === JSON.stringify(cx)) return null;
+    return 'caixa_fechada';
+  }
 
   const ids = cx.movimentos.map((m) => m.id);
   if (new Set(ids).size !== ids.length) return 'movimento_invalido';
@@ -323,20 +353,27 @@ export function aplicarPush(db: Db, sessaoId: string, sessao: SessaoAutenticada,
     const aceitas: string[] = [];
     const rejeitadas: SyncPushRes['rejeitadas'] = [];
     const novas: (typeof mutacoesAplicadas.$inferInsert)[] = [];
-    for (const m of req.mutacoes) {
+    const resultados = new Map<number, Resultado>();
+    const ordem = req.mutacoes.map((m, i) => ({ m, i })).sort((a, b) => Number(b.m.entidade === 'caixa') - Number(a.m.entidade === 'caixa'));
+    for (const { m, i } of ordem) {
       if (jaAplicadas.has(m.id)) {
-        aceitas.push(m.id);
+        resultados.set(i, null);
         continue;
       }
       const motivo = await aplicar(contexto, m);
       if (motivo) {
-        rejeitadas.push({ id: m.id, motivo });
+        resultados.set(i, motivo);
         continue;
       }
       jaAplicadas.add(m.id);
-      aceitas.push(m.id);
+      resultados.set(i, null);
       novas.push({ id: m.id, lojaId: sessao.lojaId, aparelhoId: req.aparelhoId, criadoEm: agora });
     }
+    req.mutacoes.forEach((m, i) => {
+      const motivo = resultados.get(i);
+      if (motivo) rejeitadas.push({ id: m.id, motivo });
+      else aceitas.push(m.id);
+    });
     if (novas.length > 0) await tx.insert(mutacoesAplicadas).values(novas);
 
     return { aceitas, rejeitadas, cursor: String(await posicaoAtual(tx, sessao.lojaId)) };
@@ -428,6 +465,8 @@ async function carregarVendas(db: Db, ids: string[]): Promise<Map<string, Mudanc
         lojaId: v.lojaId,
         aparelhoId: v.aparelhoId,
         operadorId: v.operadorId,
+        ...(v.caixaId ? { caixaId: v.caixaId } : {}),
+        ...(v.cancelamento ? { cancelamento: v.cancelamento } : {}),
         itens: itens
           .filter((i) => i.vendaId === v.id)
           .map((i) => ({

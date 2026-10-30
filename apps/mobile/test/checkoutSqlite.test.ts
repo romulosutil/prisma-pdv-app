@@ -8,6 +8,7 @@ import type { RegistroCheckout } from '../src/dados/checkoutTipos';
 import { ArmazenamentoSqlite } from '../src/dados/sqlite/armazenamentoSqlite';
 import { CheckoutSqlite } from '../src/dados/sqlite/checkoutSqlite';
 import { conectarTransacoes } from '../src/dados/sqlite/conexao';
+import type { BancoSqlite } from '../src/dados/sqlite/driver';
 import { sqliteBanco } from './sqliteBanco';
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -154,7 +155,9 @@ describe('CheckoutSqlite', () => {
       await checkout.salvar(comCaixa);
       await expect(checkout.salvar({ ...comCaixa, caixaId: null })).rejects.toThrow();
       const venda = await checkout.concluir();
+      expect(venda.caixaId).toBe(caixa.id);
       expect(raw.prepare('SELECT caixa_id FROM vendas WHERE id = ?').get(venda.id)).toMatchObject({ caixa_id: caixa.id });
+      expect(JSON.parse((raw.prepare('SELECT payload_json FROM outbox').get() as { payload_json: string }).payload_json).dados.caixaId).toBe(caixa.id);
       await expect(checkout.salvar(comCaixa)).rejects.toThrow();
       await checkout.salvar(null);
       expect(await checkout.carregar()).toBeNull();
@@ -180,6 +183,144 @@ describe('CheckoutSqlite', () => {
       expect(raw.prepare('SELECT caixa_id FROM vendas WHERE id = ?').get(venda.id)).toMatchObject({ caixa_id: caixa.id });
       expect((await checkout.carregar())?.estado.concluidaId).toBe(venda.id);
       expect((await checkout.concluir()).status).toBe('cancelada');
+    } finally { raw.close(); }
+  });
+
+  it('recupera vínculo antigo explícito e atualiza payload e outbox ao reabrir', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'vinculo-legado-'));
+    const caminho = join(dir, 'db.sqlite');
+    const legado = new Memoria();
+    let raw = new DatabaseSync(caminho);
+    const caixa = { id: id(7), lojaId: sessao.lojaId, aparelhoId: sessao.aparelhoId, operadorId: sessao.operadorId, abertura: { em: registro.criadaEm, trocoInicialCentavos: 0 }, fechamento: null, movimentos: [] };
+    try {
+      await legado.gravar('caixas', [caixa]);
+      const checkout = criar(raw, legado);
+      await checkout.salvar({ ...completo, caixaId: caixa.id });
+      const venda = await checkout.concluir();
+      const antiga = { ...venda }; delete antiga.caixaId;
+      raw.prepare('UPDATE vendas SET payload_json = ?').run(JSON.stringify(antiga));
+      const mutacao = JSON.parse((raw.prepare('SELECT payload_json FROM outbox').get() as { payload_json: string }).payload_json);
+      mutacao.dados.caixaId = null;
+      raw.prepare('UPDATE outbox SET payload_json = ?').run(JSON.stringify(mutacao));
+      await expect(checkout.carregar()).rejects.toThrow('Vínculo da outbox divergente');
+      expect(JSON.parse((raw.prepare('SELECT payload_json FROM vendas').get() as { payload_json: string }).payload_json).caixaId).toBeUndefined();
+      expect(JSON.parse((raw.prepare('SELECT payload_json FROM outbox').get() as { payload_json: string }).payload_json).dados.caixaId).toBeNull();
+      delete mutacao.dados.caixaId;
+      raw.prepare('UPDATE outbox SET payload_json = ?').run(JSON.stringify(mutacao));
+      raw.close(); raw = new DatabaseSync(caminho);
+      expect(await criar(raw, legado).concluir()).toEqual(venda);
+      expect(JSON.parse((raw.prepare('SELECT payload_json FROM vendas').get() as { payload_json: string }).payload_json).caixaId).toBe(caixa.id);
+      expect(JSON.parse((raw.prepare('SELECT payload_json FROM outbox').get() as { payload_json: string }).payload_json).dados.caixaId).toBe(caixa.id);
+      expect(await criar(raw, legado).concluir()).toEqual(venda);
+    } finally { raw.close(); rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  it('preserva ausência de vínculo legado mesmo com caixa e venda na mesma data', async () => {
+    const raw = new DatabaseSync(':memory:');
+    const legado = new Memoria();
+    const caixa = { id: id(7), lojaId: sessao.lojaId, aparelhoId: sessao.aparelhoId, operadorId: sessao.operadorId, abertura: { em: registro.criadaEm, trocoInicialCentavos: 0 }, fechamento: null, movimentos: [] };
+    try {
+      await legado.gravar('caixas', [caixa]);
+      const checkout = criar(raw, legado);
+      await checkout.salvar(completo);
+      const venda = await checkout.concluir();
+      const antiga = { ...venda }; delete antiga.caixaId;
+      raw.prepare('UPDATE vendas SET payload_json = ?').run(JSON.stringify(antiga));
+      const mutacao = JSON.parse((raw.prepare('SELECT payload_json FROM outbox').get() as { payload_json: string }).payload_json);
+      delete mutacao.dados.caixaId;
+      raw.prepare('UPDATE outbox SET payload_json = ?').run(JSON.stringify(mutacao));
+      expect((await checkout.concluir()).caixaId ?? null).toBeNull();
+      expect((raw.prepare('SELECT caixa_id FROM vendas').get() as { caixa_id: string | null }).caixa_id).toBeNull();
+      expect(JSON.parse((raw.prepare('SELECT payload_json FROM outbox').get() as { payload_json: string }).payload_json).dados.caixaId ?? null).toBeNull();
+    } finally { raw.close(); }
+  });
+
+  it.each(['checkout', 'fechamento'] as const)('serializa %s antes da operação concorrente sem gravar o perdedor', async (primeiro) => {
+    const raw = new DatabaseSync(':memory:');
+    const legado = new Memoria();
+    const caixa = { id: id(7), lojaId: sessao.lojaId, aparelhoId: sessao.aparelhoId, operadorId: sessao.operadorId, abertura: { em: registro.criadaEm, trocoInicialCentavos: 0 }, fechamento: null, movimentos: [] };
+    const fechado = { ...caixa, fechamento: { em: '2026-10-28T13:00:00.000Z', esperadoCentavos: 0, contadoCentavos: 0 } };
+    let liberar!: () => void;
+    let sinalizar!: () => void;
+    const bloqueado = new Promise<void>((resolve) => { sinalizar = resolve; });
+    const barreira = new Promise<void>((resolve) => { liberar = resolve; });
+    let ativo = false;
+    const base = sqliteBanco(raw);
+    const banco: BancoSqlite = { ...base, withExclusiveTransactionAsync: (tarefa) => base.withExclusiveTransactionAsync((tx) => tarefa({
+      ...tx,
+      async runAsync(sql, ...params) {
+        if (ativo && sql.startsWith(primeiro === 'checkout' ? 'INSERT INTO rascunhos' : 'INSERT INTO caixas')) {
+          ativo = false; sinalizar(); await barreira;
+        }
+        return tx.runAsync(sql, ...params);
+      },
+    })) };
+    try {
+      await legado.gravar('caixas', [caixa]);
+      const armazenamento = new ArmazenamentoSqlite(async () => banco, legado);
+      const checkout = new CheckoutSqlite(armazenamento, () => id(30));
+      await armazenamento.obter('caixas');
+      ativo = true;
+      const primeira = primeiro === 'checkout' ? checkout.salvar({ ...registro, caixaId: caixa.id }) : armazenamento.gravar('caixas', [fechado]);
+      await bloqueado;
+      const segunda = primeiro === 'checkout' ? armazenamento.gravar('caixas', [fechado]) : checkout.salvar({ ...registro, caixaId: caixa.id });
+      const rejeitada = expect(segunda).rejects.toThrow();
+      liberar();
+      await primeira;
+      await rejeitada;
+      expect(await checkout.carregar()).toEqual(primeiro === 'checkout' ? { ...registro, caixaId: caixa.id } : null);
+      expect(await armazenamento.obter('caixas')).toEqual([primeiro === 'checkout' ? caixa : fechado]);
+      if (primeiro === 'fechamento') {
+        await expect(armazenamento.gravar('caixas', [])).rejects.toThrow('não pode ser removido');
+        expect(await armazenamento.obter('caixas')).toEqual([fechado]);
+      }
+      expect(contagem(raw, 'vendas')).toBe(0);
+      expect(contagem(raw, 'outbox')).toBe(0);
+    } finally { liberar(); raw.close(); }
+  });
+
+  it('recusa fechamento calculado antes da conclusão já confirmada e permite retry atualizado', async () => {
+    const raw = new DatabaseSync(':memory:');
+    const legado = new Memoria();
+    const caixa = { id: id(7), lojaId: sessao.lojaId, aparelhoId: sessao.aparelhoId, operadorId: sessao.operadorId, abertura: { em: registro.criadaEm, trocoInicialCentavos: 0 }, fechamento: null, movimentos: [] };
+    try {
+      await legado.gravar('caixas', [caixa]);
+      let proximo = 20;
+      const armazenamento = new ArmazenamentoSqlite(async () => sqliteBanco(raw), legado);
+      const checkout = new CheckoutSqlite(armazenamento, () => id(proximo++));
+      await checkout.salvar({ ...completo, caixaId: caixa.id });
+      const venda = await checkout.concluir();
+      const fechamento = { em: '2026-10-28T13:00:00.000Z', esperadoCentavos: 0, contadoCentavos: 1500 };
+      await expect(armazenamento.gravar('caixas', [{ ...caixa, fechamento }])).rejects.toThrow('Vendas do caixa mudaram');
+      expect(await armazenamento.obter('caixas')).toEqual([caixa]);
+      expect((await armazenamento.obter<{ vendas: typeof venda[] }>('vendas'))?.vendas).toEqual([venda]);
+      const correto = { ...caixa, fechamento: { ...fechamento, esperadoCentavos: 1500 } };
+      await armazenamento.gravar('caixas', [correto]);
+      expect(await armazenamento.obter('caixas')).toEqual([correto]);
+    } finally { raw.close(); }
+  });
+
+  it('reverte cancelamento com falha na outbox e persiste uma única mutação no retry', async () => {
+    const raw = new DatabaseSync(':memory:');
+    const legado = new Memoria();
+    let falhar = false;
+    let proximo = 20;
+    try {
+      const armazenamento = new ArmazenamentoSqlite(async () => sqliteBanco(raw, (sql) => falhar && sql.includes('INSERT INTO outbox')), legado);
+      const checkout = new CheckoutSqlite(armazenamento, () => id(proximo++));
+      await checkout.salvar(completo);
+      const venda = await checkout.concluir();
+      const cancelada = { ...venda, status: 'cancelada' as const, cancelamento: { id: id(90), em: registro.criadaEm, operadorId: sessao.operadorId, motivo: 'Cancelamento solicitado pelo operador', estorno: 'nao_realizado' as const } };
+      const estado = { vendas: [cancelada], numeroBase: 0 };
+      falhar = true;
+      await expect(armazenamento.gravar('vendas', estado)).rejects.toThrow();
+      falhar = false;
+      expect((await armazenamento.obter<typeof estado>('vendas'))?.vendas[0]).toEqual(venda);
+      expect(contagem(raw, 'outbox')).toBe(1);
+      await armazenamento.gravar('vendas', estado);
+      await armazenamento.gravar('vendas', estado);
+      expect(contagem(raw, 'outbox')).toBe(2);
+      expect(JSON.parse((raw.prepare('SELECT payload_json FROM outbox WHERE id = ?').get(id(90)) as { payload_json: string }).payload_json).dados).toEqual(cancelada);
     } finally { raw.close(); }
   });
 

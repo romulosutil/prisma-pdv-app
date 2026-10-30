@@ -8,7 +8,7 @@ import { Icone } from '@/componentes/Icone';
 import { LinhaLista } from '@/componentes/LinhaLista';
 import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
-import { useCaixa, useConta, useLicenca, useResumoDoDia } from '@/dados/hooks';
+import { useCaixa, useConta, useLicenca, useResumoDoDia, useVendas } from '@/dados/hooks';
 import { cores, raio } from '@/tema';
 import { FolhaDePlano } from '@/componentes/FolhaDePlano';
 import { falarDinheiro } from '@/util/dinheiroFalado';
@@ -17,6 +17,7 @@ import { CabecalhoCaixa } from './CabecalhoCaixa';
 import { IconeCaixa } from './icones';
 import { compararGaveta, textoDaGaveta } from './logica';
 import { LinhaValor } from './LinhaValor';
+import { cancelamentosAposFechamento } from './historicoDoCaixa';
 
 type TipoMovimento = MovimentoCaixa['tipo'];
 
@@ -26,6 +27,7 @@ export function ResumoCaixa() {
   const router = useRouter();
   const { perfil, primeiroNome } = useConta();
   const { caixa, historico } = useCaixa();
+  const { vendas, numeroDe } = useVendas();
   const resumo = useResumoDoDia();
   const { podeUsar } = useLicenca();
   const [avisoPlano, setAvisoPlano] = useState(false);
@@ -36,6 +38,8 @@ export function ResumoCaixa() {
   const ultimoFechamento = historico
     .flatMap((c) => (c.fechamento ? [c.fechamento] : []))
     .sort((a, b) => b.em.localeCompare(a.em))[0];
+  const fechados = historico.filter((c) => c.fechamento).sort((a, b) => b.fechamento!.em.localeCompare(a.fechamento!.em));
+  const semVinculo = vendas.filter((v) => !v.caixaId).length;
 
   const meios = [
     { nome: 'Dinheiro', icone: 'dinheiro', valor: resumo.porMeio.dinheiro },
@@ -44,7 +48,7 @@ export function ResumoCaixa() {
   ] as const;
 
   const esperado = resumo.esperadoNaGavetaCentavos;
-  // Parte do esperado que veio de vendas em dinheiro desde a abertura (nem todo o dinheiro do dia, se o caixa abriu depois).
+  // Apenas vendas explicitamente vinculadas ao caixa atual entram na gaveta.
   const dinheiroVendido = esperado === null ? 0 : esperado - resumo.trocoInicialCentavos - resumo.suprimentosCentavos + resumo.sangriasCentavos;
 
   const abrirMovimento = (tipo: TipoMovimento) => {
@@ -161,6 +165,29 @@ export function ResumoCaixa() {
           <Botao rotulo="Abrir caixa" icone="caixa" onPress={() => router.push('/caixa/abrir')} />
         </View>
       )}
+
+      {semVinculo > 0 ? <Texto estilo="legenda" cor={cores.ink3}>{`${semVinculo} venda(s) sem vínculo com caixa. Permanecem no histórico e não entram na gaveta por estimativa de horário.`}</Texto> : null}
+
+      {fechados.length > 0 ? (
+        <View style={estilos.lista}>
+          <Texto estilo="tituloM" accessibilityRole="header">Fechamentos anteriores</Texto>
+          {fechados.map((fechado) => {
+            const fechamento = fechado.fechamento!;
+            const ajustes = cancelamentosAposFechamento(fechado, vendas);
+            return (
+              <View key={fechado.id} style={estilos.cartao}>
+                <Texto estilo="label" style={estilos.tituloCartao}>{`Caixa ${fechado.id.slice(-8)} · ${new Date(fechamento.em).toLocaleDateString('pt-BR')} às ${formatarHora(new Date(fechamento.em))}`}</Texto>
+                <LinhaValor rotulo="Esperado no fechamento" centavos={fechamento.esperadoCentavos} />
+                <LinhaValor rotulo="Contado no fechamento" centavos={fechamento.contadoCentavos} divisor />
+                {ajustes.map((venda) => (
+                  <LinhaLista key={venda.id} titulo={`Cancelamento ${numeroDe(venda)}`} subtitulo="Ajuste comercial posterior · sem estorno bancário" valor={<Dinheiro centavos={-venda.totalCentavos} estilo="corpoMedio" />} onPress={() => router.push({ pathname: '/caixa/venda/[id]', params: { id: venda.id } })} />
+                ))}
+                {ajustes.length > 0 ? <Texto estilo="legenda" cor={cores.ink3}>O fechamento acima permanece como foi conferido. Os ajustes não registram retirada da gaveta ou estorno no banco.</Texto> : null}
+              </View>
+            );
+          })}
+        </View>
+      ) : null}
 
       <FolhaDePlano
         visivel={avisoPlano}

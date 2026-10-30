@@ -28,6 +28,7 @@ export interface PagamentoNovaVenda {
 export interface NovaVenda {
   itens: ItemNovaVenda[];
   pagamentos: PagamentoNovaVenda[];
+  caixaId?: string | null;
 }
 
 export interface EstadoVendas {
@@ -38,6 +39,7 @@ export interface EstadoVendas {
 
 export interface ContextoVendas {
   sessao: () => { lojaId: string; aparelhoId: string; operadorId: string };
+  caixaId?: () => string | null;
 }
 
 export const totalDoItem = (item: ItemNovaVenda): Centavos => multiplicarPreco(item.precoUnitarioCentavos, item.quantidadeMilesimos);
@@ -78,7 +80,7 @@ export class VendasRepo extends Persistido<EstadoVendas> {
    * Registra uma venda concluída. Nunca depende da rede nem do estado da assinatura: quem já abriu a
    * venda consegue fechá-la. Lança `ErroDeDominio` se não houver itens ou se os pagamentos não fecharem o total.
    */
-  async registrar(nova: NovaVenda, id?: string): Promise<Venda> {
+  async registrar(nova: NovaVenda, id?: string, criadaEm?: string): Promise<Venda> {
     const existente = id ? this.obter().vendas.find((v) => v.id === id) : null;
     if (existente) return existente;
     if (nova.pagamentos.some((p) => !pagamentoManualDisponivel(p))) throw new Error('Pagamento integrado indisponível nesta fase.');
@@ -110,7 +112,8 @@ export class VendasRepo extends Persistido<EstadoVendas> {
       })),
       totalCentavos,
       status: 'concluida',
-      criadaEm: this.amb.relogio.agora().toISOString(),
+      criadaEm: criadaEm ?? this.amb.relogio.agora().toISOString(),
+      caixaId: nova.caixaId !== undefined ? nova.caixaId : this.contexto.caixaId?.() ?? null,
     };
     await this.modificar((atual) => ({ ...atual, vendas: [...atual.vendas, venda] }));
     registrar('venda', 'venda registrada', {
@@ -121,12 +124,16 @@ export class VendasRepo extends Persistido<EstadoVendas> {
     return venda;
   }
 
-  async cancelar(id: string): Promise<Venda> {
-    const venda = this.obter().vendas.find((v) => v.id === id);
-    if (!venda) throw new ErroDeDominio('venda_inexistente', 'Venda não encontrada.');
-    const cancelada: Venda = { ...venda, status: 'cancelada' };
-    await this.modificar((atual) => ({ ...atual, vendas: atual.vendas.map((v) => (v.id === id ? cancelada : v)) }));
-    return cancelada;
+  async cancelar(id: string, motivo = 'Cancelamento solicitado pelo operador'): Promise<Venda> {
+    let resultado: Venda | undefined;
+    await this.modificar((atual) => {
+      const venda = atual.vendas.find((v) => v.id === id);
+      if (!venda) throw new ErroDeDominio('venda_inexistente', 'Venda não encontrada.');
+      if (venda.status === 'cancelada') { resultado = venda; return atual; }
+      resultado = { ...venda, status: 'cancelada', cancelamento: { id: this.amb.novoId(), em: this.amb.relogio.agora().toISOString(), operadorId: this.contexto.sessao().operadorId, motivo, estorno: 'nao_realizado' } };
+      return { ...atual, vendas: atual.vendas.map((v) => v.id === id ? resultado! : v) };
+    });
+    return resultado!;
   }
 
   async substituirTodas(estado: EstadoVendas): Promise<void> {

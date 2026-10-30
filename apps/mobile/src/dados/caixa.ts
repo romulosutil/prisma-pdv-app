@@ -7,6 +7,7 @@ import { Persistido } from './observavel';
 export interface ContextoCaixa {
   sessao: () => { lojaId: string; aparelhoId: string; operadorId: string };
   planoId: () => PlanoId;
+  checkoutPendente?: (caixaId: string) => boolean;
 }
 
 export interface ResumoDoDia {
@@ -33,8 +34,7 @@ function somarMeio(vendas: readonly Venda[], meios: readonly string[]): Centavos
 
 /** Dinheiro esperado na gaveta: troco inicial + vendas em dinheiro desde a abertura + suprimentos − sangrias. */
 export function esperadoNaGaveta(caixa: Caixa, vendas: readonly Venda[]): Centavos {
-  const desde = new Date(caixa.abertura.em).getTime();
-  const doCaixa = concluidas(vendas).filter((v) => new Date(v.criadaEm).getTime() >= desde);
+  const doCaixa = concluidas(vendas).filter((v) => v.caixaId === caixa.id);
   const suprimentos = somar(0, ...caixa.movimentos.filter((m) => m.tipo === 'suprimento').map((m) => m.valorCentavos));
   const sangrias = somar(0, ...caixa.movimentos.filter((m) => m.tipo === 'sangria').map((m) => m.valorCentavos));
   return caixa.abertura.trocoInicialCentavos + somarMeio(doCaixa, ['dinheiro']) + suprimentos - sangrias;
@@ -77,43 +77,35 @@ export class CaixaRepo extends Persistido<Caixa[]> {
   }
 
   async abrir(trocoInicialCentavos: Centavos): Promise<Caixa> {
-    if (this.atual()) throw new ErroDeDominio('caixa_ja_aberto', 'Já existe um caixa aberto.');
     if (!Number.isSafeInteger(trocoInicialCentavos) || trocoInicialCentavos < 0) {
       throw new ErroDeDominio('valor_invalido', 'O troco inicial precisa ser zero ou mais.');
     }
-    const { lojaId, aparelhoId, operadorId } = this.contexto.sessao();
-    const caixa: Caixa = {
-      id: this.amb.novoId(),
-      lojaId,
-      aparelhoId,
-      operadorId,
-      abertura: { em: this.amb.relogio.agora().toISOString(), trocoInicialCentavos },
-      fechamento: null,
-      movimentos: [],
-    };
-    await this.modificar((atual) => [...atual, caixa]);
-    return caixa;
+    let caixa: Caixa | undefined;
+    await this.modificar((atual) => {
+      if (atual.some((c) => c.fechamento === null)) throw new ErroDeDominio('caixa_ja_aberto', 'Já existe um caixa aberto.');
+      const { lojaId, aparelhoId, operadorId } = this.contexto.sessao();
+      caixa = { id: this.amb.novoId(), lojaId, aparelhoId, operadorId, abertura: { em: this.amb.relogio.agora().toISOString(), trocoInicialCentavos }, fechamento: null, movimentos: [] };
+      return [...atual, caixa];
+    });
+    return caixa!;
   }
 
   /** Sangria e suprimento dependem do recurso `sangria_suprimento` do plano (Negócio ou Pro). */
   async registrarMovimento(tipo: 'sangria' | 'suprimento', valorCentavos: Centavos, motivo: string | null = null): Promise<Caixa> {
-    const aberto = this.atual();
-    if (!aberto) throw new ErroDeDominio('caixa_fechado', 'Abra o caixa antes de registrar movimentos.');
     if (!podeUsar(this.contexto.planoId(), 'sangria_suprimento')) {
       throw new ErroDeDominio('recurso_plano', 'Sangria e suprimento estão a partir do plano Negócio.');
     }
     if (!Number.isSafeInteger(valorCentavos) || valorCentavos <= 0) {
       throw new ErroDeDominio('valor_invalido', 'O valor precisa ser maior que zero.');
     }
-    const atualizado: Caixa = {
-      ...aberto,
-      movimentos: [
-        ...aberto.movimentos,
-        { id: this.amb.novoId(), tipo, valorCentavos, motivo, criadoEm: this.amb.relogio.agora().toISOString() },
-      ],
-    };
-    await this.modificar((lista) => lista.map((c) => (c.id === aberto.id ? atualizado : c)));
-    return atualizado;
+    let atualizado: Caixa | undefined;
+    await this.modificar((lista) => {
+      const atual = lista.find((c) => c.fechamento === null);
+      if (!atual) throw new ErroDeDominio('caixa_fechado', 'Abra o caixa antes de registrar movimentos.');
+      atualizado = { ...atual, movimentos: [...atual.movimentos, { id: this.amb.novoId(), tipo, valorCentavos, motivo, criadoEm: this.amb.relogio.agora().toISOString() }] };
+      return lista.map((c) => c.id === atual.id ? atualizado! : c);
+    });
+    return atualizado!;
   }
 
   /** `vendas` são as vendas do app: servem para calcular o esperado que fica gravado no fechamento. */
@@ -123,16 +115,15 @@ export class CaixaRepo extends Persistido<Caixa[]> {
     if (!Number.isSafeInteger(contadoCentavos) || contadoCentavos < 0) {
       throw new ErroDeDominio('valor_invalido', 'O valor contado precisa ser zero ou mais.');
     }
-    const fechado: Caixa = {
-      ...aberto,
-      fechamento: {
-        em: this.amb.relogio.agora().toISOString(),
-        esperadoCentavos: esperadoNaGaveta(aberto, vendas),
-        contadoCentavos,
-      },
-    };
-    await this.modificar((lista) => lista.map((c) => (c.id === aberto.id ? fechado : c)));
-    return fechado;
+    let fechado: Caixa | undefined;
+    await this.modificar((lista) => {
+      const atual = lista.find((c) => c.id === aberto.id && c.fechamento === null);
+      if (!atual) throw new ErroDeDominio('caixa_fechado', 'Não há caixa aberto.');
+      if (this.contexto.checkoutPendente?.(atual.id)) throw new ErroDeDominio('checkout_pendente', 'Conclua a venda em andamento antes de fechar o caixa.');
+      fechado = { ...atual, fechamento: { em: this.amb.relogio.agora().toISOString(), esperadoCentavos: esperadoNaGaveta(atual, vendas), contadoCentavos } };
+      return lista.map((c) => c.id === atual.id ? fechado! : c);
+    });
+    return fechado!;
   }
 
   async substituirTodos(caixas: Caixa[]): Promise<void> {

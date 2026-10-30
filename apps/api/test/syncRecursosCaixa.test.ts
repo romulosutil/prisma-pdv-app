@@ -68,7 +68,7 @@ it('preserva histórico após downgrade, rejeita novo e aceita o mesmo pedido ap
   const caixasPull = pullEssencial.corpo.mudancas.map((x: { dados: { id: string; movimentos: Movimento[] } }) => ({ ...x, dados: { ...x.dados, movimentos: [...x.dados.movimentos].sort((a, b) => a.id.localeCompare(b.id)) } })).sort((a: { dados: { id: string } }, b: { dados: { id: string } }) => a.dados.id.localeCompare(b.dados.id));
   expect(caixasPull).toEqual([{ entidade: 'caixa', operacao: 'upsert', dados: { ...cx, movimentos: [...antigos].sort((a, b) => a.id.localeCompare(b.id)) } }, { entidade: 'caixa', operacao: 'upsert', dados: { ...outroCaixa, movimentos: [outroHistorico], fechamento: { em: INICIO.toISOString(), esperadoCentavos: 100, contadoCentavos: 100 } } }].sort((a, b) => a.dados.id.localeCompare(b.dados.id)));
   const novo = movimento();
-  const pedido = mutacao('caixa', { ...cx, abertura: { ...cx.abertura, trocoInicialCentavos: 500 }, movimentos: [...antigos, novo] });
+  const pedido = mutacao('caixa', { ...cx, movimentos: [...antigos, novo] });
   const antes = await snapshot();
   expect((await enviar(amb, conta, [pedido])).corpo.rejeitadas).toEqual([{ id: pedido.id, motivo: 'recurso_plano' }]);
   expect(await snapshot()).toEqual(antes);

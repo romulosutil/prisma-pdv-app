@@ -30,11 +30,28 @@ Acceptance Criteria:
 ## Requirement Traceability
 | ID | AC | Status |
 |---|---|---|
-| LINK-01 | 1,2,4 | Em implementação |
-| AUDIT-01 | 3,4 | Em implementação |
+| LINK-01 | 1,2,4 | Implementado; gates locais PASS, revisão independente pendente |
+| AUDIT-01 | 3,4 | Implementado; gates locais PASS, revisão independente pendente |
 | CHECK-02 | 5 | Pendente |
 
 ## Execution Plan
 1. Gestor fixa contrato shared e testes de compatibilidade; verifica e faz commit local. Dois executores Terra Médio implementam API/banco e domínio/mobile em arquivos disjuntos, sem UI/docs/commits/subdelegação. Um runner por vez.
 2. Gestor revisa diretamente persistência/sync/auth, integra telas e gates; commit coerente com evidências. Revisor novo confronta ACs e injeta ao menos5 regressões comportamentais em scratch isolado; gestor corrige achados se houver.
 3. Gestor entrega checkpoint web com roteiro e commit; interrompe antes da fase3. Goal controlador permanece pausado por limitação da ferramenta, fase autorizada diretamente pelo usuário.
+
+## Evidências da integração
+
+Gates do gestor/executores: mobile461/42arquivos, API443/32arquivos em PGlite, shared159/12arquivos, typecheck todos PASS. PostgreSQL17 dedicado: migração aplicada e alvo final syncCaixaVenda6/6 PASS. A primeira regressão API revelou10 expectativas/fixture incompatíveis com o novo contrato; corrigidas sem reduzir assertivas, regressão final toda verde. Snapshot financeiro continua igualdade completa, incluindo colunas novas nulas; fixture de recurso-caixa conserva abertura imutável. Sem exclusão/skip de testes.
+
+| AC / esperado | Assertiva concreta | Resultado |
+|---|---|---|
+| 1: vínculo fixo, coluna/payload/outbox, migração certa/ausente | apps/mobile/test/checkoutSqlite.test.ts:158 `expect(venda.caixaId).toBe(caixa.id)`; :159 coluna igual; :160 mutação igual; :212–214 recuperação idempotente; :232–234 null legado | PASS |
+| 1/2: rollback, corrida e snapshot durável | checkoutSqlite.test.ts:271–278 perdedor não gravado; :295 `expect(await armazenamento.obter('caixas')).toEqual([caixa])`; :299 retry correto; :319–323 rollback/retry de cancelamento com outbox única | PASS |
+| 2/3: dois turnos, evento e fechamento imutável | apps/mobile/test/repositorios.test.ts:191 esperado2700 no segundo; :193 vínculo original; :194 evento; :195 retry igual; :196 fechamento igual ao salvo | PASS |
+| 3/4: evento, vínculo e fechamento preservados no replay/pull | apps/api/test/syncCaixaVenda.test.ts:25 lote invertido aceito; :30 vínculo imutável; :40 negócio/mudanças iguais no replay; :44 pull com evento e fechamento exatos | PASS |
+| 4: inválidos sem escrita, origens e intervalos | syncCaixaVenda.test.ts:54–55 origem incorreta/snapshot idêntico; :68–71 após fecho rejeitado e dois vínculos no pull; :85–86 ausente/outra loja e snapshot idêntico; migracaoCaixaVenda.test.ts:11 valores nulos no legado | PASS |
+| 5: comportamento visível e checkpoint | Gestor CUA em localhost8086: #233, split10+15 com recarga parcial, gaveta20 (troco10+dinheiro10), fechamento20/20 e cancelamento posterior25 separado; dois fechamentos100/20 preservados após reload | Smoke web PASS; revisão/UAT pendentes |
+
+Necessidade: todos os novos testes shared atendem AC1/3 (compatibilidade/estado comercial); testes novos mobile atendem AC1/2/3; helper de apresentação fase2Interface.test.ts atende AC3; testes API e migração atendem AC3/4. Convenção test/**/*.test.ts e runner único/maxWorkers1 do projeto. Assertivas de payload/snapshots e valores complementam rejeições/spies; não provar banco por contagem de chamadas. API/migração PostgreSQL são locais, mocks de assinatura só fixtures de acesso. Nenhuma evidência Android, provider ou produção inferida.
+
+Decisões de integração: normalização SQLite em transação recupera somente caixa_id conhecido, aborta null explícito conflitante e mantém legado desconhecido sem associação; fechamento revalida vendas duráveis para rejeitar snapshot antigo; filas de abertura/movimentos usam estado corrente. API compara evento por campos (ordem de chaves jsonb não importa), valida origem/intervalos e mantém resultado de ACK na ordem solicitada. App não envia sync automaticamente nesta fase; isso continua fase3.

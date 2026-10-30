@@ -19,6 +19,7 @@ export class CarrinhoDuravel extends Observavel<EstadoCarrinho> {
     this.persistencia = persistencia;
     this.contexto = contexto;
   }
+  pendenteNoCaixa(caixaId: string): boolean { return this.registro?.caixaId === caixaId && !this.obter().concluidaId && this.obter().itens.length > 0; }
   aguardarGravacoes(): Promise<void> { return this.fila; }
   limparMemoria(): void { this.registro = null; this.definir(vazio()); }
   private exigirDisponivel(): void {

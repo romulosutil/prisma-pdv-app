@@ -29,7 +29,7 @@ Acceptance Criteria:
 |---|---|---|
 | UI-01 | 1 | Implementado; revisão independente PASS em b105d1d |
 | MANUAL-01 | 2,3 | Implementado; revisão independente PASS em b105d1d |
-| CHECK-01 | 4 | Revisão/sensor e smoke web PASS; checkpoint entregue, validação humana pendente |
+| CHECK-01 | 4 | Revisão/sensor e smoke web PASS; usuário aprovou checkpoint1 em30/10/2026 e autorizou fase2 |
 
 ## Execution Plan
 1. Gestor define helper compartilhado e testes puros; dois executores independentes implementam domínio e interface em arquivos disjuntos. Gestor revisa persistência, integra e roda gates do escopo. Um commit integrado da fase, incluindo status/evidências curtas.

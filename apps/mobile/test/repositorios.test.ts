@@ -137,7 +137,8 @@ describe('VendasRepo', () => {
 describe('CaixaRepo', () => {
   function criarCaixa(planoId: PlanoId = 'negocio') {
     const amb = criarAmbiente();
-    return { amb, caixa: new CaixaRepo(amb, { sessao, planoId: () => planoId }), vendas: new VendasRepo(amb, { sessao }) };
+    const caixa = new CaixaRepo(amb, { sessao, planoId: () => planoId });
+    return { amb, caixa, vendas: new VendasRepo(amb, { sessao, caixaId: () => caixa.atual()?.id ?? null }) };
   }
 
   it('abre, registra movimentos, calcula o esperado e fecha', async () => {
@@ -176,5 +177,22 @@ describe('CaixaRepo', () => {
     const { caixa } = criarCaixa('essencial');
     await caixa.abrir(0);
     await expect(caixa.registrarMovimento('sangria', 100)).rejects.toSatisfy((e) => ehErroDeDominio(e, 'recurso_plano'));
+  });
+
+  it('mantém fechamento e evento de cancelamento ao repetir, sem misturar caixas', async () => {
+    const { caixa, vendas } = criarCaixa();
+    const primeiro = await caixa.abrir(100);
+    const nova = { itens: [{ produtoId: null, descricao: 'x', precoUnitarioCentavos: 2500, quantidadeMilesimos: 1000 }], pagamentos: [{ meio: 'dinheiro' as const, valorCentavos: 2500 }] };
+    const venda = await vendas.registrar(nova);
+    const fechado = await caixa.fechar(2600, vendas.listar());
+    const segundo = await caixa.abrir(200);
+    await vendas.registrar(nova);
+    await vendas.registrar({ ...nova, caixaId: null });
+    expect(resumirDia(new Date(), vendas.listar(), segundo).esperadoNaGavetaCentavos).toBe(2700);
+    const cancelada = await vendas.cancelar(venda.id);
+    expect(cancelada.caixaId).toBe(primeiro.id);
+    expect(cancelada.cancelamento).toMatchObject({ operadorId: 'operador', motivo: 'Cancelamento solicitado pelo operador', estorno: 'nao_realizado' });
+    expect(await vendas.cancelar(venda.id, 'outro motivo')).toEqual(cancelada);
+    expect(caixa.obter().find((c) => c.id === primeiro.id)).toEqual(fechado);
   });
 });

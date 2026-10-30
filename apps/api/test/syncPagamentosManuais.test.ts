@@ -31,7 +31,7 @@ async function snapshot() {
 const porId = <T extends { id: string }>(xs: T[]) => xs.sort((a, b) => a.id.localeCompare(b.id));
 function esperado(vs: Venda[], ids: string[], conta: { lojaId: string; aparelhoId: string }) {
   return {
-    vendas: porId(vs.map(v => ({ id: v.id, lojaId: v.lojaId, aparelhoId: v.aparelhoId, operadorId: v.operadorId, totalCentavos: v.totalCentavos, status: v.status, criadoEm: new Date(v.criadaEm), atualizadoEm: INICIO, excluidoEm: null, versao: 1 }))),
+    vendas: porId(vs.map(v => ({ id: v.id, lojaId: v.lojaId, aparelhoId: v.aparelhoId, operadorId: v.operadorId, caixaId: null, cancelamento: null, totalCentavos: v.totalCentavos, status: v.status, criadoEm: new Date(v.criadaEm), atualizadoEm: INICIO, excluidoEm: null, versao: 1 }))),
     itens: porId(vs.flatMap(v => v.itens.map((i, posicao) => ({ ...i, vendaId: v.id, lojaId: v.lojaId, posicao, criadoEm: new Date(v.criadaEm) })))),
     pagamentos: porId(vs.flatMap(v => v.pagamentos.map((p, posicao) => ({ ...p, vendaId: v.id, lojaId: v.lojaId, posicao, criadoEm: new Date(v.criadaEm) })))),
     mudancas: vs.map((v, i) => ({ seq: i + 1, lojaId: v.lojaId, entidade: 'venda', entidadeId: v.id, criadoEm: INICIO })),
@@ -101,7 +101,7 @@ it('preserva histórico integrado, imutabilidade e ACK anterior', async () => {
   const depois = await snapshot();
   expect(depois.itens).toEqual(antes.itens);
   expect(depois.pagamentos).toEqual(antes.pagamentos);
-  expect(depois.vendas).toEqual([{ ...antes.vendas[0]!, status: 'cancelada', versao: 2 }]);
+  expect(depois.vendas).toEqual([{ ...antes.vendas[0]!, status: 'cancelada', versao: 2, cancelamento: { id: expect.any(String), em: INICIO.toISOString(), operadorId: conta.operadorId, motivo: 'Cancelamento solicitado pelo operador', estorno: 'nao_realizado' } }]);
   expect(depois.mudancas).toEqual([{ seq: 1, lojaId: conta.lojaId, entidade: 'venda', entidadeId: legado.id, criadoEm: INICIO }]);
   expect(depois.acks).toEqual(porId([ack.id, replay.id, cancelamento.id].map(id => ({ id, lojaId: conta.lojaId, aparelhoId: conta.aparelhoId, criadoEm: INICIO }))));
 });

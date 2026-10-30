@@ -11,6 +11,7 @@ export type CodigoErroDominio =
   | 'venda_inexistente'
   | 'caixa_ja_aberto'
   | 'caixa_fechado'
+  | 'checkout_pendente'
   | 'sem_sessao';
 
 /** Erro de regra de negócio dos repositórios. A tela decide a mensagem pelo `codigo`. */

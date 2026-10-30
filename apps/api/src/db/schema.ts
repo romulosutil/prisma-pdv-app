@@ -1,4 +1,5 @@
 import {
+  type AnyPgColumn,
   bigint,
   bigserial,
   boolean,
@@ -18,6 +19,7 @@ import {
   STATUS_ASSINATURA,
   type ConfiancaCatalogo,
   type FonteCatalogo,
+  type Venda,
 } from '@pdv/shared';
 import type { EnvelopeCodigo } from '../email/cifrador';
 import type { MotivoEntregaCodigo } from '../email/tiposEntrega';
@@ -179,6 +181,8 @@ export const vendas = pgTable(
       .references(() => lojas.id),
     aparelhoId: uuid('aparelho_id').notNull(),
     operadorId: uuid('operador_id').notNull(),
+    caixaId: uuid('caixa_id').references((): AnyPgColumn => caixas.id),
+    cancelamento: jsonb('cancelamento').$type<Venda['cancelamento']>(),
     totalCentavos: inteiro('total_centavos').notNull(),
     status: text('status', { enum: ['concluida', 'cancelada'] }).notNull(),
     criadoEm: criadoEm(),

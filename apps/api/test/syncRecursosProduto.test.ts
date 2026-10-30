@@ -212,7 +212,7 @@ it('permite null, preserva LWW e aceita venda manual após downgrade', async () 
   expect(await amb.db.select().from(mutacoesAplicadas).where(eq(mutacoesAplicadas.id, antigo.id))).toEqual([{ id: antigo.id, lojaId: conta.lojaId, aparelhoId: conta.aparelhoId, criadoEm: agora }]);
   await conferirProduto(vizinho.dados as Produto, vizinho, conta, 1, agora);
   const v = manual.dados as ReturnType<typeof venda>;
-  expect(await amb.db.select().from(vendas).where(eq(vendas.id, v.id))).toEqual([{ id: v.id, lojaId: v.lojaId, aparelhoId: v.aparelhoId, operadorId: v.operadorId, totalCentavos: v.totalCentavos, status: v.status, criadoEm: INICIO, atualizadoEm: agora, excluidoEm: null, versao: 1 }]);
+  expect(await amb.db.select().from(vendas).where(eq(vendas.id, v.id))).toEqual([{ id: v.id, lojaId: v.lojaId, aparelhoId: v.aparelhoId, operadorId: v.operadorId, caixaId: null, cancelamento: null, totalCentavos: v.totalCentavos, status: v.status, criadoEm: INICIO, atualizadoEm: agora, excluidoEm: null, versao: 1 }]);
   expect(await amb.db.select().from(itensVenda).where(eq(itensVenda.vendaId, v.id)).orderBy(asc(itensVenda.posicao))).toEqual(v.itens.map((item, posicao) => ({ ...item, vendaId: v.id, lojaId: v.lojaId, posicao, criadoEm: INICIO })));
   expect(await amb.db.select().from(pagamentosVenda).where(eq(pagamentosVenda.vendaId, v.id)).orderBy(asc(pagamentosVenda.posicao))).toEqual(v.pagamentos.map((pagamento, posicao) => ({ ...pagamento, vendaId: v.id, lojaId: v.lojaId, posicao, criadoEm: INICIO })));
   expect(await amb.db.select().from(mutacoesAplicadas).where(eq(mutacoesAplicadas.id, manual.id))).toEqual([{ id: manual.id, lojaId: conta.lojaId, aparelhoId: conta.aparelhoId, criadoEm: agora }]);

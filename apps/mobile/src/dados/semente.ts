@@ -150,5 +150,5 @@ export function gerarSemente(entrada: EntradaSemente): Semente {
     movimentos: [],
   };
 
-  return { produtos, vendas: { vendas, numeroBase: NUMERO_BASE_DEMO }, caixas: [caixa] };
+  return { produtos, vendas: { vendas: vendas.map((v) => ({ ...v, caixaId: caixa.id })), numeroBase: NUMERO_BASE_DEMO }, caixas: [caixa] };
 }

@@ -80,8 +80,8 @@ export class Dados {
     this.preferencias = new PreferenciasRepo(this.armazenamentoDaLoja);
     this.produtos = new ProdutosRepo(ambiente, { lojaId: () => sessao().lojaId, planoId });
     this.ordemAtalhos = new OrdemAtalhosRepo(this.armazenamentoDaLoja);
-    this.vendas = new VendasRepo(ambiente, { sessao });
-    this.caixa = new CaixaRepo(ambiente, { sessao, planoId });
+    this.vendas = new VendasRepo(ambiente, { sessao, caixaId: () => this.caixa.atual()?.id ?? null });
+    this.caixa = new CaixaRepo(ambiente, { sessao, planoId, checkoutPendente: (id) => this.carrinho.pendenteNoCaixa(id) });
     this.carrinho = new CarrinhoDuravel();
     this.carrinho.configurar(
       armazenamento instanceof ArmazenamentoSqlite

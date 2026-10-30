@@ -57,7 +57,7 @@ async function vendaConcluida(tx: SqlExecutor, p: ParticaoLocal, registro: Regis
   const itensVenda = venda?.itens.map(({ id: _id, ...item }) => item);
   const pagamentosVenda = venda?.pagamentos.map(({ id: _id, ...pagamento }) => pagamento);
   // Cancelamento comercial posterior é legítimo; sua auditoria pertence a P0-04.
-  if (!venda || venda.criadaEm !== registro.criadaEm || venda.totalCentavos !== somar(...itens.map((i) => i.totalCentavos)) || !igual(itensVenda, itens) || !igual(pagamentosVenda, pagamentos)) {
+  if (!venda || venda.criadaEm !== registro.criadaEm || (venda.caixaId ?? null) !== registro.caixaId || venda.totalCentavos !== somar(...itens.map((i) => i.totalCentavos)) || !igual(itensVenda, itens) || !igual(pagamentosVenda, pagamentos)) {
     throw new Error('Venda concluída divergente ou ausente. Preserve os dados para recuperação.');
   }
   return venda;
@@ -79,6 +79,10 @@ export class CheckoutSqlite implements PersistenciaCheckout {
     await this.armazenamento.transacao(async (tx, p) => {
       const anterior = await ler(tx, p);
       const novo = registro === null ? null : validar(registro);
+      if (!anterior && novo?.caixaId) {
+        const caixas = await lerFinanceiro(tx, 'caixas', p) as import('@pdv/shared').Caixa[];
+        if (!caixas.some((c) => c.id === novo.caixaId && c.fechamento === null)) throw new Error('O caixa selecionado não está aberto.');
+      }
       if (anterior?.estado.concluidaId && !novo) await vendaConcluida(tx, p, anterior);
       if (anterior?.estado.concluidaId && novo) throw new Error('Checkout concluído não pode ser alterado.');
       if (anterior && novo && (anterior.vendaId !== novo.vendaId || anterior.criadaEm !== novo.criadaEm || anterior.caixaId !== novo.caixaId)) throw new Error('Identidade do checkout não pode ser alterada.');
@@ -123,7 +127,7 @@ export class CheckoutSqlite implements PersistenciaCheckout {
       if (!itens.length || !parcelas.length || somar(...parcelas.map((p) => p.valorCentavos)) !== totalCentavos) throw new Error('Pagamento incompleto ou checkout sem itens.');
       const venda = VendaSchema.parse({ id: registro.vendaId, lojaId: p.lojaId, aparelhoId: sessao.data.aparelhoId, operadorId: sessao.data.operadorId,
         itens: itens.map((i) => ({ id: this.novoId(), produtoId: i.produtoId, descricao: i.descricao, precoUnitarioCentavos: i.precoUnitarioCentavos, quantidadeMilesimos: i.quantidadeMilesimos, totalCentavos: multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos) })),
-        pagamentos: parcelas.map((parcela) => ({ id: this.novoId(), meio: parcela.meio, provedor: parcela.provedor ?? null, valorCentavos: parcela.valorCentavos, trocoCentavos: parcela.trocoCentavos ?? 0 })), totalCentavos, status: 'concluida', criadaEm: registro.criadaEm });
+        pagamentos: parcelas.map((parcela) => ({ id: this.novoId(), meio: parcela.meio, provedor: parcela.provedor ?? null, valorCentavos: parcela.valorCentavos, trocoCentavos: parcela.trocoCentavos ?? 0 })), totalCentavos, status: 'concluida', criadaEm: registro.criadaEm, caixaId: registro.caixaId });
       const mutacao = MutacaoSchema.parse({ id: this.novoId(), criadaEm: registro.criadaEm, entidade: 'venda', operacao: 'upsert', dados: venda });
       await tx.runAsync('INSERT INTO vendas VALUES (?, ?, ?, ?, ?)', p.contaId, p.lojaId, venda.id, registro.caixaId, JSON.stringify(venda));
       for (const [tabela, filhos] of [['itens_venda', venda.itens], ['pagamentos_venda', venda.pagamentos]] as const) {

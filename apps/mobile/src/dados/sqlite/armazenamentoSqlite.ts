@@ -85,7 +85,9 @@ export class ArmazenamentoSqlite implements Armazenamento {
       }
       const db = await this.db();
       await this.migrar(db, p);
-      return await lerFinanceiro(db, chave, p) as T;
+      let resultado: T | null = null;
+      await db.withExclusiveTransactionAsync(async (tx) => { resultado = await lerFinanceiro(tx, chave, p) as T; });
+      return resultado;
     });
   }
 

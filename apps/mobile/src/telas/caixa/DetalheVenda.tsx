@@ -8,7 +8,7 @@ import { StatusPill } from '@/componentes/StatusPill';
 import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
 import { useToast } from '@/componentes/Toast';
-import { useProdutos, useVendas } from '@/dados/hooks';
+import { useCaixa, useProdutos, useVendas } from '@/dados/hooks';
 import { cores, raio } from '@/tema';
 import { CabecalhoTela } from '@/componentes/CabecalhoTela';
 import { Confirmacao } from '@/componentes/Confirmacao';
@@ -25,6 +25,7 @@ export function DetalheVenda() {
   const toast = useToast();
   const voltar = useVoltar('/caixa/vendas');
   const { vendas, numeroDe, cancelar } = useVendas();
+  const { historico } = useCaixa();
   const { buscarPorId } = useProdutos();
   const [confirmando, setConfirmando] = useState(false);
   const [cancelando, setCancelando] = useState(false);
@@ -44,6 +45,7 @@ export function DetalheVenda() {
   const numero = numeroDe(venda);
   const quando = new Date(venda.criadaEm);
   const paga = venda.status === 'concluida';
+  const caixaDaVenda = historico.find((c) => c.id === venda.caixaId);
 
   const confirmarCancelamento = async () => {
     setCancelando(true);
@@ -68,7 +70,20 @@ export function DetalheVenda() {
           {`${formatarData(quando)} às ${formatarHora(quando)}`}
         </Texto>
         <Dinheiro centavos={venda.totalCentavos} estilo="display" cor={paga ? cores.ink : cores.ink2} style={paga ? undefined : estilos.riscado} />
+        <Texto estilo="legenda" cor={cores.ink3}>{venda.caixaId ? `Caixa vinculado: ${venda.caixaId}` : 'Venda sem vínculo com caixa. Não associada por estimativa de horário.'}</Texto>
       </View>
+
+      {venda.cancelamento ? (
+        <View style={estilos.secao}>
+          <Texto estilo="tituloM" accessibilityRole="header">Registro do cancelamento</Texto>
+          <Texto estilo="corpo">{venda.cancelamento.motivo}</Texto>
+          <Texto estilo="legenda">{`${formatarData(new Date(venda.cancelamento.em))} às ${formatarHora(new Date(venda.cancelamento.em))}`}</Texto>
+          <Texto estilo="legenda">{`Operador: ${venda.cancelamento.operadorId}`}</Texto>
+          <Texto estilo="legenda">{`Registro: ${venda.cancelamento.id}`}</Texto>
+          <Texto estilo="corpo" cor={cores.ink2}>Cancelamento comercial registrado. Estorno bancário não realizado pelo app.</Texto>
+          {caixaDaVenda?.fechamento ? <Texto estilo="legenda" cor={cores.ink2}>O fechamento histórico deste caixa permanece preservado.</Texto> : null}
+        </View>
+      ) : !paga ? <Texto estilo="legenda" cor={cores.ink2}>Cancelamento legado sem evento detalhado. Nenhum estorno bancário é confirmado pelo app.</Texto> : null}
 
       <View style={estilos.secao}>
         <Texto estilo="tituloM" accessibilityRole="header">
@@ -119,7 +134,7 @@ export function DetalheVenda() {
         visivel={confirmando}
         onFechar={() => setConfirmando(false)}
         titulo="Cancelar esta venda?"
-        texto={`A venda ${numero} de ${falarDinheiro(venda.totalCentavos)} deixa de contar no total do dia e na conferência da gaveta. Isso não pode ser desfeito.`}
+        texto={`A venda ${numero} de ${falarDinheiro(venda.totalCentavos)} será cancelada comercialmente. ${caixaDaVenda?.fechamento ? 'O fechamento já salvo será preservado e o cancelamento ficará registrado separadamente.' : 'O total do dia e a gaveta do caixa aberto serão atualizados.'} O app não realiza estorno no banco ou na maquininha. Isso não pode ser desfeito.`}
         rotuloConfirmar="Cancelar venda"
         perigo
         carregando={cancelando}

@@ -63,7 +63,7 @@ export default function Planos() {
           {planos.map((plano) => (
             <CartaoPlano
               key={plano.id}
-              plano={plano}
+              plano={{ ...plano, descricaoCurta: 'Venda e registre seus recebimentos' }}
               selecionado={plano.id === rascunho.planoId}
               onPress={() => alterar({ planoId: plano.id })}
             />

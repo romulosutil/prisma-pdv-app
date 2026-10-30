@@ -1,4 +1,4 @@
-import { MeioPagamentoSchema, MutacaoSchema, ProvedorPagamentoSchema, VendaSchema, multiplicarPreco, somar, type Venda } from '@pdv/shared';
+import { MeioPagamentoSchema, MutacaoSchema, ProvedorPagamentoSchema, VendaSchema, multiplicarPreco, pagamentoManualDisponivel, somar, type Venda } from '@pdv/shared';
 import { IdentidadeLocalSchema } from '../estadoConta';
 import { z } from 'zod';
 import type { PersistenciaCheckout, RegistroCheckout } from '../checkoutTipos';
@@ -87,6 +87,7 @@ export class CheckoutSqlite implements PersistenciaCheckout {
       if (anterior && !anterior.estado.concluidaId && anterior.estado.parcelas.length) {
         if (!novo || !igual(anterior.estado.itens, novo.estado.itens) || !igual(anterior.estado.parcelas, novo.estado.parcelas.slice(0, anterior.estado.parcelas.length))) throw new Error('Checkout com pagamento recebido não pode ser alterado ou descartado.');
       }
+      if (novo?.estado.parcelas.slice(anterior?.estado.parcelas.length ?? 0).some((p) => !pagamentoManualDisponivel(p))) throw new Error('Pagamento integrado indisponível nesta fase.');
       if (!novo) {
         await tx.runAsync('DELETE FROM rascunhos WHERE conta_id = ? AND loja_id = ?', p.contaId, p.lojaId);
       } else {
@@ -117,6 +118,7 @@ export class CheckoutSqlite implements PersistenciaCheckout {
       }
       if (existente) throw new Error('Venda já existe sem conclusão do checkout.');
       const { itens, parcelas } = registro.estado;
+      if (parcelas.some((p) => !pagamentoManualDisponivel(p))) throw new Error('Pagamento integrado indisponível nesta fase. Preserve o checkout para recuperação.');
       const totalCentavos = somar(...itens.map((i) => multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos)));
       if (!itens.length || !parcelas.length || somar(...parcelas.map((p) => p.valorCentavos)) !== totalCentavos) throw new Error('Pagamento incompleto ou checkout sem itens.');
       const venda = VendaSchema.parse({ id: registro.vendaId, lojaId: p.lojaId, aparelhoId: sessao.data.aparelhoId, operadorId: sessao.data.operadorId,

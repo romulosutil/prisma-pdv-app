@@ -1,4 +1,4 @@
-import { PLANOS, planoMinimoPara } from '@pdv/shared';
+import { PLANOS } from '@pdv/shared';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { DevSettings, Platform, StyleSheet, View } from 'react-native';
@@ -12,11 +12,10 @@ import { StatusPill } from '@/componentes/StatusPill';
 import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
 import { TilePagamento } from '@/componentes/TilePagamento';
-import { useAssinatura, useConta, useDados, useLicenca, usePreferencias } from '@/dados/hooks';
+import { useAssinatura, useConta, useDados, usePreferencias } from '@/dados/hooks';
 import { registrar, salvarAgora } from '@/diagnostico/registro';
 import { cores, raio } from '@/tema';
 import { FERRAMENTAS_TESTE } from '@/util/ferramentasTeste';
-import { PROVEDORES } from '@/util/provedores';
 import { STATUS_VISUAL } from '@/util/statusAssinatura';
 
 /**
@@ -39,9 +38,7 @@ export default function Ajustes() {
   const dados = useDados();
   const { perfil, primeiroNome } = useConta();
   const { assinatura } = useAssinatura();
-  const { podeUsar } = useLicenca();
-  const { preferencias, alterar, definirConexao } = usePreferencias();
-  const integracaoLiberada = podeUsar('integracao_pagamentos');
+  const { preferencias, alterar } = usePreferencias();
   const status = assinatura ? STATUS_VISUAL[assinatura.status] : null;
 
   return (
@@ -70,29 +67,9 @@ export default function Ajustes() {
 
       <Secao titulo="Recebimentos">
         <View style={estilos.lista}>
-          {PROVEDORES.map((p) => (
-            <TilePagamento
-              key={p.id}
-              titulo={p.nome}
-              legenda={p.legenda}
-              monograma={p.monograma}
-              fundo={p.fundo}
-              cor={p.cor}
-              estado={!integracaoLiberada ? 'bloqueado' : preferencias.conectados[p.id] ? 'conectado' : 'desconectado'}
-              rotuloBloqueio={`Plano ${PLANOS[planoMinimoPara('integracao_pagamentos')].nome}`}
-              onPress={() => definirConexao(p.id, !preferencias.conectados[p.id])}
-            />
-          ))}
+          <TilePagamento titulo="Pix" legenda="Pela sua chave, com confirmação manual" icone="pix" fundo={cores.bg} cor={cores.ink} estado="sempre_ativo" />
+          <TilePagamento titulo="Cartão" legenda="Registro manual da maquininha" icone="cartao" fundo={cores.bg} cor={cores.ink} estado="sempre_ativo" />
           <TilePagamento titulo="Dinheiro" legenda="Com calculadora de troco" icone="dinheiro" fundo={cores.bg} cor={cores.ink} estado="sempre_ativo" />
-        </View>
-        <View style={estilos.opcao}>
-          <Texto estilo="label">Pix sai por padrão em</Texto>
-          <Segmentado
-            rotuloGrupo="Pix sai por padrão em"
-            valor={preferencias.pixPadrao}
-            onChange={(pixPadrao) => alterar({ pixPadrao })}
-            opcoes={PROVEDORES.map((p) => ({ valor: p.id, rotulo: p.nome }))}
-          />
         </View>
       </Secao>
 

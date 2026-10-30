@@ -12,16 +12,11 @@ function historico(dias: number | null): string {
  * fica escrito na tela: mudou o catálogo, mudou o paywall. Vendas nunca são limitadas.
  */
 export function destaquesDoPlano(plano: Plano): string[] {
-  const { limites, recursos } = plano;
-  const linhas = [
+  const { limites } = plano;
+  return [
     'Vendas ilimitadas',
     limites.produtos === null ? 'Produtos ilimitados' : `Até ${limites.produtos} produtos`,
-    `${plural(limites.aparelhos, 'aparelho', 'aparelhos')} e ${
-      limites.operadores === null ? 'operadores ilimitados' : plural(limites.operadores, 'operador', 'operadores')
-    }`,
-    limites.lojas > 1 ? `${limites.lojas} lojas` : historico(limites.historicoDias),
+    historico(limites.historicoDias),
+    'Pix, cartão e dinheiro com confirmação manual',
   ];
-  if (recursos.includes('fiado')) linhas.push('Fiado, curva ABC e margem');
-  else if (recursos.includes('integracao_pagamentos')) linhas.push('Tap no celular, Pix com confirmação automática e estoque');
-  return linhas;
 }

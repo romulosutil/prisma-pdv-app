@@ -1,4 +1,4 @@
-import type { Produto, Venda } from '@pdv/shared';
+import { pagamentoManualDisponivel, type Produto, type Venda } from '@pdv/shared';
 import { Carrinho, type EstadoCarrinho, type Parcela } from './carrinho';
 import type { PersistenciaCheckout, RegistroCheckout } from './checkoutTipos';
 import { Observavel } from './observavel';
@@ -71,7 +71,10 @@ export class CarrinhoDuravel extends Observavel<EstadoCarrinho> {
   readonly remover = (chave: string) => this.mudar((r) => r.remover(chave));
   readonly desfazerRemocao = () => this.mudar((r) => r.desfazerRemocao());
   readonly destacar = (chave: string) => this.mudar((r) => r.destacar(chave));
-  readonly adicionarParcela = (parcela: Parcela) => this.mudar((r) => r.adicionarParcela(parcela));
+  readonly adicionarParcela = (parcela: Parcela) => this.mudar((r) => {
+    if (!pagamentoManualDisponivel(parcela)) throw new Error('Pagamento integrado indisponível nesta fase.');
+    r.adicionarParcela(parcela);
+  });
 
   readonly limpar = (): Promise<void> => this.enfileirar(async () => {
     if (!this.persistencia) throw new Error('Persistência do checkout não configurada.');
@@ -85,6 +88,7 @@ export class CarrinhoDuravel extends Observavel<EstadoCarrinho> {
   readonly concluir = (): Promise<Venda> => this.enfileirar(async () => {
     if (!this.persistencia) throw new Error('Persistência do checkout não configurada.');
     this.exigirDisponivel();
+    if (!this.obter().concluidaId && this.obter().parcelas.some((p) => !pagamentoManualDisponivel(p))) throw new Error('Pagamento integrado indisponível nesta fase. Preserve o checkout para recuperação.');
     const venda = await this.persistencia.concluir();
     await this.contexto?.aposConcluir?.();
     // Não há segunda gravação: o serviço já confirmou venda/outbox/rascunho no mesmo commit.

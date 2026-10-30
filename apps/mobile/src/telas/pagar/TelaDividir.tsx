@@ -13,24 +13,20 @@ import { useFoco } from '@/tema/useFoco';
 import { falarDinheiro } from '@/util/dinheiroFalado';
 import { iconeDoMeio } from '@/util/meios';
 import { CabecalhoPagamento } from './CabecalhoPagamento';
-import { FolhaUpgrade } from './FolhaUpgrade';
 import { FolhaValorParte } from './FolhaValorParte';
-import { useMeiosDisponiveis } from './meiosDisponiveis';
 import { rotuloDaParcela } from './rotulos';
 
-type Rota = '/pagar/pix' | '/pagar/tap' | '/pagar/cartao' | '/pagar/dinheiro';
+type Rota = '/pagar/pix' | '/pagar/cartao' | '/pagar/dinheiro';
 
 /** Venda dividida: mostra o que já foi pago e cobra o restante em partes, cada uma num meio. */
 export function TelaDividir() {
   const router = useRouter();
   const { totalCentavos, pagoCentavos, restanteCentavos, parcelas } = useCarrinho();
-  const { integracao, comProvedor, padrao } = useMeiosDisponiveis();
 
   const metade = metadeDoValor(restanteCentavos);
   // Na primeira parte sugere a metade; depois, o que falta.
   const [parte, setParte] = useState(parcelas.length === 0 ? metade : restanteCentavos);
   const [digitando, setDigitando] = useState(false);
-  const [upgradeAberto, setUpgradeAberto] = useState(false);
 
   useEffect(() => {
     setParte(parcelas.length === 0 ? metadeDoValor(restanteCentavos) : restanteCentavos);
@@ -39,14 +35,8 @@ export function TelaDividir() {
   const percentual = totalCentavos > 0 ? Math.min(100, Math.round((pagoCentavos / totalCentavos) * 100)) : 0;
   const parteValida = Math.min(Math.max(parte, 1), restanteCentavos);
 
-  const cobrar = (rota: Rota, provedor?: string) =>
-    router.push({ pathname: rota, params: { valor: String(parteValida), dividir: '1', ...(provedor ? { provedor } : {}) } });
-
-  const cobrarAproximacao = () => {
-    if (comProvedor && padrao) cobrar('/pagar/tap', padrao.id);
-    else if (integracao) router.push('/ajustes');
-    else setUpgradeAberto(true);
-  };
+  const cobrar = (rota: Rota) =>
+    router.push({ pathname: rota, params: { valor: String(parteValida), dividir: '1' } });
 
   return (
     <TelaBase rolavel>
@@ -108,8 +98,7 @@ export function TelaDividir() {
         </Texto>
 
         <View style={estilos.grade}>
-          <OpcaoDeMeio icone="pix" rotulo="Pix" onPress={() => cobrar('/pagar/pix', comProvedor ? padrao?.id : undefined)} />
-          <OpcaoDeMeio icone="cartao" rotulo="Aproximação" onPress={cobrarAproximacao} bloqueado={!integracao} />
+          <OpcaoDeMeio icone="pix" rotulo="Pix" onPress={() => cobrar('/pagar/pix')} />
           <OpcaoDeMeio icone="cartao" rotulo="Cartão" onPress={() => cobrar('/pagar/cartao')} />
           <OpcaoDeMeio icone="dinheiro" rotulo="Dinheiro" onPress={() => cobrar('/pagar/dinheiro')} />
         </View>
@@ -127,7 +116,6 @@ export function TelaDividir() {
           setDigitando(false);
         }}
       />
-      <FolhaUpgrade visivel={upgradeAberto} onFechar={() => setUpgradeAberto(false)} />
     </TelaBase>
   );
 }

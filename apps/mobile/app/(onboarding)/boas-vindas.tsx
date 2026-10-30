@@ -31,7 +31,7 @@ export default function BoasVindas() {
           Seu balcão inteiro no celular.
         </Texto>
         <Texto estilo="corpoL" cor={cores.ink2}>
-          Cadastre bipando, venda bipando e receba no Pix ou na aproximação.
+          Cadastre bipando, venda bipando e confirme seus recebimentos no Pix, cartão ou dinheiro.
         </Texto>
       </View>
     </TelaBase>

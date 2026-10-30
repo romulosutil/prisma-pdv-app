@@ -116,4 +116,14 @@ export class SimuladorProvedores implements ProvedoresPagamento {
   }
 }
 
-export const provedoresPagamento = new SimuladorProvedores();
+const indisponivel = (): never => { throw new Error('Pagamento integrado indisponível nesta fase.'); };
+
+/** O app não inicia cobranças integradas enquanto não houver integração real. */
+export const provedoresPagamento = {
+  criarCobrancaPix: (_pedido: Parameters<ProvedoresPagamento['criarCobrancaPix']>[0]): CobrancaPix => indisponivel(),
+  situacaoPix: (_id: string): SituacaoPix => indisponivel(),
+  iniciarTap: (_pedido: Parameters<ProvedoresPagamento['iniciarTap']>[0]): CobrancaTap => indisponivel(),
+  situacaoTap: (_id: string): SituacaoTap => indisponivel(),
+  simularPagamentoPix: (_id: string): void => indisponivel(),
+  simularAbandonoTap: (_id: string): void => indisponivel(),
+};

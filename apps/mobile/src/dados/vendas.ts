@@ -1,4 +1,4 @@
-import { multiplicarPreco, somar, type Centavos, type Venda } from '@pdv/shared';
+import { multiplicarPreco, pagamentoManualDisponivel, somar, type Centavos, type Venda } from '@pdv/shared';
 import { registrar } from '@/diagnostico/registro';
 import { inicioDoDia } from '@/util/tempo';
 import type { Ambiente } from './ambiente';
@@ -81,6 +81,7 @@ export class VendasRepo extends Persistido<EstadoVendas> {
   async registrar(nova: NovaVenda, id?: string): Promise<Venda> {
     const existente = id ? this.obter().vendas.find((v) => v.id === id) : null;
     if (existente) return existente;
+    if (nova.pagamentos.some((p) => !pagamentoManualDisponivel(p))) throw new Error('Pagamento integrado indisponível nesta fase.');
     if (nova.itens.length === 0) throw new ErroDeDominio('sem_itens', 'Adicione ao menos um item à venda.');
     const totalCentavos = totalDosItens(nova.itens);
     if (somar(...nova.pagamentos.map((p) => p.valorCentavos)) !== totalCentavos) {

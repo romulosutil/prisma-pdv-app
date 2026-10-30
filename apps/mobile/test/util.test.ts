@@ -61,10 +61,15 @@ describe('destaquesDoPlano', () => {
     expect(destaquesDoPlano(PLANOS.essencial)).toEqual([
       'Vendas ilimitadas',
       'Até 500 produtos',
-      '1 aparelho e 1 operador',
       'Histórico de 90 dias',
+      'Pix, cartão e dinheiro com confirmação manual',
     ]);
     expect(destaquesDoPlano(PLANOS.negocio)).toContain('Produtos ilimitados');
-    expect(destaquesDoPlano(PLANOS.pro)).toContain('3 lojas');
+    expect(destaquesDoPlano(PLANOS.pro)).toEqual([
+      'Vendas ilimitadas',
+      'Produtos ilimitados',
+      'Histórico de vendas ilimitado',
+      'Pix, cartão e dinheiro com confirmação manual',
+    ]);
   });
 });

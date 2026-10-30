@@ -83,6 +83,16 @@ export const VendaSchema = z.object({
   lojaId: IdSchema,
   aparelhoId: IdSchema,
   operadorId: IdSchema,
+  /** Ausente/null no legado ou em venda explicitamente sem caixa. Nunca inferir pela data. */
+  caixaId: IdSchema.nullable().optional(),
+  /** Evento comercial único e imutável. Não representa estorno no banco/provedor. */
+  cancelamento: z.object({
+    id: IdSchema,
+    em: DataIsoSchema,
+    operadorId: IdSchema,
+    motivo: z.string().trim().min(1).max(500),
+    estorno: z.literal('nao_realizado'),
+  }).nullable().optional(),
   itens: z.array(ItemVendaSchema),
   pagamentos: z.array(PagamentoVendaSchema),
   totalCentavos: CentavosNaoNegativosSchema,

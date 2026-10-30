@@ -4,3 +4,13 @@ dist
 *.log
 .env*
 builds/
+!.env.example
+.DS_Store
+Thumbs.db
+coverage
+
+# Arquivos gerados por ferramentas de IA (skills/agentes)
+.claude/worktrees/
+.claude/settings.local.json
+.impeccable/
+brag-output/

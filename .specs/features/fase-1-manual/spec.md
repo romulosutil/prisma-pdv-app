@@ -27,9 +27,9 @@ Acceptance Criteria:
 ## Requirement Traceability
 | ID | Critérios | Status |
 |---|---|---|
-| UI-01 | 1 | Implementado e gates locais PASS; revisão independente pendente |
-| MANUAL-01 | 2,3 | Implementado e gates locais PASS; revisão independente pendente |
-| CHECK-01 | 4 | Planejado |
+| UI-01 | 1 | Implementado; revisão independente PASS em b105d1d |
+| MANUAL-01 | 2,3 | Implementado; revisão independente PASS em b105d1d |
+| CHECK-01 | 4 | Revisão/sensor e smoke web PASS; checkpoint entregue, validação humana pendente |
 
 ## Execution Plan
 1. Gestor define helper compartilhado e testes puros; dois executores independentes implementam domínio e interface em arquivos disjuntos. Gestor revisa persistência, integra e roda gates do escopo. Um commit integrado da fase, incluindo status/evidências curtas.
@@ -45,6 +45,6 @@ Mobile: regressão 452/41 arquivos antes da inclusão da sexta verificação de 
 | 2: rejeição antes de persistência/publicação | test/fase1Dominio.test.ts:38–39 rejeição/estado idêntico/sem salvar; :45–46 repo; :55–61 snapshot SQLite idêntico | PASS |
 | 2: preservar história/retry e bloquear singleton | test/fase1Dominio.test.ts:90–101 igualdade de registro/venda/banco; :116–118 singleton indisponível | PASS |
 | 3: split, troco e conclusão única | test/fase1Dominio.test.ts:71 pagamentos manuais com troco500; :72 mesma venda; :73 outbox1; testes existentes carrinhoDuravel/checkoutSqlite/useCobranca | PASS |
-| 4: revisão e checkpoint humano | validation.md e docs/fases-e-checkpoints.md | Pendente |
+| 4: revisão e checkpoint humano | validation.md e docs/fases-e-checkpoints.md | Revisão e entrega PASS; avaliação humana pendente |
 
-Mapeamento reverso: todos os casos de fase1Interface atendem AC1; fase1Dominio atende AC2/3; capacidades.test.ts:5,10–13 prova política AC1/2. Nenhum caso fora do contrato. Testes usam convenção test/**/*.test.ts do projeto. Asserções de valores/estado e snapshots complementam spies; mocks de componentes não constituem prova visual nem integração real. Adequação local aceita, dependente de revisão/sensor independente e checkpoint.
+Mapeamento reverso: todos os casos de fase1Interface atendem AC1; fase1Dominio atende AC2/3; capacidades.test.ts:5,10–13 prova política AC1/2. Nenhum caso fora do contrato. Testes usam convenção test/**/*.test.ts do projeto. Asserções de valores/estado e snapshots complementam spies; mocks de componentes não constituem prova visual nem integração real. Adequação local aceita; revisor independente confirmou19/19 e6/6 mutações comportamentais. Gestor conferiu no navegador checkout/split/Pix estático/recibo/reload/histórico, sem API externa, e entregou roteiro local. Parar para avaliação humana; não iniciar fase2.

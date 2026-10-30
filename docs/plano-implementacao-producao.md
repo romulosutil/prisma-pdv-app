@@ -14,6 +14,8 @@ Manter Fastify, Drizzle/PostgreSQL, Expo/React Native e o domínio em `packages/
 
 ### Como acompanhar
 
+Execução reorganizada em30/10/2026 em [fases com checkpoints no app](fases-e-checkpoints.md). Fase1 implementada localmente e revisada em `b105d1d`, aguardando avaliação humana no navegador. Próxima fase somente após esse checkpoint; nenhuma homologação Android/produção inferida da demonstração web.
+
 - IDs `P0-01-A` identificam tarefas; IDs `AC-P0-01-1` identificam critérios de aceite.
 - Marcar uma tarefa apenas quando o resultado correspondente estiver implementado e verificado.
 - Marcar um critério apenas com evidência: teste, comando e resultado, ou roteiro manual com versão do artefato e aparelho/ambiente.
@@ -174,8 +176,8 @@ Contrato local implementado para perda do único aparelho: `POST /auth/recuperac
 **Tarefas**
 
 - [x] **P0-06-A:** registrar o escopo de lançamento. Recomendação: começar com recebimentos manuais/Pix estático e retirar integrações simuladas da oferta; integração real é obrigatória antes de anunciar confirmação automática ou Tap.
-- [ ] **P0-06-B:** implementar configuração de capacidades e bloquear simuladores em produção, também por acesso direto à rota; conectar as capacidades às telas de planos, onboarding, ajustes e checkout. Parte API aceita em1b960b2: novos registros Tap/provedor são rejeitados em todos os planos, história confirmada preservada. UI/adapters/oferta ainda não implementados, portanto B segue aberto.
-- [ ] **P0-06-C:** homologar dinheiro, troco, cartão manual, Pix estático e pagamento dividido, com confirmação explícita pelo operador e recuperação de P0-01.
+- [ ] **P0-06-B:** implementar configuração de capacidades e bloquear simuladores em produção, também por acesso direto à rota; conectar as capacidades às telas de planos, onboarding, ajustes e checkout. API aceita em1b960b2; corte mobile/UI/adapters implementado em `b105d1d`, revisão técnica PASS19/19 e sensor6/6; métodos manuais e legado preservados, singleton indisponível, rotas integradas redirecionam. Checkpoint web entregue; item global segue aberto até verificar o artefato de produção.
+- [ ] **P0-06-C:** homologar dinheiro, troco, cartão manual, Pix estático e pagamento dividido, com confirmação explícita pelo operador e recuperação de P0-01. Fase1: testes locais de split/troco/retry e smoke web R$25=R$10dinheiro+R$15Pix manual, recibo/reload/histórico PASS; Android e recuperação completa continuam pendentes.
 - [ ] **P0-06-D — condicional à oferta integrada:** escolher um provedor e implementar vínculo da cobrança à venda, referências persistentes, iniciação, consulta/retorno, confirmação confiável, expiração e conciliação após reinício.
 - [ ] **P0-06-E — condicional à oferta integrada:** implementar cancelamento/estorno quando suportado e tratamento de cobrança paga sem venda concluída, resposta perdida e evento duplicado; homologar antes de habilitar.
 

@@ -145,3 +145,32 @@ it('protege edição pendente durante pull e converge ao agregado mais recente a
   expect(dados.produtos.obter()[0]?.nome).toBe('Remoto mais recente');
   expect((await amb.db.select().from(produtos).where(eq(produtos.id, produto.id)))[0]?.nome).toBe('Remoto mais recente');
 }, 30000);
+
+it('restaura caixa aberto histórico sem adotá-lo para novas vendas do aparelho autorizado', async () => {
+  const c = await contaEmTeste(amb);
+  const origem = await instalar(c);
+  const anterior = await origem.dados.caixa.abrir(0);
+  await origem.dados.carrinho.adicionarAvulso(2500, 'Origem');
+  await origem.dados.carrinho.adicionarParcela({ meio: 'dinheiro', valorCentavos: 2500 });
+  const vendaAnterior = await origem.dados.carrinho.concluir();
+  await origem.dados.sincronizacao.sincronizar();
+  const codigo = await chamar(amb, 'POST', '/auth/codigo', { corpo: { email: c.email } });
+  const login = await chamar<Sessao>(amb, 'POST', '/auth/login', { corpo: { email: c.email, codigo: codigo.corpo.codigo, aparelhoId: gerarId(), aparelhoNome: 'Nova instalação' } });
+  expect(login.status).toBe(200);
+  const nova = await instalar(login.corpo);
+  await nova.dados.sincronizacao.sincronizar();
+  expect(nova.dados.caixa.obter()).toEqual([anterior]);
+  expect(nova.dados.caixa.atual()).toBeNull();
+  const atual = await nova.dados.caixa.abrir(0);
+  await nova.dados.carrinho.adicionarAvulso(100, 'Nova');
+  await nova.dados.carrinho.adicionarParcela({ meio: 'dinheiro', valorCentavos: 100 });
+  const vendaAtual = await nova.dados.carrinho.concluir();
+  await nova.dados.sincronizacao.sincronizar();
+  expect(nova.dados.sincronizacao.obter()).toMatchObject({ pendentes: 0, rejeitadas: 0 });
+  expect(nova.dados.caixa.obter().find((cx) => cx.id === anterior.id)).toEqual(anterior);
+  expect(vendaAnterior.caixaId).toBe(anterior.id);
+  expect(vendaAtual.caixaId).toBe(atual.id);
+  expect(vendaAtual.aparelhoId).toBe(login.corpo.aparelhoId);
+  const registros = await amb.db.select().from(vendas);
+  expect(registros.map((v) => [v.id, v.caixaId]).sort()).toEqual([[vendaAnterior.id, anterior.id], [vendaAtual.id, atual.id]].sort());
+}, 30000);

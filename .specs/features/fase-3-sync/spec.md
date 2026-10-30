@@ -31,9 +31,9 @@ Acceptance Criteria:
 ## Requirement Traceability
 | ID | AC | Status |
 |---|---|---|
-| OUTBOX-01 | 1,2 | Implementado e gates locais PASS; revisão pendente |
-| PULL-01 | 3,4 | Implementado e gates locais PASS; revisão pendente |
-| RECOVER-01 | 4,5 | Implementado e gates locais PASS; revisão pendente |
+| OUTBOX-01 | 1,2 | Implementado; revisão técnica PASS em8a0b3e5 |
+| PULL-01 | 3,4 | Implementado; revisão técnica PASS e sensor5/5 |
+| RECOVER-01 | 4,5 | Prova HTTP/PG e smoke PASS; checkpoint3 entregue, avaliação humana pendente |
 
 ## Execution Plan
 1. Fixar contrato curto RepositorioSync. Dois executores Terra Médio em arquivos disjuntos: armazenamento/outbox/pull e transporte/motor. Uma suíte por vez; gestor mantém Dados/UI/lifecycle/integração HTTP.
@@ -51,8 +51,12 @@ Mobile: regressão487/47 arquivos PASS antes do caso adicional de conflito real.
 | 3: paginação, cursor e rollback | syncIntegracao.test.ts restaura503 produtos e cursor503 sem outbox; syncPersistencia.test.ts falha em estado_local e reabre com cursor0/agregado vazio; ACK parcial conserva edição local e diferido aplica após último ACK | PASS |
 | 4: restauração autenticada | syncIntegracao.test.ts autoriza novo aparelho pelo login API e compara vendas/caixas/produtos da instalação limpa com origem já confirmada | PASS |
 | 5: venda antiga e vizinho | syncIntegracao.test.ts mantém venda8dias rejeitada com payload/ID/data e exportação sem token, produto válido confirmado | PASS |
-| 4/5: UI financeira real | CUA8087 com API3338 desligada: venda25/troco5 e caixa criaram2 pendências; reload preservou2; PG tinha0vendas/0caixas/0ACK. Após ligarAPI e sincronizar: fila0, PG1venda25 vinculada/1caixa/2ACK, datafinanceira atualizada | Smoke web PASS; revisão e checkpoint humano pendentes |
+| 4/5: UI financeira real | CUA8087 com API3338 desligada: venda25/troco5 e caixa criaram2 pendências; reload preservou2; PG tinha0vendas/0caixas/0ACK. Após ligarAPI e sincronizar: fila0, PG1venda25 vinculada/1caixa/2ACK, datafinanceira atualizada | Smoke e revisão PASS; checkpoint humano pendente |
 
 Mapeamento reverso: novos testes syncPersistencia/syncNavegador cobrem AC1/3/5; sincronizacao/backendSync cobrem AC2/3/4; syncIntegracao cobre AC1–5. Fixture existente acessoApiIntegracao passou a exigir os três payloads da outbox (produto,caixa,venda) em vez de somente contagem1, por alteração contratual autorizada; nenhum resultado de identidade/valores foi removido. Não há teste sem requisito declarado; valores, conjuntos e snapshots complementam chamadas de mocks. Revisor deverá localizar números finais e confrontar os resultados; estes gates não são homologação Android, assinatura ou e-mail externos.
 
 Decisões de integração: somente a aplicação local usa a fila de troca de conta e bloqueia temporariamente escritas; requisições HTTP ficam fora dela. App tenta ao abrir/retomar e a cada15s ativo, respeitando backoff do motor. Servidor de checkpoint é127.0.0.1 development, banco pdv_checkpoint_sync isolado de pdv_test; demo8086 não é enviada. Exceção de venda antiga permanece rejeitada no servidor, preservada localmente para revisão autenticada/exportação; não foi criada rota de aceitação excepcional.
+
+Revisor independente aprovou os caminhos amostrados, repetiu baseline20/20 e detectou5/5 regressões de ACK/cursor/proteção de pendência/troca de credencial/commit. Não repetiu os gates HTTP/PG do gestor nem auditou integralmente todos os caminhos. Inconsistência documental residual de LWW por campo corrigida após limpeza do sensor; fonte runtime permanece8a0b3e5. validate_state PASS, checkpoint3 documentado e parada antes da fase4.
+
+Seguimento AC4 identificado pelo gestor: caixa aberto do aparelho anterior deve ser restaurado como histórico, sem seleção automática para novas vendas do aparelho atual. Critério de aceite: histórico permanece idêntico; caixa atual da nova instalação é inicialmente null, pode abrir novo com origem atual e enviar nova venda sem rejeição/mistura. CaixaRepo e aviso da interface ajustados; nova prova HTTP/PG em syncIntegracao.test.ts e revalidação independente requeridas antes do checkpoint.

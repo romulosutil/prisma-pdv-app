@@ -73,7 +73,9 @@ export class CaixaRepo extends Persistido<Caixa[]> {
   }
 
   atual(): Caixa | null {
-    return this.obter().find((c) => c.fechamento === null) ?? null;
+    if (!this.obter().some((c) => c.fechamento === null)) return null;
+    const { lojaId, aparelhoId } = this.contexto.sessao();
+    return this.obter().find((c) => c.fechamento === null && c.lojaId === lojaId && c.aparelhoId === aparelhoId) ?? null;
   }
 
   async abrir(trocoInicialCentavos: Centavos): Promise<Caixa> {
@@ -82,8 +84,8 @@ export class CaixaRepo extends Persistido<Caixa[]> {
     }
     let caixa: Caixa | undefined;
     await this.modificar((atual) => {
-      if (atual.some((c) => c.fechamento === null)) throw new ErroDeDominio('caixa_ja_aberto', 'Já existe um caixa aberto.');
       const { lojaId, aparelhoId, operadorId } = this.contexto.sessao();
+      if (atual.some((c) => c.fechamento === null && c.lojaId === lojaId && c.aparelhoId === aparelhoId)) throw new ErroDeDominio('caixa_ja_aberto', 'Já existe um caixa aberto.');
       caixa = { id: this.amb.novoId(), lojaId, aparelhoId, operadorId, abertura: { em: this.amb.relogio.agora().toISOString(), trocoInicialCentavos }, fechamento: null, movimentos: [] };
       return [...atual, caixa];
     });
@@ -100,7 +102,8 @@ export class CaixaRepo extends Persistido<Caixa[]> {
     }
     let atualizado: Caixa | undefined;
     await this.modificar((lista) => {
-      const atual = lista.find((c) => c.fechamento === null);
+      const { lojaId, aparelhoId } = this.contexto.sessao();
+      const atual = lista.find((c) => c.fechamento === null && c.lojaId === lojaId && c.aparelhoId === aparelhoId);
       if (!atual) throw new ErroDeDominio('caixa_fechado', 'Abra o caixa antes de registrar movimentos.');
       atualizado = { ...atual, movimentos: [...atual.movimentos, { id: this.amb.novoId(), tipo, valorCentavos, motivo, criadoEm: this.amb.relogio.agora().toISOString() }] };
       return lista.map((c) => c.id === atual.id ? atualizado! : c);

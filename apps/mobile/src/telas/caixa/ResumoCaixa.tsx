@@ -25,7 +25,7 @@ const ROTULO_MOVIMENTO: Record<TipoMovimento, string> = { sangria: 'Sangria', su
 
 export function ResumoCaixa() {
   const router = useRouter();
-  const { perfil, primeiroNome } = useConta();
+  const { perfil, primeiroNome, identidade } = useConta();
   const { caixa, historico } = useCaixa();
   const { vendas, numeroDe } = useVendas();
   const resumo = useResumoDoDia();
@@ -40,6 +40,7 @@ export function ResumoCaixa() {
     .sort((a, b) => b.em.localeCompare(a.em))[0];
   const fechados = historico.filter((c) => c.fechamento).sort((a, b) => b.fechamento!.em.localeCompare(a.fechamento!.em));
   const semVinculo = vendas.filter((v) => !v.caixaId).length;
+  const caixasAnterioresAbertos = historico.filter((c) => !c.fechamento && c.aparelhoId !== identidade?.aparelhoId);
 
   const meios = [
     { nome: 'Dinheiro', icone: 'dinheiro', valor: resumo.porMeio.dinheiro },
@@ -167,6 +168,11 @@ export function ResumoCaixa() {
       )}
 
       {semVinculo > 0 ? <Texto estilo="legenda" cor={cores.ink3}>{`${semVinculo} venda(s) sem vínculo com caixa. Permanecem no histórico e não entram na gaveta por estimativa de horário.`}</Texto> : null}
+
+      {caixasAnterioresAbertos.length > 0 ? <View style={estilos.cartao}>
+        <Texto estilo="tituloM" accessibilityRole="header" style={estilos.tituloCartao}>Caixas de aparelhos anteriores</Texto>
+        <Texto estilo="corpo" cor={cores.ink2}>{`${caixasAnterioresAbertos.length} caixa(s) continuam abertos no histórico de outro aparelho. Os registros foram preservados; abra um novo caixa para operar neste aparelho.`}</Texto>
+      </View> : null}
 
       {fechados.length > 0 ? (
         <View style={estilos.lista}>

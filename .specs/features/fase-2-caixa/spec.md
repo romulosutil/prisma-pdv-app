@@ -31,7 +31,7 @@ Acceptance Criteria:
 | ID | AC | Status |
 |---|---|---|
 | LINK-01 | 1,2,4 | Implementado; gates locais PASS, revisão independente pendente |
-| AUDIT-01 | 3,4 | Implementado; gates locais PASS, revisão independente pendente |
+| AUDIT-01 | 3,4 | Implementado; revisão encontrou comparação ISO textual; correção e nova revisão em andamento |
 | CHECK-02 | 5 | Pendente |
 
 ## Execution Plan
@@ -55,3 +55,5 @@ Gates do gestor/executores: mobile461/42arquivos, API443/32arquivos em PGlite, s
 Necessidade: todos os novos testes shared atendem AC1/3 (compatibilidade/estado comercial); testes novos mobile atendem AC1/2/3; helper de apresentação fase2Interface.test.ts atende AC3; testes API e migração atendem AC3/4. Convenção test/**/*.test.ts e runner único/maxWorkers1 do projeto. Assertivas de payload/snapshots e valores complementam rejeições/spies; não provar banco por contagem de chamadas. API/migração PostgreSQL são locais, mocks de assinatura só fixtures de acesso. Nenhuma evidência Android, provider ou produção inferida.
 
 Decisões de integração: normalização SQLite em transação recupera somente caixa_id conhecido, aborta null explícito conflitante e mantém legado desconhecido sem associação; fechamento revalida vendas duráveis para rejeitar snapshot antigo; filas de abertura/movimentos usam estado corrente. API compara evento por campos (ordem de chaves jsonb não importa), valida origem/intervalos e mantém resultado de ACK na ordem solicitada. App não envia sync automaticamente nesta fase; isso continua fase3.
+
+Correção da revisão: helper de histórico deve comparar instantes numéricos, não strings ISO. Teste novo reproduziu erro com fechamento sem casas fracionárias e evento1ms posterior (RED1/2); cobertura inclui igual e anterior e as mesmas entradas com fechamento normalizado. Corrigir somente helper e repetir alvo/tipos e revisão independente; gates de banco e sensor7/7 anteriores conservam a superfície inalterada.

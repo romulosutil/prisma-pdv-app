@@ -4,6 +4,9 @@ dist
 *.log
 .env*
 builds/
+apps/mobile/android/
+apps/mobile/ios/
+__pycache__/
 !.env.example
 .DS_Store
 Thumbs.db

@@ -34,7 +34,7 @@ Como responsável pelo PDV, quero instalar uma versão identificável no celular
 ## Passos atômicos
 
 1. Verificar recuperação local e registrar bloqueio do checkpoint antigo → apps/api/test/recuperacaoAparelho.test.ts, apps/mobile/test/recuperacaoApiIntegracao.test.ts e docs/roteiro-recuperacao-aparelho.md → tornar fixture de limite1 explícita após oferta padrão Pro10, preservar asserções e rodar gate direcionado, sem substituir prova externa.
-2. Preparar configuração e ferramenta de APK de homologação → apps/mobile/app.config.ts, apps/mobile/scripts/build-apk-local.py, apps/mobile/scripts/test_build_apk_local.py, apps/mobile/test/configuracaoApk.test.ts, .gitignore, este spec → configuração validada e APK compilado/inspecionado.
+2. Preparar configuração e ferramenta de APK de homologação → apps/mobile/app.config.ts, apps/mobile/metro.config.cjs, apps/mobile/scripts/build-apk-local.py, apps/mobile/scripts/test_build_apk_local.py, apps/mobile/test/configuracaoApk.test.ts, .gitignore, este spec → configuração validada e APK compilado/inspecionado. Metro e Gradle usam um worker na homologação para limitar memória.
 3. Revisão independente e entrega → validation.md, docs/checkpoint-apk.md, docs/fases-e-checkpoints.md e STATE seção de retomada → relatório de revisão e checklist com pendências explícitas.
 
 ## Out of Scope
@@ -53,5 +53,5 @@ VPS/backup, Mercado Pago, distribuição pública, Play Store e alteração de o
 
 - Recuperação automatizada: 33/33 API PGlite e 56/56 mobile; revisão independente PASS com sensor de revogação, em revisao-recuperacao.md. Asserções preservadas.
 - Recuperação externa anterior: não comprovada.
-- APK: preparação em andamento.
+- APK código5: compilado e inspecionado; SHA256 c852363caa12dfd0d572d3127fb5083c0d47efd34ef7defad0a092b30b3b073f, assinatura v2 válida, bundle e módulos SQLite/SecureStore/câmera presentes. Atualização código6 e revisão final pendentes.
 - Homologação física: pendente, checkpoint final desta entrega.

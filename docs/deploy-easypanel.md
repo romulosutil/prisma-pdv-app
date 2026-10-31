@@ -18,6 +18,7 @@ Preencher segredos diretamente no ambiente do serviço. Os marcadores abaixo nã
 NODE_ENV=production
 PORT=3333
 BILLING_PROVIDER=disabled
+JOBS=on
 DATABASE_URL=<CONEXAO_INTERNA_POSTGRES>
 EMAIL_CODIGO_MODE=smtp
 SMTP_HOST=smtp.resend.com
@@ -51,3 +52,5 @@ Gerar o aplicativo com EXPO_PUBLIC_API_URL no endereço HTTPS da API e ferrament
 ## Evidências
 
 Estado de implantação, CI, backup e smoke externo será registrado após execução. A existência deste roteiro não comprova essas etapas.
+
+Preparação local revisada em30/10/2026: parecer independente PASS para AC1–10, sensor7/7 e relatório em `.specs/features/easypanel-sem-cobranca/validation.md`. Usuário confirmou login HTTPS e autorizou transferir somente a credencial SMTP e chaves de cifra locais para pdv-api e conectar o banco exclusivo. Ambiente foi salvo por HTTPS, com billingdisabled e JOBSon, sem exposição dos valores. Segredo EASYPANEL_DEPLOY_URL foi gravado no GitHub Actions e o arquivo temporário de transferência removido. Isso ainda não comprova implantação ativa nem novo envio Resend.

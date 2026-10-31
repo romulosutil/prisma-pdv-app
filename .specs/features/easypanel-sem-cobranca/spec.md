@@ -103,6 +103,8 @@ Adequação: assertions derivam dos ACs; nenhuma alteração em testes existente
 - Workflow YAML parseado e condição de dependência/main conferida. Actions oficiais fixadas em SHAs de commits de checkoutv7.0.1 e setup-nodev7.1.0. Canary .env.docker-context-check é criado no runner para verificar a exclusão na imagem. Branch codex/pdv-deploy recebe somente SHA testado; deploy exige segredo HTTPS e falha sem ele. Aprovação do webhook não é considerada prova de saúde.
 - Infra criada no EasyPanel: pdv-api e pdv-postgres emaladdin; fonteGitHub temporariamente main para preparar configuração, auto deploy nativo desativado; mudar fonte para codex/pdv-deploy após primeira promoção. Porta interna3333 no domínioHTTPS aladdin-pdv-api.jicnzg.easypanel.host; PostgreSQL privado, ExposedPort0. Credenciais não transferidas, API não ativada. Serviços anteriores preservados. Backup e saúde externa não foram verificados.
 
+- Preparação avançou após confirmação explícita do usuário: sessãoHTTPS autenticada, SMTP_PASSWORD e ring/ID de cifra locais validados sem imprimir valores e transferidos somente ao ambiente de pdv-api, com DATABASE_URL interna do banco exclusivo, NODE_ENVproduction, BILLINGdisabled e JOBSon. SegredoEASYPANEL_DEPLOY_URLHTTPS salvo no GitHub Actions, arquivo temporário removido. Revisão independente PASS local emvalidation.md,7/7mutações e validate_state0erros. O parecer não encerra AC11 nem substitui CI remoto.
+
 ## Success Criteria
 
 - [ ] Gates locais e revisão independente aprovados.

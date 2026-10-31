@@ -74,6 +74,8 @@
 
 ## Handoff
 
+- Resend: usuário informou prumo.services; captura mostra Pending e Forge Disabled. Remetente inicial reversível acesso@prumo.services. Consulta pública1.1.1.1 já vê TXT DKIM; send.prumo.services é CNAME send.forge.rmta.net com SPF/MX resolvidos no destino. Sem seção Enable Sending completa, não concluir correção de todos os registros nem alterar DNS. Falta confirmação Verified no painel, segredo no ambiente isolado e teste de recebimento/login. Nenhuma configuração externa realizada.
+
 - Atualização posterior ao checkpoint3: preparação Resend autorizada pelo usuário. O Goal original retornou inexistente ao consultar o controlador; foi criado novamente no turno da proposta de senha, depois pausado quando o usuário disse “pera”. A nova decisão AD-047 substitui a proposta de senha registrada no texto do Goal. O controlador não oferece atualizar objetivo/retomar; não afirmar active. Nenhuma alteração de código de autenticação foi realizada. Pergunta sobre domínio/remetente e verificação Resend enviada; não pedir API key pelo chat. Estado externo ainda não confirmado.
 
 - PARADA NO CHECKPOINT3: usuário aprovou checkpoint2 e autorizou fase3. Entrega d30ea9f/8a0b3e5, seguimento985c9b1 e revisão independente PASS nos caminhos verificados, sensor6/6. Aguardar avaliação humana no app http://localhost:8087/caixa/sync antes de fase4. Roteiro e reinício em docs/fases-e-checkpoints.md. Goal controlador permanece paused sem comando de retomada, tarefa autorizada diretamente; não afirmar active ou concluir objetivo global.

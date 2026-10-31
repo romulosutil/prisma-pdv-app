@@ -18,6 +18,8 @@ z.config(z.locales.pt());
 
 export interface ConfigApp extends Deps {
   logger?: boolean;
+  /** Permite homologação local sem ferramentas de desenvolvimento. Nunca habilita /dev em produção. */
+  habilitarRotasDev?: boolean;
 }
 
 function descreverErroZod(erro: z.ZodError): string {
@@ -80,7 +82,7 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
   rotasPlanos(app);
   rotasConta(app, deps);
   rotasRecuperacao(app, deps);
-  if (!producao) rotasDev(app, deps);
+  if (!producao && config.habilitarRotasDev !== false) rotasDev(app, deps);
 
   await app.register(async (privado) => {
     privado.decorateRequest('sessao');

@@ -2,6 +2,8 @@
 
 Roteiro preparado em 29/10/2026, ainda não executado em serviço externo. O fluxo foi integrado e aprovado nos nove critérios locais em `.specs/features/entrega-codigo/validation.md`, fonte5651212. Não usar este documento como aprovação de produção. O bootstrap continua recusando billing mock em produção.
 
+Em30/10/2026, o usuário escolheu **Resend via SMTP** e informou possuir conta/API key. A retirada do e-mail e a troca para senha foram suspensas antes de editar código. Ver [configuração Resend e checkpoint externo](operacao-email-resend.md). Domínio/remetente, credencial no ambiente e entrega real continuam pendentes.
+
 ## Configuração a revisar
 
 O modo de desenvolvimento preserva o código na resposta de teste e não envia e-mail. É o padrão somente fora de produção. Nesse modo, não definir variáveis de SMTP ou do ring de chaves como se estivessem habilitadas.

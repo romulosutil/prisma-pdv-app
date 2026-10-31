@@ -9,6 +9,8 @@ Reorganização autorizada em 30/10/2026. O plano de produção continua sendo o
 | 3 — Sincronizar e restaurar | Pendências reais, envio/ACK/retry, pull e recuperação autenticada. | Operar offline; reiniciar; reconectar; conferir servidor; restaurar instalação autorizada e identificar pendências não confirmadas. | P0-02 e fechamento das partes locais P0-03 |
 | 4 — Homologar e preparar lançamento | Artefato Android, oferta fiel, acesso/assinatura reais e operação preparada para revisão. | Repetir jornada no artefato exato; revisar compra, e-mail, atualização, backup e atendimento. | P0-03/05/06/07/08 e mínimos P1 |
 
+Decisão posterior ao checkpoint3: manter acesso por código de e-mail e usar **Resend via SMTP**, sem servidor de correio próprio na VPS. O usuário criou a conta e possui uma API key; nenhum segredo foi fornecido ou configurado. [Roteiro preparado](operacao-email-resend.md). A proposta intermediária de substituir o código por senha foi suspensa antes de qualquer alteração de código. Esta preparação não homologa entrega externa nem autoriza implantação/alterações em produção. Multiusuário continua fora do escopo inicial.
+
 ## Regra de execução
 
 - Trabalhar somente na fase atual e parar no checkpoint para o usuário validar antes da próxima fase.

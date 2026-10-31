@@ -11,6 +11,7 @@ import { ArmazenamentoSqlite } from '../src/dados/sqlite/armazenamentoSqlite';
 import { totalDoCarrinho, valorRestante } from '../src/dados/carrinho';
 import { ArmazenamentoMemoria } from './ambiente';
 import { sqliteBanco } from './sqliteBanco';
+import { carregarAssinatura, salvarAssinatura } from '../../api/src/servicos/assinatura';
 
 class Cofre implements CofreSessao {
   dados = new Map<string, string>();
@@ -50,9 +51,17 @@ async function codigo(email: string) {
   expect(resposta.statusCode).toBe(200); return resposta.json().codigo as string;
 }
 
+/** Cenário de limite ocupado: independe do plano padrão da oferta pública. */
+async function limitarAUmAparelho(dados: Dados) {
+  const contaId = dados.conta.obter().sessao!.contaId;
+  const { assinatura } = await carregarAssinatura(conexao.db, contaId, relogio.agora());
+  await salvarAssinatura(conexao.db, { ...assinatura, planoId: 'essencial' }, relogio.agora());
+}
+
 it('recupera em duas instalações SQLite com API real, retry e finanças preservadas', async () => {
   const origem = montar(); const nova = montar(); const email = 'recuperacao@exemplo.com';
   await origem.dados.criarConta({ email, nomeResponsavel: 'Ana Real', nomeLoja: 'Loja Real', documento: '00000000031', tipoLoja: 'Mercado' });
+  await limitarAUmAparelho(origem.dados);
   const anterior = origem.dados.conta.obter().sessao!;
   const produto = await origem.dados.produtos.criar({ nome: 'Produto', precoCentavos: 2500 });
   const caixa = await origem.dados.caixa.abrir(500);
@@ -104,6 +113,7 @@ it('recupera em duas instalações SQLite com API real, retry e finanças preser
 it('retry após metadata confirmada e exceção preserva cofre e sessão única', async () => {
   const origem = montar(); const nova = montar(); const email = 'metadata@exemplo.com';
   await origem.dados.criarConta({ email, nomeResponsavel: 'Bia', nomeLoja: 'Loja Bia', documento: '00000000032', tipoLoja: 'Mercado' });
+  await limitarAUmAparelho(origem.dados);
   const anterior = origem.dados.conta.obter().sessao!;
   const visao = await nova.dados.iniciarRecuperacao(email, await codigo(email));
   const inicio = confirmacoes.length;
@@ -134,6 +144,7 @@ it('preflight consulta pendências SQLite duráveis não carregadas nas duas fas
   const emailA = 'duravel-a@exemplo.com'; const emailB = 'duravel-b@exemplo.com';
   await local.dados.criarConta({ email: emailA, nomeResponsavel: 'A', nomeLoja: 'Loja A', documento: '00000000041', tipoLoja: 'Mercado' });
   await contaB.dados.criarConta({ email: emailB, nomeResponsavel: 'B', nomeLoja: 'Loja B', documento: '00000000042', tipoLoja: 'Mercado' });
+  await limitarAUmAparelho(contaB.dados);
   const antigoB = contaB.dados.conta.obter().sessao!;
   const tentativa = new Dados(local.sqlite, randomUUID, 'http://api.local');
   const iniciar = vi.spyOn(tentativa.backend, 'iniciarRecuperacao');

@@ -2,11 +2,20 @@ import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from 'vitest';
 import { gerarId } from '@pdv/shared';
 import { sql } from 'drizzle-orm';
 import type { Conexao } from '../src/db/conexao';
-import { abrirBanco, chamar, criarAmbiente, criarConta, contaEmTeste, type Ambiente } from './ajuda';
+import { abrirBanco, chamar, criarAmbiente, criarConta as criarContaBase, contaEmTeste, type Ambiente } from './ajuda';
 import { criarApp } from '../src/servidor';
 import { aparelhos, sessoes, vendas, itensVenda, pagamentosVenda, caixas, movimentosCaixa, limitesAuth, recuperacoesAparelho, assinaturas, codigosLogin, lojas } from '../src/db/schema';
 import { eq } from 'drizzle-orm';
 import { sha256 } from '../src/auth';
+import { carregarAssinatura, salvarAssinatura } from '../src/servicos/assinatura';
+
+/** O limite ocupado pertence à fixture, não ao plano padrão de novas contas. */
+async function criarConta(ambiente: Ambiente, sobrescrever?: Parameters<typeof criarContaBase>[1]) {
+  const conta = await criarContaBase(ambiente, sobrescrever);
+  const { assinatura } = await carregarAssinatura(ambiente.db, conta.contaId, ambiente.relogio.agora());
+  await salvarAssinatura(ambiente.db, { ...assinatura, planoId: 'essencial' }, ambiente.relogio.agora());
+  return conta;
+}
 
 let banco: Conexao;
 let amb: Ambiente;

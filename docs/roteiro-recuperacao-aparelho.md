@@ -1,5 +1,13 @@
 # Homologação da recuperação de aparelho
 
+## Retomada para o APK — 30/10/2026
+
+O usuário autorizou encerrar a verificação local e preparar o APK. O contêiner `pdv-fase3-pg` e as abas do checkpoint A/B já não existem na retomada; não foi possível verificar a conclusão daquele UAT. Não recriar dados e apresentar isso como continuidade comprovada. O primeiro login real por Resend continua com a evidência anterior, mas substituição/restauração com o serviço externo permanecem pendentes.
+
+A oferta padrão agora é Pro, com dez aparelhos. Os testes de limite ocupado passaram a preparar explicitamente uma conta com limite de um aparelho usando o plano legado Essencial. Isso preserva o cenário e todas as asserções anteriores sem alterar o produto, os limites da oferta ou o fluxo de autenticação. Na retomada: 33/33 testes API com PGlite e 56/56 mobile nos três arquivos de recuperação. SQLite real no processo de teste e cofre simulado; não é prova física de Android.
+
+O usuário confirmou que a API HTTPS da VPS ainda não está disponível. O primeiro APK deste checkpoint será local/offline, com identidade separada `br.com.pdv.homologacao`; não comprova e-mail, nuvem ou recuperação em outro aparelho. Esses passos devem ser repetidos na build conectada após disponibilizar a API. O roteiro abaixo registra o ambiente histórico, não um endereço atualmente ativo.
+
 Roteiro preparado, **ainda não executado em Android**. Login normal com código real Resend/Gmail já confirmado pelo usuário; a recuperação com esse serviço ainda aguarda o checkpoint humano. O contrato local está em `.specs/features/recuperacao-aparelho/`. A recuperação autoriza um aparelho substituto; restauração dos confirmados usa a sincronização implementada na fase3, não é comprovada apenas pelo login.
 
 ## Checkpoint web preparado em30/10/2026

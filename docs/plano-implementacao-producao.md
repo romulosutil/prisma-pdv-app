@@ -4,6 +4,8 @@ Data de referência: 28/10/2026.
 
 Status: implementação local em andamento sob Goal persistente. Checkpoints, decisões e retomada em .specs/STATE.md. Somente itens com evidências estão verificados; homologação externa e critérios globais permanecem pendentes. O projeto ainda não está pronto para produção.
 
+Seguimento Android autorizado em30/10/2026: preparar APK local/offline enquanto outra frente prepara a VPS; parar no checkpoint do celular. Recuperação local revisada em de8fc6f, sem alterar asserções ou runtime de autenticação. O UAT externo anterior não foi comprovado nesta retomada; API HTTPS indisponível. Ver [roteiro/evidências do APK](checkpoint-apk.md). Build e inspeção de pacote não concluem homologação física, publicação ou critérios globais.
+
 ## Objetivo e escopo
 
 Colocar o PDV Android em operação comercial com vendas duráveis, recuperação de dados, autenticação real, assinatura validada e uma versão de produção homologada.

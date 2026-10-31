@@ -53,5 +53,5 @@ VPS/backup, Mercado Pago, distribuição pública, Play Store e alteração de o
 
 - Recuperação automatizada: 33/33 API PGlite e 56/56 mobile; revisão independente PASS com sensor de revogação, em revisao-recuperacao.md. Asserções preservadas.
 - Recuperação externa anterior: não comprovada.
-- APK código5: compilado e inspecionado; SHA256 c852363caa12dfd0d572d3127fb5083c0d47efd34ef7defad0a092b30b3b073f, assinatura v2 válida, bundle e módulos SQLite/SecureStore/câmera presentes. Atualização código6 e revisão final pendentes.
+- APKs códigos5/6: compilados e inspecionados; assinatura v2 válida e mesmo certificado, bundle e módulos SQLite/SecureStore/câmera presentes. Hashes e origem dirty reais em artefatos.json; revisão independente final PASS para preparação em validation.md. Bundle forçado por tarefa específica para não reutilizar modo/backend antigo, preservando cache nativo. Guia permanente em docs/build-android-local.md solicitado pelo usuário.
 - Homologação física: pendente, checkpoint final desta entrega.

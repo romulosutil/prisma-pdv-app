@@ -23,6 +23,8 @@ Decisão posterior ao checkpoint3: manter acesso por código de e-mail e usar **
 
 ## Estado
 
+Atualização para o checkpoint Android em30/10/2026: usuário autorizou verificar recuperação e gerar APK, parando para testar no celular. A VPS e a assinatura são trabalhadas em outras frentes. API HTTPS ainda indisponível, confirmada pelo usuário; APK inicial será local/offline, com identidade separada. Recuperação automatizada passou33API/56mobile após fixture explícita de limite1, com revisão independente e sensor seguro. O antigo UAT A/B não pode ser confirmado porque o contêiner/abas não existem mais na retomada. Roteiro e andamento em [checkpoint do APK](checkpoint-apk.md). Nenhum critério global de Android ou recuperação externa foi marcado por preparação de build.
+
 Fases1–2 aprovadas pelo usuário; em30/10/2026 autorizou “pode fazer a próxima etapa” após o checkpoint2. Fase3 implementada e revisada tecnicamente. Depois da conversa sobre redução de escopo, domínio e Resend, o usuário autorizou “conseguimos implementar o restante aqui enquanto isso?”. **Fase4A local iniciada**, preparando homologação de acesso enquanto faltam verificação externa e credenciais no ambiente. O controlador do Goal permanece pausado, sem comando de retomada disponível ao agente; a etapa atual foi autorizada diretamente na conversa. Não presumir aceites externos ou de Android.
 
 ## Fase 4 reduzida

@@ -1,0 +1,64 @@
+{
+  "scope": "Inspecao estatica; resultados fisicos pendentes",
+  "packageLockSha256": "66e884fa827f7348876a14fbb5dc8bf171a22663a74085e57216c5b514f5bf20",
+  "artifacts": [
+    {
+      "sha256": "c852363caa12dfd0d572d3127fb5083c0d47efd34ef7defad0a092b30b3b073f",
+      "package": "br.com.pdv.homologacao",
+      "version": "0.1.4",
+      "versionCode": 5,
+      "mode": "offline",
+      "apiUrl": "",
+      "commit": "de8fc6f9d403a335ef12d7e43a75583fee82f713",
+      "dirty": true,
+      "sourceFingerprintsSha256": {
+        "mobile": "c58405a0ee70d446d60575503260ab1e33020e4d26ebb7b8325eed3a927e94fc",
+        "shared": "b695cb49c5487a697a7da06f5552811ce6c710925464e145ef0bb3b8ba737375"
+      },
+      "architecture": "arm64-v8a",
+      "file": "builds/pdv-teste-5.apk",
+      "bytes": 52310792,
+      "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "bundle": [
+        "assets/index.android.bundle"
+      ],
+      "modules": {
+        "expo/modules/sqlite/SQLiteModule": true,
+        "expo/modules/securestore/SecureStoreModule": true,
+        "expo/modules/camera/CameraViewModule": true
+      },
+      "debuggable": false
+    },
+    {
+      "sha256": "173052b1c40c6dc2cf627c1cddeaa21374416bd9f801be6201cd82ef3be69506",
+      "package": "br.com.pdv.homologacao",
+      "version": "0.1.4",
+      "versionCode": 6,
+      "mode": "offline",
+      "apiUrl": "",
+      "commit": "2f8bff8f8b99cd4149f52b5ebc3174325c64e631",
+      "dirty": true,
+      "sourceFingerprintsSha256": {
+        "mobile": "616c87000fc6a8a5845c557a14bac18b2dbc6f49e393357ef89fed46dce773a0",
+        "shared": "b695cb49c5487a697a7da06f5552811ce6c710925464e145ef0bb3b8ba737375"
+      },
+      "architecture": "arm64-v8a",
+      "file": "builds/pdv-teste-6.apk",
+      "bytes": 52310792,
+      "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+      "minSdk": 24,
+      "targetSdk": 36,
+      "bundle": [
+        "assets/index.android.bundle"
+      ],
+      "modules": {
+        "expo/modules/sqlite/SQLiteModule": true,
+        "expo/modules/securestore/SecureStoreModule": true,
+        "expo/modules/camera/CameraViewModule": true
+      },
+      "debuggable": false
+    }
+  ]
+}

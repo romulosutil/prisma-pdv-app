@@ -144,7 +144,10 @@ def main():
     if not re.search(r'release\s*\{[^}]*signingConfig\s+signingConfigs\.debug', content, re.S):
         raise ValueError('A assinatura de teste do template não foi confirmada no build release.')
     wrapper = MOBILE / 'android' / ('gradlew.bat' if os.name == 'nt' else 'gradlew')
-    run([wrapper, '-p', MOBILE / 'android', 'assembleRelease', '--no-daemon', '--max-workers=1',
+    # Gradle não rastreia EXPO_PUBLIC_* nem todos os fontes externos do monorepo.
+    # Recriar somente o bundle garante o modo atual sem recompilar todo o nativo.
+    run([wrapper, '-p', MOBILE / 'android', ':app:createBundleReleaseJsAndAssets', '--rerun',
+         ':app:assembleRelease', '--no-daemon', '--max-workers=1',
          '-Dorg.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m', '-Dorg.gradle.parallel=false',
          f'-Pandroid.cmakeVersion={args.cmake_version}', '-Pexpo.android.cmakeObjectPathMax=2048',
          '-Pkotlin.compiler.execution.strategy=in-process', '-PreactNativeArchitectures=arm64-v8a'], env)

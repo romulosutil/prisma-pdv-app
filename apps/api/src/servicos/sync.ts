@@ -47,6 +47,7 @@ interface Contexto {
 
 function vendaPermitidaAte(assinatura: Assinatura, licenca: Licenca): Date | null {
   switch (assinatura.status) {
+    case 'liberada':
     case 'em_teste':
     case 'ativa':
     case 'cancelada':

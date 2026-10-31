@@ -7,6 +7,8 @@ export interface Deps {
   db: Db;
   relogio: Relogio;
   billing: BillingProvider;
+  /** Concede acesso sem assinatura paga; não habilita mock em produção. */
+  cobrancaDesativada?: boolean;
   emissaoCodigo?: EmissaoCodigo;
   /** Fontes externas do catálogo por EAN, na ordem de consulta (o catálogo próprio vem sempre antes). */
   fontesEan: FonteEan[];

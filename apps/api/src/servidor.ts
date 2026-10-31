@@ -37,6 +37,7 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
     db: config.db,
     relogio: config.relogio,
     billing: config.billing,
+    cobrancaDesativada: config.cobrancaDesativada,
     emissaoCodigo: config.emissaoCodigo ?? { modo: 'desenvolvimento' },
     fontesEan: config.fontesEan,
     orcamentoEanMs: config.orcamentoEanMs,

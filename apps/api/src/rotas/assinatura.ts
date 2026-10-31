@@ -45,7 +45,13 @@ export function rotasPlanos(app: FastifyInstance): void {
   app.get('/planos', async () => PLANOS_DISPONIVEIS.map((id) => PLANOS[id]));
 }
 
-export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: Deps): void {
+export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing, cobrancaDesativada }: Deps): void {
+  const permitirCobranca = [exigirDono(db, relogio), async (request: import('fastify').FastifyRequest) => {
+    const { assinatura } = await carregarAssinatura(db, request.sessao.contaId, relogio.agora());
+    if (cobrancaDesativada || assinatura.status === 'liberada') {
+      throw new ErroApi(409, 'cobranca_desativada', 'O acesso está liberado sem cobrança de assinatura.');
+    }
+  }];
   async function verificarCartao(token: string): Promise<CartaoVerificado> {
     const verificacao = await billing.verificarCartao(token);
     if (!verificacao.ok) {
@@ -64,7 +70,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
     return resposta(assinatura, agora);
   });
 
-  app.post('/assinatura', { preHandler: exigirDono(db, relogio) }, async (request, reply) => {
+  app.post('/assinatura', { preHandler: permitirCobranca }, async (request, reply) => {
     const req = CriarAssinaturaReqSchema.parse(request.body);
     if (req.codigoCupom && !encontrarCupom(req.codigoCupom)) {
       throw new ErroApi(400, 'cupom_invalido', 'Cupom inválido. Confira o código e tente novamente.');
@@ -112,7 +118,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
     return reply.status(201).send(resposta(nova, agora));
   });
 
-  app.post('/assinatura/trocar-plano', { preHandler: exigirDono(db, relogio) }, async (request) => {
+  app.post('/assinatura/trocar-plano', { preHandler: permitirCobranca }, async (request) => {
     const { planoId } = TrocarPlanoReqSchema.parse(request.body);
     const agora = relogio.agora();
     const { assinatura, clienteRef } = await carregarAssinatura(db, request.sessao.contaId, agora);
@@ -144,7 +150,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
     return resposta(nova, agora);
   });
 
-  app.put('/assinatura/cartao', { preHandler: exigirDono(db, relogio) }, async (request) => {
+  app.put('/assinatura/cartao', { preHandler: permitirCobranca }, async (request) => {
     const { tokenCartao } = AtualizarCartaoReqSchema.parse(request.body);
     const agora = relogio.agora();
     const { assinatura } = await carregarAssinatura(db, request.sessao.contaId, agora);
@@ -180,7 +186,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
     return resposta(nova, agora);
   });
 
-  app.post('/assinatura/cancelar', { preHandler: exigirDono(db, relogio) }, async (request) => {
+  app.post('/assinatura/cancelar', { preHandler: permitirCobranca }, async (request) => {
     const agora = relogio.agora();
     const { assinatura } = await carregarAssinatura(db, request.sessao.contaId, agora);
     const nova = cancelar(avaliar(assinatura, agora), agora);
@@ -189,7 +195,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
     return resposta(nova, agora);
   });
 
-  app.post('/assinatura/reativar', { preHandler: exigirDono(db, relogio) }, async (request) => {
+  app.post('/assinatura/reativar', { preHandler: permitirCobranca }, async (request) => {
     const { planoId } = TrocarPlanoReqSchema.parse(request.body);
     const agora = relogio.agora();
     const { assinatura, clienteRef } = await carregarAssinatura(db, request.sessao.contaId, agora);

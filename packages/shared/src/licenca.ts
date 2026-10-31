@@ -29,6 +29,8 @@ export type PermissaoDeVenda = { permitido: true } | { permitido: false; motivo:
 
 function validaAteDe(a: Assinatura, agora: Date): Date {
   switch (a.status) {
+    case 'liberada':
+      return adicionarDias(agora, OFFLINE_MAX_DIAS);
     case 'em_teste':
     case 'ativa':
       return adicionarDias(a.periodoAtualFim, CARENCIA_INADIMPLENCIA_DIAS);

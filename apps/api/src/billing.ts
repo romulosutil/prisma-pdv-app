@@ -1,4 +1,13 @@
 import { MockBillingProvider, type BillingProvider } from '@pdv/shared';
+import { ErroApi } from './erros';
+
+/** Falha fechada: nenhuma operação financeira pode simular sucesso neste modo. */
+export function criarBillingDesativado(): BillingProvider {
+  const recusar = async (): Promise<never> => {
+    throw new ErroApi(409, 'cobranca_desativada', 'O acesso está liberado sem cobrança de assinatura.');
+  };
+  return { verificarCartao: recusar, cobrar: recusar, estornar: recusar };
+}
 
 /**
  * Ponto de extensão do gateway: um `case` por provider real (Stripe, Asaas, Google Play)

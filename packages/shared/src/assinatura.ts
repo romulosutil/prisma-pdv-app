@@ -12,6 +12,7 @@ export const RETENTATIVAS_DIAS = [1, 3, 5] as const;
 export const RETENCAO_DADOS_DIAS = 90;
 
 export const STATUS_ASSINATURA = [
+  'liberada',
   'sem_assinatura',
   'em_teste',
   'ativa',
@@ -105,6 +106,16 @@ export function desserializarAssinatura(s: AssinaturaSerializada): Assinatura {
 }
 
 const preco = (planoId: PlanoId): Centavos => PLANOS[planoId].precoMensalCentavos;
+
+/** Acesso concedido sem cartão, período pago ou renovação automática. */
+export function criarAcessoLiberado(p: { id: string; contaId: string; agora: Date }): Assinatura {
+  return {
+    id: p.id, contaId: p.contaId, planoId: 'pro', status: 'liberada', criadaEm: p.agora,
+    testeTerminaEm: p.agora, periodoAtualInicio: p.agora, periodoAtualFim: p.agora,
+    acessoAte: null, inadimplenteDesde: null, tentativasFalhas: 0, proximaTentativaEm: null,
+    canceladaEm: null, planoAgendado: null, cartao: null,
+  };
+}
 
 export function valorMensalAssinatura(a: Pick<Assinatura, 'planoId' | 'planoAgendado' | 'cupom'>): Centavos {
   return aplicarDesconto(preco(a.planoAgendado ?? a.planoId), a.cupom);
@@ -295,6 +306,7 @@ export function deveLembrarFimTeste(a: Assinatura, agora: Date): boolean {
 
 export function temAcesso(a: Assinatura, agora: Date): boolean {
   switch (a.status) {
+    case 'liberada':
     case 'em_teste':
     case 'ativa':
     case 'inadimplente':

@@ -7,6 +7,7 @@ import {
   CriarContaResSchema,
   dentroDoLimite,
   gerarId,
+  criarAcessoLiberado,
   LoginReqSchema,
   LoginResSchema,
   licencaDe,
@@ -17,7 +18,7 @@ import { criarSessao, exigirDono, validarDonoAtual } from '../auth';
 import { aparelhos, codigosLogin, contas, lojas, operadores, sessoes, recuperacoesAparelho } from '../db/schema';
 import type { Deps } from '../deps';
 import { ErroApi } from '../erros';
-import { carregarAssinatura } from '../servicos/assinatura';
+import { carregarAssinatura, salvarAssinatura, registrarEvento } from '../servicos/assinatura';
 import { limitarAuth } from '../servicos/limitesAuth';
 import { normalizarEmail, hashDoCodigo, limiteAuth, verificarCodigo, consumirCodigoLogin } from '../servicos/codigoLogin';
 import { cancelarEntregasDaConta, enfileirarCodigo } from '../email/filaCodigo';
@@ -27,7 +28,7 @@ const CODIGO_VALIDADE_MS = 10 * 60 * 1000;
 const PedirCodigoReqSchema = z.object({ email: z.email() });
 
 
-export function rotasConta(app: FastifyInstance, { db, relogio, emissaoCodigo = { modo: 'desenvolvimento' } }: Deps): void {
+export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativada, emissaoCodigo = { modo: 'desenvolvimento' } }: Deps): void {
   app.post('/contas', async (request, reply) => {
     const req = CriarContaReqSchema.parse(request.body);
     const email = normalizarEmail(req.email);
@@ -61,6 +62,11 @@ export function rotasConta(app: FastifyInstance, { db, relogio, emissaoCodigo = 
       await tx
         .insert(aparelhos)
         .values({ id: req.aparelhoId, contaId, lojaId, nome: req.aparelhoNome, criadoEm: agora, ultimoAcessoEm: agora });
+      if (cobrancaDesativada) {
+        const acesso = criarAcessoLiberado({ id: gerarId(), contaId, agora });
+        await salvarAssinatura(tx, acesso, agora);
+        await registrarEvento(tx, acesso, 'acesso_liberado_sem_cobranca', { planoId: acesso.planoId }, agora);
+      }
       return criarSessao(tx, { contaId, lojaId, operadorId, aparelhoId: req.aparelhoId }, agora);
     });
 

@@ -2,7 +2,7 @@ export interface Configuracao {
   ambiente: 'development' | 'test' | 'production';
   porta: number;
   databaseUrl: string | undefined;
-  billingProvider: 'mock';
+  billingProvider: 'mock' | 'disabled';
 }
 
 /** Valida as variáveis antes de abrir conexões ou iniciar serviços. */
@@ -32,10 +32,10 @@ export function validarConfiguracao(env: NodeJS.ProcessEnv): Configuracao {
   }
 
   const billingProvider = env.BILLING_PROVIDER ?? 'mock';
-  if (billingProvider !== 'mock') {
+  if (billingProvider !== 'mock' && billingProvider !== 'disabled') {
     throw new Error('BILLING_PROVIDER não é suportado.');
   }
-  if (ambiente === 'production') {
+  if (ambiente === 'production' && billingProvider !== 'disabled') {
     throw new Error('Nenhum provedor de cobrança disponível é permitido em produção.');
   }
 

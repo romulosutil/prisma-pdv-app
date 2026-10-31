@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { relogioSistema, type Relogio } from '@pdv/shared';
 import type { FastifyInstance } from 'fastify';
-import { criarBilling } from './billing';
+import { criarBilling, criarBillingDesativado } from './billing';
 import { validarConfiguracao } from './configuracao';
 import { abrirPglite, abrirPostgres, type Conexao } from './db/conexao';
 import { lerConfiguracaoEntregaCodigo } from './email/configuracaoEntrega';
@@ -45,13 +45,14 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
     await encerrarEntregasExpiradas(conexao.db, relogio);
     await validarPendenciasEntrega(conexao.db, emissao, relogio);
     const canal = entrega.modo === 'smtp' ? criarCanalSmtp(entrega.smtp) : undefined;
-    const billing = criarBilling(configuracao.billingProvider);
-    app = await criarApp({ db: conexao.db, relogio, billing, fontesEan: [openFoodFacts], logger: true, emissaoCodigo: emissao });
+    const cobrancaDesativada = configuracao.billingProvider === 'disabled';
+    const billing = cobrancaDesativada ? criarBillingDesativado() : criarBilling(configuracao.billingProvider);
+    app = await criarApp({ db: conexao.db, relogio, billing, cobrancaDesativada, fontesEan: [openFoodFacts], logger: true, emissaoCodigo: emissao });
     await app.listen({ port: configuracao.porta, host: '0.0.0.0' });
     if (process.env.JOBS !== 'off') {
       const db = conexao.db;
       const registrar = (mensagem: string) => app!.log.info(mensagem);
-      pararCobranca = agendarCobranca(db, billing, relogio, registrar);
+      if (!cobrancaDesativada) pararCobranca = agendarCobranca(db, billing, relogio, registrar);
       if (entrega.modo === 'smtp' && emissao.modo === 'email' && canal) {
         pararEmail = agendarEntregasCodigo(() => processarEntregasCodigo(db, { chaves: entrega.chaves, canal, dominioRemetente: emissao.dominioRemetente, relogio }), registrar);
       }

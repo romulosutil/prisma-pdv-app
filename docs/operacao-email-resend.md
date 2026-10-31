@@ -94,13 +94,15 @@ Essas fontes foram conferidas em30/10/2026. Credenciais, domínio, destinatário
 
 ## Evidências locais desta preparação
 
-### Primeiro envio externo — checkpoint humano pendente
+### Primeiro envio externo — recebimento e login confirmados
 
 Após o usuário preencher a API key diretamente no arquivo local ignorado, o parser confirmou configuração válida sem exibir valores. Captura fornecida pelo usuário comprovou domínio Verified. Em30/10/2026, API local de homologação3339 iniciada com chave real (sessão24765) e app separado8088 (sessão13001), com destinatário Gmail autorizado explicitamente na conversa. Conta/loja fictícias criadas pelo onboarding, assinatura e cartão apenas fixtures locais, sem cobrança real. A demonstração8087 foi preservada.
 
 Pelo app8088, a sessão foi encerrada e um único código solicitado na tela de entrada. A fila registrou entrega `ea79ddb5-8bbd-418a-9e4f-a26eb376fe8d` como **aceita**, tentativa1, sem motivo de falha. Isso comprova aceitação SMTP pelo Resend com a credencial configurada; não comprova chegada à caixa de entrada. Nenhum OTP, token de sessão ou API key foi lido/exibido.
 
-O app ficou em `http://localhost:8088/entrar`, aguardando o usuário digitar o código recebido. Recebimento real e login pelo OTP aguardam confirmação humana. A chave de cifra deve continuar preservada; não imprimir o arquivo de ambiente ao retomar. Não marcar P0-03-A/AC global como concluído: ainda faltam os demais cenários externos e Android. A versão Expo de desenvolvimento mantém avisos/ferramentas locais, não é artefato de produção homologado.
+O usuário confirmou “Testei, deu certo” após receber e digitar o código no próprio app. Consulta de metadados no servidor confirmou o código consumido em30/10/2026 às22:37:09 (America/Sao_Paulo) e uma nova sessão ativa criada após a solicitação. Não foi necessário ler código, token, chave ou caixa postal. O caminho real **app → API → fila → Resend → Gmail → login** tem confirmação humana e evidência do servidor; a tela voltou ao início em8088.
+
+A chave de cifra deve continuar preservada; não imprimir o arquivo de ambiente ao retomar. Não marcar P0-03-A/AC global como concluído: faltam os demais cenários externos, inclusive falha/retentativa e recuperação de aparelho, além de Android. O primeiro login não comprova sozinho reuso bloqueado, expiração e bloqueio por erros no serviço externo. A versão Expo de desenvolvimento mantém avisos/ferramentas locais, não é artefato de produção homologado.
 
 - `rtk proxy npm.cmd run test -w @pdv/api -- --maxWorkers=1 test/emailConfiguracaoEntrega.test.ts test/emailSmtp.test.ts`: **69 testes, dois arquivos PASS** em30/10/2026. Incluem validação da configuração, autenticação/TLS em servidor local e falhas de transporte. Nenhum envio a serviço externo.
 - Parser `lerConfiguracaoEntregaCodigo` aceitou host `smtp.resend.com`, porta465, modoTLS, usuário `resend` e ring `resend-v1`, com segredos fictícios e sem abrir rede. Isso não comprova autenticação ou entrega pelo Resend.

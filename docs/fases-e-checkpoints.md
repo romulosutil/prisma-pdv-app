@@ -23,7 +23,19 @@ Decisão posterior ao checkpoint3: manter acesso por código de e-mail e usar **
 
 ## Estado
 
-Fases1–2 aprovadas pelo usuário; em30/10/2026 autorizou “pode fazer a próxima etapa” após o checkpoint2. Fase3 implementada e revisada tecnicamente; **parada no checkpoint3 para avaliação humana**. Fase4 não iniciada. O controlador do Goal permanece pausado, sem comando de retomada disponível ao agente; a fase atual foi autorizada diretamente na conversa.
+Fases1–2 aprovadas pelo usuário; em30/10/2026 autorizou “pode fazer a próxima etapa” após o checkpoint2. Fase3 implementada e revisada tecnicamente. Depois da conversa sobre redução de escopo, domínio e Resend, o usuário autorizou “conseguimos implementar o restante aqui enquanto isso?”. **Fase4A local iniciada**, preparando homologação de acesso enquanto faltam verificação externa e credenciais no ambiente. O controlador do Goal permanece pausado, sem comando de retomada disponível ao agente; a etapa atual foi autorizada diretamente na conversa. Não presumir aceites externos ou de Android.
+
+## Fase 4 reduzida
+
+| Bloco | Critério de saída e checkpoint | Dependências externas |
+|---|---|---|
+| 4A — Acesso | Launcher local isolado/testado e, depois, código recebido e login/recuperação reais. Modalidade comercial deve ser definida antes da assinatura. | Resend Verified, chave no ambiente e destino autorizado; assinatura real se lançamento pago. Piloto gratuito segue proposta, sem decisão presumida. |
+| 4B — Servidor e recuperação | Configuração revisável, migrações e backup restaurado em ambiente isolado com tempos medidos. | Infraestrutura/segredos/destino de backup; implantação real fora da autorização atual. |
+| 4C — Android | Jornada offline, scanner, retomada e atualização conservando dados no artefato candidato. | Aparelho, assinatura e canal de distribuição. |
+| 4D — Suporte e oferta | Suporte, privacidade, termos, exportação, solicitação de exclusão, diagnóstico sanitizado e tratamento de pendências acessíveis. | Dados/canal efetivos de atendimento e textos revisados. |
+| 4E — Liberação | Relatório relaciona commit, artefato, API, testes e pendências; revisão final. | Nenhuma liberação se houver critério obrigatório pendente. |
+
+Preparação local não conclui os critérios externos. Cada entrega coerente tem checkpoint; ao surgir bloqueio, registrar e trabalhar nas partes independentes autorizadas. Não implementar multiusuário, pagamentos integrados ou expansão de relatórios neste corte.
 
 ## Checkpoint 1 — 30/10/2026
 
@@ -101,3 +113,17 @@ rtk proxy python -X utf8 -c "import os,subprocess; e=dict(os.environ,CI='1',EXPO
 ```
 
 Pendentes: sua avaliação; Android/artefato exato; e-mail, assinatura, infraestrutura, operação e canal de revisão reais. A aceitação excepcional de vendas antigas não foi implementada; conteúdo continua preservado e exportável. **Não iniciar fase4 automaticamente. Projeto não pronto para produção.**
+
+## Checkpoint 4A local — preparação de acesso
+
+Autorizado pelo usuário enquanto prumo.services verifica no Resend. Código79fe157 prepara um ambiente local em3339 separado da demo8087, com SMTP/TLS, relógio real, fila de e-mail e sem rotas `/dev` ou jobs de cobrança. Banco novo `pdv_homologacao_email` criado no PostgreSQL local existente, com migrações atuais; contém fila vazia. O comando de homologação e o futuro app8088 **não foram deixados ativos com credenciais fictícias**.
+
+Ver [configuração e comando](operacao-email-resend.md). Este lote não muda telas: a entrada por código já existe. Depois de domínio Verified, segredo no ambiente e destino autorizado, o checkpoint visível será cadastrar a conta de teste, sair, pedir o código, recebê-lo e entrar pela origem de homologação. A demo8087 conserva dados e continuará acessível após os testes; não usá-la como evidência de e-mail real.
+
+Validação do gestor:126/7 testes de configuração/bootstrap/SMTP/rotas/jobs PASS;40/4 de emissão/login/integração com PostgreSQL e SMTP TCP local PASS; tiposAPI PASS. Smoke de composição real no banco novo: `/saude`200, ambas as rotas `/dev`404, worker sem entradas e desligamento concluído, sem solicitar código ou enviar e-mail ao Resend. Revisão independente30/30 e seis falhas comportamentais detectadas emscratch, removido sem alterar árvore real. Achado menor de resumo desatualizado no plano corrigido e revisado; validation.md e validate_state PASS para preparação local. Modelo Terra Médio solicitado, efetivo não confirmável.
+
+API3338 retomada (saúde200), sessão42095; Metro8087 retomado, sessão21519. [App de demonstração](http://localhost:8087/) acessível; dados de origem e banco preservados. Sem mudança de interface neste lote. O servidor3339 foi desligado ao terminar o smoke e não faz envios externos.
+
+Limitação: regressãoAPI completa NÃO aprovada nesta rodada. O Windows apresentou OOM/erros de workers; repetição emPGlite após pausar apenas API3338/Metro8087 terminou242/469 casos,19erros de workers. Não enfraquecer testes nem usar os alvos aprovados como prova da regressão completa. Android, assinatura, produção e entrega Resend continuam pendentes.
+
+Limpeza Docker solicitada no meio da execução: cache22,73GB→0 e imagens31→16 (23,05GB→16,15GB). Preservados28contêineres,9ativos e25volumes; nenhum banco/volume apagado nem outro projeto parado. Prunes não compactam o arquivo de disco virtual do Docker no Windows. O container de revisão `pdv-fase3-pg` continua --rm: não encerrá-lo, pois seus dados fictícios seriam descartados.

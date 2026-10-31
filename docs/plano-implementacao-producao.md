@@ -14,7 +14,7 @@ Manter Fastify, Drizzle/PostgreSQL, Expo/React Native e o domínio em `packages/
 
 ### Como acompanhar
 
-Execução reorganizada em30/10/2026 em [fases com checkpoints no app](fases-e-checkpoints.md). Fases1–2 aprovadas pelo usuário. Fase3 implementada localmente em `d30ea9f`/`8a0b3e5`/`985c9b1`, revisão técnica PASS e checkpoint3 aguardando avaliação humana. Fase4 somente após esse checkpoint; nenhuma homologação Android/produção inferida das provas locais.
+Execução reorganizada em30/10/2026 em [fases com checkpoints no app](fases-e-checkpoints.md). Fases1–2 aprovadas pelo usuário. Fase3 implementada localmente em `d30ea9f`/`8a0b3e5`/`985c9b1`, com revisão técnica PASS e checkpoint3 entregue. Posteriormente, o usuário autorizou avançar localmente enquanto o domínio verifica no Resend; fase4A local iniciada em `79fe157`. Essa autorização não presume aceite de Android, e-mail externo ou produção. Os blocos reduzidos continuam sujeitos aos checkpoints registrados.
 
 - IDs `P0-01-A` identificam tarefas; IDs `AC-P0-01-1` identificam critérios de aceite.
 - Marcar uma tarefa apenas quando o resultado correspondente estiver implementado e verificado.
@@ -89,6 +89,8 @@ Os números preservam a lista priorizada original. A sequência abaixo respeita 
 **Verificação:** testes integrados mobile/API com desconexão, respostas perdidas, paginação e conflitos; repetir contra PostgreSQL real e restaurar em instalação limpa autorizada.
 
 ### P0-03 — Login real, identidade do aparelho e sessões
+
+Preparação4A local em30/10/2026, commit79fe157: launcher isolado para homologar Resend, relógio real, banco exclusivo emloopback, somente worker de e-mail e rotas `/dev` ausentes. Credenciais/domínio/destino e entrega externa seguem pendentes; não concluir P0-03-A nem o aceite externo por esse launcher. Ver [roteiro Resend](operacao-email-resend.md) e [fase4 reduzida/checkpoints](fases-e-checkpoints.md).
 
 **Diagnóstico inicial:** o envio de código por e-mail não existe; o login gera um novo `aparelhoId`; a sessão não tem expiração/revogação no fluxo atual e o token fica no armazenamento comum.
 

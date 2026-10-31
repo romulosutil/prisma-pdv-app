@@ -43,6 +43,34 @@ Mesmo com SMTP configurado, `NODE_ENV=production` permanece bloqueado pelo billi
 
 ## Checkpoint de homologação
 
+### Preparação local enquanto o DNS verifica
+
+O launcher `apps/api/scripts/checkpoint-email.ts` prepara um ambiente exclusivamente local, separado da demo financeira. Ele usa relógio real e agenda somente e-mail, com billing mock declarado como fixture, sem fontes externas de catálogo e sem rotas `/dev`. Não altera `iniciarApi.ts` nem a proteção de produção.
+
+Para a futura execução, criar um banco local dedicado **`pdv_homologacao_email`**, separado de `pdv_checkpoint_sync` e `pdv_test`. O launcher exige URL PostgreSQL com host `localhost` ou `127.0.0.1`, nome exato e sem query/hash. Migrações existentes são aplicadas ao abrir esse banco. A API escuta somente `127.0.0.1:3339`.
+
+Além das variáveis SMTP acima, configurar:
+
+```dotenv
+NODE_ENV=development
+HOMOLOGACAO_EMAIL_CONFIRMAR=sim
+DATABASE_URL=<URL_POSTGRES_LOCAL_DO_BANCO_pdv_homologacao_email>
+```
+
+Só definir a confirmação de envio depois de conferir o domínio Verified, o destinatário autorizado e a credencial. O código não consulta o status do domínio pela API Resend; essa verificação é um requisito operacional. O launcher local não usa `JOBS` e inicia somente seu próprio worker de e-mail. A opção `JOBS` descrita acima continua se aplicando ao bootstrap normal.
+
+As variáveis podem ser injetadas pelo ambiente do processo. Para uso local com Node24, também é possível salvar os valores reais em **`apps/api/.env.resend.local`**, ignorado pelo Git, e executar a partir de `apps/api`:
+
+```powershell
+rtk proxy node --env-file=.env.resend.local --import tsx scripts/checkpoint-email.ts
+```
+
+Esse arquivo é preenchido pelo usuário localmente, sem enviar a chave pelo chat. Não há arquivo real com segredos nesta entrega. Preservar a chave de cifra entre reinícios e restringir acesso ao arquivo. O comando falha antes de abrir banco/transporte quando falta a confirmação ou a configuração é inválida.
+
+O app para homologação deve usar outra origem, por exemplo8088, com `EXPO_PUBLIC_API_URL=http://127.0.0.1:3339` e ferramentas de teste desativadas. Não reconfigurar8087 nem reutilizar sua conta fictícia `.invalid` como destinatário. Sem API key/domínio verificado, não iniciar esse ambiente com credenciais fictícias para simular sucesso.
+
+### Jornada externa, ainda pendente
+
 1. Conferir o domínio verificado e o remetente no painel, sem registrar a API key.
 2. Configurar o ambiente isolado com banco de homologação, relógio correto e worker ativo. Preservar o ambiente de demonstração e seus dados.
 3. Solicitar um código de uma conta de teste existente em `POST /auth/codigo`. A resposta SMTP deve ser204 e não conter o código.
@@ -68,3 +96,4 @@ Essas fontes foram conferidas em30/10/2026. Credenciais, domínio, destinatário
 - Parser `lerConfiguracaoEntregaCodigo` aceitou host `smtp.resend.com`, porta465, modoTLS, usuário `resend` e ring `resend-v1`, com segredos fictícios e sem abrir rede. Isso não comprova autenticação ou entrega pelo Resend.
 - Nenhuma alteração de runtime, dependência, migração ou teste. A demonstração8087 não foi reconfigurada. Não há nova homologação Android ou de billing.
 - Revisão independente `revisao_resend_config`: **PASS**, confrontando roteiro com SMTP/parser/bootstrap/OTP e fonte oficial. Terra Médio solicitado; a ferramenta não expõe confirmação do modelo efetivo. Revisão documental, sem sensor de mutação porque não houve mudança de comportamento, nem alegação de entrega real.
+- Evolução4A, código79fe157:126/7 direcionados e40/4 PostgreSQL/SMTP local PASS, tiposAPI PASS. Smoke da composição real com banco novo vazio: saúde200, rotas `/dev`404, worker sem mensagens, nenhum envioResend. Revisão nova `revisor_fase4a_email`:30/30 e sensor6/6 comportamentais, PASS local após correção documental. Detalhes em `.specs/features/fase-4a-email-local/validation.md`. RegressãoAPI completa permanece sem aprovação por OOM/workers do Windows; não inferir seu resultado dos alvos verdes.

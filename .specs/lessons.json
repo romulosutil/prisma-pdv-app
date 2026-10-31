@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 21,
+  "next_id": 22,
   "lessons": [
     {
       "id": "L-001",
@@ -365,6 +365,24 @@
       ],
       "created": "2026-10-30T22:47:52Z",
       "last_seen": "2026-10-30T22:47:52Z"
+    },
+    {
+      "id": "L-021",
+      "key": "gate_fail::ao registrar autorizacao para uma nova fase atualizar tambem o resumo de acompanhamento do plano para nao contradizer o checkpoint e o estado atual",
+      "text": "Ao registrar autorização para uma nova fase, atualizar também o resumo de acompanhamento do plano para não contradizer o checkpoint e o estado atual.",
+      "signal": "gate_fail",
+      "scope": "docs",
+      "status": "candidate",
+      "features": [
+        "fase-4a-email-local"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "docs/plano-implementacao-producao.md:17 (docs)"
+      ],
+      "created": "2026-10-31T01:28:00Z",
+      "last_seen": "2026-10-31T01:28:00Z"
     }
   ]
 }

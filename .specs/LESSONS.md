@@ -134,6 +134,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: apps/mobile/test/syncIntegracao.test.ts:163 (apps/mobile/src/dados)
 - last seen: 2026-10-30T22:47:52Z
 
+### L-021 - Ao registrar autorização para uma nova fase, atualizar também o resumo de acompanhamento do plano para não contradizer o checkpoint e o estado atual.
+- signal: `gate_fail` · recurrence: 1 feature(s) · scope: `docs` · harmful: 0
+- features: fase-4a-email-local
+- evidence: docs/plano-implementacao-producao.md:17 (docs)
+- last seen: 2026-10-31T01:28:00Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

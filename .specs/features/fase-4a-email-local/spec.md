@@ -33,7 +33,7 @@ Acceptance Criteria:
 2. Integrar roteiro e checkpoint, revisão nova com sensor em scratch, evidências e atualização do plano. Arquivos: docs/operacao-email-resend.md, docs/fases-e-checkpoints.md, docs/plano-implementacao-producao.md, .specs/STATE.md e validation.md desta feature. Validar gates e docs; commit docs(checkpoint): record isolated email verification preparation.
 
 ## Status
-- Passo1 implementado e verificado pelo gestor: 126/7 testes direcionados, 40/4 de integração PostgreSQL+SMTP local, tiposAPI PASS e smoke HTTP/PG real em banco vazio. Envio Resend não homologado. Revisão independente e checkpoint documental são passo2.
+- Passos1–2 concluídos para a preparação local: 126/7 testes direcionados, 40/4 de integração PostgreSQL+SMTP local, tiposAPI PASS e smoke HTTP/PG real em banco vazio. Revisão independente30/30, sensor6/6 comportamentos e validate_state PASS. Achado documental corrigido e conferido pelo revisor. Envio Resend não homologado; parar no checkpoint local e preservar critérios externos abertos.
 - Regressão completa API não aprovada: OOM/erros de workers no Windows, inclusive após pausar a demo. Não alterar testes nem inferir PASS global dos alvos aprovados. Nenhum teste foi omitido dentro das suítes direcionadas executadas.
 
 ## Verificação do gestor
@@ -49,6 +49,6 @@ Todos os testes novos mapeiam AC1–5; sem testes especulativos ou alterações 
 ## Requirement Traceability
 | Critério | Implementação | Evidência |
 |---|---|---|
-| EMAIL-01 | homologacaoEmail.ts e launcher; AC1–4 | homologacaoEmail.test.ts:48–112; smoke local; revisão pendente |
-| EMAIL-02 | servidor.ts; AC5 | servidorRotasDev.test.ts:15–36; revisão pendente |
-| EMAIL-03 | Roteiro/checkpoint; AC6 | Pendente |
+| EMAIL-01 | homologacaoEmail.ts e launcher; AC1–4 | homologacaoEmail.test.ts:48–112; smoke local; validation.md PASS local |
+| EMAIL-02 | servidor.ts; AC5 | servidorRotasDev.test.ts:15–36; validation.md PASS local |
+| EMAIL-03 | Roteiro/checkpoint; AC6 | docs/operacao-email-resend.md; docs/fases-e-checkpoints.md; validation.md PASS local |

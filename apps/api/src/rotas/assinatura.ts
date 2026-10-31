@@ -13,7 +13,9 @@ import {
   iniciarTeste,
   licencaDe,
   PLANOS,
-  PLANOS_ORDEM,
+  PLANOS_DISPONIVEIS,
+  encontrarCupom,
+  valorMensalAssinatura,
   reativar,
   registrarCobrancaAprovada,
   serializarAssinatura,
@@ -40,7 +42,7 @@ function resposta(a: Assinatura, agora: Date): AssinaturaRes {
 }
 
 export function rotasPlanos(app: FastifyInstance): void {
-  app.get('/planos', async () => PLANOS_ORDEM.map((id) => PLANOS[id]));
+  app.get('/planos', async () => PLANOS_DISPONIVEIS.map((id) => PLANOS[id]));
 }
 
 export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: Deps): void {
@@ -64,6 +66,9 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
 
   app.post('/assinatura', { preHandler: exigirDono(db, relogio) }, async (request, reply) => {
     const req = CriarAssinaturaReqSchema.parse(request.body);
+    if (req.codigoCupom && !encontrarCupom(req.codigoCupom)) {
+      throw new ErroApi(400, 'cupom_invalido', 'Cupom inválido. Confira o código e tente novamente.');
+    }
     const { contaId } = request.sessao;
     const agora = relogio.agora();
 
@@ -95,6 +100,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
         id: gerarId(),
         contaId,
         planoId: req.planoId,
+        ...(req.codigoCupom ? { codigoCupom: req.codigoCupom } : {}),
         cartao: { bandeira: cartao.bandeira, ultimos4: cartao.ultimos4, fingerprint: cartao.fingerprint },
         agora,
       });
@@ -158,7 +164,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
         atual,
         {
           tipo: 'retentativa',
-          valorCentavos: PLANOS[atual.planoAgendado ?? atual.planoId].precoMensalCentavos,
+          valorCentavos: valorMensalAssinatura(atual),
           chaveIdempotencia: await chaveAvulsa(db, atual.id, 'cartao'),
           clienteRef: cartao.clienteRef,
           descricao: descricaoDaFatura(atual),
@@ -195,7 +201,7 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing }: 
     let valorCentavos = 0;
     if (agora >= atual.testeTerminaEm && agora >= atual.periodoAtualFim) {
       tipo = atual.periodoAtualFim.getTime() === atual.testeTerminaEm.getTime() ? 'primeira' : 'renovacao';
-      valorCentavos = PLANOS[planoId].precoMensalCentavos;
+      valorCentavos = valorMensalAssinatura({ ...atual, planoId, planoAgendado: null });
     } else if (agora >= atual.testeTerminaEm) {
       valorCentavos = calcularProrata({ ...atual, status: 'ativa' }, planoId, agora);
     }

@@ -9,3 +9,5 @@ Premissas e critérios em spec.md. Alterações limitadas a shared/assinatura, c
 Testes existentes preservam compatibilidade legada; testes novos provam oferta atual e descontos. Verificador independente ao final.
 
 T1 concluído: 165 testes shared aprovados, typecheck aprovado. ASSIN-01 em cupons.test.ts:9; ASSIN-02/03 em :13-16; ASSIN-04 em :20-32; ASSIN-05 em :37; ASSIN-06 (resumo de domínio) em :42. Cada teste novo corresponde a esses critérios; nenhum teste existente modificado.
+
+T2 concluído: 54 testes API direcionados aprovados em PostgreSQL local dedicado pdv_test:55441, um worker; typecheck API aprovado. api/test/cupons.test.ts prova catálogo (:29), persistência (:48), valor cobrado em todos os caminhos (:53-77), falha sem consumo (:34-41). Teste antigo do catálogo foi atualizado para a nova oferta explicitamente solicitada; expectativas financeiras legadas preservadas. Tentativas PGlite falharam por reserva de memória e não contam como validação.

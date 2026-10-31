@@ -20,6 +20,7 @@ import {
   type ConfiancaCatalogo,
   type FonteCatalogo,
   type Venda,
+  type CupomAplicado,
 } from '@pdv/shared';
 import type { EnvelopeCodigo } from '../email/cifrador';
 import type { MotivoEntregaCodigo } from '../email/tiposEntrega';
@@ -346,6 +347,7 @@ export const assinaturas = pgTable('assinaturas', {
   proximaTentativaEm: instante('proxima_tentativa_em'),
   canceladaEm: instante('cancelada_em'),
   planoAgendado: text('plano_agendado', { enum: PLANOS_ORDEM }),
+  cupom: jsonb('cupom').$type<CupomAplicado>(),
   cartaoBandeira: text('cartao_bandeira', { enum: BANDEIRAS }),
   cartaoUltimos4: text('cartao_ultimos4'),
   cartaoFingerprint: text('cartao_fingerprint'),

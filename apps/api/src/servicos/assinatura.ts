@@ -28,6 +28,7 @@ function paraAssinatura(l: Linha): Assinatura {
     proximaTentativaEm: l.proximaTentativaEm,
     canceladaEm: l.canceladaEm,
     planoAgendado: l.planoAgendado,
+    cupom: l.cupom,
     cartao:
       cartaoBandeira && cartaoUltimos4 && cartaoFingerprint
         ? { bandeira: cartaoBandeira, ultimos4: cartaoUltimos4, fingerprint: cartaoFingerprint }
@@ -43,7 +44,7 @@ function semAssinatura(contaId: string, agora: Date): Assinatura {
   return {
     id: contaId,
     contaId,
-    planoId: 'essencial',
+    planoId: 'pro',
     status: 'sem_assinatura',
     criadaEm: agora,
     testeTerminaEm: agora,
@@ -83,6 +84,7 @@ export async function salvarAssinatura(db: Db, a: Assinatura, agora: Date, clien
     proximaTentativaEm: a.proximaTentativaEm,
     canceladaEm: a.canceladaEm,
     planoAgendado: a.planoAgendado,
+    cupom: a.cupom ?? null,
     cartaoBandeira: a.cartao?.bandeira ?? null,
     cartaoUltimos4: a.cartao?.ultimos4 ?? null,
     cartaoFingerprint: a.cartao?.fingerprint ?? null,

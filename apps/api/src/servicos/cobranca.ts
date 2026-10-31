@@ -7,6 +7,7 @@ import {
   formatarDataCurta,
   gerarId,
   PLANOS,
+  valorMensalAssinatura,
   registrarCobrancaAprovada,
   registrarCobrancaRecusada,
   type Assinatura,
@@ -142,7 +143,7 @@ export async function processarCobrancas(
       if (deveLembrarFimTeste(assinatura, agora)) {
         const chave = `lembrete_fim_teste:${assinatura.id}:${assinatura.testeTerminaEm.toISOString()}`;
         if (await registrarEvento(db, assinatura, 'lembrete_fim_teste', {}, agora, chave)) {
-          const valor = formatarBRL(PLANOS[assinatura.planoId].precoMensalCentavos);
+          const valor = formatarBRL(valorMensalAssinatura(assinatura));
           registrar(
             `[lembrete] Conta ${assinatura.contaId}: seu teste termina em ${formatarDataCurta(assinatura.testeTerminaEm)}. ` +
               `Nessa data cobraremos ${valor}.`,

@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Conexao } from '../src/db/conexao';
-import { AssinaturaResSchema, gerarId, LoginResSchema, MockBillingProvider, PLANOS_ORDEM, RelogioFalso } from '@pdv/shared';
+import { AssinaturaResSchema, gerarId, LoginResSchema, MockBillingProvider, PLANOS_DISPONIVEIS, RelogioFalso } from '@pdv/shared';
 import { criarApp } from '../src/servidor';
 import { emissaoTeste } from './emailFixture';
 import { entregasCodigo } from '../src/db/schema';
@@ -35,8 +35,8 @@ describe('saúde e catálogo', () => {
   it('GET /planos devolve o catálogo na ordem dos planos', async () => {
     const res = await chamar(amb, 'GET', '/planos');
     expect(res.status).toBe(200);
-    expect(res.corpo.map((p: { id: string }) => p.id)).toEqual([...PLANOS_ORDEM]);
-    expect(res.corpo[1].precoMensalCentavos).toBe(3490);
+    expect(res.corpo.map((p: { id: string }) => p.id)).toEqual([...PLANOS_DISPONIVEIS]);
+    expect(res.corpo[0].precoMensalCentavos).toBe(4990);
   });
 
   it('rota inexistente devolve erro em português', async () => {

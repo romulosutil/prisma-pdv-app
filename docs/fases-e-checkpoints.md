@@ -116,6 +116,8 @@ Pendentes: sua avaliação; Android/artefato exato; e-mail, assinatura, infraest
 
 ## Checkpoint 4A local — preparação de acesso
 
+Atualização de envio externo: usuário confirmou chave salva e autorizou destinatário Gmail. Domínio Verified comprovado em captura. Homologação3339 e app8088 foram iniciados separadamente; conta/assinatura fictícias criadas no onboarding, sem cobrança real. Um código solicitado pela tela de entrada foi aceito pelo Resend na tentativa1, ID `ea79ddb5-8bbd-418a-9e4f-a26eb376fe8d`. **[App aguardando código](http://localhost:8088/entrar)**: usuário deve conferir caixa de entrada/spam e digitar o código no próprio app, sem compartilhar no chat. Entrega na caixa e login ainda não confirmados; nenhum aceite global alterado. Detalhes no roteiro Resend. API sessão24765, Metro sessão13001. Ambos usam o banco dedicado de homologação; demo8087 permanece preservada.
+
 Autorizado pelo usuário enquanto prumo.services verifica no Resend. Código79fe157 prepara um ambiente local em3339 separado da demo8087, com SMTP/TLS, relógio real, fila de e-mail e sem rotas `/dev` ou jobs de cobrança. Banco novo `pdv_homologacao_email` criado no PostgreSQL local existente, com migrações atuais; contém fila vazia. O comando de homologação e o futuro app8088 **não foram deixados ativos com credenciais fictícias**.
 
 Ver [configuração e comando](operacao-email-resend.md). Este lote não muda telas: a entrada por código já existe. Depois de domínio Verified, segredo no ambiente e destino autorizado, o checkpoint visível será cadastrar a conta de teste, sair, pedir o código, recebê-lo e entrar pela origem de homologação. A demo8087 conserva dados e continuará acessível após os testes; não usá-la como evidência de e-mail real.

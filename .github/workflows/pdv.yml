@@ -1,0 +1,95 @@
+name: PDV CI and Deploy
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pdv-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Types, tests and container
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: pdv_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d pdv_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Shared tests
+        run: npm run test -w @pdv/shared -- --maxWorkers=1
+      - name: API tests with isolated PostgreSQL
+        run: npm run test -w @pdv/api -- --maxWorkers=1
+        env:
+          PDV_TEST_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/pdv_test
+      - name: Mobile tests
+        run: npm run test -w @pdv/mobile -- --maxWorkers=1
+      - name: Build API image
+        run: |
+          printf 'DOCKER_CONTEXT_SENTINEL=fake\n' > apps/api/.env.docker-context-check
+          docker build --tag pdv-api:ci .
+      - name: Verify image isolation
+        run: >-
+          docker run --rm --entrypoint node pdv-api:ci -e
+          'const fs=require("node:fs"); const a=require("node:assert/strict");
+          a.notEqual(process.getuid(),0);
+          for(const p of ["/app/node_modules/tsx","/app/apps/api/drizzle","/app/packages/shared/src/index.ts"])a.ok(fs.existsSync(p),p);
+          for(const p of ["/app/.git","/app/apps/mobile","/app/apps/api/.env.docker-context-check","/app/apps/api/.data","/app/node_modules/vitest","/app/node_modules/typescript","/app/apps/api/test"])a.ok(!fs.existsSync(p),p);'
+
+  deploy:
+    name: Deploy validated main
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Check deploy configuration
+        env:
+          EASYPANEL_DEPLOY_URL: ${{ secrets.EASYPANEL_DEPLOY_URL }}
+        run: |
+          if [ -z "$EASYPANEL_DEPLOY_URL" ]; then
+            echo "Configure the EASYPANEL_DEPLOY_URL repository secret."
+            exit 1
+          fi
+          case "$EASYPANEL_DEPLOY_URL" in
+            https://*) ;;
+            *) echo "The deployment trigger must use HTTPS."; exit 1 ;;
+          esac
+      - name: Promote tested commit
+        run: git push origin "${GITHUB_SHA}:refs/heads/codex/pdv-deploy"
+      - name: Trigger Easypanel deployment
+        env:
+          EASYPANEL_DEPLOY_URL: ${{ secrets.EASYPANEL_DEPLOY_URL }}
+        run: curl --fail --silent --show-error --connect-timeout 15 --max-time 60 --request POST --output /dev/null "$EASYPANEL_DEPLOY_URL"

@@ -7,9 +7,11 @@ As variáveis são validadas na inicialização, antes da conexão com o banco, 
 | `NODE_ENV` | `development` (padrão) ou `test` | `production` |
 | `DATABASE_URL` | Opcional; ausente usa PGlite local. Se informada, deve ser URL PostgreSQL válida. | Obrigatória, URL PostgreSQL válida. |
 | `PORT` | Inteiro de 1 a 65535; padrão `3333`. | Obrigatória, inteiro de 1 a 65535. |
-| `BILLING_PROVIDER` | `mock` (padrão). Valores desconhecidos são rejeitados. | Obrigatório um provedor real suportado; nenhum está implementado atualmente. |
+| `BILLING_PROVIDER` | `mock` (padrão) ou `disabled`. Valores desconhecidos são rejeitados. | `disabled` explícito libera operação sem cobrança. `mock` e valor omitido continuam recusados. |
 | `JOBS` | `off` desativa o agendamento de cobrança; outro valor o mantém ativo. | `off` não dispensa a validação de billing. |
 
 Exemplo local sem banco externo: `NODE_ENV=development`, `PORT=3333`, `BILLING_PROVIDER=mock`, sem `DATABASE_URL`. Para um banco PostgreSQL, configure a URL por meio do gerenciador de segredos do ambiente; não a registre no repositório nem em logs.
 
-**Produção está bloqueada:** o único provedor implementado é o mock, que não é permitido em produção. É necessário implementar e validar um provedor real antes de iniciar a API em produção. Esta validação é apenas parte de P0-07-C; configuração do app, e-mail e cobrança real ainda dependem de trabalho posterior. Não representa homologação, implantação, backup ou teste de pagamento real.
+**Operação sem cobrança:** autorizada pelo usuário em30/10/2026. `NODE_ENV=production` com `BILLING_PROVIDER=disabled` concede acesso Pro com status `liberada` no cadastro, sem cartão ou fatura. Esse status não expira comercialmente; a licença offline continua exigindo sincronização a cada sete dias. O job de cobrança não é agendado; o worker de e-mail permanece ativo, exceto com `JOBS=off`. O provider desativado rejeita operações financeiras em vez de simular sucesso.
+
+PostgreSQL, porta explícita, SMTP e chaves da fila continuam obrigatórios em produção. Rotas `/dev` continuam ausentes. Contas liberadas não migram automaticamente para cobrança quando o modo é alterado. Cobrança real permanece sem implementação/homologação. Ver [implantação no EasyPanel](deploy-easypanel.md) para CI, imagem e infraestrutura; este texto não comprova deploy, backup ou homologação Android.

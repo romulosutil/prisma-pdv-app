@@ -5,8 +5,17 @@ import type { Conexao } from '../src/db/conexao';
 import { aparelhos, codigosLogin, entregasCodigo, limitesAuth, recuperacoesAparelho, sessoes } from '../src/db/schema';
 import { sha256 } from '../src/auth';
 import { criarApp } from '../src/servidor';
-import { abrirBanco, chamar, criarAmbiente, criarConta, type Ambiente } from './ajuda';
+import { abrirBanco, chamar, criarAmbiente, criarConta as criarContaBase, type Ambiente } from './ajuda';
+import { carregarAssinatura, salvarAssinatura } from '../src/servicos/assinatura';
 import { emissaoTeste } from './emailFixture';
+
+/** Os cenários de substituição exigem limite de um aparelho ocupado. */
+async function criarConta(ambiente: Ambiente) {
+  const conta = await criarContaBase(ambiente);
+  const { assinatura } = await carregarAssinatura(ambiente.db, conta.contaId, ambiente.relogio.agora());
+  await salvarAssinatura(ambiente.db, { ...assinatura, planoId: 'essencial' }, ambiente.relogio.agora());
+  return conta;
+}
 
 let banco: Conexao, amb: Ambiente;
 beforeAll(async () => { banco = await abrirBanco(); });

@@ -1,20 +1,20 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { eq, sql } from 'drizzle-orm';
 import { gerarId, RelogioFalso, type Sessao } from '@pdv/shared';
-import { abrirPglite, type Conexao } from '../src/db/conexao';
+import type { Conexao } from '../src/db/conexao';
 import { assinaturas, contas, eventosCobranca, faturas, vendas } from '../src/db/schema';
 import { criarApp } from '../src/servidor';
 import { criarBillingDesativado } from '../src/billing';
 import { validarConfiguracao } from '../src/configuracao';
 import { criarCifradorCodigo } from '../src/email/cifrador';
 import { processarCobrancas } from '../src/servicos/cobranca';
-import { INICIO, mutacao, venda } from './ajuda';
+import { abrirBanco, INICIO, mutacao, venda } from './ajuda';
 
 let banco: Conexao;
 let app: Awaited<ReturnType<typeof criarApp>>;
 let relogio: RelogioFalso;
 let billing: ReturnType<typeof criarBillingDesativado>;
-beforeAll(async () => { banco = await abrirPglite(); });
+beforeAll(async () => { banco = await abrirBanco(); });
 afterAll(async () => { await banco.fechar(); });
 beforeEach(async () => {
   vi.stubEnv('NODE_ENV', 'production');

@@ -21,7 +21,7 @@ As migrações em `drizzle/` são aplicadas na inicialização.
 | `PORT` | Porta HTTP (padrão 3333). |
 | `DATABASE_URL` | Postgres (postgres.js). Sem ela, usa PGlite em `.data/pglite`. Obrigatória com `NODE_ENV=production`. |
 | `NODE_ENV=production` | Não registra `/dev/*`, desliga o CORS e não devolve o código de login na resposta. |
-| `BILLING_PROVIDER` | `mock` (padrão e único hoje). Novos gateways entram em `src/billing.ts`. |
+| `BILLING_PROVIDER` | `mock` por padrão, recusado em produção. `disabled` concede acesso sem cobrança, cartão ou faturas; é o modo de produção inicial. Novos gateways entram em `src/billing.ts`. |
 | `JOBS=off` | Não agenda o job de cobrança (que roda a cada hora). |
 
 Fora de produção o relógio do servidor anda em tempo real e pode ser avançado por `POST /dev/relogio/avancar`.

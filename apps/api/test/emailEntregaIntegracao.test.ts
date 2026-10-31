@@ -7,8 +7,17 @@ import { aparelhos, caixas, codigosLogin, entregasCodigo, itensVenda, movimentos
 import { criarCanalSmtp } from '../src/email/smtp';
 import { processarEntregasCodigo } from '../src/email/filaCodigo';
 import { criarApp } from '../src/servidor';
-import { abrirBanco, criarAmbiente, criarConta, type Ambiente } from './ajuda';
+import { abrirBanco, criarAmbiente, criarConta as criarContaBase, type Ambiente } from './ajuda';
+import { carregarAssinatura, salvarAssinatura } from '../src/servicos/assinatura';
 import { emissaoTeste } from './emailFixture';
+
+/** Ocupa explicitamente a única vaga exigida pelos cenários de recuperação. */
+async function criarConta(ambiente: Ambiente) {
+  const conta = await criarContaBase(ambiente);
+  const { assinatura } = await carregarAssinatura(ambiente.db, conta.contaId, ambiente.relogio.agora());
+  await salvarAssinatura(ambiente.db, { ...assinatura, planoId: 'essencial' }, ambiente.relogio.agora());
+  return conta;
+}
 
 let banco: Conexao, amb: Ambiente;
 beforeAll(async () => { banco = await abrirBanco(); });

@@ -74,8 +74,8 @@ Open questions: none para implementação; segredos de infraestrutura serão ins
 | --- | --- | --- | --- |
 | FREE-01 | AC1–6: API/domínio | Execute | Verified localmente |
 | FREE-02 | AC7–8: mobile | Execute | Verified localmente |
-| DEPLOY-01 | AC9: imagem | Execute | Implementing |
-| DEPLOY-02 | AC10: CI | Execute | Pending |
+| DEPLOY-01 | AC9: imagem | Execute | Verified localmente |
+| DEPLOY-02 | AC10: CI | Execute | Implementado; execução remota pendente |
 | DEPLOY-03 | AC11: VPS | Execute | Pending |
 
 ## Execution Plan
@@ -97,6 +97,11 @@ Open questions: none para implementação; segredos de infraestrutura serão ins
 Adequação: assertions derivam dos ACs; nenhuma alteração em testes existentes. O estado visual recebe apenas a nova entrada necessária para compilar o tipo de status.
 
 - Passo2 concluído:27testes/6arquivos mobile e tiposmobile aprovados. AC7 cadastroLiberado.test.ts mantém promessa de cadastro pendente até resolver resposta e verifica licença liberada; fluxoLiberado.test.ts garante PDV/recebimentos/câmera e preserva conta/reautenticação. AC8 acessoLiberadoTela.test.ts verifica texto de gratuidade/consentimento, ausência de R$/próxima cobrança e zero botões pagos; fluxoLiberado.test.ts verifica redirecionamento de planos/cartão/bloqueio e banner nulo. Setup do teste corrigido de carregar() inexistente para iniciar(), sem alterar assertions. CupomTela preexistente executado, mas sua alteração paralela não integra os commits desta entrega.
+
+- Passo3 local: imagem construída, inspeção confirma node não root, API/shared/tsx/migrações presentes e .env/.data/mobile/testes/vitest/typescript ausentes. Primeiro contexto incluía .env por reinclusão de diretório pai; regra corrigida antes de qualquer publicação. O primeiro smoke PGlite sem volume falhou por diretório de dados não gravável; smoke com tmpfs de teste passou, HTTP200 e SIGTERM/exit0. Smoke separado NODE_ENV=production+disabled+PostgreSQL17 real passou: saúde200, cadastro201, assinatura liberada,401 sem sessão,404/dev,409/cartão e sync200; zero faturas/emails na consultaSQL. SMTP é fixture inválida, nenhum envio externo.
+- Shared completo167/14 PASS; mobile completo505/53 PASS no workspace com alterações paralelas de APK/cupom. API/PGlite inicial471/497,26falhas de fixtures de limite ocupado; recuperação recebeu correção paralela emde8fc6f; corrigidos dois setups de e-mail para Essencial, sem mudar assertions; os60/3cenários afetados passaram. API/PostgreSQL completo554/556, duas expectativas antigas não incluíam caixaId/cancelamento. Acrescentados os campos nulos esperados ao snapshot exato, preservando todos os demais campos/asserções; arquivo syncSessao e acessoLiberado reexecutados28/28 PASS. Os36arquivos antes aprovados não foram repetidos; CI remoto fará a regressão completa no conteúdo publicado. Nenhuma falha foi suprimida ou teste pulado.
+- Workflow YAML parseado e condição de dependência/main conferida. Actions oficiais fixadas em SHAs de commits de checkoutv7.0.1 e setup-nodev7.1.0. Canary .env.docker-context-check é criado no runner para verificar a exclusão na imagem. Branch codex/pdv-deploy recebe somente SHA testado; deploy exige segredo HTTPS e falha sem ele. Aprovação do webhook não é considerada prova de saúde.
+- Infra criada no EasyPanel: pdv-api e pdv-postgres emaladdin; fonteGitHub temporariamente main para preparar configuração, auto deploy nativo desativado; mudar fonte para codex/pdv-deploy após primeira promoção. Porta interna3333 no domínioHTTPS aladdin-pdv-api.jicnzg.easypanel.host; PostgreSQL privado, ExposedPort0. Credenciais não transferidas, API não ativada. Serviços anteriores preservados. Backup e saúde externa não foram verificados.
 
 ## Success Criteria
 

@@ -3,6 +3,10 @@ import type { Centavos } from './dinheiro';
 export const PLANOS_ORDEM = ['essencial', 'negocio', 'pro'] as const;
 export type PlanoId = (typeof PLANOS_ORDEM)[number];
 
+/** Oferta atual. Os demais IDs continuam legíveis para assinaturas antigas. */
+export const PLANOS_DISPONIVEIS = ['pro'] as const;
+export const PLANO_PADRAO: PlanoId = 'pro';
+
 export const RECURSOS = [
   'integracao_pagamentos',
   'estoque',
@@ -68,7 +72,7 @@ export const PLANOS: Record<PlanoId, Plano> = {
     id: 'pro',
     nome: 'Pro',
     precoMensalCentavos: 4990,
-    descricaoCurta: 'Gestão completa: estoque, fiado e várias lojas',
+    descricaoCurta: 'Venda e registre seus recebimentos em um só plano',
     maisEscolhido: false,
     limites: { produtos: null, aparelhos: 10, operadores: null, lojas: 3, historicoDias: null },
     recursos: [

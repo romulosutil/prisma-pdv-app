@@ -2,6 +2,7 @@ import type { CartaoSalvo } from './cartao';
 import { adicionarDias, adicionarMeses, formatarDataCurta, MS_POR_DIA } from './datas';
 import { formatarBRL, type Centavos } from './dinheiro';
 import { PLANOS, type PlanoId } from './planos';
+import { aplicarDesconto, encontrarCupom, type CupomAplicado } from './cupons';
 
 export const TESTE_DIAS = 7;
 export const CARENCIA_INADIMPLENCIA_DIAS = 7;
@@ -37,6 +38,7 @@ export interface Assinatura {
   /** Downgrade marcado para a próxima renovação. */
   readonly planoAgendado: PlanoId | null;
   readonly cartao: CartaoSalvo | null;
+  readonly cupom?: CupomAplicado | null;
 }
 
 /** Forma JSON da assinatura: datas em ISO 8601. */
@@ -56,6 +58,7 @@ export interface AssinaturaSerializada {
   canceladaEm: string | null;
   planoAgendado: PlanoId | null;
   cartao: CartaoSalvo | null;
+  cupom?: CupomAplicado | null;
 }
 
 export interface CobrancaDevida {
@@ -103,6 +106,10 @@ export function desserializarAssinatura(s: AssinaturaSerializada): Assinatura {
 
 const preco = (planoId: PlanoId): Centavos => PLANOS[planoId].precoMensalCentavos;
 
+export function valorMensalAssinatura(a: Pick<Assinatura, 'planoId' | 'planoAgendado' | 'cupom'>): Centavos {
+  return aplicarDesconto(preco(a.planoAgendado ?? a.planoId), a.cupom);
+}
+
 /** Dia do mês em que a assinatura cobra, para não "escorregar" depois de um mês curto. */
 function diaDeCobranca(a: Assinatura): number {
   if (a.periodoAtualFim.getTime() === a.testeTerminaEm.getTime()) return a.testeTerminaEm.getUTCDate();
@@ -115,7 +122,11 @@ export function iniciarTeste(p: {
   planoId: PlanoId;
   cartao: CartaoSalvo;
   agora: Date;
+  codigoCupom?: string;
 }): Assinatura {
+  const codigo = p.codigoCupom?.trim();
+  const cupom = codigo ? encontrarCupom(codigo) : null;
+  if (codigo && !cupom) throw new Error('Cupom inválido. Confira o código e tente novamente.');
   const fimDoTeste = adicionarDias(p.agora, TESTE_DIAS);
   return {
     id: p.id,
@@ -133,6 +144,7 @@ export function iniciarTeste(p: {
     canceladaEm: null,
     planoAgendado: null,
     cartao: p.cartao,
+    cupom,
   };
 }
 
@@ -262,7 +274,7 @@ export function avaliar(a: Assinatura, agora: Date): Assinatura {
 
 /** O que cobrar agora. Na renovação vale o preço do plano agendado, se houver downgrade. */
 export function cobrancaDevida(a: Assinatura, agora: Date): CobrancaDevida | null {
-  const valorCentavos = preco(a.planoAgendado ?? a.planoId);
+  const valorCentavos = valorMensalAssinatura(a);
   switch (a.status) {
     case 'em_teste':
       return agora >= a.testeTerminaEm ? { tipo: 'primeira', valorCentavos } : null;
@@ -303,16 +315,17 @@ export function diasRestantesTeste(a: Assinatura, agora: Date): number {
   return Math.max(0, Math.ceil((a.testeTerminaEm.getTime() - agora.getTime()) / MS_POR_DIA));
 }
 
-/** Texto da tela do cartão: "Hoje: R$ 0,00 · A partir de 30/10: R$ 34,90/mês". */
+/** Resumo da cobrança após os sete dias grátis, já considerando o cupom. */
 export function descricaoCobrancaPaywall(
   planoId: PlanoId,
   agora: Date,
+  cupom?: CupomAplicado | null,
 ): { hoje: string; dataPrimeiraCobranca: Date; texto: string } {
   const dataPrimeiraCobranca = adicionarDias(agora, TESTE_DIAS);
   return {
     hoje: formatarBRL(0),
     dataPrimeiraCobranca,
-    texto: `A partir de ${formatarDataCurta(dataPrimeiraCobranca)}: ${formatarBRL(preco(planoId))}/mês`,
+    texto: `A partir de ${formatarDataCurta(dataPrimeiraCobranca)}: ${formatarBRL(aplicarDesconto(preco(planoId), cupom))}/mês`,
   };
 }
 
@@ -322,7 +335,7 @@ export function descricaoCobrancaPaywall(
  */
 export function calcularProrata(a: Assinatura, novoPlano: PlanoId, agora: Date): Centavos {
   if (a.status !== 'ativa') return 0;
-  const diferenca = preco(novoPlano) - preco(a.planoId);
+  const diferenca = aplicarDesconto(preco(novoPlano), a.cupom) - aplicarDesconto(preco(a.planoId), a.cupom);
   if (diferenca <= 0) return 0;
   const total = a.periodoAtualFim.getTime() - a.periodoAtualInicio.getTime();
   const restante = Math.min(total, Math.max(0, a.periodoAtualFim.getTime() - agora.getTime()));

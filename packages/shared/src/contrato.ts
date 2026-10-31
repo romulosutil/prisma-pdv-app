@@ -222,6 +222,11 @@ export const AssinaturaSerializadaSchema = z.object({
   canceladaEm: DataIsoSchema.nullable(),
   planoAgendado: PlanoIdSchema.nullable(),
   cartao: CartaoSalvoSchema.nullable(),
+  cupom: z.object({
+    codigo: z.string().min(1).max(40),
+    percentualDesconto: z.number().int().min(1).max(99),
+    duracao: z.literal('vitalicio'),
+  }).nullable().optional(),
 }) satisfies z.ZodType<AssinaturaSerializada>;
 
 const LimiteOpcionalSchema = z.number().int().nonnegative().nullable();
@@ -244,6 +249,7 @@ export const LicencaSerializadaSchema = z.object({
 export const CriarAssinaturaReqSchema = z.object({
   planoId: PlanoIdSchema,
   tokenCartao: z.string().min(1),
+  codigoCupom: z.string().trim().max(40).optional(),
 });
 export type CriarAssinaturaReq = z.infer<typeof CriarAssinaturaReqSchema>;
 

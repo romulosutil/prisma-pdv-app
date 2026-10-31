@@ -3,6 +3,7 @@ export * from './billing';
 export * from './cartao';
 export * from './capacidades';
 export * from './contrato';
+export * from './cupons';
 export * from './datas';
 export * from './dinheiro';
 export * from './ean';

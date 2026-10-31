@@ -4,6 +4,8 @@ Decisão de 30/10/2026: usar Resend via SMTP para o acesso por código. O usuár
 
 Estado: **configuração preparada; entrega externa não homologada**. O SMTP existente em `apps/api/src/email/smtp.ts` suporta TLS direto e autenticação. Não requer SDK Resend, migração ou alteração no app. Nenhuma credencial foi recebida, gravada ou testada nesta entrega.
 
+Atualização posterior: nova captura do usuário mostra `prumo.services` **Verified**, com Forge Enabled. Arquivo local ignorado `apps/api/.env.resend.local` preparado com remetente, banco e SMTP corretos, uma chave de cifra aleatória de32bytes embase64 e marcador inicial para a API key em `SMTP_PASSWORD`. O usuário preencherá a chave diretamente no arquivo; não ler/imprimir seu conteúdo ao retomar. Nenhuma API key Resend foi recebida pelo chat, e o servidor de homologação não foi iniciado nesta atualização. O próximo passo continua sendo teste com destinatário autorizado, sem alegar entrega apenas pelo status Verified.
+
 Atualização: usuário informou o domínio `prumo.services` e mostrou o painel Resend com status **Pending**, região São Paulo e Resend Forge desabilitado. Remetente inicial adotado: `acesso@prumo.services`, sujeito à verificação do domínio e teste externo. Em consulta pública pelo resolvedor1.1.1.1, `resend._domainkey.prumo.services` já retornou TXT DKIM; isso não valida a chave completa esperada pelo painel nem substitui seu status Verified. `send.prumo.services` retornou CNAME para `send.forge.rmta.net`, com SPF/MX no destino; comparar com os registros exatos de Enable Sending do domínio no painel antes de propor qualquer alteração, pois a captura não mostra essa seção. Nenhum DNS foi alterado.
 
 ## Dados que faltam

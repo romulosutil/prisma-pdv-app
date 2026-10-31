@@ -76,6 +76,8 @@
 
 ## Handoff
 
+- Atualização mais recente: captura mostra prumo.services Verified e Forge Enabled. Preparado arquivo LOCAL IGNORADO apps/api/.env.resend.local com SMTP_PASSWORD inicialmente marcador, SMTP/DB corretos, confirmação explícita e chave de cifra32bytes aleatória independente. Usuário preencherá API key diretamente no arquivo. NUNCA cat/ler/imprimir esse arquivo ao retomar ou fazer stage; validar configuração sem expor valores. Não iniciar/enviare-mail automaticamente só porque o domínio verificou; falta destino autorizado. Nenhuma API key coletada por chat e nenhum servidor de homologação iniciado neste passo. Esta evidência supera o Pending histórico abaixo.
+
 - CHECKPOINT4A LOCAL: usuário autorizou avançar enquanto DNS verifica, depois pediu limpeza Docker. Código79fe157 prepara homologação de acesso isolada; documentação e revisão serão commitadas neste checkpoint. Parar para avaliação da entrega, sem iniciar outros blocos automaticamente. Critérios externos e produção continuam pendentes.
 - Goal controlador permanece paused, sem ferramenta para retomar ou atualizar objetivo. O texto intermediário sobre senha está superado por AD047/048: manter OTP e usar Resend, sem senha ou SMTP próprio. Não afirmar active, concluir o objetivo global ou criar duplicata enquanto existir Goal inacabado.
 - Launcher apps/api/scripts/checkpoint-email.ts: development+confirmação explícita, banco exclusivo loopback pdv_homologacao_email sem query/hash, smtp.resend.com:465 TLS/resend, acesso@prumo.services e chave cifradora independente. Relógio real, sem fontes EAN externas, rotas /dev ou jobs de cobrança; billing mock somente fixture local. Produção continua bloqueada no bootstrap normal.

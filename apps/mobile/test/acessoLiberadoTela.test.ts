@@ -1,0 +1,37 @@
+import React from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { afterEach, expect, it, vi } from 'vitest';
+import { criarAcessoLiberado } from '@pdv/shared';
+const m = vi.hoisted(() => ({ assinatura: null as ReturnType<typeof criarAcessoLiberado> | null }));
+vi.mock('react-native', async () => { const R = await import('react'); return { View: (p: React.PropsWithChildren) => R.createElement('view', p, p.children), Pressable: (p: React.PropsWithChildren) => R.createElement('pressable', p, p.children), AccessibilityInfo: { announceForAccessibility: vi.fn() }, StyleSheet: { create: (v: unknown) => v } }; });
+vi.mock('expo-router', () => ({ useRouter: () => ({ back: vi.fn() }) }));
+vi.mock('@/dados/hooks', () => ({ useDados: () => ({ relogio: {} }), useAssinatura: () => ({ assinatura: m.assinatura, agora: new Date(), modo: 'http', servico: {} }) }));
+vi.mock('@/tema', () => ({ cores: { ink2: '#222' }, raio: { md: 8 } }));
+vi.mock('@/componentes/Botao', async () => { const R = await import('react'); return { Botao: (p: object) => R.createElement('botao', p) }; });
+vi.mock('@/componentes/Texto', async () => { const R = await import('react'); return { Texto: (p: React.PropsWithChildren) => R.createElement('texto', p, p.children) }; });
+vi.mock('@/componentes/TelaBase', async () => { const R = await import('react'); return { TelaBase: (p: React.PropsWithChildren) => R.createElement('tela', p, p.children) }; });
+vi.mock('@/componentes/Banner', () => ({ Banner: () => null }));
+vi.mock('@/componentes/BotaoIcone', () => ({ BotaoIcone: () => null }));
+vi.mock('@/componentes/StatusPill', () => ({ StatusPill: () => null }));
+vi.mock('@/componentes/BottomSheet', () => ({ BottomSheet: () => null }));
+vi.mock('@/componentes/Icone', () => ({ Icone: () => null }));
+vi.mock('@/componentes/Secao', () => ({ Secao: () => null }));
+vi.mock('@/componentes/Toast', () => ({ useToast: () => ({ mostrar: vi.fn() }) }));
+vi.mock('@/dados/observavel', () => ({ useObservavel: () => 0 }));
+vi.mock('@/tema/useFoco', () => ({ useFoco: () => ({}) }));
+vi.mock('@/util/ferramentasTeste', () => ({ FERRAMENTAS_TESTE: false }));
+import Gestao from '../app/(tabs)/ajustes/assinatura';
+
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+let renderer: ReactTestRenderer;
+afterEach(async () => { await act(async () => renderer?.unmount()); });
+it('explica gratuidade e consentimento futuro sem formulário ou ações pagas', async () => {
+  m.assinatura = criarAcessoLiberado({ id: 'a', contaId: 'c', agora: new Date() });
+  await act(async () => { renderer = create(React.createElement(Gestao)); });
+  const texto = renderer.root.findAllByType('texto' as never).map(n => React.Children.toArray(n.props.children).join('')).join('\n');
+  expect(texto).toContain('Acesso liberado sem cobrança');
+  expect(texto).toContain('sem cadastrar cartão e sem pagar assinatura');
+  expect(texto).toContain('Nenhuma cobrança será iniciada automaticamente');
+  expect(texto).not.toContain('R$'); expect(texto).not.toContain('Próxima cobrança');
+  expect(renderer.root.findAllByType('botao' as never)).toHaveLength(0);
+});

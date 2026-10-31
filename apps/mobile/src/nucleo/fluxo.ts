@@ -31,6 +31,11 @@ export function decidirRota(estado: EstadoDoFluxo, segmentos: readonly string[])
   if (estado.reautenticacaoNecessaria) return noOnboarding && tela === 'entrar' ? null : '/entrar';
 
   const { assinatura, agora } = estado;
+  if (assinatura?.status === 'liberada') {
+    if (noOnboarding) return ['pagamentos', 'camera'].includes(tela) ? null : '/';
+    if (raiz === 'bloqueio' || raiz === 'atualizar-cartao') return '/';
+    return null;
+  }
   if (!assinatura || assinatura.status === 'sem_assinatura') {
     return noOnboarding && ASSINAR.includes(tela) ? null : '/planos';
   }

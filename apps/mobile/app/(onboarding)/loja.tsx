@@ -40,7 +40,7 @@ export default function Loja() {
         nomeLoja: nomeLoja.trim(),
         tipoLoja,
       });
-      router.replace('/planos');
+      router.replace(dados.assinatura.obter().assinatura?.status === 'liberada' ? '/pagamentos' : '/planos');
     } catch (erro) {
       setErroGeral(mensagemDeErro(erro));
     } finally {

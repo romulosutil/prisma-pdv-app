@@ -45,6 +45,26 @@ export default function Assinatura() {
 
   if (!assinatura) return null;
 
+  if (assinatura.status === 'liberada') {
+    return (
+      <TelaBase rolavel bordas={['top']} style={estilos.tela}>
+        <View style={estilos.topo}>
+          <BotaoIcone icone="voltar" rotulo="Voltar" onPress={() => router.back()} />
+          <Texto estilo="tituloL" accessibilityRole="header">Acesso ao PDV</Texto>
+        </View>
+        <View style={estilos.plano}>
+          <Texto estilo="tituloL">Acesso liberado sem cobrança</Texto>
+          <Texto estilo="corpo" cor={cores.ink2}>
+            Você pode usar o PDV sem cadastrar cartão e sem pagar assinatura neste momento.
+          </Texto>
+          <Texto estilo="corpo" cor={cores.ink2}>
+            Nenhuma cobrança será iniciada automaticamente. Se houver uma oferta paga no futuro, você precisará concordar antes de contratar.
+          </Texto>
+        </View>
+      </TelaBase>
+    );
+  }
+
   const plano = PLANOS[assinatura.planoId];
   const status = STATUS_VISUAL[assinatura.status];
   const precoDaProxima = valorMensalAssinatura(assinatura);

@@ -185,6 +185,7 @@ export class Dados {
       email: formulario.email,
       aparelhoNome: NOME_APARELHO_PADRAO,
     }, this.backend.modo === 'demo');
+    await this.assinatura.sincronizar();
     });
   }
 

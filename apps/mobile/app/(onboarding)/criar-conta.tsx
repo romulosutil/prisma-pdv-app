@@ -53,7 +53,7 @@ export default function CriarConta() {
           Vamos criar sua conta
         </Texto>
         <Texto estilo="corpo" cor={cores.ink2}>
-          Usamos o CPF ou CNPJ para garantir um teste grátis por loja.
+          Usamos o CPF ou CNPJ para identificar sua loja.
         </Texto>
         <Campo
           rotulo="Seu nome"

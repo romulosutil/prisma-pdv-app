@@ -73,7 +73,7 @@ Open questions: none para implementação; segredos de infraestrutura serão ins
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
 | FREE-01 | AC1–6: API/domínio | Execute | Verified localmente |
-| FREE-02 | AC7–8: mobile | Execute | Pending |
+| FREE-02 | AC7–8: mobile | Execute | Verified localmente |
 | DEPLOY-01 | AC9: imagem | Execute | Implementing |
 | DEPLOY-02 | AC10: CI | Execute | Pending |
 | DEPLOY-03 | AC11: VPS | Execute | Pending |
@@ -95,6 +95,8 @@ Open questions: none para implementação; segredos de infraestrutura serão ins
 - AC6: bootstrapSemCobranca.test.ts compara relógio real, modo explícito, listen e worker de e-mail ativo/cobrança ausente; provider verifica/cobra/estorna rejeitando.
 
 Adequação: assertions derivam dos ACs; nenhuma alteração em testes existentes. O estado visual recebe apenas a nova entrada necessária para compilar o tipo de status.
+
+- Passo2 concluído:27testes/6arquivos mobile e tiposmobile aprovados. AC7 cadastroLiberado.test.ts mantém promessa de cadastro pendente até resolver resposta e verifica licença liberada; fluxoLiberado.test.ts garante PDV/recebimentos/câmera e preserva conta/reautenticação. AC8 acessoLiberadoTela.test.ts verifica texto de gratuidade/consentimento, ausência de R$/próxima cobrança e zero botões pagos; fluxoLiberado.test.ts verifica redirecionamento de planos/cartão/bloqueio e banner nulo. Setup do teste corrigido de carregar() inexistente para iniciar(), sem alterar assertions. CupomTela preexistente executado, mas sua alteração paralela não integra os commits desta entrega.
 
 ## Success Criteria
 

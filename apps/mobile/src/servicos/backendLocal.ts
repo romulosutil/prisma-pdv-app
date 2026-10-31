@@ -11,7 +11,9 @@ import {
   MockBillingProvider,
   PLANOS,
   PerfilResSchema,
-  PLANOS_ORDEM,
+  PLANOS_DISPONIVEIS,
+  encontrarCupom,
+  valorMensalAssinatura,
   reativar as reativarAssinatura,
   registrarCobrancaAprovada,
   registrarCobrancaRecusada,
@@ -118,7 +120,7 @@ export class BackendLocal implements Backend {
   }
 
   async listarPlanos(): Promise<Plano[]> {
-    return PLANOS_ORDEM.map((id) => PLANOS[id]);
+    return PLANOS_DISPONIVEIS.map((id) => PLANOS[id]);
   }
 
   async obterAssinatura(): Promise<AssinaturaRes | null> {
@@ -132,6 +134,7 @@ export class BackendLocal implements Backend {
     const estado = await this.carregar();
     if (!estado.sessao) throw new ErroBackend('nao_autorizado', '');
     if (estado.assinatura) throw new ErroBackend('conflito', 'Esta conta já tem uma assinatura.');
+    if (req.codigoCupom?.trim() && !encontrarCupom(req.codigoCupom)) throw new ErroBackend('cupom_invalido', '');
     const verificacao = await this.billing.verificarCartao(req.tokenCartao);
     if (!verificacao.ok) throw new ErroBackend(verificacao.motivo === 'cartao_recusado' ? 'cartao_recusado' : 'token_invalido', '');
 
@@ -139,6 +142,7 @@ export class BackendLocal implements Backend {
       id: this.novoId(),
       contaId: estado.sessao.contaId,
       planoId: req.planoId,
+      ...(req.codigoCupom ? { codigoCupom: req.codigoCupom } : {}),
       cartao: { bandeira: verificacao.bandeira, ultimos4: verificacao.ultimos4, fingerprint: verificacao.fingerprint },
       agora: this.relogio.agora(),
     });
@@ -164,7 +168,7 @@ export class BackendLocal implements Backend {
     const agora = this.relogio.agora();
     // Depois do período já pago, reativar abre um período novo: cobra antes (regra do `reativar` do shared).
     if (assinatura.status === 'cancelada' && agora >= assinatura.periodoAtualFim) {
-      await this.cobrar(estado, assinatura, PLANOS[planoId].precoMensalCentavos, `Assinatura ${PLANOS[planoId].nome}`, `reativar:${this.novoId()}`);
+      await this.cobrar(estado, assinatura, valorMensalAssinatura({ ...assinatura, planoId, planoAgendado: null }), `Assinatura ${PLANOS[planoId].nome}`, `reativar:${this.novoId()}`);
     }
     return this.gravar(estado, this.transicao(() => reativarAssinatura(assinatura, { planoId, agora })));
   }
@@ -181,7 +185,7 @@ export class BackendLocal implements Backend {
     const novoEstado = { ...estado, clienteRef: verificacao.clienteRef };
     // Cartão novo em conta com pagamento em atraso: tenta cobrar na hora para destravar o acesso.
     if (nova.status === 'inadimplente' || nova.status === 'suspensa') {
-      const valor = PLANOS[nova.planoAgendado ?? nova.planoId].precoMensalCentavos;
+      const valor = valorMensalAssinatura(nova);
       await this.cobrar(novoEstado, nova, valor, `Assinatura ${PLANOS[nova.planoAgendado ?? nova.planoId].nome}`, `recuperacao:${this.novoId()}`);
       nova = registrarCobrancaAprovada(nova, agora);
     }

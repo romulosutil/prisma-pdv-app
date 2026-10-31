@@ -1,5 +1,6 @@
 import {
   calcularProrata,
+  aplicarDesconto,
   desserializarAssinatura,
   desserializarLicenca,
   PLANOS,
@@ -79,8 +80,8 @@ export class AssinaturaServico extends Observavel<EstadoAssinatura> {
   }
 
   /** Cria a assinatura com 7 dias grátis. `tokenCartao` vem de `tokenizarCartaoMock` (ou do SDK do gateway). */
-  async iniciarTeste(planoId: PlanoId, tokenCartao: string): Promise<void> {
-    await this.alterar(() => this.backend.criarAssinatura({ planoId, tokenCartao }));
+  async iniciarTeste(planoId: PlanoId, tokenCartao: string, codigoCupom?: string): Promise<void> {
+    await this.alterar(() => this.backend.criarAssinatura({ planoId, tokenCartao, ...(codigoCupom ? { codigoCupom } : {}) }));
   }
 
   async trocarPlano(planoId: PlanoId): Promise<void> {
@@ -104,8 +105,8 @@ export class AssinaturaServico extends Observavel<EstadoAssinatura> {
     const { assinatura, agora } = this.obter();
     if (!assinatura || (assinatura.status !== 'em_teste' && assinatura.status !== 'ativa')) return null;
     if (planoId === assinatura.planoId && assinatura.planoAgendado === null) return null;
-    const novoPrecoCentavos = PLANOS[planoId].precoMensalCentavos;
-    const atual = PLANOS[assinatura.planoId].precoMensalCentavos;
+    const novoPrecoCentavos = aplicarDesconto(PLANOS[planoId].precoMensalCentavos, assinatura.cupom);
+    const atual = aplicarDesconto(PLANOS[assinatura.planoId].precoMensalCentavos, assinatura.cupom);
     if (assinatura.status === 'ativa' && novoPrecoCentavos < atual) {
       return { planoId, efeito: 'proximo_ciclo', cobrancaAgoraCentavos: 0, vigenteEm: assinatura.periodoAtualFim, novoPrecoCentavos };
     }

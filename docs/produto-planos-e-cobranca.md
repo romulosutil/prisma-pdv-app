@@ -1,5 +1,7 @@
 # Planos, preços e cobrança (Paywall) — v0.1
 
+> Histórico de decisões anteriores. A oferta, os cupons e o gateway desta etapa foram substituídos pela [assinatura única de 30/10/2026](assinatura-unica-e-cupons.md).
+
 Dono: Produto · Status: **decidido para a versão de testes** (revisar antes do lançamento público)
 
 ## 1. Preços

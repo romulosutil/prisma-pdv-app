@@ -1,4 +1,4 @@
-import { formatarBRL, formatarData, formatarDataCurta, PLANOS, PLANOS_ORDEM, type PlanoId } from '@pdv/shared';
+import { formatarBRL, formatarData, formatarDataCurta, PLANOS, PLANOS_DISPONIVEIS, valorMensalAssinatura, type PlanoId } from '@pdv/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native';
@@ -47,9 +47,9 @@ export default function Assinatura() {
 
   const plano = PLANOS[assinatura.planoId];
   const status = STATUS_VISUAL[assinatura.status];
-  const precoDaProxima = PLANOS[assinatura.planoAgendado ?? assinatura.planoId].precoMensalCentavos;
+  const precoDaProxima = valorMensalAssinatura(assinatura);
   const previa = planoEscolhido ? servico.previaTroca(planoEscolhido) : null;
-  const podeTrocar = assinatura.status === 'em_teste' || assinatura.status === 'ativa';
+  const podeTrocar = assinatura.planoId !== 'pro' && (assinatura.status === 'em_teste' || assinatura.status === 'ativa');
   const podeCancelar = assinatura.status !== 'cancelada' && assinatura.status !== 'sem_assinatura';
   const fimDoAcesso = assinatura.status === 'em_teste' ? assinatura.testeTerminaEm : assinatura.periodoAtualFim;
 
@@ -110,9 +110,14 @@ export default function Assinatura() {
           <Texto estilo="tituloL">{`Plano ${plano.nome}`}</Texto>
           <StatusPill tipo={status.tipo} texto={status.texto} />
         </View>
-        <Texto estilo="corpo" cor={cores.ink2} numerico accessibilityLabel={`${falarDinheiro(plano.precoMensalCentavos)} por mês`}>
-          {`${formatarBRL(plano.precoMensalCentavos)} por mês`}
+        <Texto estilo="corpo" cor={cores.ink2} numerico accessibilityLabel={`${falarDinheiro(precoDaProxima)} por mês`}>
+          {`${formatarBRL(precoDaProxima)} por mês`}
         </Texto>
+        {assinatura.cupom ? (
+          <Texto estilo="corpoMedio" cor={cores.folha}>
+            {`Cupom ${assinatura.cupom.codigo}: ${assinatura.cupom.percentualDesconto}% de desconto vitalício sobre ${formatarBRL(plano.precoMensalCentavos)}/mês.`}
+          </Texto>
+        ) : null}
         {aviso ? (
           <Texto estilo="corpoMedio" numerico>
             {aviso}
@@ -212,7 +217,7 @@ export default function Assinatura() {
 
       <BottomSheet visivel={folha === 'trocar'} onFechar={() => setFolha(null)} titulo="Trocar plano">
         <View accessibilityRole="radiogroup" accessibilityLabel="Planos" style={estilos.opcoes}>
-          {PLANOS_ORDEM.map((id) => (
+          {PLANOS_DISPONIVEIS.map((id) => (
             <OpcaoDePlano
               key={id}
               nome={PLANOS[id].nome}

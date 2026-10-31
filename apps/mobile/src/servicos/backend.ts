@@ -17,6 +17,7 @@ export type CodigoErroBackend =
   | 'cartao_recusado'
   | 'token_invalido'
   | 'valor_invalido'
+  | 'cupom_invalido'
   | 'nao_autorizado'
   | 'limite_autenticacao'
   | 'nao_encontrado'
@@ -43,6 +44,7 @@ const MENSAGENS: Record<CodigoErroBackend, string> = {
   cartao_recusado: 'Não conseguimos aprovar este cartão. Confira os dados ou use outro cartão.',
   token_invalido: 'Não foi possível validar o cartão. Digite os dados de novo.',
   valor_invalido: 'Algum dado está inválido. Confira e tente de novo.',
+  cupom_invalido: 'Cupom inválido. Confira o código e tente novamente.',
   nao_autorizado: 'Sua sessão não é mais válida. Entre de novo.',
   limite_autenticacao: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
   nao_encontrado: 'Não encontramos o que você pediu.',

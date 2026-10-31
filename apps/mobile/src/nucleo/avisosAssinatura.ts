@@ -3,7 +3,7 @@ import {
   diasRestantesTeste,
   formatarBRL,
   formatarDataCurta,
-  PLANOS,
+  valorMensalAssinatura,
   temAcesso,
   type Assinatura,
 } from '@pdv/shared';
@@ -20,7 +20,7 @@ export function avisoDeAssinatura(assinatura: Assinatura | null, agora: Date): A
 
   if (deveLembrarFimTeste(assinatura, agora)) {
     const dias = diasRestantesTeste(assinatura, agora);
-    const preco = formatarBRL(PLANOS[assinatura.planoId].precoMensalCentavos);
+    const preco = formatarBRL(valorMensalAssinatura(assinatura));
     return {
       tipo: 'info',
       texto: `Seu teste termina em ${dias} ${dias === 1 ? 'dia' : 'dias'}. Em ${formatarDataCurta(assinatura.testeTerminaEm)} cobraremos ${preco}.`,

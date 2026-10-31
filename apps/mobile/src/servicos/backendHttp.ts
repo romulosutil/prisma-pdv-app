@@ -47,7 +47,7 @@ function codigoDoStatus(status: number): CodigoErroBackend {
   return 'desconhecido';
 }
 
-const CODIGOS_CONHECIDOS: readonly string[] = ['cartao_recusado', 'token_invalido', 'valor_invalido'];
+const CODIGOS_CONHECIDOS: readonly string[] = ['cartao_recusado', 'token_invalido', 'valor_invalido', 'cupom_invalido'];
 const CODIGOS_CONFLITO: readonly string[] = ['limite_aparelhos', 'aparelho_em_uso', 'aparelho_revogado', 'aparelho_ja_autorizado', 'recuperacao_desnecessaria', 'recuperacao_desatualizada'];
 
 interface OpcoesChamada {

@@ -26,7 +26,7 @@ const RASCUNHO_INICIAL: Rascunho = {
   documento: '',
   nomeLoja: 'Mercadinho Bom Preço',
   tipoLoja: 'Mercadinho',
-  planoId: 'negocio',
+  planoId: 'pro',
   // Em desenvolvimento o cadastro já vem preenchido (CPF de teste válido) para agilizar a revisão do fluxo.
   ...(__DEV__ ? { nomeResponsavel: 'Ana Souza', email: 'ana@bompreco.com.br', documento: '52998224725' } : {}),
 };

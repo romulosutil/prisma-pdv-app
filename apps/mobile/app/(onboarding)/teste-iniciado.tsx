@@ -1,4 +1,4 @@
-import { formatarBRL, formatarDataCurta, PLANOS, TESTE_DIAS } from '@pdv/shared';
+import { formatarBRL, formatarDataCurta, PLANOS, TESTE_DIAS, valorMensalAssinatura } from '@pdv/shared';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { AccessibilityInfo, StyleSheet, View } from 'react-native';
@@ -30,7 +30,7 @@ export default function TesteIniciado() {
         </Texto>
         {assinatura && plano ? (
           <Texto estilo="corpoL" cor={cores.ink2} style={estilos.centrado}>
-            {`Você tem ${TESTE_DIAS} dias para usar tudo do plano ${plano.nome}. A primeira cobrança, de ${formatarBRL(plano.precoMensalCentavos)}, será em ${formatarDataCurta(assinatura.testeTerminaEm)}. Cancele quando quiser, sem multa.`}
+            {`Você tem ${TESTE_DIAS} dias grátis no plano ${plano.nome}. A primeira cobrança, de ${formatarBRL(valorMensalAssinatura(assinatura))}, será em ${formatarDataCurta(assinatura.testeTerminaEm)}.${assinatura.cupom ? ` Cupom ${assinatura.cupom.codigo}: ${assinatura.cupom.percentualDesconto}% de desconto vitalício.` : ''} Cancele quando quiser, sem multa.`}
           </Texto>
         ) : null}
       </View>

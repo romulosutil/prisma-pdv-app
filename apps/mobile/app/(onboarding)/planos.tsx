@@ -1,4 +1,4 @@
-import { formatarBRL, PLANOS, PLANOS_ORDEM, TESTE_DIAS, type Plano } from '@pdv/shared';
+import { formatarBRL, PLANOS, PLANOS_DISPONIVEIS, TESTE_DIAS, type Plano } from '@pdv/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -11,7 +11,7 @@ import { useDados } from '@/dados/hooks';
 import { useRascunho } from '@/nucleo/rascunho';
 import { cores } from '@/tema';
 
-const PLANOS_LOCAIS: Plano[] = PLANOS_ORDEM.map((id) => PLANOS[id]);
+const PLANOS_LOCAIS: Plano[] = PLANOS_DISPONIVEIS.map((id) => PLANOS[id]);
 
 export default function Planos() {
   const router = useRouter();
@@ -25,7 +25,8 @@ export default function Planos() {
     dados
       .listarPlanos()
       .then((lista) => {
-        if (ativo && lista.length > 0) setPlanos(lista);
+        const oferta = lista.filter((plano) => plano.id === 'pro');
+        if (ativo && oferta.length > 0) setPlanos(oferta);
       })
       .catch(() => undefined);
     return () => {
@@ -53,10 +54,10 @@ export default function Planos() {
       <View style={estilos.corpo}>
         <View style={estilos.titulos}>
           <Texto estilo="tituloXL" accessibilityRole="header">
-            Escolha seu plano
+            Um plano para seu negócio
           </Texto>
           <Texto estilo="corpo" cor={cores.ink2}>
-            {`Teste ${TESTE_DIAS} dias grátis com tudo do plano escolhido. Você pode trocar quando quiser.`}
+            {`Comece com ${TESTE_DIAS} dias grátis. Depois, ${formatarBRL(PLANOS.pro.precoMensalCentavos)} por mês. Cancele quando quiser.`}
           </Texto>
         </View>
         <View accessibilityRole="radiogroup" accessibilityLabel="Planos" style={estilos.lista}>

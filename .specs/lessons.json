@@ -3,7 +3,7 @@
   "promote_threshold": 2,
   "window_days": 45,
   "quarantine_threshold": 2,
-  "next_id": 22,
+  "next_id": 23,
   "lessons": [
     {
       "id": "L-001",
@@ -383,6 +383,24 @@
       ],
       "created": "2026-10-31T01:28:00Z",
       "last_seen": "2026-10-31T01:28:00Z"
+    },
+    {
+      "id": "L-022",
+      "key": "gate_fail::em windows nao remover worktrees de sensores com links de dependencias aplicar falhas em memoria por configuracao temporaria e limpar apenas arquivos individuais com caminho validado",
+      "text": "Em Windows, não remover worktrees de sensores com links de dependências; aplicar falhas em memória por configuração temporária e limpar apenas arquivos individuais com caminho validado.",
+      "signal": "gate_fail",
+      "scope": "windows-sensor",
+      "status": "candidate",
+      "features": [
+        "fase-4a-cenarios-acesso"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        ".specs/features/fase-4a-cenarios-acesso/incidente-revisao.md (windows-sensor)"
+      ],
+      "created": "2026-10-31T02:02:24Z",
+      "last_seen": "2026-10-31T02:02:24Z"
     }
   ]
 }

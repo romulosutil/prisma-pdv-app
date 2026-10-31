@@ -11,7 +11,7 @@ Sem produção, push, VPS, cobrança real, novos usuários, leitura de segredo/O
 |---|---|---|
 | Testes | Completar cenários no teste integrado SMTP existente, PostgreSQL local pdv_test com relógio controlado | Exercitar fronteiras sem alterar relógio/conta vivos |
 | Destinatário externo | Gmail já autorizado na conversa, somente código da recuperação | Autorização persiste para o fluxo aprovado |
-| Instalações UAT | localhost:8088=A; 127.0.0.1:8088=B, origens e armazenamento separados | Reusar Metro e API3339, sem limpar A nem criar outro servidor pesado |
+| Instalações UAT | localhost:8088=A; [::1]:8088=B, origens e armazenamento separados | Metro localhost escutaIPv6::1; reusar Metro/API3339 sem limpar A nem expor na rede |
 | Dados | Produto e venda confirmados por sync; rascunho com parcela em A deve permanecer local | Não prometer restauração do que nunca foi enviado |
 | Recuperação | Usuário digita código e confirma qual aparelho revogar | OTP não é coletado no chat; consentimento explícito existente |
 Open questions: none para testes e preparação. UAT depende do usuário receber/digitar código e confirmar substituição; não presumir sucesso.
@@ -47,4 +47,8 @@ Todos os sete casos novos mapeiam AC1–3; dois casos anteriores e seus asserts 
 
 Execução: alvo SMTP9/9PASS, tiposAPI PASS. Gate dos cinco arquivos no PostgreSQL teve80casosPASS/4arquivos e falhou ao iniciar worker da fila porOOM; emailFilaCodigo48/48PASS em execução isolada após pausar somente serviços locais deste projeto. Todos128casos dos cinco arquivos tiveram execução aprovada, semskip ou alteração de asserções antigas. API3339/Metro8088 e demo3338/8087 temporariamente pausados; restaurar homologação antes do checkpoint. Não repetir regressão completa já limitada por memória.
 
-Passo1 implementado; revisão independente pendente. Passo2/UAT humano ainda pendentes. A já tem produto/venda25 confirmados (fila0 e SQL) e rascunho25 com parcela10/saldo15 preservado; preparar B após restaurar serviços.
+Passo1 implementado e aprovado na revisão independente segura: cinco falhas comportamentais detectadas em memória, sem mutação de arquivos-fonte; validate_state PASS para escopo local/preparoUAT. Primeiro sensor descartado por incidente documentado em incidente-revisao.md. Dependências recompostas pelo lockfile, configuração recuperada pelo usuário sem revelar valores, SMTP9/9 e tipos de todos os workspaces aprovados após recuperação.
+
+Passo2/preparo concluído: A tem produto/venda25 confirmados (fila0 e SQL), caixa aberto e rascunho25 com parcela10/saldo15 reaberto após reinício. B é origem independente [::1]:8088. UAT humano de receberOTP, consentir e concluir recuperação/restauração permanece aberto. Os critérios globais não foram marcados; tempo controlado/SMTP local não são prova de falha real do Resend ou Android.
+
+Após os gates, surgiram mudanças paralelas de cupons no mobile, fora deste diff e de seus testes. Elas foram preservadas sem stage/reversão; os gates registrados não validam esse trabalho concorrente posterior.

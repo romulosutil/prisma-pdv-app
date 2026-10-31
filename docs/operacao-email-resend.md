@@ -96,6 +96,10 @@ Essas fontes foram conferidas em30/10/2026. Credenciais, domínio, destinatário
 
 ### Primeiro envio externo — recebimento e login confirmados
 
+Seguimento de recuperação: usuário autorizou validar cenários e preparar B. Testes SMTP/PG locais aprovaram erros, bloqueio, prazo, reuso, recusa e retomada (incluindo recriação de instância de API), sem falhar deliberadamente o serviço Resend. EmB, origem independente `http://[::1]:8088/entrar`, foi solicitado um novo código ao mesmo destinatário autorizado, via tela do app. Não coletar OTP no chat. Recebimento deste código e recuperação consentida ainda aguardam usuário; ver roteiro-recuperacao-aparelho.md. A mantém rascunho de25 com10recebidos/15pendentes e dados confirmados no servidor.
+
+Metadados desse envio: entrega `d0fe9008-ddca-48d4-adcc-d02f40b28f53`, aceita na tentativa1, solicitada30/10/2026 às23:02:32 (São Paulo), com validade original de dez minutos. Isso não comprova recebimento ou substituição. Ambiente retomado após incidente documentado e recuperação do arquivo pelo próprio usuário; a aceitaçãoSMTP comprova que a configuração recuperada foi usada, sem exibir a chave.
+
 Após o usuário preencher a API key diretamente no arquivo local ignorado, o parser confirmou configuração válida sem exibir valores. Captura fornecida pelo usuário comprovou domínio Verified. Em30/10/2026, API local de homologação3339 iniciada com chave real (sessão24765) e app separado8088 (sessão13001), com destinatário Gmail autorizado explicitamente na conversa. Conta/loja fictícias criadas pelo onboarding, assinatura e cartão apenas fixtures locais, sem cobrança real. A demonstração8087 foi preservada.
 
 Pelo app8088, a sessão foi encerrada e um único código solicitado na tela de entrada. A fila registrou entrega `ea79ddb5-8bbd-418a-9e4f-a26eb376fe8d` como **aceita**, tentativa1, sem motivo de falha. Isso comprova aceitação SMTP pelo Resend com a credencial configurada; não comprova chegada à caixa de entrada. Nenhum OTP, token de sessão ou API key foi lido/exibido.

@@ -140,6 +140,12 @@ Seen once or not yet corroborated. Tracked, not trusted.
 - evidence: docs/plano-implementacao-producao.md:17 (docs)
 - last seen: 2026-10-31T01:28:00Z
 
+### L-022 - Em Windows, não remover worktrees de sensores com links de dependências; aplicar falhas em memória por configuração temporária e limpar apenas arquivos individuais com caminho validado.
+- signal: `gate_fail` · recurrence: 1 feature(s) · scope: `windows-sensor` · harmful: 0
+- features: fase-4a-cenarios-acesso
+- evidence: .specs/features/fase-4a-cenarios-acesso/incidente-revisao.md (windows-sensor)
+- last seen: 2026-10-31T02:02:24Z
+
 ## Quarantined (failed when applied - ignore)
 
 A confirmed lesson that recurred alongside failure. Kept for the maintainer to review.

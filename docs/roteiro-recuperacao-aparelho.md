@@ -1,6 +1,15 @@
 # Homologação da recuperação de aparelho
 
-Roteiro preparado, **ainda não executado em Android ou serviço externo**. O contrato local está em `.specs/features/recuperacao-aparelho/`. A recuperação autoriza um aparelho substituto; a restauração de vendas depende de P0-02 e não é comprovada pelo login.
+Roteiro preparado, **ainda não executado em Android**. Login normal com código real Resend/Gmail já confirmado pelo usuário; a recuperação com esse serviço ainda aguarda o checkpoint humano. O contrato local está em `.specs/features/recuperacao-aparelho/`. A recuperação autoriza um aparelho substituto; restauração dos confirmados usa a sincronização implementada na fase3, não é comprovada apenas pelo login.
+
+## Checkpoint web preparado em30/10/2026
+
+- A/origem: `http://localhost:8088/pagar/dividir`, aparelho `01a18f98-8642-7e4f-ac4c-a82390cd6f58`, conta Loja de Homologação. Produto `01a18fa2-41cc-7ba2-80e3-d50cd26d9fa1`, preço2500; venda concluída `01a18fa2-ea9e-7643-ba60-f42284046228`, total2500, caixa `01a18fa2-78c2-78c5-802d-20a7514f7fd2`. Produto/venda/caixa chegaram por sync real: fila0 na tela e registros conferidos no PostgreSQL, sem semeadura direta.
+- A também mantém OUTRO rascunho de25 com parcela emdinheiro10 e saldo15; reaberto após reinício/reload. Ele não está concluído nem transferido paraB e não pode ser apresentado como venda recuperada da nuvem.
+- B/nova origem: `http://[::1]:8088/entrar`. O Metro com --localhost escuta::1; 127.0.0.1:8088 recusou a conexão e não foi usado. Origens têm armazenamento e identidade de instalação separados; mesmo servidor não significa mesmo aparelho lógico.
+- O usuário deve digitar o código recebido emB, tocarEntrar, iniciar Recuperar acesso neste aparelho após o limite, escolher o aparelho listado e confirmar a substituição. Conferir produto e venda concluída emB, caixa de origem como histórico e rascunho com10/15 ainda emA após401. Não concluir a parcela restante só para terminar o teste.
+- Conta, cartão e assinatura são fixtures locais; só o envio Resend é externo real. Não compartilhar OTP no chat. Recebimento/consentimento/substituição/restauração deste checkpoint continuam pendentes até observação; Android também pendente.
+- Testes locais acrescentados: SMTP TCP, PostgreSQL e tempo controlado verificam erro/5tentativas/limite10min/reuso, recusa550, ACK perdido/recriação deAPI e recuperação com OTP do protocolo.128casos dos cinco arquivos tiveram execuções aprovadas, gate fatiado por memória; tipos todosPASS. Nova revisão segura PASS local, sensor5/5. Isso não prova falha/retentativa reais do Resend nem reboot do sistema operacional.
 
 ## Pré-condições e registro
 
@@ -35,12 +44,12 @@ Roteiro preparado, **ainda não executado em Android ou serviço externo**. O co
 
 | Verificação | Estado | Evidência exigida |
 |---|---|---|
-| Entrega real de código | Pendente externo | Ambiente/provedor, destinatário autorizado, horários, resultado sem OTP |
-| Perfil e consentimento na instalação B | Pendente Android | Artefato/commit/aparelho e captura sem segredos |
+| Entrega real de código | Confirmada no login normal; pendente no checkpoint de recuperação | Resend/Gmail confirmado pelo usuário, código consumido e nova sessão às22:37:09; próximo OTP sem coleta no chat |
+| Perfil e consentimento na instalação B | Pendente UAT web e Android | Origens A/B preparadas acima; registrar consentimento sem segredos |
 | Uma substituição e revogação no servidor | Pendente homologação | IDs/horários/contagens, estado auditável do desafio, sem hashes/tokens |
-| Parcela e saldo preservados em A após reinício/401 | Pendente Android | Mesma venda, valores1000/1500 e registros locais |
+| Parcela e saldo preservados em A após reinício/401 | Reinício web antes da revogação confirmado; pós401 e Android pendentes | Rascunho25, valores1000/1500 reapareceram apósreload; comparar após substituirA |
 | Resposta perdida e retry | Pendente Android/rede | Mesma operação/alvo, uma sessão adicional, resultado observado |
 | Cofre, logs e backup do artefato final | Pendente Android | Inspeção sanitizada e roteiro de reinício/atualização |
-| Restauração de dados confirmados | Bloqueada por P0-02 | Push/ack/pull reais e comparação de dados, sem mocks |
+| Restauração de dados confirmados | Preparada; aguardaB | Produto/venda/caixa confirmados por sync na origem; comparar apósrecuperação, sem incluir rascunho não confirmado |
 
 Os testes automatizados locais e as revisões têm seus próprios relatórios em `.specs/`; não preencher esta tabela com base neles. Aprovação de acesso não encerra P0-03 global nem libera produção.

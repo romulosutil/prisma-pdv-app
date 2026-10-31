@@ -4,6 +4,8 @@ Data de referência: 28/10/2026.
 
 Status: implementação local em andamento sob Goal persistente. Checkpoints, decisões e retomada em .specs/STATE.md. Somente itens com evidências estão verificados; homologação externa e critérios globais permanecem pendentes. O projeto ainda não está pronto para produção.
 
+Atualização31/10/2026: fluxo local de candidato conectado à API aladdin, chave definitiva e incremento simples preparados em [build de produção](build-producao.md), sob autorização específica e sem publicação/push deste chat. A API e o CI foram publicados por outra frente; backup externo e restauração permanecem pendentes conforme relato do usuário. Nenhum critério de Android físico, atualização real, recuperação ou entrega externa de e-mail foi concluído por inspeção estática do APK.
+
 Seguimento Android autorizado em30/10/2026: preparar APK local/offline enquanto outra frente prepara a VPS; parar no checkpoint do celular. Recuperação local revisada em de8fc6f, sem alterar asserções ou runtime de autenticação. O UAT externo anterior não foi comprovado nesta retomada; API HTTPS indisponível. Ver [roteiro/evidências do APK](checkpoint-apk.md). Build e inspeção de pacote não concluem homologação física, publicação ou critérios globais.
 
 ## Objetivo e escopo

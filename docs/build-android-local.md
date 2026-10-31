@@ -2,6 +2,8 @@
 
 Procedimento validado em30–31/10/2026. Gera APK de homologação sem EAS, publicação ou Metro em execução. O roteiro de uso do APK está em [checkpoint-apk.md](checkpoint-apk.md).
 
+Para o aplicativo conectado com chave definitiva e incremento simples de versões, usar [build de produção](build-producao.md). Este documento continua sendo o fluxo de PDV Teste. Os dois runners compartilham a trava Android; a alternância segura de caches está explicada no guia de produção.
+
 ## Ferramentas validadas
 
 | Ferramenta | Versão/local |

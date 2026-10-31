@@ -54,3 +54,13 @@ Gerar o aplicativo com EXPO_PUBLIC_API_URL no endereço HTTPS da API e ferrament
 Estado de implantação, CI, backup e smoke externo será registrado após execução. A existência deste roteiro não comprova essas etapas.
 
 Preparação local revisada em30/10/2026: parecer independente PASS para AC1–10, sensor7/7 e relatório em `.specs/features/easypanel-sem-cobranca/validation.md`. Usuário confirmou login HTTPS e autorizou transferir somente a credencial SMTP e chaves de cifra locais para pdv-api e conectar o banco exclusivo. Ambiente foi salvo por HTTPS, com billingdisabled e JOBSon, sem exposição dos valores. Segredo EASYPANEL_DEPLOY_URL foi gravado no GitHub Actions e o arquivo temporário de transferência removido. Isso ainda não comprova implantação ativa nem novo envio Resend.
+
+### Implantação confirmada
+
+O [primeiro CI e deploy](https://github.com/romulosutil/prisma-pdv-app/actions/runs/41161659608) passou no SHA bc786bc86abac934754ee1dd35d8524f9c04c9c1. A fonte definitiva no EasyPanel é codex/pdv-deploy e o auto deploy nativo permanece desligado; o webhook é chamado somente pelo CI após os gates.
+
+A [saúde pública da API](https://aladdin-pdv-api.jicnzg.easypanel.host/saude) respondeu200/{status:ok}; sem sessão, /assinatura respondeu401, e as duas rotas /dev verificadas responderam404. Runtime da VPS comprovou production, billingdisabled, JOBSon e uid1000. O hash do arquivo de configuração confere com o Git publicado. A conexão TLS e a autenticação SMTP da VPS passaram sem envio de mensagem. Um reinício incidental da nova API durante diagnóstico foi recuperado e a saúde pública conferida novamente.
+
+Backup diário local habilitado com retenção de sete cópias, banco pdv e prefixo aladdin/pdv-postgres. A primeira execução manual gerou aladdin/pdv-postgres/2026-10-31T02:57:04.835Z.sql.gz. O único destino disponível no painel era LocalDisk: cópia fora da VPS e teste de restauração permanecem pendentes. Recebimento real de OTP nesta VPS e validação do APK também não são inferidos desses checks.
+
+O APK deve usar `EXPO_PUBLIC_API_URL=https://aladdin-pdv-api.jicnzg.easypanel.host`, sem ferramentas de teste nem segredos. O cadastro receberá o acesso liberado por esse servidor; o domínio não hospeda a interface Android.

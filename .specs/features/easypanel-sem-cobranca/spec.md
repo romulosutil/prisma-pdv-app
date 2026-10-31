@@ -6,9 +6,9 @@ O usuário autorizou publicar no projeto aladdin existente para uso real do PDV 
 
 ## Goals
 
-- [ ] API de produção com acesso liberado, autenticação SMTP real e persistência PostgreSQL.
-- [ ] Fluxo mobile sem cartão ou mensalidade para contas liberadas.
-- [ ] Imagem e CI com deploy da main somente após os gates.
+- [x] API de produção com acesso liberado, autenticação SMTP real e persistência PostgreSQL.
+- [x] Fluxo mobile sem cartão ou mensalidade para contas liberadas.
+- [x] Imagem e CI com deploy da main somente após os gates.
 
 ## Out of Scope
 
@@ -75,8 +75,8 @@ Open questions: none para implementação; segredos de infraestrutura serão ins
 | FREE-01 | AC1–6: API/domínio | Execute | Verified localmente |
 | FREE-02 | AC7–8: mobile | Execute | Verified localmente |
 | DEPLOY-01 | AC9: imagem | Execute | Verified localmente |
-| DEPLOY-02 | AC10: CI | Execute | Implementado; execução remota pendente |
-| DEPLOY-03 | AC11: VPS | Execute | Pending |
+| DEPLOY-02 | AC10: CI | Execute | Verified remoto |
+| DEPLOY-03 | AC11: VPS | Execute | Verified VPS |
 
 ## Execution Plan
 
@@ -107,6 +107,17 @@ Adequação: assertions derivam dos ACs; nenhuma alteração em testes existente
 
 ## Success Criteria
 
-- [ ] Gates locais e revisão independente aprovados.
-- [ ] CI remoto aprovado e serviço HTTPS saudável com banco persistente.
-- [ ] Evidências e pendências registradas, sem alegar funcionalidades externas não testadas.
+- [x] Gates locais e revisão independente aprovados.
+- [x] CI remoto aprovado e serviço HTTPS saudável com banco persistente.
+- [x] Evidências e pendências registradas, sem alegar funcionalidades externas não testadas.
+
+## Entrega operacional
+
+- Primeiro CI remoto: [41161659608](https://github.com/romulosutil/prisma-pdv-app/actions/runs/41161659608), success no commitbc786bc86abac934754ee1dd35d8524f9c04c9c1; main e codex/pdv-deploy coincidentes. Tipos, testes, imagem, isolamento, promoção e webhook concluídos pelo workflow, sem deploy manual.
+- API em https://aladdin-pdv-api.jicnzg.easypanel.host/saude:200/{status:ok}; /assinatura sem sessão401; ambosPOST/dev404. Verifier repetiu essas verificações e conferiu CI/refs, atualizando validation.md para PASS AC10/11.
+- Runtime comprovado no console do próprio container: Node24.22.2, uid1000, NODE_ENVproduction, billingdisabled, JOBSon. SHA256 de configuracao.ts366647cc8acfa1d2d670701dc3bd94068afad17316fea3cdf07d47839dbaac5d coincide com o blobGit publicado. SMTP_TLS=true e nodemailer.verify SMTP_AUTH=true na VPS; não foi enviado e-mail nem lido OTP.
+- Banco pdv no serviço privado pdv-postgres, PostgreSQL17alpine com persistência gerenciada pelo EasyPanel, porta externa0. Serviços preexistentes continuam verdes na evidência visual e não receberam alterações.
+- Backup diário habilitado, retenção7, banco pdv, LocalDisk, path aladdin/pdv-postgres. Execução implantacao-inicial-pdv concluída em1s, resultado aladdin/pdv-postgres/2026-10-31T02:57:04.835Z.sql.gz. Restauração e cópia externa não testadas/configuradas; o painel só oferecia LocalDisk.
+- Houve um reinício incidental somente de pdv-api ao abrir console durante mudança de tela. Não houve alteração no banco; saúdeHTTPS200 conferida após recuperação. Interações seguintes usaram estado atualizado antes de selecionar controles.
+- Evidências visuais locais em C:/Users/Ronal/.codex/visualizations/2026/10/31/01a18faf-50cd-7f22-9e49-be640beb0122/: easypanel-pdv-publicado.jpg, easypanel-pdv-runtime.jpg, easypanel-pdv-smtp.jpg e easypanel-pdv-backup.jpg. Segredos nunca aparecem nessas evidências ou no repositório.
+- Containers/rede/bancos locais criados para esta validação foram encerrados/removidos por IDs conferidos; fixtures de smoke ignoradas também removidas. Demais containers e alterações paralelas foram preservados. Esta entrega não gera nem homologa APK, recebimento de OTP nesta VPS ou backup externo/restauração.

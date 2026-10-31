@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 from urllib.parse import urlsplit
+import perfil_nativo
 
 MOBILE = Path(__file__).resolve().parents[1]
 ROOT = MOBILE.parents[1]
@@ -102,7 +103,7 @@ def prebuild(env):
             raise RuntimeError('Alteração inesperada em package.json durante prebuild.')
 
 
-def main():
+def _main():
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--offline', action='store_true')
@@ -163,6 +164,11 @@ def main():
                 'sourceFingerprintsSha256': fingerprints, 'architecture': 'arm64-v8a'}
     destination.with_suffix('.json').write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     print(f'APK arm64-v8a: {destination}\nSHA256: {metadata["sha256"]}')
+
+
+def main():
+    with perfil_nativo.build_lock(ROOT):
+        _main()
 
 
 if __name__ == '__main__':

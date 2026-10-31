@@ -50,4 +50,4 @@ Play Store, OTA, automação de publicação, mudanças na VPS ou dados reais, m
 
 ## Estado
 
-Configuração e versionamento implementados: 8 testes de configuração e tipos de todos os workspaces passaram. Runner8, assinatura6 e regressão do script de teste4 passaram em execuções sequenciais. Chave real gerada fora do repositório e reutilizada com certificado5946ef5ffcb70cd44540b440ff5525cf4ef2bc4bd54808b96581b9514d9aef99; ACL verificada. Saúde HTTPS200/statusok, sem mutações. Build candidato em andamento; não homologado.
+Configuração, versionamento, assinatura e runner implementados: 8 testes de configuração e tipos de todos os workspaces passaram. Runner9, assinatura7 e regressão do script de teste4 passaram em execuções sequenciais. Chave real gerada fora do repositório e reutilizada com certificado5946ef5ffcb70cd44540b440ff5525cf4ef2bc4bd54808b96581b9514d9aef99; ACL verificada e certificado público fixado em signing-public.json. Saúde HTTPS200/statusok, sem mutações. Candidato1.0.0/code7 compilado com fonte estabilizada em1m18s e inspecionado; revisão independente final e testes físicos pendentes. Não homologado para produção.

@@ -7,6 +7,11 @@ builds/
 apps/mobile/android/
 apps/mobile/ios/
 __pycache__/
+*.p12
+*.jks
+*.keystore
+apps/mobile/.release-version.lock
+apps/mobile/.release-*.tmp
 !.env.example
 .DS_Store
 Thumbs.db

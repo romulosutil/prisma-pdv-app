@@ -7,6 +7,7 @@ export * from './cupons';
 export * from './datas';
 export * from './dinheiro';
 export * from './ean';
+export * from './estoque';
 export * from './ids';
 export * from './licenca';
 export * from './planos';

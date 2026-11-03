@@ -18,6 +18,14 @@ export const ProvedorPagamentoSchema = z.enum(['infinitepay', 'mercadopago']);
 
 // ---------- Catálogo ----------
 
+export const AjusteEstoqueSchema = z.object({
+  id: IdSchema,
+  quantidadeMilesimos: z.number().int().refine(n => n !== 0, 'Informe uma diferença de estoque.'),
+  criadoEm: DataIsoSchema,
+  motivo: z.string().trim().min(1).max(200),
+});
+export type AjusteEstoque = z.infer<typeof AjusteEstoqueSchema>;
+
 export const ProdutoSchema = z.object({
   id: IdSchema,
   lojaId: IdSchema,
@@ -28,6 +36,9 @@ export const ProdutoSchema = z.object({
   /** Em milésimos da unidade, a mesma escala de `quantidadeMilesimos` dos itens de venda. */
   estoque: z.number().int().nullable(),
   estoqueMinimo: z.number().int().nullable(),
+  /** Saldo inicial permanece em estoque; correções são eventos imutáveis, nunca saldo projetado. */
+  ajustesEstoque: z.array(AjusteEstoqueSchema).refine(a => new Set(a.map(x => x.id)).size === a.length, 'Ajustes duplicados.').optional(),
+  estoqueAtivo: z.boolean().optional(),
   atalho: z.boolean(),
   criadoEm: DataIsoSchema,
   atualizadoEm: DataIsoSchema,
@@ -66,6 +77,8 @@ export const ItemVendaSchema = z.object({
   precoUnitarioCentavos: CentavosNaoNegativosSchema,
   quantidadeMilesimos: z.number().int().positive(),
   totalCentavos: CentavosNaoNegativosSchema,
+  /** Capturado ao concluir. Ausente no histórico anterior ao controle por movimentos. */
+  controlaEstoque: z.boolean().optional(),
 });
 export type ItemVenda = z.infer<typeof ItemVendaSchema>;
 

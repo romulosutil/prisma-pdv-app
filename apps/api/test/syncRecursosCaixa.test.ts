@@ -20,7 +20,7 @@ async function snapshot() {
   return Promise.all([produtos, caixas, movimentosCaixa, mudancas, mutacoesAplicadas, sessoes, aparelhos].map(async t => (await amb.db.select().from(t)).map(row => JSON.stringify(row)).sort()));
 }
 async function conferirProduto(p: Produto, m: Mutacao, conta: { lojaId: string; aparelhoId: string }) {
-  expect(await amb.db.select().from(produtos).where(eq(produtos.id, p.id))).toEqual([{ ...p, criadoEm: INICIO, atualizadoEm: INICIO, versao: 1 }]);
+  expect(await amb.db.select().from(produtos).where(eq(produtos.id, p.id))).toEqual([{ ...p, ajustesEstoque: null, estoqueAtivo: null, criadoEm: INICIO, atualizadoEm: INICIO, versao: 1 }]);
   expect(await amb.db.select().from(mudancas).where(eq(mudancas.entidadeId, p.id))).toEqual([expect.objectContaining({ lojaId: conta.lojaId, entidade: 'produto', entidadeId: p.id, criadoEm: INICIO })]);
   expect(await amb.db.select().from(mutacoesAplicadas).where(eq(mutacoesAplicadas.id, m.id))).toEqual([{ id: m.id, lojaId: conta.lojaId, aparelhoId: conta.aparelhoId, criadoEm: INICIO }]);
 }

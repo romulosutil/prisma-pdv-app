@@ -64,6 +64,13 @@
       "when": 1793672864055,
       "tag": "0008_lyrical_blindfold",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793674412300,
+      "tag": "0009_vengeful_champions",
+      "breakpoints": true
     }
   ]
 }

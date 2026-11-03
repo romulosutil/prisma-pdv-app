@@ -258,8 +258,8 @@ P1 não significa que todos os itens podem esperar após o lançamento. Oferta v
 
 **Tarefas**
 
-- [ ] **P1-09-A:** modelar movimentos de estoque com origem e idempotência; implementar baixa na venda, reversão por cancelamento e ajustes/entradas com histórico.
-- [ ] **P1-09-B:** definir estoque negativo e venda concorrente offline; sincronizar movimentos em vez de sobrescrever saldo absoluto entre aparelhos.
+- [x] **P1-09-A — implementação local:** estoque derivado da base, ajustes imutáveis e itens marcados no commit da venda; cancelamento repõe uma vez e o produto mostra histórico. Sem baixa retroativa nas vendas anteriores à atualização. Ver [operação de estoque](estoque.md) e `.specs/features/estoque-movimentos/`; homologação Android segue pendente.
+- [x] **P1-09-B — implementação local:** usuário escolheu permitir saldo negativo com aviso. API une ajustes e o app projeta movimentos de vendas confirmadas localmente; testes com dois SQLite/HTTP/PostgreSQL verificam convergência e resposta perdida. Critérios físicos permanecem pendentes.
 - [ ] **P1-09-C:** implementar operadores, permissões e seleção/escopo de caixa quando esses recursos forem ofertados; testar abertura/fechamento simultâneos.
 
 **Critérios de aceite**

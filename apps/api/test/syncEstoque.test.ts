@@ -137,4 +137,24 @@ describe('sync do estoque', () => {
     expect(recebido.ajustesEstoque?.map(a => a.id).sort()).toEqual([a.id, b.id].sort());
     expect(saldoEstoque(recebido, [])).toBe(13000);
   });
+  it('recusa estouro do saldo composto antes de persistir ajuste, venda ou cancelamento', async () => {
+    const c = await contaEmTeste(amb);
+    const p = produto(c.lojaId, { estoque: Number.MAX_SAFE_INTEGER, ajustesEstoque: [] });
+    await enviar(amb, c, [mutacao('produto', p)]);
+    const excesso = mutacao('produto', { ...p, ajustesEstoque: [ajuste(1)] });
+    expect((await enviar(amb, c, [excesso])).corpo.rejeitadas).toEqual([{ id: excesso.id, motivo: 'estoque_fora_do_limite' }]);
+    const v = vender(c, p, 1000); await enviar(amb, c, [mutacao('venda', v)]);
+    // A baixa libera capacidade; este ajuste cabe no saldo composto, apesar de base+ajuste exceder o limite.
+    const a = ajuste(1000);
+    expect((await enviar(amb, c, [mutacao('produto', { ...p, ajustesEstoque: [a] })])).corpo.rejeitadas).toEqual([]);
+    const cancelar = mutacao('venda', { ...v, status: 'cancelada' });
+    expect((await enviar(amb, c, [cancelar])).corpo.rejeitadas).toEqual([{ id: cancelar.id, motivo: 'estoque_fora_do_limite' }]);
+    const negativo = produto(c.lojaId, { estoque: -Number.MAX_SAFE_INTEGER, ajustesEstoque: [] });
+    await enviar(amb, c, [mutacao('produto', negativo)]);
+    const mv = mutacao('venda', vender(c, negativo));
+    const antes = await amb.db.select().from(itensVenda);
+    expect((await enviar(amb, c, [mv])).corpo.rejeitadas).toEqual([{ id: mv.id, motivo: 'estoque_fora_do_limite' }]);
+    expect(await amb.db.select().from(itensVenda)).toEqual(antes);
+    expect(((await ler(c)).find(m => m.dados.id === v.id)!.dados as Venda).status).toBe('concluida');
+  });
 });

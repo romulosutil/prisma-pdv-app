@@ -92,6 +92,19 @@ describe.each(['sqlite', 'navegador'] as const)('estoque em %s', tipo => {
       expect(d.produtos.obter()[0]!.ajustesEstoque).toMatchObject([{ quantidadeMilesimos: 4000 }]);
     } finally { raw?.close(); }
   });
+  it('rejeita saldo composto fora do limite sem confirmar a venda nem perder a parcela', async () => {
+    const raw = tipo === 'sqlite' ? new DatabaseSync(':memory:') : undefined;
+    try {
+      const d = await preparar(new ArmazenamentoMemoria(), raw);
+      const p = await d.produtos.criar({ nome: 'Arroz', precoCentavos: 1000, estoque: -Number.MAX_SAFE_INTEGER });
+      await d.carrinho.adicionarProduto(p, 2000);
+      await d.carrinho.adicionarParcela({ meio: 'dinheiro', valorCentavos: 2000 });
+      await expect(d.carrinho.concluir()).rejects.toThrow('Saldo de estoque fora');
+      expect(d.vendas.obter().vendas).toEqual([]);
+      expect(d.carrinho.obter().parcelas).toHaveLength(1);
+      expect(d.produtos.buscarPorId(p.id)!.estoque).toBe(-Number.MAX_SAFE_INTEGER);
+    } finally { raw?.close(); }
+  });
 });
 
 it('falha no commit SQLite preserva parcela e saldo; reabre arquivo e conclui uma única vez', async () => {

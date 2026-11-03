@@ -65,3 +65,22 @@ PASS: 30/30 alvos (interface estoque, persistência, lógica produtos, interface
 O teste adicional em estoquePersistencia.test.ts para cada adapter comprova10 +4 −2 =12 quando a venda ocorre durante preenchimento. Esse caso foi explicitado na spec e o argumento estoqueObservado fica somente no domínio local, fora do DTO público.
 
 QA visual via CUA emdemo local8094 sem API:375×812 e812×375, sem overflow horizontal; saldo inicial1, venda2 manual concluída, saldo−1 após reload; cancelamento retornou1 e histórico mostrou−2/+2. Capturas ignoradas em builds/estoque-checkout.png e estoque-historico.png. Campos, botões e histórico respeitaram rolagem/rodapé. Sem câmera, Android físico, leitor de tela ou maior fonte do sistema nesta rodada; UI mantém componentes existentes, sem animação nova. Nenhuma operação na VPS.
+
+## T5
+
+PASS: regressão completa em série, um worker por suíte: shared174/15arquivos, API565/38arquivos no PostgreSQL17 dedicado, mobile526/57arquivos com PostgreSQL nos testes integrados. Total1265, sem falha ou skip nessa execução. Logs ignorados em builds/estoque-{shared,api,mobile}-final.log. Tipos de todos os workspaces e git diff--check PASS. API estoque9/9 também aprovada em PGlite após conteúdo final. A suíte inclui as alterações preexistentes de cupomTela, preservadas e fora dos commits desta feature.
+
+Primeira regressãoAPI teve8falhas exclusivamente nos snapshots integrais por novas colunas nullable. Foram ampliados com os valoresNULL, sem retirar campos/comparações: syncPagamentosManuais, syncRecursosCaixa, syncSessao e syncValoresVenda;47/47alvos passaram e a regressão completa final foi repetida. Nenhum teste antigo removido, enfraquecido ou desativado.
+
+| Critério | Assertiva | Resultado | Reverso / necessidade |
+| --- | --- | --- | --- |
+| AC4 | apps/mobile/test/estoqueSync.test.ts:70 `.toEqual([5000,5000])`, :76 `.toEqual([7000,7000])` | duas vendas offline e cancelamento remoto | convergência |
+| AC2/6 | estoqueSync.test.ts:67 `.toBe('offline')`, :68 `.toBe(8000)`, :71 `.toHaveLength(2)` | resposta perdida preserva baixa única | idempotência HTTP |
+| Recuperação | estoqueSync.test.ts:78 `.toBe(7000)`, :80 `.toEqual([-3000,-2000,2000,10000])`, :81 `.toEqual([])` | instalação limpa recupera saldo/histórico sem eco | restauração |
+| AC5 | estoqueSync.test.ts:94 `.toEqual([11000,11000])`, :96 `.toEqual([-1000,4000])`, :100 `.toBe(0)` | correções offline somam uma vez | concorrência |
+| Precisão | apps/api/test/syncEstoque.test.ts:145–161 rejeições exatas e itens inalterados | ajuste/venda/cancelamento acima do limite recusados antes da escrita | limite composto |
+| Precisão local | apps/mobile/test/estoquePersistencia.test.ts:102 `.rejects.toThrow('Saldo de estoque fora')`, :103 `.toEqual([])`, :104 `.toHaveLength(1)` | parcela permanece recuperável no SQLite e browser | sem commit ilegível |
+
+Na revisão do cálculo foi acrescentada a conferência de saldo composto antes de gravar, com consulta por loja/produto e índice aditivo0009. Validação local só considera produtos afetados. Os testes extremos incluem base+ajuste acima do limite que cabe após uma baixa, evitando uma guarda incorreta baseada só na base. Fixtures de autenticação integradas avançam60s entre emissões, respeitando o rate limit existente.
+
+Adequação: todos os novos testes mapeiam aos ACs/arestas documentadas; estados e quantidades são verificados, além do protocolo. Guias e plano registram implementação local e dependência de atualizar API antes do app. Homologação Android e distribuição permanecem fora desta entrega. Revisão independente e sensores seguem no relatório validation.md.

@@ -68,7 +68,7 @@ T1 → T2 → T3 → T4 → T5
 **Tests**: integration, EST-05; HTTP/SQLite em duas instalações, resposta perdida, ajustes concorrentes e restauração.
 **Gate**: build
 **Done when**: provas integradas e regressão aprovadas, documentação e STATE atualizados.
-**Status**: pendente.
+**Status**: concluída; 1265/1265 regressão, 9/9 API estoque PGlite, tipos e diff PASS. Aguarda somente Verifier independente.
 
 ## Diagram-Definition Cross-Check
 

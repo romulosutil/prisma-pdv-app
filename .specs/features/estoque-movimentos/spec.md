@@ -57,6 +57,7 @@ Como lojista, quero que o estoque acompanhe recebimentos, cancelamentos e corre�
 ## Edge Cases
 
 - IF IDs de ajustes se repetem com conteúdo divergente THEN o sistema SHALL recusar a entrada; ajuste zero e quantidade insegura SHALL ser inválidos.
+- IF o saldo composto ultrapassa os inteiros seguros em milésimos THEN o sistema SHALL recusar o ajuste, conclusão ou cancelamento antes de persistir, mantendo a venda/parcela recuperável.
 - WHEN o produto está excluído ou o controle mudou depois da venda THEN o sistema SHALL conservar o marcador imutável do item já registrado.
 - WHEN um formulário antigo salva apenas metadados após outra venda THEN o sistema SHALL preservar essa baixa; estoque intocado não gera ajuste.
 - WHEN o formulário abre com saldo10, o usuário corrige para14 e ocorre venda2 antes de salvar THEN o sistema SHALL registrar ajuste+4 e apresentar12, preservando a baixa concorrente.
@@ -70,7 +71,7 @@ Como lojista, quero que o estoque acompanhe recebimentos, cancelamentos e corre�
 | EST-02 | AC4–5,9,11 | T2 | Verified |
 | EST-03 | AC1–3,6,8 e formulário antigo | T3 | Verified |
 | EST-04 | AC7,10 | T4 | Verified |
-| EST-05 | AC4–6 e retomada | T5 | Pending |
+| EST-05 | AC4–6 e retomada | T5 | Verified |
 
 ## Success Criteria
 

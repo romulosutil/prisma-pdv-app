@@ -1,0 +1,1 @@
+CREATE INDEX "itens_venda_estoque_idx" ON "itens_venda" USING btree ("loja_id","produto_id");

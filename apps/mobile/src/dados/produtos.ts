@@ -148,6 +148,7 @@ export class ProdutosRepo extends Persistido<Produto[]> {
       atualizadoEm: agora,
       versao: atual.versao + 1,
       };
+      saldoContabilEstoque(editado, this.contexto.vendas?.() ?? []);
       return lista.map((p) => (p.id === id ? editado : p));
     });
     registrar('produto', 'produto editado', { ean: editado.ean, campos: Object.keys(mudancas) });

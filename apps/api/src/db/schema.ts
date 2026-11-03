@@ -213,7 +213,7 @@ export const itensVenda = pgTable('itens_venda', {
   controlaEstoque: boolean('controla_estoque'),
   totalCentavos: inteiro('total_centavos').notNull(),
   criadoEm: criadoEm(),
-});
+}, (t) => [index('itens_venda_estoque_idx').on(t.lojaId, t.produtoId)]);
 
 export const pagamentosVenda = pgTable('pagamentos_venda', {
   id: uuid('id').primaryKey(),

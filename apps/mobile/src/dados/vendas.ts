@@ -1,4 +1,4 @@
-import { controlaEstoque, multiplicarPreco, pagamentoManualDisponivel, somar, type Centavos, type Produto, type Venda } from '@pdv/shared';
+import { controlaEstoque, multiplicarPreco, pagamentoManualDisponivel, saldoContabilEstoque, somar, type Centavos, type Produto, type Venda } from '@pdv/shared';
 import { registrar } from '@/diagnostico/registro';
 import { inicioDoDia } from '@/util/tempo';
 import type { Ambiente } from './ambiente';
@@ -117,7 +117,12 @@ export class VendasRepo extends Persistido<EstadoVendas> {
       criadaEm: criadaEm ?? this.amb.relogio.agora().toISOString(),
       caixaId: nova.caixaId !== undefined ? nova.caixaId : this.contexto.caixaId?.() ?? null,
     };
-    await this.modificar((atual) => ({ ...atual, vendas: [...atual.vendas, venda] }));
+    await this.modificar((atual) => {
+      const vendas = [...atual.vendas, venda];
+      const afetados = new Set(venda.itens.filter(i => i.controlaEstoque).map(i => i.produtoId));
+      for (const p of this.contexto.produtos?.() ?? []) if (afetados.has(p.id)) saldoContabilEstoque(p, vendas);
+      return { ...atual, vendas };
+    });
     registrar('venda', 'venda registrada', {
       totalCentavos,
       itens: venda.itens.length,
@@ -133,7 +138,10 @@ export class VendasRepo extends Persistido<EstadoVendas> {
       if (!venda) throw new ErroDeDominio('venda_inexistente', 'Venda não encontrada.');
       if (venda.status === 'cancelada') { resultado = venda; return atual; }
       resultado = { ...venda, status: 'cancelada', cancelamento: { id: this.amb.novoId(), em: this.amb.relogio.agora().toISOString(), operadorId: this.contexto.sessao().operadorId, motivo, estorno: 'nao_realizado' } };
-      return { ...atual, vendas: atual.vendas.map((v) => v.id === id ? resultado! : v) };
+      const vendas = atual.vendas.map((v) => v.id === id ? resultado! : v);
+      const afetados = new Set(venda.itens.filter(i => i.controlaEstoque).map(i => i.produtoId));
+      for (const p of this.contexto.produtos?.() ?? []) if (afetados.has(p.id)) saldoContabilEstoque(p, vendas);
+      return { ...atual, vendas };
     });
     return resultado!;
   }

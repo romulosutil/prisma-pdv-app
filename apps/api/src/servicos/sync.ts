@@ -86,6 +86,15 @@ async function posicaoAtual(db: Db, lojaId: string): Promise<number> {
 
 // ---------- Produto ----------
 
+async function saldoEstoqueSeguro(c: Contexto, p: { id: string; estoque: number | null; ajustesEstoque?: AjusteEstoque[] | null }, diferenca = 0n): Promise<boolean> {
+  if (p.estoque === null) return true;
+  const [linha] = await c.tx.select({ baixado: sql<string>`coalesce(sum(${itensVenda.quantidadeMilesimos}), 0)::text` })
+    .from(itensVenda).innerJoin(vendas, eq(itensVenda.vendaId, vendas.id))
+    .where(and(eq(itensVenda.lojaId, c.sessao.lojaId), eq(itensVenda.produtoId, p.id), eq(itensVenda.controlaEstoque, true), eq(vendas.status, 'concluida')));
+  const saldo = BigInt(p.estoque) + (p.ajustesEstoque ?? []).reduce((s, a) => s + BigInt(a.quantidadeMilesimos), 0n) - BigInt(linha?.baixado ?? '0') + diferenca;
+  return saldo >= -BigInt(Number.MAX_SAFE_INTEGER) && saldo <= BigInt(Number.MAX_SAFE_INTEGER);
+}
+
 async function upsertProduto(c: Contexto, p: Produto): Promise<Resultado> {
   if (p.lojaId !== c.sessao.lojaId) return 'loja_invalida';
   const [atual] = await c.tx.select().from(produtos).where(eq(produtos.id, p.id));
@@ -109,6 +118,7 @@ async function upsertProduto(c: Contexto, p: Produto): Promise<Resultado> {
   if (!podeUsar(c.licenca.planoId, 'estoque') && (novosAjustes || (!velho && (
     p.estoque !== (atual?.estoque ?? null) || p.estoqueMinimo !== (atual?.estoqueMinimo ?? null) ||
     (estoqueAtivo ?? true) !== (atual?.estoqueAtivo ?? true))))) return 'recurso_plano';
+  if (!await saldoEstoqueSeguro(c, { id: p.id, estoque: velho ? atual.estoque : p.estoque, ajustesEstoque: ajustes })) return 'estoque_fora_do_limite';
   if (velho) {
     await c.tx.update(produtos).set({ ajustesEstoque: ajustes, versao: atual.versao + 1 }).where(eq(produtos.id, p.id));
     await registrarMudanca(c, 'produto', p.id);
@@ -178,6 +188,11 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
     if (v.cancelamento && v.cancelamento.operadorId !== c.sessao.operadorId) return 'origem_invalida';
     if (v.cancelamento && !eventoValido(v.cancelamento, atual.criadoEm, c.agora)) return 'cancelamento_invalido';
     const cancelamento = v.cancelamento ?? { id: randomUUID(), em: c.agora.toISOString(), operadorId: c.sessao.operadorId, motivo: 'Cancelamento solicitado pelo operador', estorno: 'nao_realizado' as const };
+    const reposicoes = new Map<string, bigint>();
+    for (const i of salva.dados.itens) if (i.controlaEstoque && i.produtoId) reposicoes.set(i.produtoId, (reposicoes.get(i.produtoId) ?? 0n) + BigInt(i.quantidadeMilesimos));
+    if (reposicoes.size) for (const p of await c.tx.select().from(produtos).where(inArray(produtos.id, [...reposicoes.keys()]))) {
+      if (!await saldoEstoqueSeguro(c, p, reposicoes.get(p.id)!)) return 'estoque_fora_do_limite';
+    }
     await c.tx
       .update(vendas)
       .set({ status: 'cancelada', cancelamento, atualizadoEm: c.agora, versao: atual.versao + 1 })
@@ -210,6 +225,11 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
   for (const i of v.itens) {
     const p = i.produtoId ? porProduto.get(i.produtoId) : undefined;
     if (i.controlaEstoque === true && (!p || p.estoque === null)) return 'produto_estoque_invalido';
+  }
+  if (v.status === 'concluida') for (const p of produtosDaVenda) {
+    const baixa = v.itens.filter(i => i.produtoId === p.id && (i.controlaEstoque ?? controlaEstoque({ estoque: p.estoque, estoqueAtivo: p.estoqueAtivo ?? undefined })))
+      .reduce((s, i) => s + BigInt(i.quantidadeMilesimos), 0n);
+    if (baixa && !await saldoEstoqueSeguro(c, p, -baixa)) return 'estoque_fora_do_limite';
   }
   await c.tx.insert(vendas).values({
     id: v.id,

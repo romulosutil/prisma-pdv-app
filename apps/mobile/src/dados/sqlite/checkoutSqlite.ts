@@ -1,4 +1,4 @@
-import { MeioPagamentoSchema, MutacaoSchema, ProvedorPagamentoSchema, VendaSchema, controlaEstoque, multiplicarPreco, pagamentoManualDisponivel, somar, type Produto, type Venda } from '@pdv/shared';
+import { MeioPagamentoSchema, MutacaoSchema, ProvedorPagamentoSchema, VendaSchema, controlaEstoque, multiplicarPreco, pagamentoManualDisponivel, saldoContabilEstoque, somar, type Produto, type Venda } from '@pdv/shared';
 import { IdentidadeLocalSchema } from '../estadoConta';
 import { z } from 'zod';
 import type { PersistenciaCheckout, RegistroCheckout } from '../checkoutTipos';
@@ -130,6 +130,8 @@ export class CheckoutSqlite implements PersistenciaCheckout {
         itens: itens.map((i) => ({ id: this.novoId(), produtoId: i.produtoId, descricao: i.descricao, precoUnitarioCentavos: i.precoUnitarioCentavos, quantidadeMilesimos: i.quantidadeMilesimos, totalCentavos: multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos),
           controlaEstoque: produtos.some(p => p.id === i.produtoId && controlaEstoque(p)) })),
         pagamentos: parcelas.map((parcela) => ({ id: this.novoId(), meio: parcela.meio, provedor: parcela.provedor ?? null, valorCentavos: parcela.valorCentavos, trocoCentavos: parcela.trocoCentavos ?? 0 })), totalCentavos, status: 'concluida', criadaEm: registro.criadaEm, caixaId: registro.caixaId });
+      const afetados = new Set(venda.itens.filter(i => i.controlaEstoque).map(i => i.produtoId));
+      for (const produto of produtos) if (afetados.has(produto.id)) saldoContabilEstoque(produto, [...estadoVendas.vendas, venda]);
       const mutacao = MutacaoSchema.parse({ id: this.novoId(), criadaEm: registro.criadaEm, entidade: 'venda', operacao: 'upsert', dados: venda });
       await tx.runAsync('INSERT INTO vendas VALUES (?, ?, ?, ?, ?)', p.contaId, p.lojaId, venda.id, registro.caixaId, JSON.stringify(venda));
       for (const [tabela, filhos] of [['itens_venda', venda.itens], ['pagamentos_venda', venda.pagamentos]] as const) {

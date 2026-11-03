@@ -68,7 +68,7 @@ T1 → T2 → T3 → T4 → T5
 **Tests**: integration, EST-05; HTTP/SQLite em duas instalações, resposta perdida, ajustes concorrentes e restauração.
 **Gate**: build
 **Done when**: provas integradas e regressão aprovadas, documentação e STATE atualizados.
-**Status**: concluída; 1265/1265 regressão, 9/9 API estoque PGlite, tipos e diff PASS. Aguarda somente Verifier independente.
+**Status**: concluída; 1265/1265 regressão, 9/9 API estoque PGlite, tipos e diff PASS. Verifier independente PASS: 11/11ACs, regressão1265 repetida e7/7sensores mortos em memória; validate_state0.
 
 ## Diagram-Definition Cross-Check
 

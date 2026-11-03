@@ -15,6 +15,8 @@ export interface NovoProduto {
   estoque?: number | null;
   estoqueMinimo?: number | null;
   motivoEstoque?: string;
+  /** Saldo exibido ao abrir a edição, para não absorver vendas ocorridas durante o preenchimento. */
+  estoqueObservado?: number | null;
   atalho?: boolean;
 }
 
@@ -126,7 +128,7 @@ export class ProdutosRepo extends Persistido<Produto[]> {
         } else if (estoque === null) {
           estoque = mudancas.estoque; estoqueAtivo = true; ajustes = [];
         } else {
-          const diferenca = mudancas.estoque - saldoContabilEstoque(atual, this.contexto.vendas?.() ?? [])!;
+          const diferenca = mudancas.estoque - (mudancas.estoqueObservado ?? saldoContabilEstoque(atual, this.contexto.vendas?.() ?? [])!);
           if (!Number.isSafeInteger(diferenca)) throw new ErroDeDominio('valor_invalido', 'Ajuste de estoque fora do limite permitido.');
           estoqueAtivo = true;
           ajustes = [...(ajustes ?? []), ...(diferenca ? [{ id: this.amb.novoId(), quantidadeMilesimos: diferenca, criadoEm: agora, motivo: mudancas.motivoEstoque?.trim() || 'Ajuste manual do saldo' }] : [])];
@@ -167,7 +169,7 @@ export class ProdutosRepo extends Persistido<Produto[]> {
   }
 
   private validar(dados: Partial<NovoProduto>, idAtual?: string): void {
-    for (const campo of ['estoque', 'estoqueMinimo'] as const) if (dados[campo] != null && !Number.isSafeInteger(dados[campo])) {
+    for (const campo of ['estoque', 'estoqueMinimo', 'estoqueObservado'] as const) if (dados[campo] != null && !Number.isSafeInteger(dados[campo])) {
       throw new ErroDeDominio('valor_invalido', 'Informe uma quantidade de estoque válida.');
     }
     if (dados.motivoEstoque !== undefined && (!dados.motivoEstoque.trim() || dados.motivoEstoque.trim().length > 200)) {

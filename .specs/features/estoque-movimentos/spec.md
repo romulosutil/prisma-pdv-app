@@ -59,6 +59,7 @@ Como lojista, quero que o estoque acompanhe recebimentos, cancelamentos e corre�
 - IF IDs de ajustes se repetem com conteúdo divergente THEN o sistema SHALL recusar a entrada; ajuste zero e quantidade insegura SHALL ser inválidos.
 - WHEN o produto está excluído ou o controle mudou depois da venda THEN o sistema SHALL conservar o marcador imutável do item já registrado.
 - WHEN um formulário antigo salva apenas metadados após outra venda THEN o sistema SHALL preservar essa baixa; estoque intocado não gera ajuste.
+- WHEN o formulário abre com saldo10, o usuário corrige para14 e ocorre venda2 antes de salvar THEN o sistema SHALL registrar ajuste+4 e apresentar12, preservando a baixa concorrente.
 - WHEN o app perde a rede THEN o sistema SHALL calcular o saldo pelos registros locais persistidos, sem chamada externa para vender.
 
 ## Requirement Traceability
@@ -68,7 +69,7 @@ Como lojista, quero que o estoque acompanhe recebimentos, cancelamentos e corre�
 | EST-01 | AC1–3,8,10 e limites | T1 | Verified |
 | EST-02 | AC4–5,9,11 | T2 | Verified |
 | EST-03 | AC1–3,6,8 e formulário antigo | T3 | Verified |
-| EST-04 | AC7,10 | T4 | Pending |
+| EST-04 | AC7,10 | T4 | Verified |
 | EST-05 | AC4–6 e retomada | T5 | Pending |
 
 ## Success Criteria

@@ -15,6 +15,7 @@ import { iconeDoMeio } from '@/util/meios';
 import { CabecalhoPagamento } from './CabecalhoPagamento';
 import { FolhaValorParte } from './FolhaValorParte';
 import { rotuloDaParcela } from './rotulos';
+import { AvisoEstoque } from './AvisoEstoque';
 
 type Rota = '/pagar/pix' | '/pagar/cartao' | '/pagar/dinheiro';
 
@@ -41,6 +42,7 @@ export function TelaDividir() {
   return (
     <TelaBase rolavel>
       <CabecalhoPagamento titulo="Dividir pagamento" rotuloVoltar="Voltar para formas de pagamento" onVoltar={parcelas.length > 0 ? false : undefined} />
+      <AvisoEstoque />
 
       <View style={estilos.secao}>
         <View style={estilos.linhaProgresso}>

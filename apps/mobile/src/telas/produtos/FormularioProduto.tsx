@@ -27,6 +27,7 @@ import { FolhaDePlano } from '@/componentes/FolhaDePlano';
 import { lerQuantidade, planoSemLimiteDeProdutos, somenteDigitos, textoDeQuantidade } from './logica';
 import { useVoltar } from '@/util/useVoltar';
 import type { SugestaoDeCadastro } from './sugestao';
+import { HistoricoEstoque } from './HistoricoEstoque';
 
 
 export interface FormularioProdutoProps {
@@ -56,14 +57,16 @@ export function FormularioProduto({ produto, sugestao, atalhoInicial = false, da
   const router = useRouter();
   const toast = useToast();
   const voltar = useVoltar('/produtos');
-  const { produtos, criar, editar, excluir, buscarPorEan } = useProdutos();
+  const { produtos, criar, editar, excluir, buscarPorEan, historicoEstoque } = useProdutos();
   const { planoId, podeUsar, dentroDoLimite } = useLicenca();
 
   const [nome, setNome] = useState(produto?.nome ?? sugestao?.nome ?? '');
   const [ean, setEan] = useState(produto?.ean ?? sugestao?.ean ?? '');
   const [precoCentavos, setPrecoCentavos] = useState<Centavos>(produto?.precoCentavos ?? 0);
   const [unidade, setUnidade] = useState<Unidade>(produto?.unidade ?? 'un');
-  const [estoque, setEstoque] = useState(produto?.estoque != null ? textoDeQuantidade(produto.estoque) : '');
+  const [estoqueInicial] = useState(produto?.estoque != null ? textoDeQuantidade(produto.estoque) : '');
+  const [estoque, setEstoque] = useState(estoqueInicial);
+  const [motivoEstoque, setMotivoEstoque] = useState('');
   const [minimo, setMinimo] = useState(produto?.estoqueMinimo != null ? textoDeQuantidade(produto.estoqueMinimo) : '');
   const [atalho, setAtalho] = useState(produto?.atalho ?? atalhoInicial);
   const [erros, setErros] = useState<Erros>({});
@@ -74,6 +77,8 @@ export function FormularioProduto({ produto, sugestao, atalhoInicial = false, da
   const [avisoEstoque, setAvisoEstoque] = useState(false);
 
   const comEstoque = podeUsar('estoque');
+  const estoqueMudou = !produto || estoque !== estoqueInicial;
+  const unidadeFixa = produto && (produto.estoque !== null || produto.ajustesEstoque !== undefined);
   const planoEstoque = PLANOS[planoMinimoPara('estoque')].nome;
   const foraDoLimite = !produto && !dentroDoLimite('produtos', produtos.length);
   const limiteProdutos = PLANOS[planoId].limites.produtos;
@@ -90,16 +95,21 @@ export function FormularioProduto({ produto, sugestao, atalhoInicial = false, da
     if (!nome.trim()) novos.nome = 'Digite o nome do produto.';
     if (ean && !/^\d{8,14}$/.test(ean)) novos.ean = 'O código tem de 8 a 14 números. Deixe vazio se o item não tem código.';
     if (precoCentavos <= 0) novos.preco = 'Digite o preço de venda.';
-    const lidoEstoque = lerQuantidade(estoque);
+    const lidoEstoque = lerQuantidade(estoque, true);
     const lidoMinimo = lerQuantidade(minimo);
-    if (comEstoque && !lidoEstoque.valida) novos.estoque = 'Use só números, com vírgula para fração (ex.: 2,5).';
+    if (comEstoque && estoqueMudou && !lidoEstoque.valida) novos.estoque = 'Use números, com vírgula para fração (ex.: 2,5 ou -0,5).';
     if (comEstoque && !lidoMinimo.valida) novos.minimo = 'Use só números, com vírgula para fração (ex.: 2,5).';
     setErros(novos);
     if (Object.keys(novos).length > 0) return null;
 
     const dados: NovoProduto = { nome: nome.trim(), ean: ean || null, precoCentavos, unidade, atalho };
     if (comEstoque) {
-      dados.estoque = lidoEstoque.valida ? lidoEstoque.milesimos : null;
+      if (estoqueMudou) {
+        dados.estoque = lidoEstoque.valida ? lidoEstoque.milesimos : null;
+        const observado = lerQuantidade(estoqueInicial, true);
+        if (produto && observado.valida) dados.estoqueObservado = observado.milesimos;
+        if (produto && motivoEstoque.trim()) dados.motivoEstoque = motivoEstoque.trim();
+      }
       dados.estoqueMinimo = lidoMinimo.valida ? lidoMinimo.milesimos : null;
     }
     return dados;
@@ -128,7 +138,7 @@ export function FormularioProduto({ produto, sugestao, atalhoInicial = false, da
       } else if (ehErroDeDominio(erro, 'limite_plano')) {
         setAvisoLimite(true);
       } else if (ehErroDeDominio(erro, 'valor_invalido')) {
-        setErros({ nome: erro.message });
+        setErros(estoqueMudou ? { estoque: erro.message } : { nome: erro.message });
       } else {
         toast.mostrar('Não foi possível salvar. Tente de novo.', { tipo: 'erro' });
       }
@@ -230,7 +240,7 @@ export function FormularioProduto({ produto, sugestao, atalhoInicial = false, da
         <Texto estilo="label" cor={cores.ink2}>
           Vendido por
         </Texto>
-        <Segmentado rotuloGrupo="Vendido por" opcoes={OPCOES_UNIDADE} valor={unidade} onChange={setUnidade} />
+        {unidadeFixa ? <><Texto estilo="corpoMedio">{unidade === 'kg' ? 'Quilo (kg)' : 'Unidade (un)'}</Texto><Texto estilo="legenda" cor={cores.ink2}>A unidade é preservada no histórico de estoque. Para vender em outra unidade, cadastre outro produto.</Texto></> : <Segmentado rotuloGrupo="Vendido por" opcoes={OPCOES_UNIDADE} valor={unidade} onChange={setUnidade} />}
       </View>
 
       <CampoPreco
@@ -253,10 +263,11 @@ export function FormularioProduto({ produto, sugestao, atalhoInicial = false, da
               setErros((e) => ({ ...e, estoque: undefined }));
             }}
             erro={erros.estoque}
-            ajuda="Deixe vazio se não controla este item."
-            keyboardType="decimal-pad"
-            maxLength={10}
+            ajuda="Vendas baixam o saldo e cancelamentos repõem. Alterar este valor registra uma correção; vazio desativa o controle sem apagar o histórico."
+            keyboardType="numbers-and-punctuation"
+            maxLength={12}
           />
+          {produto && estoqueMudou && estoque.trim() ? <Campo rotulo="Motivo do ajuste (opcional)" value={motivoEstoque} onChangeText={setMotivoEstoque} ajuda="Ex.: reposição, perda ou contagem física." maxLength={200} /> : null}
           <Campo
             rotulo={`Avisar quando chegar a (${unidade})`}
             value={minimo}
@@ -282,6 +293,8 @@ export function FormularioProduto({ produto, sugestao, atalhoInicial = false, da
           />
         </View>
       )}
+
+      {produto ? <HistoricoEstoque movimentos={historicoEstoque(produto.id)} unidade={produto.unidade} /> : null}
 
       <View style={estilos.cartaoInterruptor}>
         <Interruptor rotulo="Mostrar como atalho na venda" ligado={atalho} onChange={setAtalho} />

@@ -67,22 +67,25 @@ export function formatarEstoque(milesimos: number, unidade: Produto['unidade']):
 
 /** Milésimos em texto de campo: 12000 -> "12", 6500 -> "6,5", 350 -> "0,35". */
 export function textoDeQuantidade(milesimos: number): string {
-  const inteiro = Math.floor(milesimos / 1000);
-  const fracao = String(milesimos % 1000)
+  const absoluto = Math.abs(milesimos);
+  const sinal = milesimos < 0 ? '-' : '';
+  const inteiro = Math.floor(absoluto / 1000);
+  const fracao = String(absoluto % 1000)
     .padStart(3, '0')
     .replace(/0+$/, '');
-  return fracao ? `${inteiro},${fracao}` : String(inteiro);
+  return sinal + (fracao ? `${inteiro},${fracao}` : String(inteiro));
 }
 
 export type LeituraQuantidade = { valida: true; milesimos: number | null } | { valida: false };
 
 /** Texto digitado em milésimos: "" -> sem valor (`null`), "6,5" -> 6500. Aceita vírgula ou ponto, até 3 casas. */
-export function lerQuantidade(texto: string): LeituraQuantidade {
+export function lerQuantidade(texto: string, permitirNegativo = false): LeituraQuantidade {
   const limpo = texto.trim();
   if (limpo === '') return { valida: true, milesimos: null };
-  const m = /^(\d{1,7})(?:[.,](\d{1,3}))?$/.exec(limpo);
+  const negativo = permitirNegativo && limpo.startsWith('-');
+  const m = /^(\d{1,7})(?:[.,](\d{1,3}))?$/.exec(negativo ? limpo.slice(1) : limpo);
   if (!m) return { valida: false };
-  return { valida: true, milesimos: Number(m[1]) * 1000 + Number((m[2] ?? '').padEnd(3, '0')) };
+  return { valida: true, milesimos: (Number(m[1]) * 1000 + Number((m[2] ?? '').padEnd(3, '0'))) * (negativo ? -1 : 1) };
 }
 
 export const somenteDigitos = (texto: string): string => texto.replace(/\D/g, '');

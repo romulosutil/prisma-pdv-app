@@ -15,6 +15,7 @@ import { falarDinheiro } from '@/util/dinheiroFalado';
 import { CabecalhoPagamento } from './CabecalhoPagamento';
 import { TileMeio } from './TileMeio';
 import { useCobranca } from './useCobranca';
+import { AvisoEstoque } from './AvisoEstoque';
 
 export function TelaCheckout() {
   const router = useRouter();
@@ -47,6 +48,7 @@ export function TelaCheckout() {
         />
       </View>
 
+      <AvisoEstoque />
       {quitado ? (
         <View style={estilos.meios}>
           <Banner tipo="info" texto="O valor da venda já foi recebido. Falta só registrar a venda." />

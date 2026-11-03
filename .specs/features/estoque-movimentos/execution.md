@@ -49,3 +49,19 @@ PASS: 42/42 mobile (7novos estoque, checkoutSQLite e repositórios), tipos mobil
 | AC6 retomada | :103 `.toBe(8000)`, :106 `.toEqual(venda)`, :108 `{n:1}` | arquivo reaberto, resposta perdida | mesma baixa |
 
 Suficiência/necessidade: todos os cenários do escopo de persistência têm resultado financeiro/estoque explícito; teste emarquivo reabre conexões reais. Sem mudanças em testes anteriores deste lote. Histórico anterior é coberto no domínio/API; duas instalações HTTP seguem T5.
+
+## T4
+
+PASS: 30/30 alvos (interface estoque, persistência, lógica produtos, interface manual), tipos mobile PASS;4/4interface repetidos após espaçamento final. Aviso usa Banner e live region sem CTA de bloqueio. Histórico usa componentes/tokens existentes; sinais negativos corrigidos e edição de saldo aceita sinal sem mudar a validação de mínimo.
+
+| Critério | Assertiva em apps/mobile/test/estoqueInterface.test.ts | Resultado | Reverso / necessidade |
+| --- | --- | --- | --- |
+| AC7 | :47 `.toContain('Arroz: saldo 1 un; nesta venda 2 un.')`, :48 `.toContain('Você pode continuar')`, :49 `.toHaveLength(0)` | aviso soma linhas, não bloqueia | venda permitida |
+| Sem controle | :55 `.toHaveLength(0)` | sem alerta quando inativo | AC3/8 |
+| AC10 | :61 `.toContain('-0,35 kg')`/`'+1 kg'`/`'Reposição'`/`'02/11'`, :63 `.toEqual({valida:true,milesimos:-350})` | sinais, motivo, data e fração | histórico/formatação |
+| Campo intocado | :72 nome e :73 `.not.toHaveProperty('estoque')` | renomear não reseta saldo | concorrência |
+| Ajuste observado | :81 `.toMatchObject({estoque:-500,estoqueObservado:1000,motivoEstoque:'Contagem física',nome:'Arroz'})` | transmitir intenção e snapshot local | diferença preserva venda |
+
+O teste adicional em estoquePersistencia.test.ts para cada adapter comprova10 +4 −2 =12 quando a venda ocorre durante preenchimento. Esse caso foi explicitado na spec e o argumento estoqueObservado fica somente no domínio local, fora do DTO público.
+
+QA visual via CUA emdemo local8094 sem API:375×812 e812×375, sem overflow horizontal; saldo inicial1, venda2 manual concluída, saldo−1 após reload; cancelamento retornou1 e histórico mostrou−2/+2. Capturas ignoradas em builds/estoque-checkout.png e estoque-historico.png. Campos, botões e histórico respeitaram rolagem/rodapé. Sem câmera, Android físico, leitor de tela ou maior fonte do sistema nesta rodada; UI mantém componentes existentes, sem animação nova. Nenhuma operação na VPS.

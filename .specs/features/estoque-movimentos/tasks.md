@@ -60,7 +60,7 @@ T1 → T2 → T3 → T4 → T5
 **Tests**: unit, EST-04; aviso com venda permitida, números negativos, histórico e estoque intocado no formulário.
 **Gate**: quick
 **Done when**: interface comunica saldo e histórico sem alterar meios de pagamento; testes aprovados.
-**Status**: pendente.
+**Status**: concluída; 30/30 alvos, tipos e QA visual web PASS.
 
 ### T5: Provar convergência e documentar operação
 **Where**: `apps/mobile/test/estoqueSync.test.ts`

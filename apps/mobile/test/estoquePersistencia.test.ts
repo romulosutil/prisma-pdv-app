@@ -81,6 +81,17 @@ describe.each(['sqlite', 'navegador'] as const)('estoque em %s', tipo => {
       expect(d.produtos.obter()[0]!.ajustesEstoque).toEqual([]);
     } finally { raw?.close(); }
   });
+  it('correção baseada no saldo de abertura do formulário preserva venda simultânea', async () => {
+    const raw = tipo === 'sqlite' ? new DatabaseSync(':memory:') : undefined;
+    try {
+      const d = await preparar(new ArmazenamentoMemoria(), raw);
+      const p = await d.produtos.criar({ nome: 'Arroz', precoCentavos: 1000, estoque: 10000 });
+      await vender(d, p.id);
+      await d.produtos.editar(p.id, { estoque: 14000, estoqueObservado: 10000, motivoEstoque: 'Reposição contada' });
+      expect(d.produtos.buscarPorId(p.id)!.estoque).toBe(12000);
+      expect(d.produtos.obter()[0]!.ajustesEstoque).toMatchObject([{ quantidadeMilesimos: 4000 }]);
+    } finally { raw?.close(); }
+  });
 });
 
 it('falha no commit SQLite preserva parcela e saldo; reabre arquivo e conclui uma única vez', async () => {

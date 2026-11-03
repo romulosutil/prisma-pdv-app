@@ -11,9 +11,18 @@ class TransicaoConta extends Observavel<boolean> {
   alterar(valor: boolean) { this.definir(valor); }
 }
 
+class ConclusoesAcesso extends Observavel<number> {
+  constructor() { super(0); }
+  concluir() { this.definir(this.obter() + 1); }
+}
+
 /** Conta deste aparelho: a sessão (com o token Bearer) e os dados exibidos nas telas. */
 export class ContaRepo extends Persistido<EstadoConta> {
+  /** Sinal em memória publicado após concluir login/recuperação, inclusive após remontar a tela. */
+  readonly conclusoesAcesso = new ConclusoesAcesso();
   readonly transicao = new TransicaoConta();
+  /** Mantém o formulário bloqueado até a conclusão do acesso e da licença. */
+  readonly finalizandoAcesso = new TransicaoConta();
   /** Mantém a trava de escrita da sync sem cobrir a tela com o carregamento de troca de usuário. */
   readonly atualizacaoEmSegundoPlano = new TransicaoConta();
   constructor(private readonly baseConta: Armazenamento) {

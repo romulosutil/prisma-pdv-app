@@ -49,14 +49,14 @@ Em Ajustes → Assinatura, o "Relógio de teste" avança os dias para ver o fim 
 
 O perfil `homologacao` usa a API e o PostgreSQL isolados no EasyPanel, login por e-mail real e acesso sem cartão/cobrança. Instala como **PDV Homologação** (`br.com.pdv.mobile.homologacao`), separado da demo 0.1.4. Não leva produtos ou vendas fictícios. Pagamentos de vendas continuam sendo registros manuais.
 
-Entrega 03/11/2026: APK 0.1.7/versionCode 8, API `a987c31`, CI PostgreSQL/SQLite e ciclo HTTP financeiro aprovados; teste físico do usuário pendente. [Relatório e hashes](docs/r5-piloto-backup-suporte.md#candidato-conectado-017) · [primeiro teste com produto real](docs/roteiro-piloto-android.md#primeiro-teste-do-usuário-com-um-produto-real).
+Entrega 03/11/2026: APK **0.1.9/versionCode 10**, pronto para reteste supervisionado, com diagnóstico local de homologação, R8/shrink, permissões revistas e tratamento dos 18 achados. CI `df41823`: 597 API/PostgreSQL 17, 578 mobile, 172 shared (1.347 casos), tipos/ferramentas/imagem aprovados. API compatível de cadastro verificado implantada somente em homologação; 299 fontes do APK sem divergência. Testes físicos, limpeza da base e aceite continuam pendentes. [Matriz e artefato](docs/correcoes-auditoria-0.1.9.md) · [reteste](docs/roteiro-piloto-android.md#reteste-das-correções-da-auditoria-na-019).
 
 ```powershell
 ./scripts/build-android.ps1 -Perfil homologacao
-# Resultado: builds/pdv-homologacao-0.1.7.apk + SHA256, assinatura e metadados
+# Resultado: builds/pdv-homologacao-0.1.9.apk + SHA256, assinatura e metadados
 ```
 
-O script usa a cópia curta `C:/p` já preparada, configura o ambiente pelo `eas.json`, confere `/saude`, compila e verifica o bundle dentro do APK. Os diretórios `C:/p` e `C:/x`, o SDK e suas dependências devem estar preparados conforme as instruções Windows abaixo. Não inclua arquivos `.env` na cópia.
+O script usa a cópia curta `C:/p` já preparada, configura o ambiente pelo `eas.json`, confere saúde/hora/suporte e contrato de cadastro verificado, compila, exige mapping R8 e verifica o bundle dentro do APK. Os diretórios `C:/p` e `C:/x`, o SDK e suas dependências devem estar preparados conforme as instruções Windows abaixo. Não inclua arquivos `.env` na cópia.
 
 | Perfil EAS | Backend | Ferramentas | Pacote Android |
 |---|---|---|---|
@@ -131,7 +131,7 @@ Copy-Item C:\p\apps\mobile\android\app\build\outputs\apk\release\app-release.apk
 
 O release é assinado com o keystore de debug do template Expo (aceitável para APK de testes, não para a loja). O APK final fica em `builds/pdv-teste-0.1.1.apk` (pasta ignorada pelo git). Instalar: `adb install -r builds\pdv-teste-0.1.1.apk` ou enviar o arquivo ao aparelho.
 
-**Minificação (R8):** o `apps/mobile/app.json` usa o plugin `expo-build-properties` com `enableMinifyInReleaseBuilds: false` e `enableShrinkResourcesInReleaseBuilds: false`. Com R8 ligado o ML Kit do `expo-camera` não inicializava (`Failed to initialize BarcodeAnalyzer`, scanner sem ler nada). O mesmo plugin já injeta em `android/app/proguard-rules.pro` as regras `-keep` de `com.google.mlkit.**`, `mlkit_vision_barcode`, `mlkit_vision_common`, `com.google.firebase.components.**` e `expo.modules.camera.**`, para o dia em que a minificação for religada em produção (testar o scanner num APK release antes de publicar). Depois do prebuild, confira em `android/gradle.properties` que `android.enableMinifyInReleaseBuilds=false`.
+**Minificação (R8):** o candidato 0.1.9 religa `enableMinifyInReleaseBuilds` e `enableShrinkResourcesInReleaseBuilds`, mantendo regras de proteção de ML Kit/Firebase/câmera. O build exige e guarda o mapping R8 junto às evidências. O histórico da 0.1.0 contém falha de inicialização do BarcodeAnalyzer com minificação; por isso a leitura de código real no APK otimizado é um cenário obrigatório do reteste no celular, sem presumir aprovação física pelo build/CI. Não usar as instruções históricas de desligar R8 como configuração deste candidato.
 
 ### Diagnóstico da versão de testes
 
@@ -172,4 +172,4 @@ No modo conectado, **Ajustes → Gestão** reúne estoque/movimentos, clientes/f
 
 **Suporte e privacidade** reúne políticas do piloto, protocolos pessoais, exportação de dados autorizados e pedido de análise de exclusão. O acesso fica disponível também na entrada e durante bloqueio comercial. O resumo técnico é opcional; solicitações preservam seu identificador após resposta perdida. Atendimento manual e implantação da API compatível precisam ser comprovados antes do piloto.
 
-Builds conectados usam implementações sem semente, tokenização/gateway simulados, relógio artificial ou diagnóstico de teste. `scripts/verificar-release-mobile.mjs` inspeciona bundle/source map; a configuração `metro.config.js` é obrigatória na compilação. O script local gera APK interno de homologação; distribuição de produção exige assinatura própria. [Evidências R5](docs/r5-piloto-backup-suporte.md), [roteiro físico](docs/roteiro-piloto-android.md) e [operação/restauração/atendimento](docs/operacao-backup-suporte.md). Testes HTTP e bundle não equivalem à execução em Android real.
+Builds conectados excluem semente, tokenização/gateway simulados, relógio artificial e diagnóstico legado da demo. A partir da 0.1.8, homologação inclui diagnóstico próprio em `src/telemetria`: 500 eventos com lista fechada de campos, persistidos localmente, com cópia/exportação manual. Produção exclui esse diagnóstico; o gate verifica marcador e grafo em ambos os perfis. `scripts/verificar-release-mobile.mjs` inspeciona bundle/source map; a configuração `metro.config.js` é obrigatória na compilação. O script local gera APK interno de homologação; distribuição de produção exige assinatura própria. [Evidências R5](docs/r5-piloto-backup-suporte.md), [roteiro físico](docs/roteiro-piloto-android.md) e [operação/restauração/atendimento](docs/operacao-backup-suporte.md). Testes HTTP e bundle não equivalem à execução em Android real.

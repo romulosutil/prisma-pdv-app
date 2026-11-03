@@ -2,9 +2,33 @@
 
 **Implementação local e APK interno concluídos em 02/11/2026; homologação externa/física pendente.** Esta é a sexta entrega solicitada, correspondente à R5 do roadmap. R6 continua sendo a futura integração de pagamentos. Não há aceite humano registrado. Checkpoints incrementais: CPs 021–025 no [histórico](checkpoints-roadmap.md).
 
-**Atualização de 03/11:** API R1–R5 e correção de hora real implantadas em homologação (`a987c31`), CI completo aprovado com PostgreSQL 17 (592 API, 556 mobile, 172 shared) e sete grupos de smoke HTTP financeiro aprovados. Backups locais anterior/schema R5 comprovados. **APK 0.1.7/versionCode 8 gerado e verificado para o teste do usuário**; Android físico, OTP externo novo, restauração R5, atendimento e aceite continuam pendentes. As evidências 0.1.6 e a API R0 descritas abaixo são históricas. [CP 034](checkpoints-roadmap.md#cp-20261103-034-apk-real-017-pronto-para-teste-no-celular).
+**Atualização mais recente de 03/11:** **APK 0.1.8/versionCode 9 gerado e verificado**, com diagnóstico local exportável e correções após o teste interrompido da 0.1.7. 562 testes mobile locais aprovados; API permanece em `a987c31`, com CI/HTTP financeiro anteriores documentados no [CP 034](checkpoints-roadmap.md#cp-20261103-034-apk-real-017-pronto-para-teste-no-celular). Limpeza solicitada da base ainda não executada, backup novo sem confirmação de arquivo. Reteste Android da 0.1.8, OTP externo novo, restauração R5, atendimento e aceite continuam pendentes. As evidências 0.1.6/0.1.7 e da API R0 abaixo são históricas; não representam aprovação do novo APK pelo usuário. [CP 039](checkpoints-roadmap.md#cp-20261103-039-entrega-018-validada-localmente-e-limpeza-pendente).
 
-## Candidato conectado 0.1.7
+<a id="candidato-conectado-018-com-diagnostico"></a>
+
+## Candidato conectado 0.1.8 com diagnóstico
+
+Atualização após o teste interrompido da 0.1.7 no Samsung S25 Ultra/Android 17: APK 0.1.8/versionCode 9 construído e verificado, sem teste físico da correção ou aceite. [CP 039](checkpoints-roadmap.md#cp-20261103-039-entrega-018-validada-localmente-e-limpeza-pendente).
+
+| Evidência | Resultado |
+|---|---|
+| Artefato | `builds/pdv-homologacao-0.1.8.apk`, 74.711.651 bytes |
+| SHA256 | `339620752c4a8f25d2d1c2a2ac6814ae424a3695719551fa1921b3f16f1fd02e` |
+| Versão/pacote | 0.1.8/versionCode 9, mesmo pacote de homologação e certificado interno da 0.1.7 |
+| Fontes | 297 arquivos/configurações conferidos, zero divergências; alterações locais sobre a987c31, sem CI remoto novo |
+| Bundle exato | 4.274.708 bytes, 1.889 fontes; gate PASS, com diagnóstico de homologação e sem simuladores/demo |
+| Validações locais | 65 arquivos/562 testes mobile, tipos e duas ferramentas aprovados |
+| Exclusão em produção | Export Hermes próprio com 1.884 fontes e zero módulos de telemetria; gate PASS. Não é APK nem implantação de produção |
+| API | a987c31 preservado em homologação; saúde/hora precisa/suporte conferidos pelo build, CI/HTTP financeiro anteriores nos CPs 032–034 |
+| Banco/Android | Limpeza não executada, backup novo solicitado mas não conferido; Android físico e aceite da 0.1.8 pendentes |
+
+O diagnóstico registra localmente rotas/ações conhecidas, estados técnicos, status HTTP e erros JS sem mensagens livres ou dados pessoais; exportação por ação do usuário, sem acompanhamento remoto ao vivo. Interface de “Abrir caixa” acrescentada à dashboard; sync conserva travas sem cobrir toda a tela com carregamento. Cadastro novo continua abrindo sessão sem OTP, agora explicado na interface; login existente usa código e sessão preservada pode ser retomada. Produto sem sugestão depende da cobertura/conectividade do catálogo, com causas técnicas instrumentadas.
+
+Manifesto, assinatura, inventário, fonte do mapa e logs em `builds/pdv-homologacao-0.1.8-*` e `pdv-018-*`. Conferir [reteste com diagnóstico](roteiro-piloto-android.md#reteste-com-diagnóstico-na-018) antes de retomar cadastro/ciclo financeiro. Nenhuma limpeza no aparelho foi feita pela atualização. Os registros abaixo preservam as evidências históricas da 0.1.7.
+
+<a id="candidato-conectado-017"></a>
+
+## Histórico do candidato conectado 0.1.7
 
 | Item | Evidência de 03/11/2026 |
 |---|---|
@@ -92,3 +116,13 @@ ADB consultado fora do sandbox retornou **zero aparelhos** em 23h27. Nenhum Andr
 [Procedimento de backup/suporte/incidente](operacao-backup-suporte.md) e [matriz física F01–F19](roteiro-piloto-android.md). Scripts `verificar-operacao.{mjs,sql}`, `verificar-restauracao-r5.sql`, `comparar-restauracao.mjs` e `coletar-piloto-android.ps1` deixam explícito o que comprovam. Inventário físico não instala APK nem conclui cenários. SQL R5 e snapshots atuais ainda exigem execução em PostgreSQL independente.
 
 Próximo passo: implantar R1–R5 em homologação com backup preservado, executar regressão dedicada PostgreSQL/CI e nova restauração isolada; disponibilizar pelo menos dois celulares e instalação substituta, designar responsável pelo atendimento e executar o APK exato conforme F01–F19. Registrar resultados externos/físicos e aceite humano separadamente. Cópia externa de backup e alertas seguem no backlog autorizado e não bloqueiam o MVP.
+
+## Candidato 0.1.9 — correções da auditoria e cadastro verificado
+
+Continuação da 0.1.8 e do CP 040, com [matriz dos 18 achados](correcoes-auditoria-0.1.9.md) e [roteiro de reteste](roteiro-piloto-android.md#reteste-das-correções-da-auditoria-na-019). Fontes no commit df41823: CI externo aprovado com 597 API/PostgreSQL 17, 578 mobile e 172 shared, tipos, duas ferramentas e imagem/isolamento. API compatível implantada somente em homologação e conferida por HTTPS, sem alterar ambiente/credenciais/backups ou produção. Novo cadastro exige prova do e-mail antes de criar empresa/sessão; login existente continua por OTP e sessões preservadas não são apagadas.
+
+R8/shrink foram reativados com regras MLKit/Firebase/câmera e mapping obrigatório no script. As alterações de rolagem/IME, câmera, Pix, gestão, estoque e vida útil de exportações têm regressões locais; a equivalência física permanece pendente. N04 foi tratado retirando a promessa falsa de que a ROI limita o código: ler um código por vez e conferir produto. Auto Backup do aparelho não é mecanismo de recuperação de pendências locais; o aviso operacional foi explicitado, sem alterar a política de recuperar só o confirmado nem reabrir o backlog externo/alertas.
+
+O APK **0.1.9/versionCode 10 está entregue para reteste supervisionado**, em `builds/pdv-homologacao-0.1.9.apk`, SHA256 `5fe5118f97dee38c4f92710f9ab433d8f4e7d61cc0cd89d50945ff28ee8448f0`. Build, assinatura v2, manifesto/permissões, R8/mapping, bundle e 299 fontes sem divergência conferidos; export Android de produção sem diagnóstico PASS, sem publicar/promover produção. Mesmo certificado da 0.1.8 permite atualização sem desinstalar/limpar dados. Não declarar scanner, teclado/TalkBack, SecureStore ou destinatário de compartilhamento homologados por CI. O histórico R8/BarcodeAnalyzer exige leitura de código real no reteste. Limpeza de homologação e restauração do schema atual não foram realizadas por esta correção. [CP 045](checkpoints-roadmap.md#cp-20261103-045-apk-019-pronto-para-reteste).
+
+**Retorno posterior do acesso:** [CP 050](checkpoints-roadmap.md#cp-20261103-050-correcao-local-do-acesso-validada) corrige localmente a validação tardia e a permanência no login após autenticar. O cadastro confere e-mail/OTP/documento na primeira etapa antes da loja; conclusão do login sobrevive à remontagem. Fontes locais diferem do APK acima, que permanece intacto. API externa ainda no candidato anterior; próximo APK depende de CI/API compatível e novo versionamento/inspeção. [Reteste preparado](roteiro-piloto-android.md#reteste-ajuste-acesso-pos-019); nenhuma homologação física ou aceite inferido.

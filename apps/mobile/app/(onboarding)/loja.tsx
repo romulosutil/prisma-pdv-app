@@ -22,31 +22,23 @@ export default function Loja() {
   const [erroNome, setErroNome] = useState<string | null>(null);
   const [erroGeral, setErroGeral] = useState<string | null>(null);
   const [criando, setCriando] = useState(false);
-  const [desafioId, setDesafioId] = useState<string | null>(null);
-  const [codigo, setCodigo] = useState('');
   const trava = useRef(false);
   const conectado = dados.backend.modo === 'http';
 
   const continuar = async () => {
     if (trava.current) return;
+    if (conectado && !dados.cadastroConfirmado(rascunho.email, rascunho.documento)) { router.replace('/criar-conta'); return; }
     if (nomeLoja.trim().length === 0) {
       setErroNome('Digite o nome da loja.');
       return;
     }
     setErroNome(null);
     setErroGeral(null);
-    if (conectado && desafioId && !/^\d{6}$/.test(codigo)) { setErroGeral('Digite os 6 números enviados ao seu e-mail.'); return; }
     trava.current = true;
     setCriando(true);
     alterar({ nomeLoja: nomeLoja.trim(), tipoLoja });
     try {
-      if (conectado && !desafioId) {
-        const desafio = await dados.pedirCodigoCadastro(rascunho.email);
-        setDesafioId(desafio.desafioId);
-        return;
-      }
       await dados.criarConta({
-        ...(desafioId ? { desafioCadastroId: desafioId, codigoCadastro: codigo } : {}),
         nomeResponsavel: rascunho.nomeResponsavel,
         email: rascunho.email,
         documento: rascunho.documento,
@@ -63,7 +55,7 @@ export default function Loja() {
   };
 
   return (
-    <TelaBase rolavel rodape={<Botao rotulo={conectado ? desafioId ? 'Confirmar e criar conta' : 'Enviar código ao e-mail' : 'Continuar'} onPress={continuar} carregando={criando} />}>
+    <TelaBase rolavel rodape={<Botao rotulo={conectado ? 'Criar minha conta' : 'Continuar'} onPress={continuar} carregando={criando} />}>
       <CabecalhoEtapa etapa={2} total={6} onVoltar={() => router.back()} />
       <View style={estilos.corpo}>
         <Texto estilo="tituloXL" accessibilityRole="header">
@@ -89,13 +81,9 @@ export default function Loja() {
             ))}
           </View>
         </View>
-        {conectado ? <Texto>Para criar a conta, confirme a posse do e-mail informado. Nenhuma empresa ou sessão será criada antes da confirmação.</Texto> : null}
-        {desafioId ? <>
-          <Texto accessibilityLiveRegion="polite">Código enviado ao e-mail informado. Confira também a pasta de spam. Válido por 10 minutos.</Texto>
-          <Campo rotulo="Código de confirmação do e-mail" value={codigo} onChangeText={t => setCodigo(t.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6} autoComplete="one-time-code" editable={!criando} onSubmitEditing={continuar} />
-          <Botao rotulo="Solicitar outro código" variante="terciario" desabilitado={criando} onPress={() => { setDesafioId(null); setCodigo(''); setErroGeral(null); }} />
-        </> : null}
+        {conectado ? <Texto>Seu e-mail foi confirmado na etapa anterior. Confira os dados da loja antes de criar a conta.</Texto> : null}
         {erroGeral ? <Banner tipo="erro" texto={erroGeral} /> : null}
+        <Botao rotulo="Já tenho conta" variante="terciario" desabilitado={criando} onPress={() => { if (!trava.current) { dados.cancelarCadastro(); router.replace('/entrar'); } }} />
       </View>
     </TelaBase>
   );

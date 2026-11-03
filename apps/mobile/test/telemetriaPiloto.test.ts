@@ -1,8 +1,21 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { RegistroPiloto, acaoSegura, camposErro, endpointSeguro, LIMITE_EVENTOS, rotaSegura } from '@/telemetria/nucleo';
+import { RegistroPiloto, acaoSegura, camposErro, endpointSeguro, falhaAcessoSegura, LIMITE_EVENTOS, rotaSegura } from '@/telemetria/nucleo';
 import { ArmazenamentoMemoria } from './ambiente';
 const id = '00000000-0000-4000-8000-000000000001';
 afterEach(() => vi.useRealTimers());
+
+it('distingue conflitos de cadastro e limite de emissão sem aceitar texto livre no diagnóstico', async () => {
+  vi.useFakeTimers(); const r = new RegistroPiloto(id); await r.iniciar(new ArmazenamentoMemoria(), () => null);
+  r.registrar('http', { endpoint: endpointSeguro('/auth/cadastro/codigo'), status: 409, falhaAcesso: falhaAcessoSegura('documento_ja_cadastrado') });
+  r.registrar('http', { endpoint: endpointSeguro('/auth/codigo'), status: 429, falhaAcesso: falhaAcessoSegura('limite_autenticacao') });
+  r.registrar('http', { endpoint: '/contas', status: 409, falhaAcesso: falhaAcessoSegura('CPF=52998224725 email=ana@example.com') });
+  r.registrar('acao', { acao: acaoSegura('Já tenho conta') }); await r.salvar();
+  const eventos = r.exportar().eventos;
+  expect(eventos[0]?.campos).toMatchObject({ endpoint: '/auth/cadastro/codigo', falhaAcesso: 'documento_ja_cadastrado' });
+  expect(eventos[1]?.campos.falhaAcesso).toBe('limite_autenticacao'); expect(eventos[2]?.campos.falhaAcesso).toBeUndefined();
+  expect(eventos[3]?.campos.acao).toBe('Já tenho conta');
+  expect(JSON.stringify(eventos)).not.toMatch(/52998224725|ana@example.com/);
+});
 
 it('guarda somente campos permitidos e nunca exporta texto, credencial, documento ou identificador de perfil', async () => {
   vi.useFakeTimers(); const base = new ArmazenamentoMemoria(); const r = new RegistroPiloto(id);

@@ -12,6 +12,7 @@ import { dados } from '@/dados/instancia';
 import { registrar } from '@/diagnostico/registro';
 import { DadosProvider, useAssinatura, useConta } from '@/dados/hooks';
 import { decidirRota } from '@/nucleo/fluxo';
+import { useConclusaoLogin } from '@/nucleo/useConclusaoLogin';
 import { cores, FONTES_PARA_CARREGAR } from '@/tema';
 import { useCarrinho } from '@/dados/carrinho';
 import { escopoDoPerfil } from '@/dados/estadoConta';
@@ -96,6 +97,7 @@ function GuardaDeFluxo() {
   const { assinatura, agora, servico } = useAssinatura();
 
   useDiagnosticoDeNavegacao();
+  useConclusaoLogin();
 
   const destino = navegacaoPronta && !carregandoConta ? decidirRota({ temConta, assinatura, agora, reautenticacaoNecessaria, vendaEmAndamento: !carrinho.vazio }, segmentos) : null;
 

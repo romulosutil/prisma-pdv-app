@@ -10,6 +10,16 @@ const resposta = (status: number, body?: unknown) => new Response(body === undef
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('acesso HTTP', () => {
+  it('envia prova na verificação antecipada sem credencial de outra sessão', async () => {
+    const buscar = vi.fn().mockResolvedValue(resposta(204));
+    vi.stubGlobal('fetch', buscar);
+    const backend = new BackendHttp('https://api.example', () => 'sessao-privada');
+    await backend.verificarCadastro({ email: 'a@example.com', aparelhoId: id, documento: '52998224725', desafioCadastroId: id, codigoCadastro: '123456' });
+    const [url, req] = buscar.mock.calls[0]!;
+    expect(url).toBe('https://api.example/auth/cadastro/verificar');
+    expect(JSON.parse(req.body)).toMatchObject({ email: 'a@example.com', aparelhoId: id, documento: '52998224725', desafioCadastroId: id, codigoCadastro: '123456' });
+    expect(req.headers.Authorization).toBeUndefined();
+  });
   it.each(['email_ja_cadastrado', 'documento_ja_cadastrado'] as const)('orienta %s sem mensagem livre nem assinatura', async codigo => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(resposta(409, { erro: codigo, mensagem: 'texto arbitrário remoto' })));
     const backend = new BackendHttp('https://api.example', () => null);

@@ -70,6 +70,9 @@ export class Dados {
   private contaCarregada = false;
   private caixaOnlinePendente = false;
   private registrandoFiado: Promise<Venda> | null = null;
+  private geracaoCadastro = 0;
+  private cadastroEmitido: { desafioId: string; expiraEm: number } | null = null;
+  private cadastroVerificado: { email: string; documento: string; aparelhoId: string; desafioCadastroId: string; codigoCadastro: string; expiraEm: number } | null = null;
   private geracaoAcesso = 0;
   private recuperacao: { desafio: RecuperacaoAparelho; geracao: number; vinculo: string; alvo?: string } | null = null;
 
@@ -366,22 +369,49 @@ export class Dados {
     return this.backend.listarPlanos();
   }
 
+  cancelarCadastro(): void { this.geracaoCadastro++; this.cadastroVerificado = null; }
+
+  cadastroConfirmado(email: string, documento: string): boolean {
+    if (this.cadastroVerificado && this.cadastroVerificado.expiraEm <= Date.now()) this.cadastroVerificado = null;
+    const prova = this.cadastroVerificado;
+    return !!prova && prova.email === email.trim().toLowerCase() && prova.documento === documento && prova.expiraEm > Date.now();
+  }
+
+  async verificarCadastro(email: string, documento: string, desafioCadastroId: string, codigoCadastro: string): Promise<void> {
+    if (!this.backend.verificarCadastro) throw new ErroBackend('resposta_invalida', 'Verificação antecipada indisponível.');
+    const geracao = this.geracaoCadastro;
+    this.cadastroVerificado = null;
+    const aparelhoId = await this.instalacao.aparelhoDaConta(email);
+    await this.backend.verificarCadastro({ email, documento, aparelhoId, desafioCadastroId, codigoCadastro });
+    if (geracao !== this.geracaoCadastro) throw new ErroBackend('conflito', 'O cadastro mudou. Confirme novamente seus dados.');
+    // Somente memória privada, sem rascunho, parâmetros de rota ou armazenamento.
+    const expiraEm = this.cadastroEmitido?.desafioId === desafioCadastroId ? this.cadastroEmitido.expiraEm : Date.now() + 600_000;
+    this.cadastroVerificado = { email: email.trim().toLowerCase(), documento, aparelhoId, desafioCadastroId, codigoCadastro, expiraEm };
+  }
+
   async pedirCodigoCadastro(email: string): Promise<{ desafioId: string }> {
+    this.cancelarCadastro();
+    const geracao = this.geracaoCadastro, expiraEm = Date.now() + 600_000;
     if (!this.backend.pedirCodigoCadastro) throw new ErroBackend('valor_invalido', 'Cadastro verificado indisponível.');
     const aparelhoId = await this.instalacao.aparelhoDaConta(email);
-    return this.backend.pedirCodigoCadastro(email, aparelhoId);
+    const desafio = await this.backend.pedirCodigoCadastro(email, aparelhoId);
+    if (geracao === this.geracaoCadastro) this.cadastroEmitido = { desafioId: desafio.desafioId, expiraEm };
+    return desafio;
   }
 
   async criarConta(formulario: FormularioConta): Promise<void> {
     this.exigirTrocaDisponivel();
     this.invalidarRecuperacao();
     return this.executarAcesso(async () => {
+    this.conta.finalizandoAcesso.alterar(true);
     await this.preflightTroca(formulario.email);
     const anterior = this.conta.obter();
     if (anterior.identidade && !anterior.perfil) throw new ErroBackend('conflito', 'Recupere primeiro o acesso à conta original antes de criar outra conta.');
     const legado = anterior.identidade && anterior.perfil ? { email: anterior.perfil.email, aparelhoId: anterior.identidade.aparelhoId } : undefined;
     const aparelhoId = await this.instalacao.aparelhoDaConta(formulario.email, legado);
+    const prova = this.cadastroConfirmado(formulario.email, formulario.documento) && this.cadastroVerificado?.aparelhoId === aparelhoId ? this.cadastroVerificado : null;
     const sessao = await this.backend.criarConta({
+      ...(prova ? { desafioCadastroId: prova.desafioCadastroId, codigoCadastro: prova.codigoCadastro } : {}),
       ...(formulario.desafioCadastroId ? { desafioCadastroId: formulario.desafioCadastroId, codigoCadastro: formulario.codigoCadastro } : {}),
       email: formulario.email,
       nomeResponsavel: formulario.nomeResponsavel,
@@ -390,6 +420,7 @@ export class Dados {
       aparelhoId,
       aparelhoNome: NOME_APARELHO_PADRAO,
     });
+    this.cancelarCadastro();
     if (sessao.aparelhoId !== aparelhoId) throw new ErroBackend('resposta_invalida', 'O aparelho retornado não corresponde ao solicitado.');
     await this.aplicarAcesso(sessao, {
       nomeResponsavel: formulario.nomeResponsavel,
@@ -415,9 +446,11 @@ export class Dados {
   }
 
   async entrar(email: string, codigo: string, vinculo?: Vinculo): Promise<void> {
+    this.cancelarCadastro();
     this.exigirTrocaDisponivel();
     this.invalidarRecuperacao();
     return this.executarAcesso(async () => {
+    this.conta.finalizandoAcesso.alterar(true);
     await this.preflightTroca(email, vinculo?.operadorId);
     const anterior = this.conta.obter();
     const semPerfil = anterior.identidade !== null && anterior.perfil === null;
@@ -443,6 +476,7 @@ export class Dados {
       aparelhoNome: NOME_APARELHO_PADRAO,
     }, false, !!vinculo);
     await this.assinatura.sincronizar();
+    this.conta.conclusoesAcesso.concluir();
     });
   }
 
@@ -578,6 +612,7 @@ export class Dados {
     const tentativa = this.recuperacao;
     if (!tentativa) throw new ErroBackend('conflito', 'Inicie a recuperação antes de confirmar.');
     return this.executarAcesso(async () => {
+      this.conta.finalizandoAcesso.alterar(true);
       const { desafio, geracao, vinculo } = tentativa;
       this.verificarVinculo(geracao, vinculo);
       if (this.recuperacao !== tentativa) throw new ErroBackend('conflito', 'Esta recuperação não está mais disponível.');
@@ -620,6 +655,7 @@ export class Dados {
       }
       if (this.recuperacao === tentativa) this.recuperacao = null;
       await this.assinatura.sincronizar();
+      this.conta.conclusoesAcesso.concluir();
     });
   }
 
@@ -631,6 +667,7 @@ export class Dados {
         this.armazenamentoDaLoja.bloquearAlteracoes(false);
         this.conta.transicao.alterar(false);
         this.conta.atualizacaoEmSegundoPlano.alterar(false);
+        this.conta.finalizandoAcesso.alterar(false);
       }
     });
     this.filaAcesso = resultado.then(() => undefined, () => undefined);

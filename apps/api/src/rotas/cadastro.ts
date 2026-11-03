@@ -1,11 +1,11 @@
 import { randomInt } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
-import { gerarId, type CriarContaReq, type Relogio } from '@pdv/shared';
+import { CriarContaReqSchema, gerarId, type CriarContaReq, type Relogio } from '@pdv/shared';
 import { z } from 'zod';
 import type { FastifyInstance } from 'fastify';
 import type { Deps } from '../deps';
 import type { Db } from '../db/conexao';
-import { codigosLogin, usuarios } from '../db/schema';
+import { codigosLogin, contas, usuarios } from '../db/schema';
 import { ErroApi } from '../erros';
 import { cancelarEntregaDoCodigo, enfileirarCodigo } from '../email/filaCodigo';
 import { hashDoCodigo, normalizarEmail, limiteAuth } from '../servicos/codigoLogin';
@@ -13,7 +13,22 @@ import { limitarAuth } from '../servicos/limitesAuth';
 
 /** Desafios não reservam CPF/e-mail nem criam usuário, empresa, aparelho ou sessão. */
 export function rotasCadastro(app: FastifyInstance, { db, relogio, emissaoCodigo = { modo: 'desenvolvimento' } }: Deps) {
-  app.get('/auth/cadastro/configuracao', async () => ({ versaoContrato: 1, verificacaoEmail: emissaoCodigo.modo === 'email' }));
+  app.get('/auth/cadastro/configuracao', async () => ({ versaoContrato: 1, verificacaoEmail: emissaoCodigo.modo === 'email', verificacaoAntecipada: true }));
+  app.post('/auth/cadastro/verificar', async (request, reply) => {
+    const req = CriarContaReqSchema.pick({ email: true, documento: true, aparelhoId: true, desafioCadastroId: true, codigoCadastro: true }).parse(request.body);
+    const resultado = await db.transaction(async tx => {
+      if (!await limitarAuth(tx, 'cadastro_confirmacao_ip', request.ip, relogio)) return limiteAuth();
+      const prova = await verificarCadastro(tx, req, relogio);
+      if (prova instanceof ErroApi) return prova;
+      const [usuario] = await tx.select({ id: usuarios.id }).from(usuarios).where(eq(usuarios.email, normalizarEmail(req.email)));
+      if (usuario) return new ErroApi(409, 'email_ja_cadastrado', 'Este e-mail já tem acesso. Entre com seu código pessoal.');
+      const [conta] = await tx.select({ id: contas.id }).from(contas).where(eq(contas.documento, req.documento));
+      if (conta) return new ErroApi(409, 'documento_ja_cadastrado', 'Já existe uma conta com este CPF/CNPJ. Entre na conta ou procure o suporte.');
+      return null;
+    });
+    if (resultado instanceof ErroApi) throw resultado;
+    return reply.status(204).send();
+  });
   app.post('/auth/cadastro/codigo', async (request, reply) => {
     const req = z.object({ email: z.email(), aparelhoId: z.uuid() }).parse(request.body);
     const email = normalizarEmail(req.email);
@@ -38,7 +53,7 @@ export function rotasCadastro(app: FastifyInstance, { db, relogio, emissaoCodigo
 }
 
 /** Retorna erro para o chamador confirmar tentativas recusadas, sem rollback do contador. */
-export async function verificarCadastro(tx: Db, req: CriarContaReq, relogio: Relogio): Promise<ErroApi | string> {
+export async function verificarCadastro(tx: Db, req: Pick<CriarContaReq, 'email' | 'aparelhoId' | 'desafioCadastroId' | 'codigoCadastro'>, relogio: Relogio): Promise<ErroApi | string> {
   if (!req.desafioCadastroId || !req.codigoCadastro) return new ErroApi(400, 'cadastro_codigo_necessario', 'Confirme seu e-mail antes de criar a conta.');
   const [prova] = await tx.select().from(codigosLogin).where(eq(codigosLogin.id, req.desafioCadastroId)).for('update');
   const invalido = new ErroApi(400, 'codigo_invalido', 'Código inválido ou expirado.');

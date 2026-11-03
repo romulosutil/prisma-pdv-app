@@ -23,7 +23,7 @@ if ($perfilPdv.env.EXPO_PUBLIC_API_URL) {
   $apiCompativelPdv = [int]$suportePdv.StatusCode -eq 401
   if (!$apiCompativelPdv) { throw 'API incompatível com o piloto: suporte deve responder 401 sem sessão. Implante a versão compatível antes de gerar o APK para o celular.' }
   $cadastroPdv = Invoke-RestMethod "$env:EXPO_PUBLIC_API_URL/auth/cadastro/configuracao" -TimeoutSec 20
-  if ($cadastroPdv.versaoContrato -ne 1 -or $cadastroPdv.verificacaoEmail -ne $true) { throw 'API sem cadastro verificado por e-mail. Implante a API compatível antes de gerar o APK.' }
+  if ($cadastroPdv.versaoContrato -ne 1 -or $cadastroPdv.verificacaoEmail -ne $true -or $cadastroPdv.verificacaoAntecipada -ne $true) { throw 'API sem verificação antecipada do cadastro. Implante a API compatível antes de gerar o APK.' }
 }
 $env:NODE_ENV = 'production'
 $env:JAVA_HOME = 'C:/Program Files/Microsoft/jdk-17.0.20.101-hotspot'

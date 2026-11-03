@@ -91,6 +91,7 @@ export type Aparelhos = z.infer<typeof AparelhosResSchema>;
 
 export interface Backend {
   pedirCodigoCadastro?(email: string, aparelhoId: string): Promise<{ desafioId: string }>;
+  verificarCadastro?(req: Pick<CriarContaReq, 'email' | 'documento' | 'aparelhoId' | 'desafioCadastroId' | 'codigoCadastro'>): Promise<void>;
   solicitarSuporte?(req: import('@pdv/shared').SolicitarSuporte, token?: string): Promise<import('@pdv/shared').SolicitacaoSuporte>;
   listarSolicitacoesSuporte?(token?: string): Promise<import('@pdv/shared').SolicitacaoSuporte[]>;
   exportarDadosSuporte?(token?: string): Promise<Record<string, unknown>>;

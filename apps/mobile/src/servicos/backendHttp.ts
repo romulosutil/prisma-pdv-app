@@ -70,6 +70,9 @@ export class BackendHttp implements Backend {
   pedirCodigoCadastro(email: string, aparelhoId: string) {
     return this.chamar('POST', '/auth/cadastro/codigo', z.object({ desafioId: z.uuid() }), { corpo: { email, aparelhoId }, publica: true });
   }
+  verificarCadastro(req: Pick<CriarContaReq, 'email' | 'documento' | 'aparelhoId' | 'desafioCadastroId' | 'codigoCadastro'>) {
+    return this.chamar<void>('POST', '/auth/cadastro/verificar', null, { corpo: req, publica: true, espera204: true });
+  }
   solicitarSuporte(req: SolicitarSuporte, token?: string) { return this.chamar('POST', '/suporte/solicitacoes', SolicitacaoSuporteSchema, { corpo: SolicitarSuporteSchema.parse(req), token }); }
   listarSolicitacoesSuporte(token?: string) { return this.chamar('GET', '/suporte/solicitacoes', z.array(SolicitacaoSuporteSchema), { token }); }
   exportarDadosSuporte(token?: string) { return this.chamar('GET', '/suporte/exportacao', z.record(z.string(), z.unknown()), { token }); }
@@ -228,15 +231,15 @@ export class BackendHttp implements Backend {
       if (prazo !== undefined) clearTimeout(prazo);
     }
 
-    registrarHttp(metodo, caminho, inicio, resposta.status, resposta.ok ? 'pronto' : 'falha');
+    const json: unknown = texto ? safeJson(texto) : undefined;
+    const erroResposta = resposta.ok ? null : erroDaResposta(resposta.status, json);
+    registrarHttp(metodo, caminho, inicio, resposta.status, resposta.ok ? 'pronto' : 'falha', erroResposta?.codigo);
     if (resposta.status === 401 && token && !opcoes.publica) {
       try { await this.aoSessaoInvalida?.(token); } catch { /* Preserva o erro de autenticação. */ }
       throw new ErroBackend('nao_autorizado', 'Sua sessão não é mais válida. Entre de novo.', 401);
     }
     if (resposta.status === 404 && opcoes.nuloSe404) return null as T;
-    const json: unknown = texto ? safeJson(texto) : undefined;
-
-    if (!resposta.ok) throw erroDaResposta(resposta.status, json);
+    if (erroResposta) throw erroResposta;
     if (opcoes.espera204 && resposta.status !== 204) throw new ErroBackend('resposta_invalida', 'Resposta fora do contrato.', resposta.status);
     const sincronizarHora = async () => {
       const hora = resposta.headers.get('x-pdv-agora');

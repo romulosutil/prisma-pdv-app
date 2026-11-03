@@ -2,8 +2,8 @@ import { z } from 'zod';
 import type { Armazenamento } from '@/dados/armazenamento';
 
 const rotas = ['/', '/boas-vindas', '/criar-conta', '/loja', '/entrar', '/planos', '/cartao', '/teste-iniciado', '/pagamentos', '/camera', '/bloqueio', '/suporte', '/diagnostico', '/produtos', '/produtos/scanner', '/produtos/buscando', '/produtos/novo', '/produtos/rapido', '/produtos/atalhos', '/produtos/:id', '/caixa', '/caixa/abrir', '/caixa/fechar', '/caixa/movimento', '/caixa/sync', '/caixa/turnos', '/caixa/vendas', '/caixa/venda/:id', '/vender', '/pagar', '/ajustes', '/ajustes/assinatura', '/gestao', 'outra'] as const;
-const endpoints = ['/contas', '/conta', '/auth/codigo', '/auth/vinculos', '/auth/login', '/auth/logout', '/auth/recuperacao', '/auth/recuperacao/confirmar', '/planos', '/assinatura', '/sync/push', '/sync/pull', '/caixas', '/caixas/reservar', '/catalogo/ean', '/suporte/solicitacoes', '/suporte/exportacao', 'outro'] as const;
-const acoes = ['Continuar', 'Entrar', 'Enviar código', 'Criar conta', 'Abrir caixa', 'Fechar caixa', 'Vender', 'Salvar produto', 'Salvar e bipar próximo', 'Preencher manualmente', 'Sincronizar agora', 'Concluir venda', 'Confirmar', 'outra'] as const;
+const endpoints = ['/auth/cadastro/verificar', '/auth/cadastro/codigo', '/auth/cadastro/configuracao', '/contas', '/conta', '/auth/codigo', '/auth/vinculos', '/auth/login', '/auth/logout', '/auth/recuperacao', '/auth/recuperacao/confirmar', '/planos', '/assinatura', '/sync/push', '/sync/pull', '/caixas', '/caixas/reservar', '/catalogo/ean', '/suporte/solicitacoes', '/suporte/exportacao', 'outro'] as const;
+const acoes = ['Confirmar e continuar', 'Criar minha conta', 'Já tenho conta', 'Continuar e enviar código', 'Confirmar e criar conta', 'Continuar', 'Entrar', 'Enviar código', 'Criar conta', 'Abrir caixa', 'Fechar caixa', 'Vender', 'Salvar produto', 'Salvar e bipar próximo', 'Preencher manualmente', 'Sincronizar agora', 'Concluir venda', 'Confirmar', 'outra'] as const;
 
 export function rotaSegura(rota: string): typeof rotas[number] {
   const semQuery = rota.split(/[?#]/)[0]!;
@@ -23,7 +23,13 @@ export function endpointSeguro(caminho: string): typeof endpoints[number] {
 export function acaoSegura(rotulo: string): typeof acoes[number] { return (acoes as readonly string[]).includes(rotulo) ? rotulo as typeof acoes[number] : 'outra'; }
 
 const contador = z.number().int().min(0).max(1_000_000);
+const FalhaAcessoSchema = z.enum(['email_ja_cadastrado', 'documento_ja_cadastrado', 'codigo_invalido', 'cadastro_codigo_necessario', 'limite_autenticacao', 'nao_autorizado']);
+export function falhaAcessoSegura(codigo: string | undefined) {
+  const lido = FalhaAcessoSchema.safeParse(codigo);
+  return lido.success ? lido.data : undefined;
+}
 export const CamposEventoSchema = z.object({
+  falhaAcesso: FalhaAcessoSchema.optional(),
   rota: z.enum(rotas).optional(), acao: z.enum(acoes).optional(), endpoint: z.enum(endpoints).optional(),
   metodo: z.enum(['GET', 'POST', 'PUT', 'DELETE']).optional(), status: z.number().int().min(0).max(599).optional(), ms: contador.optional(),
   pendentes: contador.optional(), rejeitadas: contador.optional(), achou: z.boolean().optional(), bloqueado: z.boolean().optional(), segundoPlano: z.boolean().optional(),

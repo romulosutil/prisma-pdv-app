@@ -27,7 +27,7 @@ it('não cria empresa/usuário/sessão sem prova; emissão só enfileira código
   expect(await banco.db.select().from(sessoes)).toHaveLength(0);
   const [entrega] = await banco.db.select().from(entregasCodigo);
   expect(entrega?.contaId).toBeNull(); expect(entrega?.envelope).toBeTruthy();
-  expect((await app.inject({ url: '/auth/cadastro/configuracao' })).json()).toEqual({ versaoContrato: 1, verificacaoEmail: true });
+  expect((await app.inject({ url: '/auth/cadastro/configuracao' })).json()).toEqual({ versaoContrato: 1, verificacaoEmail: true, verificacaoAntecipada: true });
   const r = await criar(prova); expect(r.statusCode).toBe(201);
   expect(await banco.db.select().from(contas)).toHaveLength(1);
   expect(await banco.db.select().from(sessoes)).toHaveLength(1);
@@ -68,4 +68,57 @@ it('worker entrega desafio sem conta pelo canal de teste, preservando validaçõ
   const r = await processarEntregasCodigo(banco.db, { ...emissaoTeste, canal: { enviar }, relogio });
   expect(r.aceitas).toBe(1); expect(enviar).toHaveBeenCalledOnce();
   expect(await banco.db.select().from(contas)).toHaveLength(0);
+});
+
+
+it('recusa email existente na emissão, sem novos desafios ou entregas', async () => {
+  const existente = dados();
+  expect((await criar(await cadastroComProva(app, banco.db, existente))).statusCode).toBe(201);
+  const antesCodigos = await banco.db.$count(codigosLogin), antesEntregas = await banco.db.$count(entregasCodigo);
+  relogio.avancarDias(1);
+  const resposta = await app.inject({ method: 'POST', url: '/auth/cadastro/codigo', payload: { email: existente.email, aparelhoId: gerarId() } });
+  expect([resposta.statusCode, resposta.json().erro]).toEqual([409, 'email_ja_cadastrado']);
+  expect(await banco.db.$count(codigosLogin)).toBe(antesCodigos); expect(await banco.db.$count(entregasCodigo)).toBe(antesEntregas);
+  expect(await banco.db.$count(contas)).toBe(1); expect(await banco.db.$count(sessoes)).toBe(1);
+});
+const conferir = (payload: unknown) => app.inject({ method: 'POST', url: '/auth/cadastro/verificar', payload: payload as any });
+it('confere documento antes da loja somente após prova válida de email, sem criar conta ou sessão', async () => {
+  const existente = dados();
+  expect((await criar(await cadastroComProva(app, banco.db, existente))).statusCode).toBe(201);
+  const req = { ...dados(), email: 'nova@example.com' };
+  const prova = await cadastroComProva(app, banco.db, req);
+  const semProva = await conferir(req);
+  expect([semProva.statusCode, semProva.json().erro]).toEqual([400, 'cadastro_codigo_necessario']);
+  const errado = prova.codigoCadastro === '000000' ? '111111' : '000000';
+  expect((await conferir({ ...prova, codigoCadastro: errado })).statusCode).toBe(400);
+  const resposta = await conferir(prova);
+  expect([resposta.statusCode, resposta.json().erro]).toEqual([409, 'documento_ja_cadastrado']);
+  expect(resposta.body).not.toContain(existente.email); expect(resposta.body).not.toContain(existente.documento);
+  expect(await banco.db.$count(contas)).toBe(1); expect(await banco.db.$count(usuarios)).toBe(1); expect(await banco.db.$count(sessoes)).toBe(1);
+});
+it('verifica documento livre sem consumir OTP e repete a prova ao criar a conta', async () => {
+  const prova = await cadastroComProva(app, banco.db, dados());
+  expect((await conferir(prova)).statusCode).toBe(204);
+  expect(await banco.db.$count(contas)).toBe(0); expect(await banco.db.$count(sessoes)).toBe(0);
+  expect((await criar(prova)).statusCode).toBe(201);
+  expect((await conferir(prova)).statusCode).toBe(400);
+});
+it('verificação antecipada também vincula email/aparelho e confirma cinco erros', async () => {
+  const prova = await cadastroComProva(app, banco.db, dados());
+  expect((await conferir({ ...prova, aparelhoId: gerarId() })).statusCode).toBe(400);
+  expect((await conferir({ ...prova, email: 'outra@example.com' })).statusCode).toBe(400);
+  const errado = prova.codigoCadastro === '000000' ? '111111' : '000000';
+  for (let i = 0; i < 5; i++) expect((await conferir({ ...prova, codigoCadastro: errado })).statusCode).toBe(400);
+  expect((await conferir(prova)).statusCode).toBe(400); expect((await criar(prova)).statusCode).toBe(400);
+  const [registro] = await banco.db.select().from(codigosLogin).where(eq(codigosLogin.id, prova.desafioCadastroId));
+  expect(registro?.tentativas).toBe(5); expect(await banco.db.$count(contas)).toBe(0);
+});
+it('mantém a checagem final se o documento for ocupado após a verificação antecipada', async () => {
+  const prova = await cadastroComProva(app, banco.db, dados());
+  expect((await conferir(prova)).statusCode).toBe(204);
+  const concorrente = { ...dados(), email: 'concorrente@example.com' };
+  expect((await criar(await cadastroComProva(app, banco.db, concorrente))).statusCode).toBe(201);
+  const resposta = await criar(prova);
+  expect([resposta.statusCode, resposta.json().erro]).toEqual([409, 'documento_ja_cadastrado']);
+  expect(await banco.db.$count(contas)).toBe(1); expect(await banco.db.$count(sessoes)).toBe(1);
 });

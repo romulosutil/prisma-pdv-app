@@ -5,11 +5,11 @@ import { ErroBackend } from '../src/servicos/backend';
 import { Dados } from '../src/dados/dados';
 import { ArmazenamentoMemoria, criarContadorDeIds } from './ambiente';
 
-const m = vi.hoisted(() => ({ modo: 'http', entrar: vi.fn(), iniciar: vi.fn(), confirmar: vi.fn(), cancelar: vi.fn(), pedir: vi.fn(), pendente: null as any, real: null as any, conta: { perfil: null as any, identidade: null as any, carregandoConta: false }, backHandler: null as null | (() => boolean), back: vi.fn(), setOptions: vi.fn() }));
+const m = vi.hoisted(() => ({ modo: 'http', entrar: vi.fn(), iniciar: vi.fn(), confirmar: vi.fn(), cancelar: vi.fn(), pedir: vi.fn(), pendente: null as any, real: null as any, conta: { perfil: null as any, identidade: null as any, carregandoConta: false }, backHandler: null as null | (() => boolean), back: vi.fn(), replace: vi.fn(), setOptions: vi.fn() }));
 vi.mock('react-native', async () => { const R = await import('react'); return { View: (p: any) => R.createElement('view', p, p.children), Pressable: (p: any) => R.createElement('pressable', p, p.children), StyleSheet: { create: (v: unknown) => v }, BackHandler: { addEventListener: (_: string, fn: () => boolean) => { m.backHandler = fn; return { remove: vi.fn() }; } } }; });
-vi.mock('expo-router', () => ({ useRouter: () => ({ back: m.back, replace: vi.fn() }), useNavigation: () => ({ setOptions: m.setOptions }) }));
+vi.mock('expo-router', () => ({ useRouter: () => ({ back: m.back, replace: m.replace }), useSegments: () => ['(onboarding)', 'entrar'], useNavigation: () => ({ setOptions: m.setOptions }) }));
 vi.mock('@/tema', () => ({ cores: { ink2: 'ink', surface: 's', surface2: 's2' }, raio: { md: 8 } }));
-vi.mock('@/dados/hooks', async () => { const R = await import('react'); return { useConta: () => m.real ? { ...(R.useSyncExternalStore(m.real.conta.assinar, m.real.conta.obter) as object), carregandoConta: R.useSyncExternalStore(m.real.conta.transicao.assinar, m.real.conta.transicao.obter) } : m.conta, useDados: () => m.real ?? dados }; });
+vi.mock('@/dados/hooks', async () => { const R = await import('react'); return { useConta: () => m.real ? { ...(R.useSyncExternalStore(m.real.conta.assinar, m.real.conta.obter) as object), temConta: m.real.conta.obter().identidade !== null, carregandoConta: [R.useSyncExternalStore(m.real.conta.finalizandoAcesso.assinar, m.real.conta.finalizandoAcesso.obter), R.useSyncExternalStore(m.real.conta.transicao.assinar, m.real.conta.transicao.obter)].some(Boolean) } : m.conta, useDados: () => m.real ?? dados }; });
 vi.mock('@/dados/carrinho', () => ({ useCarrinho: () => ({ vazio: true }) }));
 vi.mock('@/componentes/Banner', async () => { const R = await import('react'); return { Banner: (p: any) => R.createElement('banner', p) }; });
 vi.mock('@/componentes/Botao', async () => { const R = await import('react'); return { Botao: (p: any) => R.createElement('botao', p) }; });
@@ -19,6 +19,7 @@ vi.mock('@/componentes/BottomSheet', async () => { const R = await import('react
 vi.mock('@/componentes/TelaBase', async () => { const R = await import('react'); return { TelaBase: (p: any) => R.createElement('tela', null, p.children, p.rodape) }; });
 vi.mock('@/componentes/Texto', async () => { const R = await import('react'); return { Texto: (p: any) => R.createElement('texto', p, p.children) }; });
 import Tela from '../app/(onboarding)/entrar';
+import { useConclusaoLogin } from '@/nucleo/useConclusaoLogin';
 const dados = { backend: { get modo() { return m.modo; }, pedirCodigo: m.pedir }, entrar: m.entrar, iniciarRecuperacao: m.iniciar, confirmarRecuperacao: m.confirmar, cancelarRecuperacao: m.cancelar, obterRecuperacaoPendente: () => m.pendente };
 const visao = { id: 'desafio', perfil: { nomeLoja: 'Loja real', email: 'dona@example.com' }, aparelhos: [{ id: 'a', nome: 'Caixa antigo' }, { id: 'b', nome: 'Balcão' }] };
 let r: ReactTestRenderer;
@@ -29,6 +30,49 @@ async function preparar() { await act(async () => { r = create(React.createEleme
 afterEach(async () => { if (r) await act(async () => r.unmount()); vi.resetAllMocks(); m.modo = 'http'; m.pendente = null; m.real = null; m.conta = { perfil: null, identidade: null, carregandoConta: false }; });
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 describe('recuperação na tela de entrada', () => {
+  it.each(['primeiro', 'reautenticacao', 'troca'] as const)('conclui %s e sai da entrada após a licença', async caminho => {
+    const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+    const perfil = { contaId: id(21), lojaId: id(22), operadorId: id(23), email: 'dona@example.com', nomeResponsavel: 'Dona', nomeLoja: 'Loja real', papel: 'dono' as const };
+    const real = new Dados(new ArmazenamentoMemoria(), criarContadorDeIds(), 'http://api.local'); m.real = real;
+    await real.iniciar();
+    if (caminho !== 'primeiro') {
+      const anterior = caminho === 'troca' ? { ...perfil, contaId: id(31), lojaId: id(32), operadorId: id(33), email: 'outra@example.com' } : perfil;
+      await real.conta.registrar({ ...anterior, aparelhoId: id(24), token: 'anterior' }, { ...anterior, aparelhoNome: 'Celular' });
+      if (caminho === 'reautenticacao') await real.conta.invalidarSessao();
+    }
+    const pedir = vi.spyOn(real.backend, 'pedirCodigo').mockResolvedValue();
+    vi.spyOn(real.backend, 'consultarVinculos').mockResolvedValue([{ ...perfil, usuarioId: id(25), nome: 'Dona', estado: 'ativo', conviteExpiraEm: null, permissoes: [] }]);
+    vi.spyOn(real.backend, 'entrar').mockImplementation(async req => ({ ...perfil, aparelhoId: req.aparelhoId, token: 'nova' }));
+    vi.spyOn(real.backend, 'obterPerfil').mockResolvedValue(perfil);
+    let liberar!: () => void;
+    vi.spyOn(real.assinatura, 'sincronizar').mockReturnValue(new Promise<void>(resolve => { liberar = resolve; }));
+    function Raiz() { useConclusaoLogin(); const conta = React.useSyncExternalStore(real.conta.assinar, real.conta.obter); return React.createElement(Tela, { key: conta.identidade?.contaId ?? 'sem-conta' }); }
+    await act(async () => { r = create(React.createElement(Raiz)); });
+    expect(m.replace).not.toHaveBeenCalled();
+    await act(async () => campo('E-mail').props.onChangeText(perfil.email)); await clicar('Enviar código');
+    await act(async () => campo('Código').props.onChangeText('123456')); await clicar('Entrar');
+    expect(real.conta.obter().sessao?.token).toBe('nova');
+    expect(real.conta.finalizandoAcesso.obter()).toBe(true);
+    expect(m.replace).not.toHaveBeenCalled(); expect(real.conta.conclusoesAcesso.obter()).toBe(0);
+    const solicitar = botao('Enviar código') ?? botao('Entrar');
+    await act(async () => solicitar.props.onPress()); expect(pedir).toHaveBeenCalledTimes(1);
+    await act(async () => liberar());
+    expect(real.conta.finalizandoAcesso.obter()).toBe(false);
+    expect(real.conta.conclusoesAcesso.obter()).toBe(1); expect(m.replace).toHaveBeenCalledWith('/');
+  });
+
+  it('mantém a entrada após código recusado sem emitir conclusão de acesso', async () => {
+    const real = new Dados(new ArmazenamentoMemoria(), criarContadorDeIds(), 'http://api.local'); m.real = real;
+    await real.iniciar();
+    vi.spyOn(real.backend, 'pedirCodigo').mockResolvedValue();
+    vi.spyOn(real.backend, 'consultarVinculos').mockRejectedValue(new ErroBackend('nao_autorizado', '', 401));
+    function Raiz() { useConclusaoLogin(); return React.createElement(Tela); }
+    await act(async () => { r = create(React.createElement(Raiz)); });
+    await act(async () => campo('E-mail').props.onChangeText('dona@example.com')); await clicar('Enviar código');
+    await act(async () => campo('Código').props.onChangeText('123456')); await clicar('Entrar');
+    expect(real.conta.obter().sessao).toBeNull(); expect(real.conta.conclusoesAcesso.obter()).toBe(0); expect(m.replace).not.toHaveBeenCalled();
+  });
+
   it('oferece apenas no limite 409 e exige escolha e consentimento', async () => {
     m.pedir.mockResolvedValue(undefined); m.entrar.mockRejectedValue(new ErroBackend('limite_aparelhos', '', 409));
     m.iniciar.mockImplementation(async () => { m.pendente = { recuperacao: visao, aparelhoSubstituidoId: null }; return visao; });
@@ -92,14 +136,14 @@ describe('recuperação na tela de entrada', () => {
     const confirmar = vi.spyOn(real.backend, 'confirmarRecuperacao').mockImplementation(async () => ({ token: 'sessao', contaId: id(2), lojaId: id(3), operadorId: id(4), aparelhoId: inicio.mock.calls[0]![0].aparelhoId }));
     vi.spyOn(real.backend, 'obterPerfil').mockResolvedValue(perfil); vi.spyOn(real.assinatura, 'sincronizar').mockResolvedValue();
     vi.spyOn(real.produtos, 'carregar').mockRejectedValueOnce(new Error('falha local'));
-    function Raiz() { const conta = React.useSyncExternalStore(real.conta.assinar, real.conta.obter); return React.createElement(Tela, { key: JSON.stringify([conta.identidade?.contaId, conta.identidade?.lojaId]) }); }
+    function Raiz() { useConclusaoLogin(); const conta = React.useSyncExternalStore(real.conta.assinar, real.conta.obter); return React.createElement(Tela, { key: JSON.stringify([conta.identidade?.contaId, conta.identidade?.lojaId]) }); }
     await act(async () => { r = create(React.createElement(Raiz)); });
     await act(async () => campo('E-mail').props.onChangeText(perfil.email)); await clicar('Enviar código'); await act(async () => campo('Código').props.onChangeText('123456')); await clicar('Entrar'); await clicar('Recuperar acesso neste aparelho');
     await act(async () => r.root.findAll(n => n.props.accessibilityRole === 'radio')[0]!.props.onPress()); await clicar('Continuar'); await clicar('Confirmar substituição');
-    expect(real.obterRecuperacaoPendente()?.aparelhoSubstituidoId).toBe(id(6));
+    expect(real.obterRecuperacaoPendente()?.aparelhoSubstituidoId).toBe(id(6)); expect(m.replace).not.toHaveBeenCalled();
     expect(JSON.stringify(real.obterRecuperacaoPendente())).not.toContain('a'.repeat(43));
     expect(botao('Tentar novamente')).toBeDefined(); await clicar('Tentar novamente'); await clicar('Confirmar substituição');
-    expect(confirmar).toHaveBeenCalledTimes(2); expect(confirmar.mock.calls[0]).toEqual(confirmar.mock.calls[1]); expect(real.conta.obter().sessao?.token).toBe('sessao');
+    expect(confirmar).toHaveBeenCalledTimes(2); expect(confirmar.mock.calls[0]).toEqual(confirmar.mock.calls[1]); expect(real.conta.obter().sessao?.token).toBe('sessao'); expect(m.replace).toHaveBeenCalledWith('/');
   });
   it('bloqueia retorno e submissão após remontar durante transição real da conta', async () => {
     const real = new Dados(new ArmazenamentoMemoria(), criarContadorDeIds(), 'http://api.local'); m.real = real;

@@ -24,7 +24,7 @@ export async function verificarCodigoUsuario(tx: Db, email: string, codigo: stri
   if (!usuario) { await limitarAuth(tx, 'falha_email', email, relogio); return invalido; }
   const agora = relogio.agora();
   const [pendente] = await tx.select().from(codigosLogin)
-    .where(and(eq(codigosLogin.email, email), isNull(codigosLogin.usadoEm)))
+    .where(and(eq(codigosLogin.email, email), eq(codigosLogin.finalidade, 'login'), isNull(codigosLogin.usadoEm)))
     .orderBy(desc(codigosLogin.criadoEm)).limit(1);
   if (!pendente || pendente.expiraEm <= agora || pendente.tentativas >= 5) {
     await limitarAuth(tx, 'falha_email', email, relogio); return invalido;

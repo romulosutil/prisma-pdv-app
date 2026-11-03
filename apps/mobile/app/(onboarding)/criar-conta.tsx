@@ -55,6 +55,7 @@ export default function CriarConta() {
         <Texto estilo="corpo" cor={cores.ink2}>
           Usamos o CPF ou CNPJ para identificar sua loja.
         </Texto>
+        <Texto estilo="corpo" cor={cores.ink2}>Você confirmará seu e-mail com um código antes de criar a conta. Para acessar uma conta existente, toque em Entrar e use seu código pessoal.</Texto>
         <Campo
           rotulo="Seu nome"
           value={nome}

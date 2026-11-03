@@ -32,6 +32,8 @@ import { AcessoOffline } from './acessoOffline';
 import { SuporteServico } from '@/servicos/suporte';
 
 export interface FormularioConta {
+  desafioCadastroId?: string;
+  codigoCadastro?: string;
   nomeResponsavel: string;
   email: string;
   /** CPF ou CNPJ, só dígitos. */
@@ -160,6 +162,7 @@ export class Dados {
     this.validarPerfil(sessao, perfil);
     return this.executarAcesso(async () => {
       if (this.conta.obter().sessao?.token !== sessao.token) throw new ErroBackend('conflito', 'O perfil mudou durante a validação.');
+      this.conta.atualizacaoEmSegundoPlano.alterar(true);
       this.conta.transicao.alterar(true);
       this.armazenamentoDaLoja.bloquearAlteracoes(true);
       await this.aguardarGravacoes();
@@ -178,6 +181,7 @@ export class Dados {
 
   private aplicarSyncLocal<T>(tarefa: () => Promise<T>): Promise<T> {
     return this.executarAcesso(async () => {
+      this.conta.atualizacaoEmSegundoPlano.alterar(true);
       this.conta.transicao.alterar(true);
       this.armazenamentoDaLoja.bloquearAlteracoes(true);
       await this.aguardarGravacoes();
@@ -362,6 +366,12 @@ export class Dados {
     return this.backend.listarPlanos();
   }
 
+  async pedirCodigoCadastro(email: string): Promise<{ desafioId: string }> {
+    if (!this.backend.pedirCodigoCadastro) throw new ErroBackend('valor_invalido', 'Cadastro verificado indisponível.');
+    const aparelhoId = await this.instalacao.aparelhoDaConta(email);
+    return this.backend.pedirCodigoCadastro(email, aparelhoId);
+  }
+
   async criarConta(formulario: FormularioConta): Promise<void> {
     this.exigirTrocaDisponivel();
     this.invalidarRecuperacao();
@@ -372,6 +382,7 @@ export class Dados {
     const legado = anterior.identidade && anterior.perfil ? { email: anterior.perfil.email, aparelhoId: anterior.identidade.aparelhoId } : undefined;
     const aparelhoId = await this.instalacao.aparelhoDaConta(formulario.email, legado);
     const sessao = await this.backend.criarConta({
+      ...(formulario.desafioCadastroId ? { desafioCadastroId: formulario.desafioCadastroId, codigoCadastro: formulario.codigoCadastro } : {}),
       email: formulario.email,
       nomeResponsavel: formulario.nomeResponsavel,
       nomeLoja: formulario.nomeLoja,
@@ -619,6 +630,7 @@ export class Dados {
       finally {
         this.armazenamentoDaLoja.bloquearAlteracoes(false);
         this.conta.transicao.alterar(false);
+        this.conta.atualizacaoEmSegundoPlano.alterar(false);
       }
     });
     this.filaAcesso = resultado.then(() => undefined, () => undefined);

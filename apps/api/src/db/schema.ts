@@ -125,6 +125,8 @@ export const codigosLogin = pgTable(
   {
     id: uuid('id').primaryKey(),
     email: text('email').notNull(),
+    finalidade: text('finalidade', { enum: ['login', 'cadastro'] }).notNull().default('login'),
+    aparelhoCadastroId: uuid('aparelho_cadastro_id'),
     codigoHash: text('codigo_hash').notNull(),
     expiraEm: instante('expira_em').notNull(),
     usadoEm: instante('usado_em'),
@@ -137,7 +139,7 @@ export const codigosLogin = pgTable(
 export const entregasCodigo = pgTable('entregas_codigo', {
   id: uuid('id').primaryKey(),
   ordemFila: bigserial('ordem_fila', { mode: 'number' }).notNull(),
-  contaId: uuid('conta_id').notNull().references(() => contas.id),
+  contaId: uuid('conta_id').references(() => contas.id),
   codigoId: uuid('codigo_id').notNull().unique().references(() => codigosLogin.id),
   dominioRemetente: text('dominio_remetente').notNull(),
   estado: text('estado', { enum: ['pendente', 'enviando', 'aceita', 'cancelada', 'falhou'] }).notNull(),

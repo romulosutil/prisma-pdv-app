@@ -8,7 +8,7 @@ export function useReducaoMovimento(): boolean {
     let ativo = true;
     AccessibilityInfo.isReduceMotionEnabled().then((v) => {
       if (ativo) setReduzir(v);
-    });
+    }).catch(() => { if (ativo) setReduzir(true); });
     const assinatura = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduzir);
     return () => {
       ativo = false;

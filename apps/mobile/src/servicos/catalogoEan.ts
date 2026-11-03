@@ -1,6 +1,7 @@
 import { normalizarEan, ProdutoCatalogoSchema, type FonteCatalogo, type ProdutoCatalogo } from '@pdv/shared';
 import type { Armazenamento } from '@/dados/armazenamento';
 import { registrar } from '@/diagnostico/registro';
+import { registrarPiloto } from '@/telemetria/registro';
 
 /**
  * Resultado da consulta ao catálogo de códigos de barras. Os campos além do nome só vêm da API
@@ -92,6 +93,7 @@ export class CatalogoEan {
     const inicio = Date.now();
     const codigo = normalizarEan(ean);
     if (!codigo) {
+      registrarPiloto('catalogo', { etapa: 'invalido', achou: false });
       registrar('leitura', 'consulta de catálogo', { fonte: 'api', achou: false, ms: 0, ean: ean.replace(/\D/g, ''), invalido: true });
       return { achou: false };
     }
@@ -100,11 +102,13 @@ export class CatalogoEan {
     if (!this.mesmoEscopo()) return { achou: false };
     const guardado = this.cache.get(codigo);
     if (guardado) {
+      registrarPiloto('catalogo', { etapa: 'cache', achou: true });
       registrar('leitura', 'consulta de catálogo', { fonte: 'cache', achou: true, ms: Date.now() - inicio, ean: codigo });
       return resultadoDe(guardado);
     }
 
     const produto = await this.pedirNaApi(config, codigo, sinal);
+    registrarPiloto('catalogo', { etapa: 'api', achou: produto !== null, ms: Math.min(1_000_000, Math.max(0, Date.now() - inicio)) });
     if (!this.mesmoEscopo()) return { achou: false };
     registrar('leitura', 'consulta de catálogo', { fonte: 'api', achou: produto !== null, ms: Date.now() - inicio, ean: codigo });
     if (!produto) return { achou: false };
@@ -115,7 +119,7 @@ export class CatalogoEan {
   /** `null` para tudo que não for um produto válido; só lança `AbortError` quando o chamador cancela. */
   private async pedirNaApi(config: ConfigCatalogoApi, codigo: string, sinal?: AbortSignal): Promise<ProdutoCatalogo | null> {
     const token = config.obterToken();
-    if (!token) return null;
+    if (!token) { registrarPiloto('catalogo', { etapa: 'sem_sessao', achou: false }); return null; }
 
     const controle = new AbortController();
     const abortar = () => controle.abort();
@@ -129,15 +133,18 @@ export class CatalogoEan {
           headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
           signal: controle.signal,
         });
+        registrarPiloto('catalogo', { etapa: resposta.status === 404 ? 'ausente' : resposta.ok ? 'pronto' : 'falha', status: resposta.status });
         if (resposta.status === 401) await config.aoSessaoInvalida?.(token);
         if (!resposta.ok) return null;
         const lido = ProdutoCatalogoSchema.safeParse(await resposta.json());
+        if (!lido.success) registrarPiloto('catalogo', { etapa: 'resposta_invalida' });
         return lido.success ? { ...lido.data, ean: codigo } : null;
       })();
       // Se a corrida for perdida pelo `trabalho`, o erro dele já foi tratado pela própria corrida.
       return await Promise.race([trabalho, quandoAbortar(controle.signal)]);
     } catch (erro) {
       if (sinal?.aborted) throw erro instanceof Error && erro.name === 'AbortError' ? erro : erroDeCancelamento();
+      registrarPiloto('catalogo', { etapa: controle.signal.aborted ? 'timeout' : 'rede', achou: false });
       return null;
     } finally {
       clearTimeout(prazo);

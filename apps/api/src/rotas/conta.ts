@@ -24,6 +24,7 @@ import { limitarAuth } from '../servicos/limitesAuth';
 import { normalizarEmail, hashDoCodigo, limiteAuth, verificarCodigoUsuario, consumirCodigoLogin } from '../servicos/codigoLogin';
 import { cancelarEntregaDoCodigo, enfileirarCodigo } from '../email/filaCodigo';
 import { vinculosDoUsuario } from '../servicos/equipe';
+import { verificarCadastro } from './cadastro';
 
 const CODIGO_VALIDADE_MS = 10 * 60 * 1000;
 
@@ -37,6 +38,14 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
     const agora = relogio.agora();
 
     const sessao = await db.transaction(async (tx) => {
+      // Fixture/demo sem canal real permanece isolada. Em produção o bootstrap exige modo email.
+      let provaId: string | null = null;
+      if (emissaoCodigo.modo === 'email' || req.desafioCadastroId || req.codigoCadastro) {
+        if (!await limitarAuth(tx, 'cadastro_confirmacao_ip', request.ip, relogio)) return limiteAuth();
+        const prova = await verificarCadastro(tx, req, relogio);
+        if (prova instanceof ErroApi) return prova;
+        provaId = prova;
+      }
       const [usuarioExistente] = await tx.select({ id: usuarios.id }).from(usuarios).where(eq(usuarios.email, email));
       if (usuarioExistente) throw new ErroApi(409, 'email_ja_cadastrado', 'Este e-mail já tem acesso. Entre com seu código pessoal.');
       const [existente] = await tx
@@ -73,9 +82,11 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
         await salvarAssinatura(tx, acesso, agora);
         await registrarEvento(tx, acesso, 'acesso_liberado_sem_cobranca', { planoId: acesso.planoId }, agora);
       }
+      if (provaId) await consumirCodigoLogin(tx, provaId, agora);
       return criarSessao(tx, { contaId, lojaId, operadorId, aparelhoId: req.aparelhoId }, agora);
     });
 
+    if (sessao instanceof ErroApi) throw sessao;
     return reply.status(201).send(CriarContaResSchema.parse(sessao));
   });
 

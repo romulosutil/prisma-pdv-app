@@ -3,7 +3,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, ScrollView, View } from 'react-native';
+import { ActivityIndicator, AppState, Platform, ScrollView, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ToastProvider, useToast } from '@/componentes/Toast';
 import { Botao } from '@/componentes/Botao';
@@ -15,6 +15,11 @@ import { decidirRota } from '@/nucleo/fluxo';
 import { cores, FONTES_PARA_CARREGAR } from '@/tema';
 import { useCarrinho } from '@/dados/carrinho';
 import { escopoDoPerfil } from '@/dados/estadoConta';
+import { registrarPiloto } from '@/telemetria/registro';
+
+const piloto = process.env.EXPO_PUBLIC_AMBIENTE === 'homologacao' ? require('@/telemetria/captura') as typeof import('@/telemetria/captura') : null;
+piloto?.instalarPiloto(dados);
+const IndicadorPiloto = piloto?.IndicadorPiloto;
 
 // A splash fica até as fontes e os dados locais carregarem e o guarda de fluxo escolher a tela.
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -36,9 +41,15 @@ export default function LayoutRaiz() {
     setCarregandoDados(true);
     try {
       await dados.iniciar();
+      if (Platform.OS !== 'web') {
+        try { const { limparExportacoesExpiradas } = await import('@/util/exportacoes'); limparExportacoesExpiradas(); }
+        catch { /* A limpeza temporária não deve impedir abrir os dados comerciais. */ }
+      }
+      registrarPiloto('app', { etapa: 'pronto' });
       setErroDeDados(false);
       setDadosProntos(true);
     } catch {
+      registrarPiloto('app', { etapa: 'falha' });
       setErroDeDados(true);
       await SplashScreen.hideAsync().catch(() => undefined);
     } finally { setCarregandoDados(false); }
@@ -53,6 +64,7 @@ export default function LayoutRaiz() {
         <Texto accessibilityRole="header" estilo="tituloL">Não foi possível abrir seus dados</Texto>
         <Texto accessibilityRole="alert">O acesso foi interrompido para proteger seus registros. Libere espaço se o aparelho estiver cheio e tente novamente. Se continuar, procure o suporte antes de limpar os dados ou reinstalar o app.</Texto>
         <Botao rotulo="Tentar novamente" carregando={carregandoDados} onPress={() => { void carregarDados(); }} />
+        {piloto ? <Botao rotulo="Copiar histórico do teste" variante="terciario" onPress={() => { void piloto.copiarHistoricoPiloto().catch(() => undefined); }} /> : null}
       </ScrollView>
       </SafeAreaView>
     </SafeAreaProvider>
@@ -126,6 +138,7 @@ function GuardaDeFluxo() {
   }, [escopo, reautenticacaoNecessaria]);
 
   return <View style={{ flex: 1 }}>
+    {IndicadorPiloto ? <SafeAreaView edges={['top']}><IndicadorPiloto /></SafeAreaView> : null}
     <View style={{ flex: 1 }} accessibilityElementsHidden={carregandoConta} importantForAccessibility={carregandoConta ? 'no-hide-descendants' : 'auto'}>
       <Stack key={escopo ?? 'sem-conta'} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: cores.bg } }} />
     </View>

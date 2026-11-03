@@ -1,6 +1,6 @@
 import { formatarBRL, type Produto } from '@pdv/shared';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { FlatList, StyleSheet, TextInput, View } from 'react-native';
 import { Botao } from '@/componentes/Botao';
 import { BotaoIcone } from '@/componentes/BotaoIcone';
@@ -32,6 +32,7 @@ export function TelaBusca() {
   const toast = useToast();
   const { produtos, buscarPorNome } = useProdutos();
   const adicionar = useAdicionar();
+  const adicionando = useRef(false);
 
   const [consulta, setConsulta] = useState('');
   const [focado, setFocado] = useState(false);
@@ -47,13 +48,15 @@ export function TelaBusca() {
     return buscarPorNome(termo);
   }, [termo, ehCodigo, produtos, buscarPorNome]);
 
-  const escolher = (produto: Produto) => {
+  const escolher = async (produto: Produto) => {
+    if (adicionando.current) return;
     if (produto.unidade === 'kg') {
       setPesando(produto);
       return;
     }
-    adicionar(produto);
-    router.back();
+    adicionando.current = true;
+    try { if (await adicionar(produto)) router.back(); }
+    finally { adicionando.current = false; }
   };
 
   const buscarCodigo = () => {
@@ -67,8 +70,7 @@ export function TelaBusca() {
   const lancarAvulso = () => router.dismissTo('/vender?avulso=1');
   const titulo = !termo ? 'Todos os produtos' : resultados.length === 1 ? '1 produto' : `${resultados.length} produtos`;
 
-  return (
-    <TelaBase>
+  const cabecalhoBusca = (
       <View style={estilos.cabecalho}>
         <View style={[estilos.caixa, focado && estilos.caixaFocada]}>
           <Icone nome="lupa" tamanho={22} cor={cores.ink2} />
@@ -91,7 +93,9 @@ export function TelaBusca() {
         </View>
         <Botao rotulo="Cancelar" variante="ghost" tamanho="M" larguraTotal={false} onPress={() => router.back()} />
       </View>
-
+  );
+  return (
+    <TelaBase>
       <FlatList
         data={resultados}
         keyExtractor={(produto) => produto.id}
@@ -99,6 +103,7 @@ export function TelaBusca() {
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View>
+            {cabecalhoBusca}
             {ehCodigo ? (
               <LinhaLista
                 titulo={`Buscar código ${termo}`}
@@ -149,10 +154,14 @@ export function TelaBusca() {
       <FolhaPeso
         produto={pesando}
         onFechar={() => setPesando(null)}
-        onConfirmar={(gramas) => {
-          if (pesando) adicionar(pesando, gramas);
-          setPesando(null);
-          router.back();
+        onConfirmar={async (gramas) => {
+          if (!pesando || adicionando.current) return;
+          adicionando.current = true;
+          try {
+            if (!await adicionar(pesando, gramas)) return;
+            setPesando(null);
+            router.back();
+          } finally { adicionando.current = false; }
         }}
       />
       <FolhaNaoEncontrado

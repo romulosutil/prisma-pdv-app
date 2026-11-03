@@ -10,6 +10,14 @@ const resposta = (status: number, body?: unknown) => new Response(body === undef
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('acesso HTTP', () => {
+  it.each(['email_ja_cadastrado', 'documento_ja_cadastrado'] as const)('orienta %s sem mensagem livre nem assinatura', async codigo => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(resposta(409, { erro: codigo, mensagem: 'texto arbitrário remoto' })));
+    const backend = new BackendHttp('https://api.example', () => null);
+    const erro = await backend.criarConta({} as any).catch(e => e);
+    expect(erro.codigo).toBe(codigo);
+    expect(mensagemDeErro(erro)).not.toMatch(/arbitrário|assinatura/);
+    expect(mensagemDeErro(erro)).toMatch(/código pessoal|CPF\/CNPJ/);
+  });
   it('explica a restrição do turno anterior sem invalidar a sessão', async () => {
     const mensagem = 'Seu turno anterior ainda está aberto no servidor. Sincronize o fechamento antes de abrir outro.';
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(resposta(409, { erro: 'conflito', mensagem })));

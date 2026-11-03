@@ -25,6 +25,7 @@ export function decidirRota(estado: EstadoDoFluxo, segmentos: readonly string[])
   const noOnboarding = raiz === '(onboarding)';
   // Políticas e ajuda continuam acessíveis sem sessão ou licença comercial.
   if (raiz === 'suporte') return null;
+  if (raiz === 'diagnostico') return null;
 
   if (!estado.temConta) return noOnboarding && ANTES_DA_CONTA.includes(tela) ? null : '/boas-vindas';
 

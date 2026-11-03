@@ -1,3 +1,4 @@
+import { ListaPaginada } from '@/componentes/ListaPaginada';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
@@ -55,18 +56,18 @@ export function TurnosCaixa() {
     <Botao rotulo="Atualizar do servidor" variante="terciario" onPress={() => void atualizar()} desabilitado={ocupado} />
     {mensagem ? <Texto estilo="corpo" accessibilityRole="alert" selectable>{mensagem}</Texto> : null}
     {pendente ? <Botao rotulo="Repetir operação online pendente" carregando={ocupado} onPress={async () => { setOcupado(true); try { const r = await dados.repetirOperacaoCaixaPendente() as { id?: string }; setMensagem(`Operação confirmada: ${r?.id ?? ''}`); } catch (e) { setMensagem(mensagemDeErro(e)); } finally { setOcupado(false); await atualizar(); } }} /> : null}
-    {linhas.map(l => <View key={l.caixa.id} style={{ gap: 8, paddingVertical: 12 }}>
+    <ListaPaginada itens={linhas} renderizar={l => <View key={l.caixa.id} style={{ gap: 8, paddingVertical: 12 }}>
       <Texto estilo="tituloM">{`${l.nomeOperador} · ${l.caixa.fechamento ? 'Encerrado' : 'Aberto'}${selecionado === l.caixa.id ? ' · Selecionado' : ''}`}</Texto>
       <Texto estilo="corpo">{`Esperado: ${formatarBRL(l.saldoCentavos)}${l.caixa.fechamento ? ` · Contado: ${formatarBRL(l.caixa.fechamento.contadoCentavos)} · Diferença: ${formatarBRL(l.caixa.fechamento.contadoCentavos - l.caixa.fechamento.esperadoCentavos)}` : ''}`}</Texto>
       <Texto estilo="legenda" selectable>{`Turno: ${l.caixa.id}`}</Texto>
       {!l.caixa.versaoContrato ? <Texto estilo="legenda">Histórico legado: autoria adicional não comprovada permanece sem atribuição.</Texto> : null}
       <Botao rotulo={`Selecionar turno de ${l.nomeOperador}`} tamanho="M" variante="terciario" onPress={() => selecionar(l.caixa.id)} desabilitado={ocupado} />
-    </View>)}
+    </View>} />
     {linha && caixa ? <View style={{ gap: 12 }}>
       <Texto estilo="tituloM">{`Turno de ${linha.nomeOperador}`}</Texto>
-      <Botao rotulo="Copiar identificador do turno" variante="terciario" onPress={() => void Clipboard.setStringAsync(caixa.id)} />
-      {caixa.movimentos.map(m => <Texto key={m.id} estilo="corpo" selectable>{`${ROTULOS_MOVIMENTO[m.tipo]} · ${formatarBRL(m.valorCentavos)} · ${m.categoria ?? 'Legado'} · ${m.destino ?? ''} · ${m.motivo ?? ''}\nEvento: ${m.id}\nAutor: ${m.autorOperadorId ?? 'Não comprovado no legado'} · Responsável: ${m.responsavelOperadorId ?? caixa.operadorId}${m.aprovadorId ? ` · Aprovador: ${m.aprovadorId}` : ''}${m.originalId ? ` · Original: ${m.originalId}` : ''}`}</Texto>)}
-      {linha.auditoria.map(a => <Texto key={a.id} estilo="legenda">{`${a.tipo} · ${a.em} · Autor: ${a.autorOperadorId} · ${String(a.dados.motivo ?? '')}`}</Texto>)}
+      <Botao rotulo="Copiar identificador do turno" variante="terciario" onPress={() => { void Clipboard.setStringAsync(caixa.id).catch(() => setMensagem('Não foi possível copiar. Use o identificador exibido acima.')); }} />
+      <ListaPaginada itens={caixa.movimentos} renderizar={m => <Texto key={m.id} estilo="corpo" selectable>{`${ROTULOS_MOVIMENTO[m.tipo]} · ${formatarBRL(m.valorCentavos)} · ${m.categoria ?? 'Legado'} · ${m.destino ?? ''} · ${m.motivo ?? ''}\nEvento: ${m.id}\nAutor: ${m.autorOperadorId ?? 'Não comprovado no legado'} · Responsável: ${m.responsavelOperadorId ?? caixa.operadorId}${m.aprovadorId ? ` · Aprovador: ${m.aprovadorId}` : ''}${m.originalId ? ` · Original: ${m.originalId}` : ''}`}</Texto>} />
+      <ListaPaginada itens={linha.auditoria} renderizar={a => <Texto key={a.id} estilo="legenda">{`${a.tipo} · ${a.em} · Autor: ${a.autorOperadorId} · ${String(a.dados.motivo ?? '')}`}</Texto>} />
       {caixa.fechamento ? <>
         <Texto estilo="corpo">{`Recolhido: ${formatarBRL(caixa.fechamento.recolhidoCentavos ?? 0)} · Troco preservado: ${formatarBRL(caixa.fechamento.trocoRestanteCentavos ?? 0)}`}</Texto>
         {dados.pode('conferir_caixas') ? <><Campo rotulo="Motivo da conferência" value={motivo} onChangeText={setMotivo} maxLength={500} /><Botao rotulo="Registrar conferência" carregando={ocupado} onPress={() => void executar('conferir', { caixaId: caixa.id, motivo })} /></> : null}

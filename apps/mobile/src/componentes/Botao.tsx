@@ -3,6 +3,7 @@ import { cores, textoBotao } from '@/tema';
 import { useFoco } from '@/tema/useFoco';
 import { Icone, type NomeIcone } from './Icone';
 import { Texto } from './Texto';
+import { registrarAcao } from '@/telemetria/registro';
 
 export type VarianteBotao = 'primario' | 'secundario' | 'terciario' | 'ghost' | 'perigo';
 export type TamanhoBotao = 'L' | 'M' | 'S';
@@ -64,7 +65,7 @@ export function Botao({
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: desabilitado, busy: carregando }}
       disabled={desabilitado || carregando}
-      onPress={onPress}
+      onPress={() => { registrarAcao(rotulo); onPress(); }}
       onFocus={aoFocar}
       onBlur={aoDesfocar}
       hitSlop={tamanho === 'S' ? { top: 6, bottom: 6, left: 4, right: 4 } : undefined}

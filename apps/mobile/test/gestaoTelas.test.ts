@@ -81,3 +81,24 @@ it('nova loja usa comando durável e seleção encaminha ao acesso pessoal', asy
   await act(async () => botao('Selecionar loja com meu acesso pessoal').props.onPress());
   expect(m.push).toHaveBeenCalledWith('/entrar');
 });
+
+it('falha ao ler pendência na montagem e no finally é visível sem rejeição não tratada', async () => {
+  m.obter.mockRejectedValue(new Error('armazenamento indisponível'));
+  await act(async () => { r = create(React.createElement(Lojas)); });
+  expect(JSON.stringify(r.toJSON())).toContain('Não foi possível consultar a operação local');
+  await act(async () => campo('Nome da nova loja').props.onChangeText('Filial'));
+  await act(async () => botao('Cadastrar loja').props.onPress());
+  expect(m.operar).toHaveBeenCalledOnce();
+  expect(JSON.stringify(r.toJSON())).toContain('Não foi possível consultar a operação local');
+  expect(botao('Cadastrar loja').props.carregando).toBe(false);
+});
+
+it('lista grande de produtos não monta todos os botões de seleção e permite alcançar a última página', async () => {
+  const clientes = Array.from({ length: 1000 }, (_, n) => ({ id: `c${n}`, nome: `Cliente ${n}`, contato: '' }));
+  m.fiado.mockResolvedValue({ clientes, titulos: [], eventos: [] });
+  await act(async () => { r = create(React.createElement(Fiado)); });
+  expect(elementos('botao').filter(n => n.props.rotulo.includes('Cliente '))).toHaveLength(25);
+  for (let n = 0; n < 39; n++) await act(async () => botao('Próxima página').props.onPress());
+  expect(JSON.stringify(r.toJSON())).toContain('Cliente 999');
+  expect(elementos('botao').filter(n => n.props.rotulo.includes('Cliente '))).toHaveLength(25);
+});

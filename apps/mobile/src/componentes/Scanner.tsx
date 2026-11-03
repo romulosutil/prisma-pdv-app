@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   AccessibilityInfo,
   Animated,
+  AppState,
   Easing,
   Platform,
   Pressable,
@@ -70,6 +71,11 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
   const [medida, setMedida] = useState({ largura: 0, altura: 0 });
   const [lanterna, setLanterna] = useState(preferencias.lanterna);
   const [digitando, setDigitando] = useState(false);
+  const [primeiroPlano, setPrimeiroPlano] = useState(AppState.currentState === 'active');
+  useEffect(() => {
+    const assinatura = AppState.addEventListener('change', e => setPrimeiroPlano(e === 'active'));
+    return () => assinatura.remove();
+  }, []);
   const [flash, setFlash] = useState(false);
   const [erroDaCamera, setErroDaCamera] = useState<string | null>(null);
   const ultimaLeitura = useRef<{ codigo: string; em: number } | null>(null);
@@ -157,12 +163,11 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
 
   return (
     <View style={estilos.visor} onLayout={aoMedir}>
-      {cameraLiberada ? (
+      {cameraLiberada && !pausado && !digitando && primeiroPlano ? (
         <CameraView
           style={StyleSheet.absoluteFill}
           facing="back"
-          active={!pausado}
-          enableTorch={lanterna}
+          enableTorch={lanterna && !pausado && !digitando && primeiroPlano}
           barcodeScannerSettings={CONFIGURACAO_DO_LEITOR}
           onBarcodeScanned={pausado ? undefined : ({ data, type }) => entregar(data, 'camera', type)}
           onCameraReady={() => registrar('camera', 'câmera pronta (onCameraReady)', { ativa: !pausado, lanterna })}
@@ -209,8 +214,8 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
           erro={erroDaCamera !== null}
           onTentarDeNovo={() => setErroDaCamera(null)}
           podePedir={permissao?.canAskAgain ?? true}
-          onPedir={() => void pedirPermissao()}
-          onEnviar={(codigo) => entregar(codigo, 'manual')}
+          onPedir={() => { void pedirPermissao().catch(() => toast.mostrar('Não foi possível solicitar a câmera. Digite o código para continuar.', { tipo: 'erro' })); }}
+          onDigitar={() => setDigitando(true)}
         />
       ) : null}
 
@@ -220,7 +225,7 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
           <View
             accessible
             accessibilityRole="text"
-            accessibilityLabel={pausado ? 'Leitor em pausa' : `${titulo}. Aponte a câmera para o código de barras.`}
+            accessibilityLabel={pausado ? 'Leitor em pausa' : `${titulo}. Aponte para um código por vez e confira o produto lido. A moldura é uma orientação visual.`}
             style={estilos.chipEstado}
           >
             <View style={[estilos.ponto, { backgroundColor: pausado ? CINZA_PAUSA : VERDE_ATIVO }]} />
@@ -298,11 +303,11 @@ interface SemCameraProps {
   onTentarDeNovo: () => void;
   podePedir: boolean;
   onPedir: () => void;
-  onEnviar: (codigo: string) => void;
+  onDigitar: () => void;
 }
 
 /** Sem câmera (web, permissão negada): explica e deixa digitar o código ali mesmo. */
-function SemCamera({ cameraNoAparelho, erro, onTentarDeNovo, podePedir, onPedir, onEnviar }: SemCameraProps) {
+function SemCamera({ cameraNoAparelho, erro, onTentarDeNovo, podePedir, onPedir, onDigitar }: SemCameraProps) {
   const mensagem = erro
     ? 'Não foi possível iniciar a câmera. Tente de novo ou digite o código.'
     : !cameraNoAparelho
@@ -317,7 +322,7 @@ function SemCamera({ cameraNoAparelho, erro, onTentarDeNovo, podePedir, onPedir,
       </Texto>
       {erro ? <Botao rotulo="Tentar de novo" tamanho="M" larguraTotal={false} onPress={onTentarDeNovo} /> : null}
       {!erro && cameraNoAparelho && podePedir ? <Botao rotulo="Permitir câmera" tamanho="M" larguraTotal={false} onPress={onPedir} /> : null}
-      <FormularioCodigo onEnviar={onEnviar} />
+      <Botao rotulo="Digitar código" onPress={onDigitar} />
     </View>
   );
 }

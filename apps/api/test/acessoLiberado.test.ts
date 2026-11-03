@@ -7,6 +7,7 @@ import { criarApp } from '../src/servidor';
 import { criarBillingDesativado } from '../src/billing';
 import { validarConfiguracao } from '../src/configuracao';
 import { criarCifradorCodigo } from '../src/email/cifrador';
+import { cadastroComProva, emissaoTeste } from './emailFixture';
 import { processarCobrancas } from '../src/servicos/cobranca';
 import { abrirBanco, INICIO, mutacao, venda } from './ajuda';
 
@@ -18,17 +19,17 @@ beforeAll(async () => { banco = await abrirBanco(); });
 afterAll(async () => { await banco.fechar(); });
 beforeEach(async () => {
   vi.stubEnv('NODE_ENV', 'production');
-  await banco.db.execute(sql`truncate table contas, usuarios cascade`);
+  await banco.db.execute(sql`truncate table contas, usuarios, codigos_login, limites_auth cascade`);
   relogio = new RelogioFalso(INICIO);
   billing = criarBillingDesativado();
   app = await criarApp({ db: banco.db, relogio, billing, cobrancaDesativada: true, fontesEan: [],
-    emissaoCodigo: { modo: 'email', dominioRemetente: 'example.com', chaves: { ativaId: 'teste', cifradores: new Map([['teste', criarCifradorCodigo(Buffer.alloc(32, 1).toString('base64'))]]) } } });
+    emissaoCodigo: emissaoTeste });
 });
 afterEach(async () => { await app.close(); vi.unstubAllEnvs(); });
 async function cadastrar(): Promise<Sessao> {
-  const r = await app.inject({ method: 'POST', url: '/contas', payload: {
+  const r = await app.inject({ method: 'POST', url: '/contas', payload: await cadastroComProva(app, banco.db, {
     email: 'loja@example.com', documento: '12345678901', nomeResponsavel: 'Maria', nomeLoja: 'Loja', aparelhoNome: 'Celular', aparelhoId: gerarId(),
-  } });
+  }) });
   expect(r.statusCode).toBe(201);
   return r.json();
 }

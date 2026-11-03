@@ -8,7 +8,7 @@ import { LinhaLista } from '@/componentes/LinhaLista';
 import { StatusPill } from '@/componentes/StatusPill';
 import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
-import { useAssinatura, useConta, useResumoDoDia, useVendas } from '@/dados/hooks';
+import { useAssinatura, useCaixa, useConta, useResumoDoDia, useVendas } from '@/dados/hooks';
 import { avisoDeAssinatura } from '@/nucleo/avisosAssinatura';
 import { useAbrirVenda } from '@/nucleo/useAbrirVenda';
 import { cores, raio, textoBotao } from '@/tema';
@@ -30,7 +30,6 @@ const ChipComDiagnostico: typeof import('@/diagnostico/ChipComDiagnostico').Chip
 const ATALHOS: readonly { icone: NomeIcone; rotulo: string; destino: '/produtos' | '/produtos/scanner' | '/caixa' | '/vender' }[] = [
   { icone: 'cadastrarBipando', rotulo: 'Cadastrar bipando', destino: '/produtos/scanner' },
   { icone: 'produtos', rotulo: 'Produtos', destino: '/produtos' },
-  { icone: 'fecharCaixa', rotulo: 'Fechar caixa', destino: '/caixa' },
   { icone: 'calculadora', rotulo: 'Valor avulso', destino: '/vender' },
 ];
 
@@ -38,6 +37,7 @@ export default function Inicio() {
   const router = useRouter();
   const abrirVenda = useAbrirVenda();
   const { primeiroNome, nomeLoja } = useConta();
+  const { caixa } = useCaixa();
   const { assinatura, agora, offline, modo } = useAssinatura();
   const resumo = useResumoDoDia();
   const { vendas, numeroDe } = useVendas();
@@ -91,8 +91,10 @@ export default function Inicio() {
       </View>
 
       <Botao rotulo="Vender" icone="codigoBarras" onPress={abrirVenda} accessibilityHint="Abre o leitor de código de barras" />
+      {!caixa ? <Botao rotulo="Abrir caixa" icone="caixa" variante="secundario" onPress={() => router.push('/caixa/abrir')} /> : null}
 
       <View style={estilos.atalhos}>
+        <Atalho icone="fecharCaixa" rotulo={caixa ? 'Fechar caixa' : 'Meu caixa'} onPress={() => router.push('/caixa')} />
         {ATALHOS.map((a) => (
           <Atalho key={a.rotulo} icone={a.icone} rotulo={a.rotulo} onPress={() => abrirAtalho(a.destino)} />
         ))}

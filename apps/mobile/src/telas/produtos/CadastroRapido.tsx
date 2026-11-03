@@ -13,7 +13,7 @@ import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
 import { useToast } from '@/componentes/Toast';
 import { ehErroDeDominio } from '@/dados/erros';
-import { useLicenca, useProdutos } from '@/dados/hooks';
+import { useDados, useLicenca, useProdutos } from '@/dados/hooks';
 import { buscarNoCatalogo, catalogoComApi, confirmarNoCatalogo, consultarCatalogo } from '@/servicos/catalogoEan';
 import { cores } from '@/tema';
 import { EntradaDeValor } from '@/componentes/EntradaDeValor';
@@ -77,6 +77,7 @@ export function CadastroRapido() {
 }
 
 function FolhaRapida({ lido, onConcluir }: { lido: Lido; onConcluir: () => void }) {
+  const dados = useDados();
   const router = useRouter();
   const toast = useToast();
   const { criar, editar } = useProdutos();
@@ -108,7 +109,7 @@ function FolhaRapida({ lido, onConcluir }: { lido: Lido; onConcluir: () => void 
     setSalvando(true);
     try {
       if (produto) {
-        await editar(produto.id, { precoCentavos: preco, ...(comEstoque && entrada > 0 ? { estoque: estoqueDepois } : {}) });
+        await editar(produto.id, { precoCentavos: preco, ...(dados.backend.modo === 'demo' && comEstoque && entrada > 0 ? { estoque: estoqueDepois } : {}) });
         toast.mostrar(`${produto.nome} atualizado`, { tipo: 'sucesso' });
       } else {
         await criar({ nome: nome.trim(), ean: lido.ean, precoCentavos: preco, ...(comEstoque && entrada > 0 ? { estoque: entrada * 1000 } : {}) });
@@ -175,7 +176,7 @@ function FolhaRapida({ lido, onConcluir }: { lido: Lido; onConcluir: () => void 
         erro={erros.preco}
       />
 
-      {comEstoque ? (
+      {comEstoque && (!produto || dados.backend.modo === 'demo') ? (
         <View style={estilos.estoque}>
           <Texto estilo="label" cor={cores.ink2}>
             {produto ? 'Entrada de estoque' : 'Estoque inicial'}
@@ -190,6 +191,10 @@ function FolhaRapida({ lido, onConcluir }: { lido: Lido; onConcluir: () => void 
       ) : null}
 
       <Botao rotulo={produto ? 'Salvar' : 'Cadastrar'} carregando={salvando} onPress={salvar} />
+      {comEstoque && produto && dados.backend.modo === 'http' ? <>
+        <Texto>Para adicionar estoque a um produto existente, registre uma entrada com motivo na gestão.</Texto>
+        <Botao rotulo="Ir para movimentos de estoque" variante="terciario" desabilitado={salvando} onPress={() => { onConcluir(); router.push('/gestao/estoque'); }} />
+      </> : null}
     </>
   );
 }

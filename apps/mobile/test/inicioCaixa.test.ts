@@ -1,0 +1,36 @@
+import React from 'react';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { afterEach, expect, it, vi } from 'vitest';
+const m = vi.hoisted(() => ({ caixa: null as object | null, push: vi.fn() }));
+vi.mock('react-native', async () => { const R = await import('react'); const componente = (nome: string) => (p: any) => R.createElement(nome, p, p.children); return { View: componente('view'), Pressable: componente('pressable'), StyleSheet: { create: (s: any) => s } }; });
+vi.mock('expo-router', () => ({ useRouter: () => ({ push: m.push }) }));
+vi.mock('@/dados/hooks', () => ({ useCaixa: () => ({ caixa: m.caixa }), useConta: () => ({ primeiroNome: 'Teste', nomeLoja: 'Loja' }), useAssinatura: () => ({ assinatura: null, agora: new Date(), offline: false, modo: 'http' }), useResumoDoDia: () => ({ totalCentavos: 0, quantidadeVendas: 0, porMeio: { dinheiro: 0, pix: 0, cartao: 0 } }), useVendas: () => ({ vendas: [], numeroDe: vi.fn() }) }));
+vi.mock('@/tema', () => ({ cores: {}, raio: {}, textoBotao: { M: {} } }));
+vi.mock('@/tema/useFoco', () => ({ useFoco: () => ({}) }));
+vi.mock('@/nucleo/useAbrirVenda', () => ({ useAbrirVenda: () => vi.fn() }));
+vi.mock('@/nucleo/avisosAssinatura', () => ({ avisoDeAssinatura: () => null }));
+vi.mock('@/componentes/Botao', async () => { const R = await import('react'); return { Botao: (p: any) => R.createElement('botao', p) }; });
+vi.mock('@/componentes/Texto', async () => { const R = await import('react'); return { Texto: (p: any) => R.createElement('texto', p, p.children) }; });
+vi.mock('@/componentes/TelaBase', async () => { const R = await import('react'); return { TelaBase: (p: any) => R.createElement('tela', p, p.children) }; });
+vi.mock('@/componentes/Banner', () => ({ Banner: () => null }));
+vi.mock('@/componentes/Dinheiro', () => ({ Dinheiro: () => null }));
+vi.mock('@/componentes/Icone', () => ({ Icone: () => null }));
+vi.mock('@/componentes/LinhaLista', () => ({ LinhaLista: () => null }));
+vi.mock('@/componentes/StatusPill', () => ({ StatusPill: () => null }));
+import Inicio from '../app/(tabs)/index';
+(globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+let r: ReactTestRenderer;
+afterEach(async () => { await act(async () => r?.unmount()); vi.clearAllMocks(); m.caixa = null; });
+it('oferece Abrir caixa na dashboard e abre diretamente o formulário de abertura', async () => {
+  await act(async () => { r = create(React.createElement(Inicio)); });
+  const abrir = r.root.findAllByType('botao' as any).find(n => n.props.rotulo === 'Abrir caixa');
+  expect(abrir).toBeDefined(); await act(async () => abrir!.props.onPress());
+  expect(m.push).toHaveBeenCalledWith('/caixa/abrir');
+  expect(JSON.stringify(r.toJSON())).not.toContain('Fechar caixa');
+});
+it('caixa aberto mostra acesso ao fechamento e não oferece uma segunda abertura', async () => {
+  m.caixa = { id: 'aberto' }; await act(async () => { r = create(React.createElement(Inicio)); });
+  expect(r.root.findAllByType('botao' as any).find(n => n.props.rotulo === 'Abrir caixa')).toBeUndefined();
+  const fechar = r.root.findAllByType('pressable' as any).find(n => n.props.accessibilityLabel === 'Fechar caixa');
+  expect(fechar).toBeDefined(); await act(async () => fechar!.props.onPress()); expect(m.push).toHaveBeenCalledWith('/caixa');
+});

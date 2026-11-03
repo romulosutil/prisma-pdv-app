@@ -389,3 +389,16 @@ it('R3: revalidação lenta não bloqueia a escrita offline de um perfil autoriz
   } finally { liberar(); await voo; }
   expect(dados.carrinho.obter().itens[0]?.descricao).toBe('Venda durante a espera de rede');
 });
+
+it('R5: sincronizações periódicas mantêm as travas e não exibem a transição visual de troca de usuário', async () => {
+  await dados.abrirCaixa(10000);
+  const snapshots: { bloqueado: boolean; segundoPlano: boolean; escrita: boolean }[] = [];
+  const parar = dados.conta.transicao.assinar(() => snapshots.push({ bloqueado: dados.conta.transicao.obter(), segundoPlano: dados.conta.atualizacaoEmSegundoPlano.obter(), escrita: dados.armazenamentoDaLoja.podeAlterar() }));
+  try { await dados.sincronizacao.sincronizar(); await dados.sincronizacao.sincronizar(); } finally { parar(); }
+  expect(snapshots.filter(s => s.bloqueado).length).toBeGreaterThan(0);
+  expect(snapshots.some(s => s.bloqueado && !s.segundoPlano)).toBe(false);
+  expect(dados.conta.transicao.obter()).toBe(false);
+  expect(dados.conta.atualizacaoEmSegundoPlano.obter()).toBe(false);
+  expect(dados.armazenamentoDaLoja.podeAlterar()).toBe(true);
+  expect(dados.caixa.atual()?.abertura.trocoInicialCentavos).toBe(10000);
+});

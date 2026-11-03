@@ -1,4 +1,4 @@
-import { File, Paths } from 'expo-file-system';
+import { criarExportacaoTemporaria } from '@/util/exportacoes';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 
@@ -19,9 +19,7 @@ export async function compartilharCsv(nomeDoArquivo: string, conteudo: string): 
   }
 
   if (!(await Sharing.isAvailableAsync())) return 'indisponivel';
-  const arquivo = new File(Paths.cache, nomeDoArquivo);
-  arquivo.create({ overwrite: true });
-  arquivo.write(conteudo);
+  const arquivo = criarExportacaoTemporaria(nomeDoArquivo, conteudo);
   await Sharing.shareAsync(arquivo.uri, {
     mimeType: 'text/csv',
     dialogTitle: 'Exportar vendas',

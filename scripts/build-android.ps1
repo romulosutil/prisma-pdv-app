@@ -22,6 +22,8 @@ if ($perfilPdv.env.EXPO_PUBLIC_API_URL) {
   $suportePdv = Invoke-WebRequest "$env:EXPO_PUBLIC_API_URL/suporte/solicitacoes" -SkipHttpErrorCheck -TimeoutSec 20
   $apiCompativelPdv = [int]$suportePdv.StatusCode -eq 401
   if (!$apiCompativelPdv) { throw 'API incompatível com o piloto: suporte deve responder 401 sem sessão. Implante a versão compatível antes de gerar o APK para o celular.' }
+  $cadastroPdv = Invoke-RestMethod "$env:EXPO_PUBLIC_API_URL/auth/cadastro/configuracao" -TimeoutSec 20
+  if ($cadastroPdv.versaoContrato -ne 1 -or $cadastroPdv.verificacaoEmail -ne $true) { throw 'API sem cadastro verificado por e-mail. Implante a API compatível antes de gerar o APK.' }
 }
 $env:NODE_ENV = 'production'
 $env:JAVA_HOME = 'C:/Program Files/Microsoft/jdk-17.0.20.101-hotspot'
@@ -75,6 +77,9 @@ try {
   try {
     & ./gradlew.bat assembleRelease '-PreactNativeArchitectures=arm64-v8a,armeabi-v7a' *>&1 | Tee-Object "$destinoPdv/$baseNomePdv-build.log"
     if ($LASTEXITCODE -ne 0) { throw 'Gradle falhou.' }
+    $mappingPdv = 'app/build/outputs/mapping/release/mapping.txt'
+    if (!(Test-Path -LiteralPath $mappingPdv)) { throw 'Mapping R8 ausente; o candidato deve exercitar ofuscação.' }
+    Copy-Item -LiteralPath $mappingPdv -Destination "$destinoPdv/$baseNomePdv-r8-mapping.txt" -Force
     Copy-Item -LiteralPath app/build/outputs/apk/release/app-release.apk -Destination "$destinoPdv/$baseNomePdv.apk" -Force
   } finally { Pop-Location }
 } finally { Pop-Location }

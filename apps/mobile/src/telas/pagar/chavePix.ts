@@ -6,7 +6,8 @@ const CHAVE_NO_ARMAZENAMENTO = 'chavePix';
 
 /** Chave Pix do recebedor, usada no QR estático. Fica só neste aparelho. */
 export function useChavePix() {
-  const { armazenamentoDaLoja: armazenamento } = useDados();
+  const dados = useDados();
+  const { armazenamentoDaLoja: armazenamento } = dados;
   const { identidade } = useConta();
   const escopo = identidade ? JSON.stringify([identidade.contaId, identidade.lojaId]) : null;
   const [carregada, setCarregada] = useState(false);
@@ -36,11 +37,17 @@ export function useChavePix() {
   const salvar = useCallback(async (texto: string): Promise<boolean> => {
     const interpretada = interpretarChavePix(texto);
     if (!interpretada) return false;
+    const conferir = () => {
+      const atual = dados.conta.obter().identidade;
+      if (!atual || JSON.stringify([atual.contaId, atual.lojaId]) !== escopo)
+        throw new Error('A loja mudou. Confira a chave Pix antes de receber.');
+    };
+    conferir();
     await armazenamento.gravar(CHAVE_NO_ARMAZENAMENTO, interpretada);
-    if (armazenamento.obterEscopo() !== escopo) throw new Error('A conta mudou. Confira a chave Pix antes de receber.');
+    conferir();
     setChave(interpretada);
     return true;
-  }, [armazenamento, escopo]);
+  }, [armazenamento, escopo, dados]);
 
   return { carregada: carregada && escopoCarregado === escopo, chave: escopoCarregado === escopo ? chave : null, salvar, erro: escopoCarregado === escopo ? erro : null, recarregar: () => setTentativa((n) => n + 1) };
 }

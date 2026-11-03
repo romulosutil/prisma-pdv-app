@@ -8,9 +8,10 @@ import { Ilustra } from '@/componentes/Ilustra';
 import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
 import { cores } from '@/tema';
+import { useToast } from '@/componentes/Toast';
 
 const BENEFICIOS: readonly { icone: NomeIcone; texto: string }[] = [
-  { icone: 'moldura', texto: 'Lê só o que está dentro da moldura' },
+  { icone: 'moldura', texto: 'Aponte para um código por vez e confira o produto lido' },
   { icone: 'vibrar', texto: 'Apita e vibra a cada produto' },
   { icone: 'lua', texto: 'Pausa sozinho para poupar bateria' },
 ];
@@ -18,10 +19,11 @@ const BENEFICIOS: readonly { icone: NomeIcone; texto: string }[] = [
 export default function PermissaoCamera() {
   const router = useRouter();
   const [, pedirPermissao] = useCameraPermissions();
+  const toast = useToast();
 
   const permitir = async () => {
-    await pedirPermissao();
-    router.replace('/');
+    try { await pedirPermissao(); router.replace('/'); }
+    catch { toast.mostrar('Não foi possível solicitar a câmera. Você pode continuar digitando os códigos.', { tipo: 'erro' }); }
   };
 
   return (

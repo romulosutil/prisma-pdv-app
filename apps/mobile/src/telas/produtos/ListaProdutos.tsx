@@ -88,8 +88,7 @@ export function ListaProdutos() {
     </View>
   );
 
-  return (
-    <TelaBase bordas={['top']} rodape={<Botao rotulo="Cadastrar bipando" icone="cadastrarBipando" onPress={() => router.push('/produtos/scanner')} />}>
+  const topoRolavel = (
       <View style={estilos.topo}>
         <View style={estilos.titulo}>
           <View style={estilos.linhaTitulo}>
@@ -113,11 +112,13 @@ export function ListaProdutos() {
           ) : null}
         </ScrollView>
       </View>
-
+  );
+  return (
+    <TelaBase bordas={['top']} rodape={<Botao rotulo="Cadastrar bipando" icone="cadastrarBipando" onPress={() => router.push('/produtos/scanner')} />}>
       <FlatList
         data={visiveis}
         keyExtractor={(p) => p.id}
-        ListHeaderComponent={cabecalho}
+        ListHeaderComponent={<>{topoRolavel}{cabecalho}</>}
         ListEmptyComponent={vazio}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

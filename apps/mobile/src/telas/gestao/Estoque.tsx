@@ -1,3 +1,4 @@
+import { ListaPaginada } from '@/componentes/ListaPaginada';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { z } from 'zod';
@@ -26,10 +27,10 @@ export function Estoque() {
   return <TelaGestao titulo="Estoque da loja" estado={g} atualizar={atualizar}>
     <Texto estilo="corpo">O saldo pode ficar negativo quando vendas offline disputam as últimas unidades. Confira os movimentos e registre um ajuste com motivo após contar o estoque físico. Cancelar a venda não comprova retorno do produto.</Texto>
     {!estado.saldos.length ? <Texto>Nenhum produto confirmado. Cadastre e sincronize primeiro.</Texto> : null}
-    {estado.saldos.map(p => <View key={p.produtoId} style={{ gap: 8 }}>
+    <ListaPaginada itens={estado.saldos} renderizar={p => <View key={p.produtoId} style={{ gap: 8 }}>
       <Botao rotulo={`${produtoId === p.produtoId ? 'Selecionado: ' : ''}${p.nome}`} variante="terciario" onPress={() => selecionar(p.produtoId)} desabilitado={g.ocupado} />
       <Texto>{`Saldo: ${p.saldoMilesimos === null ? 'Sem controle' : (p.saldoMilesimos / 1000).toLocaleString('pt-BR')}${p.negativo ? ' · DIVERGÊNCIA: estoque negativo' : ''}${p.minimoMilesimos !== null && p.saldoMilesimos !== null && p.saldoMilesimos <= p.minimoMilesimos ? ' · Estoque baixo' : ''}`}</Texto>
-    </View>)}
+    </View>} />
     {dados.pode('cadastrar_produto') && produtoId ? <>
       <Texto estilo="tituloM">Novo movimento</Texto>
       <Segmentado rotuloGrupo="Tipo de movimento" opcoes={TIPOS} valor={tipo} onChange={setTipo} />
@@ -39,10 +40,10 @@ export function Estoque() {
       <Botao rotulo="Registrar movimento" carregando={g.ocupado} onPress={() => void salvar()} />
     </> : null}
     <Texto estilo="tituloM">Histórico de movimentos</Texto>
-    {estado.movimentos.filter(m => !produtoId || m.produtoId === produtoId).slice().reverse().map(m => <View key={m.id} style={{ gap: 6, paddingVertical: 8 }}>
+    <ListaPaginada itens={estado.movimentos.filter(m => !produtoId || m.produtoId === produtoId).slice().reverse()} renderizar={m => <View key={m.id} style={{ gap: 6, paddingVertical: 8 }}>
       <Texto selectable>{`${m.tipo}: ${m.quantidadeMilesimos / 1000} · ${m.motivo}`}</Texto>
       <Texto estilo="legenda" selectable>{`${m.criadoEm} · Autor: ${m.operadorId ?? 'Legado sem autoria'} · ID: ${m.id}`}</Texto>
       {m.tipo === 'venda' && m.itemVendaId ? <Botao rotulo="Devolver este item" variante="terciario" tamanho="S" onPress={() => { selecionar(m.produtoId); setItem(m.itemVendaId!); setTipo('devolucao'); }} /> : null}
-    </View>)}
+    </View>} />
   </TelaGestao>;
 }

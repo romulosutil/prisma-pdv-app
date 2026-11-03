@@ -86,6 +86,7 @@ export function StatusSincronizacao() {
         </> : null}
       </View>
       {!demo && !semSessao ? <Botao rotulo="Sincronizar agora" icone="sincronizar" carregando={ocupado} onPress={() => void verificar()} /> : null}
+      {!demo ? <Texto accessibilityRole="alert">Operações ainda não sincronizadas ficam somente neste aparelho. Sincronize antes de trocar, reinstalar ou limpar o aplicativo. O backup do Android não recupera essas pendências.</Texto> : null}
       {semSessao ? <Botao rotulo="Entrar na mesma conta" onPress={() => router.push('/entrar')} /> : null}
       {!demo && rejeitadas > 0 ? <>
         <Texto estilo="tituloM" accessibilityRole="header">Registros preservados para revisão</Texto>

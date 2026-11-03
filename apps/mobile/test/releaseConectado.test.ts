@@ -13,8 +13,9 @@ it('release conectado retira implementações demo do grafo sem mudar os perfis 
   const raiz = resolve('.');
   for (const ambiente of ['homologacao', 'producao']) {
     const mapa: Map<string, string> = substituicoesRelease(raiz, ambiente);
-    expect(mapa.size).toBe(8);
+    expect(mapa.size).toBe(ambiente === 'producao' ? 9 : 8);
     expect(mapa.get(resolve(raiz, '../../packages/shared/src/billing.ts'))).toBe(resolve(raiz, 'src/release/billing.ts'));
+    expect(mapa.get(resolve(raiz, 'src/telemetria/registro.ts'))).toBe(ambiente === 'producao' ? resolve(raiz, 'src/release/telemetria.ts') : undefined);
   }
   expect(substituicoesRelease(raiz, 'demo').size).toBe(0);
   expect(substituicoesRelease(raiz, undefined).size).toBe(0);

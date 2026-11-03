@@ -14,6 +14,8 @@ class TransicaoConta extends Observavel<boolean> {
 /** Conta deste aparelho: a sessão (com o token Bearer) e os dados exibidos nas telas. */
 export class ContaRepo extends Persistido<EstadoConta> {
   readonly transicao = new TransicaoConta();
+  /** Mantém a trava de escrita da sync sem cobrir a tela com o carregamento de troca de usuário. */
+  readonly atualizacaoEmSegundoPlano = new TransicaoConta();
   constructor(private readonly baseConta: Armazenamento) {
     super(baseConta, 'conta', CONTA_VAZIA);
   }

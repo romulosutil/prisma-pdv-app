@@ -41,7 +41,9 @@ export function useConta() {
   const { conta } = dados;
   const { sessao, perfil, identidade, reautenticacaoNecessaria: reautenticacaoSalva } = useObservavel(conta);
   const reautenticacaoNecessaria = reautenticacaoSalva || (dados.backend.modo === 'http' && !!identidade && !dados.acessoOffline.permitido(identidade));
-  const carregandoConta = useObservavel(conta.transicao);
+  const transicao = useObservavel(conta.transicao);
+  const segundoPlano = useObservavel(conta.atualizacaoEmSegundoPlano);
+  const carregandoConta = transicao && !segundoPlano;
   return {
     sessao,
     perfil,

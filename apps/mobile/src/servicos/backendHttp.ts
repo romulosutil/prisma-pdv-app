@@ -26,6 +26,7 @@ import {
 import { z, type ZodType } from 'zod';
 import { SolicitacaoSuporteSchema, SolicitarSuporteSchema, type SolicitarSuporte } from '@pdv/shared';
 import { ErroBackend, type Backend, type CodigoErroBackend } from './backend';
+import { registrarHttp } from '@/telemetria/registro';
 
 const TEMPO_LIMITE_MS = 15_000;
 
@@ -52,8 +53,8 @@ function codigoDoStatus(status: number): CodigoErroBackend {
   return 'desconhecido';
 }
 
-const CODIGOS_CONHECIDOS: readonly string[] = ['cartao_recusado', 'token_invalido', 'valor_invalido', 'cupom_invalido'];
-const CODIGOS_CONFLITO: readonly string[] = ['limite_aparelhos', 'aparelho_em_uso', 'aparelho_revogado', 'aparelho_ja_autorizado', 'recuperacao_desnecessaria', 'recuperacao_desatualizada', 'limite_operadores', 'vinculo_existente', 'convite_pendente', 'vinculo_desligado', 'aceitar_convite', 'selecionar_vinculo'];
+const CODIGOS_CONHECIDOS: readonly string[] = ['cartao_recusado', 'token_invalido', 'valor_invalido', 'cupom_invalido', 'codigo_invalido', 'cadastro_codigo_necessario'];
+const CODIGOS_CONFLITO: readonly string[] = ['email_ja_cadastrado', 'documento_ja_cadastrado', 'limite_aparelhos', 'aparelho_em_uso', 'aparelho_revogado', 'aparelho_ja_autorizado', 'recuperacao_desnecessaria', 'recuperacao_desatualizada', 'limite_operadores', 'vinculo_existente', 'convite_pendente', 'vinculo_desligado', 'aceitar_convite', 'selecionar_vinculo'];
 
 interface OpcoesChamada {
   corpo?: unknown;
@@ -66,6 +67,9 @@ interface OpcoesChamada {
 }
 
 export class BackendHttp implements Backend {
+  pedirCodigoCadastro(email: string, aparelhoId: string) {
+    return this.chamar('POST', '/auth/cadastro/codigo', z.object({ desafioId: z.uuid() }), { corpo: { email, aparelhoId }, publica: true });
+  }
   solicitarSuporte(req: SolicitarSuporte, token?: string) { return this.chamar('POST', '/suporte/solicitacoes', SolicitacaoSuporteSchema, { corpo: SolicitarSuporteSchema.parse(req), token }); }
   listarSolicitacoesSuporte(token?: string) { return this.chamar('GET', '/suporte/solicitacoes', z.array(SolicitacaoSuporteSchema), { token }); }
   exportarDadosSuporte(token?: string) { return this.chamar('GET', '/suporte/exportacao', z.record(z.string(), z.unknown()), { token }); }
@@ -187,6 +191,7 @@ export class BackendHttp implements Backend {
   }
 
   private async chamar<T>(metodo: string, caminho: string, schema: ZodType<T> | null, opcoes: OpcoesChamada): Promise<T> {
+    const inicio = Date.now();
     const cabecalhos: Record<string, string> = { Accept: 'application/json' };
     if (opcoes.corpo !== undefined) cabecalhos['Content-Type'] = 'application/json';
     const token = opcoes.publica ? null : (opcoes.token ?? this.obterToken());
@@ -217,11 +222,13 @@ export class BackendHttp implements Backend {
       });
       ({ resposta, texto, recebidaEm } = await Promise.race([chamada, limite]));
     } catch {
+      registrarHttp(metodo, caminho, inicio, 0, 'rede');
       throw new ErroBackend('rede', 'Sem conexão com o servidor.');
     } finally {
       if (prazo !== undefined) clearTimeout(prazo);
     }
 
+    registrarHttp(metodo, caminho, inicio, resposta.status, resposta.ok ? 'pronto' : 'falha');
     if (resposta.status === 401 && token && !opcoes.publica) {
       try { await this.aoSessaoInvalida?.(token); } catch { /* Preserva o erro de autenticação. */ }
       throw new ErroBackend('nao_autorizado', 'Sua sessão não é mais válida. Entre de novo.', 401);
@@ -237,7 +244,7 @@ export class BackendHttp implements Backend {
     };
     if (!schema) { await sincronizarHora(); return undefined as T; }
     const lido = schema.safeParse(json);
-    if (!lido.success) throw new ErroBackend('resposta_invalida', 'Resposta fora do contrato.', resposta.status);
+    if (!lido.success) { registrarHttp(metodo, caminho, inicio, resposta.status, 'resposta_invalida'); throw new ErroBackend('resposta_invalida', 'Resposta fora do contrato.', resposta.status); }
     await sincronizarHora();
     return lido.data;
   }

@@ -191,7 +191,7 @@ export function FormularioProduto({ produto, sugestao, atalhoInicial = false, da
             </View>
           </View>
         ) : sugestao.origem === 'ausente' ? (
-          <Banner tipo="info" texto="Não achamos este código no catálogo. Preencha o nome e o preço." />
+          <Banner tipo="info" texto="Este código não teve sugestão de nome. O catálogo pode não conhecer o produto ou estar indisponível. Você pode preencher o nome e o preço para continuar." />
         ) : null
       ) : null}
 

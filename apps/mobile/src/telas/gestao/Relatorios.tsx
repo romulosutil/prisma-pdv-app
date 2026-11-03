@@ -1,3 +1,4 @@
+import { ListaPaginada } from '@/componentes/ListaPaginada';
 import { useCallback, useEffect, useState } from 'react';
 import { csvRelatorio, formatarBRL, ROTULOS_RELATORIO, type OpcoesRelatorio, type Relatorio } from '@pdv/shared';
 import { Botao } from '@/componentes/Botao';
@@ -34,12 +35,12 @@ export function Relatorios() {
     <Campo rotulo="Data final (DD/MM/AAAA)" value={fim} onChangeText={setFim} />
     {dados.conta.obter().identidade?.papel === 'dono' ? <>
       <Texto estilo="label">Lojas</Texto>
-      {[{ id: '', nome: 'Loja atual' }, { id: 'todas', nome: 'Todas as lojas' }, ...opcoes.lojas].map(l => <Botao key={l.id} rotulo={`${loja === l.id ? 'Selecionado: ' : ''}${l.nome}`} variante="terciario" tamanho="M" onPress={() => { setLoja(l.id); setOperador(''); setCaixa(''); }} />)}
+      <ListaPaginada itens={[{ id: '', nome: 'Loja atual' }, { id: 'todas', nome: 'Todas as lojas' }, ...opcoes.lojas]} renderizar={l => <Botao key={l.id} rotulo={`${loja === l.id ? 'Selecionado: ' : ''}${l.nome}`} variante="terciario" tamanho="M" onPress={() => { setLoja(l.id); setOperador(''); setCaixa(''); }} />} />
     </> : null}
     {dados.pode('conferir_caixas') ? <><Texto estilo="label">Usuário</Texto><Botao rotulo="Todos os usuários permitidos" variante="terciario" tamanho="M" onPress={() => { setOperador(''); setCaixa(''); }} />
-      {opcoes.usuarios.filter(u => lojasDoFiltro(u.lojaId)).map(u => <Botao key={u.id} rotulo={`${operadorId === u.id ? 'Selecionado: ' : ''}${u.nome} · ${nomeLoja(u.lojaId)}`} variante="terciario" tamanho="M" onPress={() => { setOperador(u.id); setCaixa(''); }} />)}</> : <Texto>Seu relatório inclui somente seus registros.</Texto>}
+      <ListaPaginada itens={opcoes.usuarios.filter(u => lojasDoFiltro(u.lojaId))} renderizar={u => <Botao key={u.id} rotulo={`${operadorId === u.id ? 'Selecionado: ' : ''}${u.nome} · ${nomeLoja(u.lojaId)}`} variante="terciario" tamanho="M" onPress={() => { setOperador(u.id); setCaixa(''); }} />} /></> : <Texto>Seu relatório inclui somente seus registros.</Texto>}
     <Texto estilo="label">Turno</Texto><Botao rotulo="Todos os turnos" variante="terciario" tamanho="M" onPress={() => setCaixa('')} />
-    {opcoes.turnos.filter(t => lojasDoFiltro(t.lojaId) && (!operadorId || t.operadorId === operadorId)).map(t => <Botao key={t.id} rotulo={`${caixaId === t.id ? 'Selecionado: ' : ''}${nomeUsuario(t.operadorId)} · ${quando(t.abertoEm)} · ${t.fechadoEm ? 'Encerrado' : 'Aberto'}`} variante="terciario" tamanho="M" onPress={() => setCaixa(t.id)} />)}
+    <ListaPaginada itens={opcoes.turnos.filter(t => lojasDoFiltro(t.lojaId) && (!operadorId || t.operadorId === operadorId))} renderizar={t => <Botao key={t.id} rotulo={`${caixaId === t.id ? 'Selecionado: ' : ''}${nomeUsuario(t.operadorId)} · ${quando(t.abertoEm)} · ${t.fechadoEm ? 'Encerrado' : 'Aberto'}`} variante="terciario" tamanho="M" onPress={() => setCaixa(t.id)} />} />
     <Texto estilo="label">Meio de pagamento</Texto>
     {MEIOS.map(m => <Botao key={m.valor} rotulo={`${meio === m.valor ? 'Selecionado: ' : ''}${m.rotulo}`} variante="terciario" tamanho="M" onPress={() => setMeio(m.valor)} />)}
     <Botao rotulo="Gerar relatório com estes filtros" carregando={g.ocupado} onPress={() => void g.executar(atualizar)} />
@@ -49,7 +50,7 @@ export function Relatorios() {
       {Object.entries(relatorio.totais).map(([c, n]) => <Texto key={c}>{`${categoria(c)}: ${formatarBRL(n)}`}</Texto>)}
       <Texto>Vendas líquidas comerciais = realizadas − canceladas. Recebimentos líquidos = na venda + de fiado − devoluções financeiras. Entradas externas e transferências são movimentações de gaveta. Não some essas medidas entre si.</Texto>
       <Botao rotulo="Exportar este resultado em CSV" variante="secundario" carregando={g.ocupado} onPress={() => void g.executar(async () => { const r = await compartilharCsv('pdv-relatorio.csv', csvRelatorio(relatorio)); if (r === 'indisponivel') throw new Error('Compartilhamento indisponível.'); })} />
-      {relatorio.linhas.map(l => <Texto key={l.id} estilo="legenda" selectable>{`${quando(l.em)} · ${categoria(l.categoria)} · ${formatarBRL(l.valorCentavos)} · ${l.descricao} · ${nomeUsuario(l.operadorId)} · ${nomeLoja(l.lojaId)}${l.autorOperadorId && l.autorOperadorId !== l.operadorId ? ` · Autor: ${nomeUsuario(l.autorOperadorId)}` : ''}`}</Texto>)}
+      <ListaPaginada itens={relatorio.linhas} renderizar={l => <Texto key={l.id} estilo="legenda" selectable>{`${quando(l.em)} · ${categoria(l.categoria)} · ${formatarBRL(l.valorCentavos)} · ${l.descricao} · ${nomeUsuario(l.operadorId)} · ${nomeLoja(l.lojaId)}${l.autorOperadorId && l.autorOperadorId !== l.operadorId ? ` · Autor: ${nomeUsuario(l.autorOperadorId)}` : ''}`}</Texto>} />
     </> : null}
   </TelaGestao>;
 }

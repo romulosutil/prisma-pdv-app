@@ -11,7 +11,7 @@ const ativos = ['pendente', 'enviando'] as const;
 const limpar = { chaveId: null, envelope: null, leaseToken: null, leaseExpiraEm: null };
 const ordemNova = sql<number>`nextval(pg_get_serial_sequence('entregas_codigo', 'ordem_fila'))`;
 
-export async function enfileirarCodigo(tx: Db, chaves: ChavesCodigo, dados: { contaId: string; codigoId: string; email: string; codigo: string; dominioRemetente: string; criadoEm: Date; expiraEm: Date }): Promise<string> {
+export async function enfileirarCodigo(tx: Db, chaves: ChavesCodigo, dados: { contaId: string | null; codigoId: string; email: string; codigo: string; dominioRemetente: string; criadoEm: Date; expiraEm: Date }): Promise<string> {
   const id = randomUUID();
   const cifrador = chaves.cifradores.get(chaves.ativaId);
   if (!cifrador) throw new ErroCanalEmail('configuracao');
@@ -27,8 +27,8 @@ export async function cancelarEntregaDoCodigo(tx: Db, codigoId: string, agora: D
   await tx.update(entregasCodigo).set({ ...limpar, estado: 'cancelada', motivo, atualizadoEm: agora, encerradoEm: agora }).where(and(eq(entregasCodigo.codigoId, codigoId), inArray(entregasCodigo.estado, ativos)));
 }
 
-async function travar(db: Db, contaId: string, id: string) {
-  const [conta] = await db.select().from(contas).where(eq(contas.id, contaId)).for('update');
+async function travar(db: Db, contaId: string | null, id: string) {
+  const [conta] = contaId ? await db.select().from(contas).where(eq(contas.id, contaId)).for('update') : [];
   const [entrega] = await db.select().from(entregasCodigo).where(eq(entregasCodigo.id, id)).for('update');
   return { conta, entrega };
 }
@@ -64,11 +64,12 @@ export async function processarEntregasCodigo(db: Db, opcoes: OpcoesEntregaCodig
         const now = opcoes.relogio.agora();
         if (!e || !((e.estado === 'pendente' && e.proximaTentativaEm <= now) || (e.estado === 'enviando' && e.leaseExpiraEm && e.leaseExpiraEm <= now))) return { tipo: 'ignoradas' as const };
         const [otp] = await tx.select().from(codigosLogin).where(eq(codigosLogin.id, e.codigoId));
-        const [destinatario] = otp ? await tx.select({ email: usuarios.email }).from(usuarios)
+        const [destinatario] = otp && e.contaId ? await tx.select({ email: usuarios.email }).from(usuarios)
           .innerJoin(operadores, eq(operadores.usuarioId, usuarios.id))
           .where(and(eq(usuarios.email, otp.email), eq(operadores.contaId, e.contaId),
             or(eq(operadores.estado, 'ativo'), eq(operadores.estado, 'convidado')))) : [];
-        let motivo: MotivoEntregaCodigo | null = e.expiraEm <= now || (otp && otp.expiraEm <= now) ? 'expirado' : otp?.usadoEm ? 'usado' : otp && otp.tentativas >= 5 ? 'esgotado' : !otp || !conta || (!destinatario && otp.email !== conta.email) || otp.criadoEm.getTime() !== e.criadoEm.getTime() || otp.expiraEm.getTime() !== e.expiraEm.getTime() ? 'substituida' : null;
+        const cadastro = !e.contaId && otp?.finalidade === 'cadastro' && !!otp.aparelhoCadastroId;
+        let motivo: MotivoEntregaCodigo | null = e.expiraEm <= now || (otp && otp.expiraEm <= now) ? 'expirado' : otp?.usadoEm ? 'usado' : otp && otp.tentativas >= 5 ? 'esgotado' : !otp || (!cadastro && (!conta || (!destinatario && otp.email !== conta.email))) || otp.criadoEm.getTime() !== e.criadoEm.getTime() || otp.expiraEm.getTime() !== e.expiraEm.getTime() ? 'substituida' : null;
         if (motivo) { await terminal(tx, e.id, now, 'cancelada', motivo); return { tipo: 'canceladas' as const }; }
         if (e.tentativas >= 5) { await terminal(tx, e.id, now, 'falhou', 'tentativas_esgotadas'); return { tipo: 'falhas' as const }; }
         let mensagem: MensagemCodigo | undefined;

@@ -12,6 +12,8 @@ function substituicoesRelease(raiz, ambiente) {
     ['src/dados/relogio.ts', 'relogio.ts'],
     ['src/diagnostico/registro.ts', 'registro.ts'],
   ];
-  return new Map(arquivos.map(([origem, destino]) => [path.resolve(raiz, origem), path.resolve(raiz, 'src/release', destino)]));
+  const substituicoes = new Map(arquivos.map(([origem, destino]) => [path.resolve(raiz, origem), path.resolve(raiz, 'src/release', destino)]));
+  if (ambiente === 'producao') substituicoes.set(path.resolve(raiz, 'src/telemetria/registro.ts'), path.resolve(raiz, 'src/release/telemetria.ts'));
+  return substituicoes;
 }
 module.exports = { substituicoesRelease };

@@ -25,6 +25,7 @@ export type CodigoErroBackend =
   | 'limite_autenticacao'
   | 'nao_encontrado'
   | 'conflito'
+  | 'email_ja_cadastrado' | 'documento_ja_cadastrado' | 'codigo_invalido' | 'cadastro_codigo_necessario'
   | 'limite_aparelhos' | 'aparelho_em_uso' | 'aparelho_revogado'
   | 'aparelho_ja_autorizado' | 'recuperacao_desnecessaria' | 'recuperacao_desatualizada'
   | 'recuperacao_indisponivel'
@@ -44,6 +45,10 @@ export class ErroBackend extends Error {
 }
 
 const MENSAGENS: Record<CodigoErroBackend, string> = {
+  email_ja_cadastrado: 'Este e-mail já tem acesso. Entre com seu código pessoal.',
+  documento_ja_cadastrado: 'Já existe uma conta com este CPF/CNPJ. Entre na conta ou procure o suporte.',
+  codigo_invalido: 'Código inválido ou expirado. Confira o código ou solicite outro.',
+  cadastro_codigo_necessario: 'Confirme o código enviado ao e-mail para criar a conta.',
   rede: 'Sem conexão com o servidor. Confira a internet e tente de novo.',
   cartao_recusado: 'Não conseguimos aprovar este cartão. Confira os dados ou use outro cartão.',
   token_invalido: 'Não foi possível validar o cartão. Digite os dados de novo.',
@@ -85,6 +90,7 @@ export type Perfil = z.infer<typeof PerfilResSchema>;
 export type Aparelhos = z.infer<typeof AparelhosResSchema>;
 
 export interface Backend {
+  pedirCodigoCadastro?(email: string, aparelhoId: string): Promise<{ desafioId: string }>;
   solicitarSuporte?(req: import('@pdv/shared').SolicitarSuporte, token?: string): Promise<import('@pdv/shared').SolicitacaoSuporte>;
   listarSolicitacoesSuporte?(token?: string): Promise<import('@pdv/shared').SolicitacaoSuporte[]>;
   exportarDadosSuporte?(token?: string): Promise<Record<string, unknown>>;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { z } from 'zod';
 import { Botao } from '@/componentes/Botao';
 import { CabecalhoTela } from '@/componentes/CabecalhoTela';
@@ -12,18 +12,25 @@ export function useGestao() {
   const dados = useDados(), { sessao } = useConta();
   const [ocupado, setOcupado] = useState(false), [mensagem, setMensagem] = useState(''), [pendente, setPendente] = useState(false);
   const token = sessao?.token;
-  const mesmoPerfil = useCallback(() => !!token && dados.conta.obter().sessao?.token === token, [dados, token]);
+  const ativo = useRef(true), trava = useRef(false);
+  useEffect(() => { ativo.current = true; return () => { ativo.current = false; }; }, []);
+  const mesmoPerfil = useCallback(() => ativo.current && !!token && dados.conta.obter().sessao?.token === token, [dados, token]);
   const atualizarPendente = useCallback(async () => {
-    const p = !!await dados.armazenamentoDaLoja.obter('operacaoGestaoPendente');
-    if (mesmoPerfil()) setPendente(p);
+    try {
+      const p = !!await dados.armazenamentoDaLoja.obter('operacaoGestaoPendente');
+      if (mesmoPerfil()) setPendente(p);
+    } catch {
+      if (mesmoPerfil()) { setPendente(true); setMensagem('Não foi possível consultar a operação local. Preserve os dados e tente novamente.'); }
+    }
   }, [dados, mesmoPerfil]);
   useEffect(() => { void atualizarPendente(); }, [atualizarPendente]);
   async function executar(tarefa: () => Promise<void>, sucesso = '') {
-    if (!mesmoPerfil() || ocupado) return;
+    if (!mesmoPerfil() || trava.current) return;
+    trava.current = true;
     setOcupado(true); setMensagem('');
     try { await tarefa(); if (mesmoPerfil()) setMensagem(sucesso); }
     catch (e) { if (mesmoPerfil()) setMensagem(e instanceof z.ZodError ? e.issues[0]?.message ?? 'Revise os campos.' : e instanceof ErroBackend ? mensagemDeErro(e) : e instanceof Error ? e.message : 'Não foi possível concluir.'); }
-    finally { if (mesmoPerfil()) { setOcupado(false); await atualizarPendente(); } }
+    finally { try { if (mesmoPerfil()) await atualizarPendente(); } finally { trava.current = false; if (mesmoPerfil()) setOcupado(false); } }
   }
   return { dados, token, mesmoPerfil, ocupado, mensagem, pendente, executar };
 }

@@ -5,6 +5,7 @@ import { cores, margemTela, raio, sombras, textoBotao } from '@/tema';
 import { useReducaoMovimento } from '@/tema/useReducaoMovimento';
 import { Icone, type NomeIcone } from './Icone';
 import { Texto } from './Texto';
+import { registrarPiloto } from '@/telemetria/registro';
 
 export type TipoToast = 'info' | 'sucesso' | 'erro';
 
@@ -46,6 +47,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const mostrar = useCallback(
     (mensagem: string, opcoes: OpcoesToast = {}) => {
+      if (opcoes.tipo === 'erro') registrarPiloto('aviso_interface', { etapa: 'falha' });
       if (temporizador.current) clearTimeout(temporizador.current);
       contador.current += 1;
       setAtual({ id: contador.current, mensagem, ...opcoes });

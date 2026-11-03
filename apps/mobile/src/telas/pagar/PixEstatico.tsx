@@ -42,8 +42,10 @@ export function PixEstatico() {
 
   const copiar = async () => {
     if (!codigo) return;
-    await Clipboard.setStringAsync(codigo);
-    toast.mostrar('Código Pix copiado', { tipo: 'sucesso' });
+    try {
+      await Clipboard.setStringAsync(codigo);
+      toast.mostrar('Código Pix copiado', { tipo: 'sucesso' });
+    } catch { toast.mostrar('Não foi possível copiar. Tente novamente ou use o QR Code.', { tipo: 'erro' }); }
   };
 
   const cabecalho = (

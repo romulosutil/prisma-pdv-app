@@ -179,6 +179,8 @@ export const AparelhoResSchema = z.object({ id: IdSchema, nome: z.string(), cria
 export const AparelhosResSchema = z.array(AparelhoResSchema);
 
 export const CriarContaReqSchema = z.object({
+  desafioCadastroId: IdSchema.optional(),
+  codigoCadastro: z.string().regex(/^\d{6}$/).optional(),
   email: z.email(),
   nomeResponsavel: z.string().min(1),
   nomeLoja: z.string().min(1),

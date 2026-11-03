@@ -1,3 +1,4 @@
+import { ListaPaginada } from '@/componentes/ListaPaginada';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { z } from 'zod';
@@ -18,7 +19,7 @@ export function Lojas() {
   const dono = dados.conta.obter().identidade?.papel === 'dono';
   return <TelaGestao titulo="Lojas e vínculos" estado={g} atualizar={atualizar}>
     <Texto>Cada loja tem estoque, caixas, equipe e configurações próprios. Entre com seu código pessoal e selecione o vínculo para trabalhar em outra loja. Pendências permanecem no perfil de origem.</Texto>
-    {lojas.map(l => <Texto key={l.id} selectable>{`${l.nome} · ${l.papel}${l.id === dados.conta.obter().identidade?.lojaId ? ' · Loja atual' : ''}`}</Texto>)}
+    <ListaPaginada itens={lojas} renderizar={l => <Texto key={l.id} selectable>{`${l.nome} · ${l.papel}${l.id === dados.conta.obter().identidade?.lojaId ? ' · Loja atual' : ''}`}</Texto>} />
     <Botao rotulo="Selecionar loja com meu acesso pessoal" variante="secundario" onPress={() => router.push('/entrar')} desabilitado={g.ocupado} />
     <Botao rotulo="Retomar um perfil deste aparelho" variante="terciario" onPress={() => router.push('/ajustes/usuarios')} desabilitado={g.ocupado} />
     {dono ? <>

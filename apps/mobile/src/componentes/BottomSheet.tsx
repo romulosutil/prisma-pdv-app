@@ -33,7 +33,7 @@ export function BottomSheet({ visivel, onFechar, titulo, children }: BottomSheet
       statusBarTranslucent
       navigationBarTranslucent
     >
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={estilos.fundo}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={estilos.fundo}>
         <Pressable accessibilityRole="button" accessibilityLabel="Fechar" onPress={onFechar} style={StyleSheet.absoluteFill} />
         <Animated.View
           accessibilityViewIsModal
@@ -43,7 +43,7 @@ export function BottomSheet({ visivel, onFechar, titulo, children }: BottomSheet
           <Texto estilo="tituloL" accessibilityRole="header" style={estilos.titulo}>
             {titulo}
           </Texto>
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={estilos.conteudo}>
+          <ScrollView style={{ flexShrink: 1 }} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={estilos.conteudo}>
             {children}
           </ScrollView>
         </Animated.View>

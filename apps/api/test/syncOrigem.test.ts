@@ -180,7 +180,7 @@ it('preserva origem histórica após troca e revogação do aparelho', async () 
   expect((await enviar(amb, a, [iniciais[0]!])).status).toBe(401);
 });
 
-if (process.env.PDV_TEST_POSTGRES_URL) it('usa papel atual após esperar lock da conta', async () => {
+if (process.env.PDV_TEST_POSTGRES_URL) it('usa papel e permissões atuais após esperar lock da conta', async () => {
   const conta = await contaEmTeste(amb);
   const anterior = mutacao('venda', venda(conta));
   expect((await enviar(amb, conta, [anterior])).corpo.aceitas).toEqual([anterior.id]);
@@ -202,7 +202,8 @@ if (process.env.PDV_TEST_POSTGRES_URL) it('usa papel atual após esperar lock da
       if (!bloqueado) await new Promise(resolve => setTimeout(resolve, 10));
     }
     expect(bloqueado).toBe(true);
-    await controle`update operadores set papel = 'operador' where id = ${conta.operadorId}`;
+    // R1 permite vender como operador; esta corrida revoga explicitamente a permissão de venda.
+    await controle`update operadores set papel = 'operador', permissoes = '[]'::jsonb where id = ${conta.operadorId}`;
     await controle`commit`;
     const resposta = await pendente;
     expect(resposta.statusCode).toBe(200);
@@ -211,6 +212,7 @@ if (process.env.PDV_TEST_POSTGRES_URL) it('usa papel atual após esperar lock da
     expect(await snapshot()).toEqual(antes);
     expect((await chamar(amb, 'GET', '/conta', { token: conta.token })).status).toBe(200);
     expect((await amb.db.select().from(operadores).where(eq(operadores.id, conta.operadorId)))[0]?.papel).toBe('operador');
+    expect((await amb.db.select().from(operadores).where(eq(operadores.id, conta.operadorId)))[0]?.permissoes).toEqual([]);
   } finally {
     await controle`rollback`.catch(() => undefined);
     await pendente?.catch(() => undefined);

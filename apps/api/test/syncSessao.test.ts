@@ -36,7 +36,7 @@ async function preencher(conta: Awaited<ReturnType<typeof contaEmTeste>>) {
 async function conferirVenda(m: Mutacao, conta: Awaited<ReturnType<typeof contaEmTeste>>, instante: Date) {
   if (m.entidade !== 'venda' || m.operacao !== 'upsert') throw new Error('Fixture exige venda');
   const v = m.dados;
-  expect(await amb.db.select().from(vendas).where(eq(vendas.id, v.id))).toEqual([{ id: v.id, lojaId: v.lojaId, aparelhoId: v.aparelhoId, operadorId: v.operadorId, caixaId: v.caixaId ?? null, cancelamento: v.cancelamento ?? null, totalCentavos: v.totalCentavos, status: v.status, criadoEm: instante, atualizadoEm: instante, excluidoEm: null, versao: 1 }]);
+  expect(await amb.db.select().from(vendas).where(eq(vendas.id, v.id))).toEqual([{ id: v.id, lojaId: v.lojaId, aparelhoId: v.aparelhoId, operadorId: v.operadorId, caixaId: v.caixaId ?? null, cancelamento: v.cancelamento ?? null, fiado: v.fiado ?? null, totalCentavos: v.totalCentavos, status: v.status, criadoEm: instante, atualizadoEm: instante, excluidoEm: null, versao: 1 }]);
   const itens = await amb.db.select().from(itensVenda).where(eq(itensVenda.vendaId, v.id));
   expect(itens.sort((a, b) => a.posicao - b.posicao)).toEqual(v.itens.map((item, posicao) => ({ ...item, vendaId: v.id, lojaId: conta.lojaId, posicao, criadoEm: instante })));
   const pagamentos = await amb.db.select().from(pagamentosVenda).where(eq(pagamentosVenda.vendaId, v.id));

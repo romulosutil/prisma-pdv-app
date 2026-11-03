@@ -35,10 +35,11 @@ async function cadastrar(): Promise<Sessao> {
 const cabecalho = (s: Sessao) => ({ authorization: `Bearer ${s.token}` });
 
 describe('produção sem cobrança', () => {
-  it('exige modo disabled explícito e mantém as guardas de produção', () => {
+  it('assume disabled sem configuração e mantém as guardas de produção', () => {
     const e = { NODE_ENV: 'production', PORT: '3333', DATABASE_URL: 'postgres://db/pdv' };
     expect(validarConfiguracao({ ...e, BILLING_PROVIDER: 'disabled' })).toEqual({ ambiente: 'production', porta: 3333, databaseUrl: e.DATABASE_URL, billingProvider: 'disabled' });
-    for (const provider of [undefined, 'mock']) expect(() => validarConfiguracao({ ...e, BILLING_PROVIDER: provider })).toThrow('Nenhum provedor');
+    expect(validarConfiguracao(e).billingProvider).toBe('disabled');
+    expect(() => validarConfiguracao({ ...e, BILLING_PROVIDER: 'mock' })).toThrow('Nenhum provedor');
     expect(() => validarConfiguracao({ ...e, DATABASE_URL: undefined, BILLING_PROVIDER: 'disabled' })).toThrow('DATABASE_URL é obrigatória');
   });
   it('recusa toda operação financeira em vez de simular sucesso', async () => {

@@ -56,8 +56,8 @@ describe('rotas /dev', () => {
 });
 
 describe('criarBilling', () => {
-  it('mock é o padrão e outros providers ainda não existem', () => {
-    expect(criarBilling()).toBeInstanceOf(MockBillingProvider);
+  it('mock exige seleção explícita e outros providers ainda não existem', () => {
+    expect(criarBilling()).not.toBeInstanceOf(MockBillingProvider);
     expect(criarBilling('mock')).toBeInstanceOf(MockBillingProvider);
     expect(() => criarBilling('stripe')).toThrow(/não é suportado/);
   });

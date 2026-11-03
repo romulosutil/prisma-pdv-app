@@ -52,7 +52,7 @@ T1 → T2 → T3 → T4 → T5
 **Tests**: integration, EST-03; navegador e SQLite, falha e reabertura, cancelamento e ajustes.
 **Gate**: full
 **Done when**: venda atômica captura controle, repositório projeta saldo e edição cria ajuste; testes aprovados.
-**Status**: pendente.
+**Status**: concluída; 42/42 mobile e tipos PASS.
 
 ### T4: Avisos e histórico no produto
 **Where**: `apps/mobile/src/telas`

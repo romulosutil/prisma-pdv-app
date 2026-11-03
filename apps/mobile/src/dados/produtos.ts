@@ -1,4 +1,4 @@
-import { dentroDoLimite, type PlanoId, type Produto } from '@pdv/shared';
+import { dentroDoLimite, movimentosDoEstoque, saldoContabilEstoque, saldoEstoque, type PlanoId, type Produto, type Venda } from '@pdv/shared';
 import { registrar } from '@/diagnostico/registro';
 import type { Ambiente } from './ambiente';
 import { ErroDeDominio } from './erros';
@@ -14,12 +14,14 @@ export interface NovoProduto {
   /** Em milésimos da unidade (a mesma escala de `quantidadeMilesimos`). */
   estoque?: number | null;
   estoqueMinimo?: number | null;
+  motivoEstoque?: string;
   atalho?: boolean;
 }
 
 export interface ContextoProdutos {
   lojaId: () => string;
   planoId: () => PlanoId;
+  vendas?: () => readonly Venda[];
 }
 
 /** "Pão Francês" → "pao frances": busca sem acento nem caixa. */
@@ -46,6 +48,7 @@ export class ProdutosRepo extends Persistido<Produto[]> {
   listar(): Produto[] {
     return this.obter()
       .filter((p) => p.excluidoEm === null)
+      .map((p) => ({ ...p, estoque: saldoEstoque(p, this.contexto.vendas?.() ?? []) }))
       .sort(porNome);
   }
 
@@ -60,6 +63,11 @@ export class ProdutosRepo extends Persistido<Produto[]> {
   buscarPorEan(ean: string): Produto | null {
     const digitos = ean.replace(/\D/g, '');
     return this.listar().find((p) => p.ean === digitos) ?? null;
+  }
+
+  historicoEstoque(id: string) {
+    const p = this.obter().find(p => p.id === id);
+    return p ? movimentosDoEstoque(p, this.contexto.vendas?.() ?? []) : [];
   }
 
   /** Todos os termos precisam aparecer no nome; quem começa pelo termo vem primeiro. */
@@ -89,6 +97,7 @@ export class ProdutosRepo extends Persistido<Produto[]> {
       unidade: dados.unidade ?? 'un',
       estoque: dados.estoque ?? null,
       estoqueMinimo: dados.estoqueMinimo ?? null,
+      ...(dados.estoque != null ? { ajustesEstoque: [], estoqueAtivo: true } : {}),
       atalho: dados.atalho ?? false,
       criadoEm: agora,
       atualizadoEm: agora,
@@ -101,24 +110,46 @@ export class ProdutosRepo extends Persistido<Produto[]> {
   }
 
   async editar(id: string, mudancas: Partial<NovoProduto>): Promise<Produto> {
-    const atual = this.buscarPorId(id);
-    if (!atual) throw new ErroDeDominio('produto_inexistente', 'Produto não encontrado.');
-    this.validar(mudancas, id);
-    const editado: Produto = {
+    let editado!: Produto;
+    await this.modificar((lista) => {
+      const atual = lista.find(p => p.id === id && p.excluidoEm === null);
+      if (!atual) throw new ErroDeDominio('produto_inexistente', 'Produto não encontrado.');
+      this.validar(mudancas, id);
+      if (atual.estoque !== null && mudancas.unidade !== undefined && mudancas.unidade !== atual.unidade) {
+        throw new ErroDeDominio('valor_invalido', 'A unidade de um produto com histórico de estoque não pode mudar. Cadastre outro produto.');
+      }
+      const agora = this.amb.relogio.agora().toISOString();
+      let estoque = atual.estoque, estoqueAtivo = atual.estoqueAtivo, ajustes = atual.ajustesEstoque;
+      if (mudancas.estoque !== undefined) {
+        if (mudancas.estoque === null) {
+          if (estoque !== null) estoqueAtivo = false;
+        } else if (estoque === null) {
+          estoque = mudancas.estoque; estoqueAtivo = true; ajustes = [];
+        } else {
+          const diferenca = mudancas.estoque - saldoContabilEstoque(atual, this.contexto.vendas?.() ?? [])!;
+          if (!Number.isSafeInteger(diferenca)) throw new ErroDeDominio('valor_invalido', 'Ajuste de estoque fora do limite permitido.');
+          estoqueAtivo = true;
+          ajustes = [...(ajustes ?? []), ...(diferenca ? [{ id: this.amb.novoId(), quantidadeMilesimos: diferenca, criadoEm: agora, motivo: mudancas.motivoEstoque?.trim() || 'Ajuste manual do saldo' }] : [])];
+        }
+      }
+      editado = {
       ...atual,
       nome: mudancas.nome?.trim() ?? atual.nome,
       ean: mudancas.ean === undefined ? atual.ean : mudancas.ean,
       unidade: mudancas.unidade ?? atual.unidade,
-      estoque: mudancas.estoque === undefined ? atual.estoque : mudancas.estoque,
+      estoque,
+      ...(estoqueAtivo !== undefined ? { estoqueAtivo } : {}),
+      ...(ajustes !== undefined ? { ajustesEstoque: ajustes } : {}),
       estoqueMinimo: mudancas.estoqueMinimo === undefined ? atual.estoqueMinimo : mudancas.estoqueMinimo,
       atalho: mudancas.atalho ?? atual.atalho,
       precoCentavos: mudancas.precoCentavos ?? atual.precoCentavos,
-      atualizadoEm: this.amb.relogio.agora().toISOString(),
+      atualizadoEm: agora,
       versao: atual.versao + 1,
-    };
-    await this.modificar((lista) => lista.map((p) => (p.id === id ? editado : p)));
+      };
+      return lista.map((p) => (p.id === id ? editado : p));
+    });
     registrar('produto', 'produto editado', { ean: editado.ean, campos: Object.keys(mudancas) });
-    return editado;
+    return { ...editado, estoque: saldoEstoque(editado, this.contexto.vendas?.() ?? []) };
   }
 
   async excluir(id: string): Promise<void> {
@@ -136,6 +167,12 @@ export class ProdutosRepo extends Persistido<Produto[]> {
   }
 
   private validar(dados: Partial<NovoProduto>, idAtual?: string): void {
+    for (const campo of ['estoque', 'estoqueMinimo'] as const) if (dados[campo] != null && !Number.isSafeInteger(dados[campo])) {
+      throw new ErroDeDominio('valor_invalido', 'Informe uma quantidade de estoque válida.');
+    }
+    if (dados.motivoEstoque !== undefined && (!dados.motivoEstoque.trim() || dados.motivoEstoque.trim().length > 200)) {
+      throw new ErroDeDominio('valor_invalido', 'Informe um motivo de ajuste com até 200 caracteres.');
+    }
     if (dados.nome !== undefined && dados.nome.trim().length === 0) {
       throw new ErroDeDominio('valor_invalido', 'O nome do produto é obrigatório.');
     }

@@ -67,7 +67,7 @@ Como lojista, quero que o estoque acompanhe recebimentos, cancelamentos e corre�
 | --- | --- | --- | --- |
 | EST-01 | AC1–3,8,10 e limites | T1 | Verified |
 | EST-02 | AC4–5,9,11 | T2 | Verified |
-| EST-03 | AC1–3,6,8 e formulário antigo | T3 | Pending |
+| EST-03 | AC1–3,6,8 e formulário antigo | T3 | Verified |
 | EST-04 | AC7,10 | T4 | Pending |
 | EST-05 | AC4–6 e retomada | T5 | Pending |
 

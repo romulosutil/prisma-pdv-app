@@ -1,4 +1,4 @@
-import { multiplicarPreco, pagamentoManualDisponivel, somar, type Centavos, type Venda } from '@pdv/shared';
+import { controlaEstoque, multiplicarPreco, pagamentoManualDisponivel, somar, type Centavos, type Produto, type Venda } from '@pdv/shared';
 import { registrar } from '@/diagnostico/registro';
 import { inicioDoDia } from '@/util/tempo';
 import type { Ambiente } from './ambiente';
@@ -40,6 +40,7 @@ export interface EstadoVendas {
 export interface ContextoVendas {
   sessao: () => { lojaId: string; aparelhoId: string; operadorId: string };
   caixaId?: () => string | null;
+  produtos?: () => readonly Produto[];
 }
 
 export const totalDoItem = (item: ItemNovaVenda): Centavos => multiplicarPreco(item.precoUnitarioCentavos, item.quantidadeMilesimos);
@@ -101,6 +102,7 @@ export class VendasRepo extends Persistido<EstadoVendas> {
         descricao: item.descricao,
         precoUnitarioCentavos: item.precoUnitarioCentavos,
         quantidadeMilesimos: item.quantidadeMilesimos,
+        ...(this.contexto.produtos ? { controlaEstoque: this.contexto.produtos().some(p => p.id === item.produtoId && controlaEstoque(p)) } : {}),
         totalCentavos: totalDoItem(item),
       })),
       pagamentos: nova.pagamentos.map((p) => ({

@@ -68,8 +68,9 @@ export function usePreferencias() {
  * mais produtos (e `ean_duplicado` / `valor_invalido`). Exclusão é lógica.
  */
 export function useProdutos() {
-  const { produtos: repo, ordemAtalhos } = useDados();
+  const { produtos: repo, ordemAtalhos, vendas } = useDados();
   const estado = useObservavel(repo);
+  const estadoVendas = useObservavel(vendas);
   const ordem = useObservavel(ordemAtalhos);
   return useMemo(
     () => ({
@@ -83,9 +84,10 @@ export function useProdutos() {
       criar: (dados: NovoProduto): Promise<Produto> => repo.criar(dados),
       editar: (id: string, mudancas: Partial<NovoProduto>): Promise<Produto> => repo.editar(id, mudancas),
       excluir: (id: string): Promise<void> => repo.excluir(id),
+      historicoEstoque: (id: string) => repo.historicoEstoque(id),
     }),
     // `estado` e `ordem` trocam a cada mudança e invalidam as listas derivadas.
-    [repo, ordemAtalhos, estado, ordem],
+    [repo, ordemAtalhos, estado, ordem, estadoVendas],
   );
 }
 

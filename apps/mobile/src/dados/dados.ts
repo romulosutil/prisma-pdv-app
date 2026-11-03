@@ -94,9 +94,9 @@ export class Dados {
     const planoId = () => this.assinatura.obter().licenca?.planoId ?? 'essencial';
 
     this.preferencias = new PreferenciasRepo(this.armazenamentoDaLoja);
-    this.produtos = new ProdutosRepo(ambiente, { lojaId: () => sessao().lojaId, planoId });
+    this.produtos = new ProdutosRepo(ambiente, { lojaId: () => sessao().lojaId, planoId, vendas: () => this.vendas.obter().vendas });
     this.ordemAtalhos = new OrdemAtalhosRepo(this.armazenamentoDaLoja);
-    this.vendas = new VendasRepo(ambiente, { sessao, caixaId: () => this.caixa.atual()?.id ?? null });
+    this.vendas = new VendasRepo(ambiente, { sessao, caixaId: () => this.caixa.atual()?.id ?? null, produtos: () => this.produtos.obter() });
     this.caixa = new CaixaRepo(ambiente, { sessao, planoId, checkoutPendente: (id) => this.carrinho.pendenteNoCaixa(id) });
     this.carrinho = new CarrinhoDuravel();
     this.carrinho.configurar(

@@ -1,4 +1,4 @@
-import { MeioPagamentoSchema, MutacaoSchema, ProvedorPagamentoSchema, VendaSchema, multiplicarPreco, pagamentoManualDisponivel, somar, type Venda } from '@pdv/shared';
+import { MeioPagamentoSchema, MutacaoSchema, ProvedorPagamentoSchema, VendaSchema, controlaEstoque, multiplicarPreco, pagamentoManualDisponivel, somar, type Produto, type Venda } from '@pdv/shared';
 import { IdentidadeLocalSchema } from '../estadoConta';
 import { z } from 'zod';
 import type { PersistenciaCheckout, RegistroCheckout } from '../checkoutTipos';
@@ -54,7 +54,7 @@ async function vendaConcluida(tx: SqlExecutor, p: ParticaoLocal, registro: Regis
   const venda = vendas.find((v) => v.id === registro.vendaId);
   const itens = registro.estado.itens.map((i) => ({ produtoId: i.produtoId, descricao: i.descricao, precoUnitarioCentavos: i.precoUnitarioCentavos, quantidadeMilesimos: i.quantidadeMilesimos, totalCentavos: multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos) }));
   const pagamentos = registro.estado.parcelas.map((parcela) => ({ meio: parcela.meio, provedor: parcela.provedor ?? null, valorCentavos: parcela.valorCentavos, trocoCentavos: parcela.trocoCentavos ?? 0 }));
-  const itensVenda = venda?.itens.map(({ id: _id, ...item }) => item);
+  const itensVenda = venda?.itens.map(({ id: _id, controlaEstoque: _controle, ...item }) => item);
   const pagamentosVenda = venda?.pagamentos.map(({ id: _id, ...pagamento }) => pagamento);
   // Cancelamento comercial posterior é legítimo; sua auditoria pertence a P0-04.
   if (!venda || venda.criadaEm !== registro.criadaEm || (venda.caixaId ?? null) !== registro.caixaId || venda.totalCentavos !== somar(...itens.map((i) => i.totalCentavos)) || !igual(itensVenda, itens) || !igual(pagamentosVenda, pagamentos)) {
@@ -121,12 +121,14 @@ export class CheckoutSqlite implements PersistenciaCheckout {
         return;
       }
       if (existente) throw new Error('Venda já existe sem conclusão do checkout.');
+      const produtos = await lerFinanceiro(tx, 'produtos', p) as Produto[];
       const { itens, parcelas } = registro.estado;
       if (parcelas.some((p) => !pagamentoManualDisponivel(p))) throw new Error('Pagamento integrado indisponível nesta fase. Preserve o checkout para recuperação.');
       const totalCentavos = somar(...itens.map((i) => multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos)));
       if (!itens.length || !parcelas.length || somar(...parcelas.map((p) => p.valorCentavos)) !== totalCentavos) throw new Error('Pagamento incompleto ou checkout sem itens.');
       const venda = VendaSchema.parse({ id: registro.vendaId, lojaId: p.lojaId, aparelhoId: sessao.data.aparelhoId, operadorId: sessao.data.operadorId,
-        itens: itens.map((i) => ({ id: this.novoId(), produtoId: i.produtoId, descricao: i.descricao, precoUnitarioCentavos: i.precoUnitarioCentavos, quantidadeMilesimos: i.quantidadeMilesimos, totalCentavos: multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos) })),
+        itens: itens.map((i) => ({ id: this.novoId(), produtoId: i.produtoId, descricao: i.descricao, precoUnitarioCentavos: i.precoUnitarioCentavos, quantidadeMilesimos: i.quantidadeMilesimos, totalCentavos: multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos),
+          controlaEstoque: produtos.some(p => p.id === i.produtoId && controlaEstoque(p)) })),
         pagamentos: parcelas.map((parcela) => ({ id: this.novoId(), meio: parcela.meio, provedor: parcela.provedor ?? null, valorCentavos: parcela.valorCentavos, trocoCentavos: parcela.trocoCentavos ?? 0 })), totalCentavos, status: 'concluida', criadaEm: registro.criadaEm, caixaId: registro.caixaId });
       const mutacao = MutacaoSchema.parse({ id: this.novoId(), criadaEm: registro.criadaEm, entidade: 'venda', operacao: 'upsert', dados: venda });
       await tx.runAsync('INSERT INTO vendas VALUES (?, ?, ?, ?, ?)', p.contaId, p.lojaId, venda.id, registro.caixaId, JSON.stringify(venda));

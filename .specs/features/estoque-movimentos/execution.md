@@ -32,3 +32,20 @@ PASS: 33/33 casos de API no PostgreSQL17 dedicado em127.0.0.1:55439/pdv_test; ti
 | AC5 concorrente | :137 `.toEqual([a.id,b.id].sort())`, :138 `.toBe(13000)` | dois pushes simultâneos retêm ajustes | concorrência |
 
 Suficiência/necessidade: cada teste mapeia ao critério da linha; nenhuma asserção limitada a chamadas. Sem novo endpoint; push/pull existentes exercitados com auth e banco. Código e migração não foram aplicados à VPS.
+
+## T3
+
+PASS: 42/42 mobile (7novos estoque, checkoutSQLite e repositórios), tipos mobile PASS. RED dos7casos mostrou saldo estático e marcador ausente. Arquivos: ProdutosRepo, VendasRepo, Dados, hooks e CheckoutSqlite; teste estoquePersistencia.test.ts. O marcador nasce no mesmo commit de venda/itens/outbox; não existe escrita adicional de saldo. Retomada compara conteúdo do checkout sem derivar o marcador novamente.
+
+| Critério | Assertiva em apps/mobile/test/estoquePersistencia.test.ts | Resultado | Reverso / necessidade |
+| --- | --- | --- | --- |
+| AC1–2 | :35 `.toBe(8000)`, :38 `.toEqual(v)`, :44 `.toBe(14000)` | baixa/reposição única e ajuste+4 | SQLite e navegador |
+| Base imutável | :36 `.toBe(10000)`, :50 `.toEqual([10000,10000])` | outbox usa base, não saldo exibido | evita sobrescrita |
+| Ajuste auditável | :42 `.toMatchObject([{quantidadeMilesimos:4000,motivo:'Entrada de mercadoria'}])`, :45 tipos | correção e histórico | AC5/10 |
+| AC2,8 | :60 `.toBe(10000)`, :65 `.toBe(false)`, :68 `.toBe(6000)` | parcial não baixa e reativação correta | ciclo |
+| Unidade | :70 `.rejects.toThrow('unidade')` | unidade controlada fixa | integridade |
+| Metadados e negativo | :80 `.toMatchObject({nome:'Arroz novo',estoque:-1000})`, :81 `.toEqual([])` | renomear não ajusta | caso formulário antigo |
+| AC6 | :96 `.rejects.toThrow('falha injetada')`, :97 `.toBe(10000)`, :99 `{n:0}` | rollback completo | falha antes do commit |
+| AC6 retomada | :103 `.toBe(8000)`, :106 `.toEqual(venda)`, :108 `{n:1}` | arquivo reaberto, resposta perdida | mesma baixa |
+
+Suficiência/necessidade: todos os cenários do escopo de persistência têm resultado financeiro/estoque explícito; teste emarquivo reabre conexões reais. Sem mudanças em testes anteriores deste lote. Histórico anterior é coberto no domínio/API; duas instalações HTTP seguem T5.

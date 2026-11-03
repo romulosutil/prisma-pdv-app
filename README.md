@@ -45,9 +45,11 @@ Em Ajustes → Assinatura, o "Relógio de teste" avança os dias para ver o fim 
 
 ## APK de testes
 
-### APK conectado (R0)
+### APK conectado (R0–R5)
 
 O perfil `homologacao` usa a API e o PostgreSQL isolados no EasyPanel, login por e-mail real e acesso sem cartão/cobrança. Instala como **PDV Homologação** (`br.com.pdv.mobile.homologacao`), separado da demo 0.1.4. Não leva produtos ou vendas fictícios. Pagamentos de vendas continuam sendo registros manuais.
+
+Entrega 03/11/2026: APK 0.1.7/versionCode 8, API `a987c31`, CI PostgreSQL/SQLite e ciclo HTTP financeiro aprovados; teste físico do usuário pendente. [Relatório e hashes](docs/r5-piloto-backup-suporte.md#candidato-conectado-017) · [primeiro teste com produto real](docs/roteiro-piloto-android.md#primeiro-teste-do-usuário-com-um-produto-real).
 
 ```powershell
 ./scripts/build-android.ps1 -Perfil homologacao

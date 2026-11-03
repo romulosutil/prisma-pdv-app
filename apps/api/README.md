@@ -2,6 +2,8 @@
 
 API do PDV: Fastify 5 + TypeScript + Drizzle ORM (dialeto Postgres). O domínio (planos, assinatura, licença, billing mock, contrato zod) vem de `@pdv/shared`.
 
+Homologação em 03/11/2026: R1–R5 no candidato `a987c31`, PostgreSQL 17/CI e fluxo HTTP financeiro aprovados. Cobrança desativada por padrão; simulador somente por escolha explícita em desenvolvimento/teste e proibido em produção. Respostas fornecem `x-pdv-agora` para novas operações do app conectado. Android físico e demais pendências constam no [roadmap](../../docs/roadmap-app-completo.md).
+
 ## API
 
 ### Como rodar

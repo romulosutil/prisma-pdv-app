@@ -2,6 +2,27 @@
 
 **Implementação local e APK interno concluídos em 02/11/2026; homologação externa/física pendente.** Esta é a sexta entrega solicitada, correspondente à R5 do roadmap. R6 continua sendo a futura integração de pagamentos. Não há aceite humano registrado. Checkpoints incrementais: CPs 021–025 no [histórico](checkpoints-roadmap.md).
 
+**Atualização de 03/11:** API R1–R5 e correção de hora real implantadas em homologação (`a987c31`), CI completo aprovado com PostgreSQL 17 (592 API, 556 mobile, 172 shared) e sete grupos de smoke HTTP financeiro aprovados. Backups locais anterior/schema R5 comprovados. **APK 0.1.7/versionCode 8 gerado e verificado para o teste do usuário**; Android físico, OTP externo novo, restauração R5, atendimento e aceite continuam pendentes. As evidências 0.1.6 e a API R0 descritas abaixo são históricas. [CP 034](checkpoints-roadmap.md#cp-20261103-034-apk-real-017-pronto-para-teste-no-celular).
+
+## Candidato conectado 0.1.7
+
+| Item | Evidência de 03/11/2026 |
+|---|---|
+| Artefato | `builds/pdv-homologacao-0.1.7.apk`, 74.689.899 bytes |
+| Versão/pacote | 0.1.7/versionCode 8, `br.com.pdv.mobile.homologacao`, PDV Homologação |
+| SHA256 APK | `5d9d543544c1b679ceb1de2c4234137e3bc061f297ba929898fa187d35df8429` |
+| Android/assinatura | minSdk 24, targetSdk 36, ARM32/ARM64; APK v2 válida Android Debug, mesmo certificado interno de 0.1.6; não é assinatura de distribuição |
+| Build | Gradle SUCCESS em 6m35s, 657 tarefas, daemon de compilação encerrado |
+| API/CI | `a987c31c757891d911c7e201e97fbce60eaacc2c`, [workflow 41574379311](https://github.com/romulosutil/prisma-pdv-app/actions/runs/41574379311) PASS; fonte exclusiva de homologação, auto deploy false |
+| Bundle exato do APK | 4.252.956 bytes, SHA256 `4a886e07c3131359a2c9a9a64cb0a4a8174ce2750d22b1e3cb98b7b85bed205c`, 1.882 fontes, gate PASS |
+| Inventário | 291 fontes conferidos com o workspace por SHA256, zero divergências |
+| Compatibilidade externa | Saúde/banco/hora precisa e rotas R5 PASS; sete grupos HTTP autenticados PASS, sem envio de e-mail |
+| Aparelho/aceite | ADB sem aparelho autorizado; instalação, Android físico e aceite do usuário pendentes |
+
+Scanner usa câmera/digitação reais. Backend demo, catálogo fictício/atraso, semente, captura/tokenização/gateway simulados, relógio de teste e diagnóstico de teste ficam fora do APK conectado conforme o gate. Mocks de testes e demo legada continuam separados; a API em produção recusa cobrança simulada e libera o acesso sem cartão. Novas datas financeiras seguem a referência precisa do servidor; eventos/filas anteriores não são reescritos.
+
+Manifesto, assinatura, metadados, inventário, mapa e hash estão em `builds/pdv-homologacao-0.1.7-*`; manifesto vincula API/CI e mantém Android/aceite como pendentes. O [roteiro de um produto real](roteiro-piloto-android.md#primeiro-teste-do-usuário-com-um-produto-real) não substitui F01–F19. Esta entrega alterou somente homologação; a versão observada de produção mudou durante a sessão sem mutação de produção por esta tarefa, e foi preservada.
+
 ## Entrega construída
 
 - Tela **Suporte e privacidade**, disponível antes do cadastro, durante reautenticação e bloqueio comercial. Políticas do piloto versionadas, privacidade, termos, exportação e pedido de análise de exclusão.
@@ -13,7 +34,7 @@
 - Protocolos concluídos há mais de 90 dias são removidos no startup e diariamente com jobs ativos; consulta também limpa concluídos expirados do próprio perfil. Abertos/em análise preservados. Shutdown drena o job; logs de erro internos não imprimem SQL/params que possam carregar mensagem pessoal.
 - Migração aditiva `0011_condemned_unus.sql`, contrato `packages/shared/src/suporte.ts`, rotas/retencão API, serviço durável/tela/rota mobile, particionamento pessoal e testes. Sem commit próprio, base local `bc786bc`; trabalhos anteriores preservados.
 
-## APK exato preparado
+## APK 0.1.6 — evidência histórica
 
 | Item | Evidência |
 |---|---|

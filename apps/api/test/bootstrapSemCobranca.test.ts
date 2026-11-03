@@ -7,6 +7,8 @@ vi.mock('../src/email/smtp', async original => ({ ...await original<typeof impor
 vi.mock('../src/servidor', () => ({ criarApp: m.criar }));
 vi.mock('../src/jobs', () => ({ agendarCobranca: m.cobrar }));
 vi.mock('../src/jobsEmail', () => ({ agendarEntregasCodigo: m.email }));
+vi.mock('../src/servicos/retencaoSuporte', () => ({ limparSuporteConcluido: vi.fn(async () => 0), agendarRetencaoSuporte: vi.fn(() => async () => undefined) }));
+import { limparSuporteConcluido, agendarRetencaoSuporte } from '../src/servicos/retencaoSuporte';
 import { iniciarApi } from '../src/iniciarApi';
 afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks(); });
 it('produção disabled mantém relógio real e e-mail ativo sem job comercial', async () => {
@@ -20,5 +22,6 @@ it('produção disabled mantém relógio real e e-mail ativo sem job comercial',
   expect(m.criar).toHaveBeenCalledWith(expect.objectContaining({ relogio: relogioSistema, cobrancaDesativada: true, emissaoCodigo: expect.objectContaining({ modo: 'email' }) }));
   expect(m.listen).toHaveBeenCalledWith({ port: 3333, host: '0.0.0.0' });
   expect(m.email).toHaveBeenCalledTimes(1); expect(m.cobrar).not.toHaveBeenCalled();
+  expect(limparSuporteConcluido).toHaveBeenCalledOnce(); expect(agendarRetencaoSuporte).toHaveBeenCalledOnce();
   await parar(); expect(m.close).toHaveBeenCalledTimes(1); expect(m.fechar).toHaveBeenCalledTimes(1);
 });

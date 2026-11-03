@@ -18,7 +18,7 @@ beforeAll(async () => { banco = await abrirBanco(); });
 afterAll(async () => { await banco.fechar(); });
 beforeEach(async () => {
   vi.stubEnv('NODE_ENV', 'production');
-  await banco.db.execute(sql`truncate table contas cascade`);
+  await banco.db.execute(sql`truncate table contas, usuarios cascade`);
   relogio = new RelogioFalso(INICIO);
   billing = criarBillingDesativado();
   app = await criarApp({ db: banco.db, relogio, billing, cobrancaDesativada: true, fontesEan: [],

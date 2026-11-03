@@ -6,6 +6,16 @@ import { z } from 'zod';
 type Agregados = { produtos: unknown[]; caixas: unknown[]; vendas: { vendas: unknown[]; numeroBase: number } };
 export interface EnvelopeSync extends EstadoRepositorioSync { agregados: Agregados; diferidos: Mudanca[]; confirmados: string[]; preparado: boolean }
 export const vazioSync = (): EnvelopeSync => ({ agregados: { produtos: [], caixas: [], vendas: { vendas: [], numeroBase: 0 } }, entradas: [], cursor: '0', ultimaSincronizacaoEm: null, diferidos: [], confirmados: [], preparado: false });
+export function visibilidadeEnvelope(e: EnvelopeSync, operadorId: string | null): void {
+  if (operadorId) {
+    e.agregados.caixas = e.agregados.caixas.filter((c: any) => c.operadorId === operadorId);
+    e.agregados.vendas.vendas = e.agregados.vendas.vendas.filter((v: any) => v.operadorId === operadorId);
+    e.diferidos = e.diferidos.filter(m => m.entidade === 'produto' || (m.operacao === 'upsert' && m.dados.operadorId === operadorId));
+  }
+  // Preserva outbox, IDs e conteúdo rejeitável. Remoção de cache não gera delete remoto.
+  e.cursor = '0';
+  e.ultimaSincronizacaoEm = null;
+}
 const chave = (entidade: string): ChaveFinanceira => entidade === 'produto' ? 'produtos' : entidade === 'caixa' ? 'caixas' : 'vendas';
 const lista = (e: EnvelopeSync, c: ChaveFinanceira): any[] => c === 'vendas' ? e.agregados.vendas.vendas : e.agregados[c];
 const identidade = (m: Mudanca) => m.entidade + ':' + m.dados.id;

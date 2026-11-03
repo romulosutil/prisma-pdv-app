@@ -36,7 +36,8 @@ function recarregarApp() {
 export default function Ajustes() {
   const router = useRouter();
   const dados = useDados();
-  const { perfil, primeiroNome } = useConta();
+  const { perfil, primeiroNome, identidade } = useConta();
+  const dono = !identidade?.papel || identidade.papel === 'dono';
   const { assinatura } = useAssinatura();
   const { preferencias, alterar } = usePreferencias();
   const status = assinatura ? STATUS_VISUAL[assinatura.status] : null;
@@ -49,8 +50,10 @@ export default function Ajustes() {
 
       <Secao titulo="Conta">
         <View style={estilos.cartao}>
-          <LinhaLista titulo="Conta e aparelhos" subtitulo={perfil?.email ?? 'Acesso e recuperação'} onPress={() => router.push('/ajustes/aparelhos')} valor={<Icone nome="chevronDireita" tamanho={20} cor={cores.ink3} />} />
-          <LinhaLista
+          <LinhaLista titulo="Usuários neste aparelho" subtitulo={perfil?.email ?? 'Acesso pessoal'} onPress={() => router.push('/ajustes/usuarios')} valor={<Icone nome="chevronDireita" tamanho={20} cor={cores.ink3} />} />
+          {dono && dados.backend?.modo === 'http' ? <LinhaLista titulo="Equipe da loja" subtitulo="Convites e permissões" onPress={() => router.push('/ajustes/equipe')} valor={<Icone nome="chevronDireita" tamanho={20} cor={cores.ink3} />} /> : null}
+          {dono ? <LinhaLista titulo="Conta e aparelhos" subtitulo="Acesso e recuperação" onPress={() => router.push('/ajustes/aparelhos')} valor={<Icone nome="chevronDireita" tamanho={20} cor={cores.ink3} />} /> : null}
+          {dono ? <LinhaLista
             titulo="Assinatura"
             subtitulo={assinatura ? `Plano ${PLANOS[assinatura.planoId].nome}` : 'Sem assinatura'}
             rotuloAcessivel={assinatura && status ? `Assinatura, plano ${PLANOS[assinatura.planoId].nome}, ${status.texto}` : 'Assinatura'}
@@ -61,9 +64,16 @@ export default function Ajustes() {
                 <Icone nome="chevronDireita" tamanho={20} cor={cores.ink3} />
               </View>
             }
-          />
+          /> : null}
         </View>
       </Secao>
+
+      {dados.backend?.modo === 'http' ? <Secao titulo="Gestão">
+        <LinhaLista titulo="Estoque e movimentos" subtitulo="Entradas, devoluções e divergências" onPress={() => router.push('/gestao/estoque')} />
+        {dados.pode('vender') ? <LinhaLista titulo="Clientes e fiado" subtitulo="Saldos, vencimentos e recebimentos" onPress={() => router.push('/gestao/fiado')} /> : null}
+        <LinhaLista titulo="Relatórios e CSV" subtitulo="Por período, usuário, turno, loja e meio" onPress={() => router.push('/gestao/relatorios')} />
+        <LinhaLista titulo="Lojas e vínculos" subtitulo="Selecionar loja e administrar filiais" onPress={() => router.push('/ajustes/lojas')} />
+      </Secao> : null}
 
       <Secao titulo="Recebimentos">
         <View style={estilos.lista}>
@@ -119,8 +129,11 @@ export default function Ajustes() {
       </Secao>
 
       {SecaoDiagnostico ? <SecaoDiagnostico /> : null}
+      <Secao titulo="Ajuda">
+        <LinhaLista titulo="Suporte e privacidade" subtitulo="Atendimento, termos, exportação e exclusão" onPress={() => router.push('/suporte')} />
+      </Secao>
 
-      {FERRAMENTAS_TESTE ? (
+      {__DEV__ || process.env.EXPO_PUBLIC_FERRAMENTAS_TESTE === '1' ? (
         <Secao titulo="Desenvolvimento">
           <Botao
             rotulo="Zerar dados do app"

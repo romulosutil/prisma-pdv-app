@@ -1,22 +1,22 @@
 import type { SyncPullRes } from '@pdv/shared';
 import type { Armazenamento } from './armazenamento';
 import { ArmazenamentoEscopo } from './armazenamentoEscopo';
-import type { IdentidadeLocal } from './estadoConta';
-import { alterar, confirmarEnvelope, paginaEnvelope, prepararEnvelope, validarEnvelope, vazioSync, type EnvelopeSync } from './syncAplicacao';
+import { escopoDoPerfil, perfilFinanceiro, type IdentidadeLocal } from './estadoConta';
+import { alterar, confirmarEnvelope, paginaEnvelope, prepararEnvelope, validarEnvelope, vazioSync, visibilidadeEnvelope, type EnvelopeSync } from './syncAplicacao';
 import type { EstadoRepositorioSync, RepositorioSync } from './syncTipos';
 import { ehFinanceira, type ParticaoLocal } from './sqlite/financeiro';
 
 export class ArmazenamentoSyncNavegador implements Armazenamento, RepositorioSync {
   private fila: Promise<void> = Promise.resolve();
   constructor(private readonly base: Armazenamento, private readonly identidade: () => IdentidadeLocal | null, private readonly novoId: () => string, private readonly agora: () => Date) {}
-  obterEscopo = (): string | null => { const i = this.identidade(); return i ? JSON.stringify([i.contaId, i.lojaId]) : null; };
+  obterEscopo = (): string | null => { const i = this.identidade(); return i ? escopoDoPerfil(i) : null; };
   retirarCredencial(token: string): Promise<void> { return this.base.retirarCredencial?.(token) ?? Promise.resolve(); }
   private executar<T>(f: (e: EnvelopeSync, p: ParticaoLocal) => T, gravar = true): Promise<T> {
     const escopo = this.obterEscopo();
     const trabalho = this.fila.then(async () => {
       if (!escopo || escopo !== this.obterEscopo()) throw new Error('Conta alterada ou ausente.');
       const [contaId, lojaId] = JSON.parse(escopo) as [string, string];
-      const p = { contaId, lojaId }; const endereco = 'sync_v1:' + escopo;
+      const p = { contaId, lojaId, perfilId: this.identidade() ? perfilFinanceiro(this.identidade()!) : undefined }; const endereco = 'sync_v1:' + escopo;
       let e = await this.base.obter<EnvelopeSync>(endereco);
       if (e === null) {
         e = vazioSync();
@@ -48,6 +48,7 @@ export class ArmazenamentoSyncNavegador implements Armazenamento, RepositorioSyn
   rejeitar(rejeitadas: readonly { id: string; motivo: string }[]): Promise<void> { return this.executar((e) => { for (const x of e.entradas) { const r = rejeitadas.find((r) => r.id === x.mutacao.id); if (r) { x.tentativas++; x.motivo = r.motivo; x.bloqueada = true; x.proximaTentativaEm = null; } } }); }
   aplicarPagina(p: SyncPullRes): Promise<void> { return this.executar((e, particao) => paginaEnvelope(e, p, particao)); }
   finalizar(em: string): Promise<void> { return this.executar((e) => { e.ultimaSincronizacaoEm = em; }); }
+  atualizarVisibilidade(operadorId: string | null): Promise<void> { return this.executar(e => visibilidadeEnvelope(e, operadorId)); }
   retentarRejeitadas(): Promise<void> { return this.executar((e) => { for (const x of e.entradas) if (x.bloqueada) { x.bloqueada = false; x.motivo = null; x.tentativas = 0; x.proximaTentativaEm = null; } }); }
   exportar(): Promise<string> { return this.executar((e) => JSON.stringify({ entradas: e.entradas, cursor: e.cursor, ultimaSincronizacaoEm: e.ultimaSincronizacaoEm }), false); }
 }

@@ -12,6 +12,10 @@ import { rotasConta, rotasContaProtegidas } from './rotas/conta';
 import { rotasDev } from './rotas/dev';
 import { rotasSync } from './rotas/sync';
 import { rotasRecuperacao } from './rotas/recuperacao';
+import { rotasEquipe } from './rotas/equipe';
+import { rotasGestao } from './rotas/gestao';
+import { rotasCaixa } from './rotas/caixa';
+import { rotasSuporte } from './rotas/suporte';
 
 // Mensagens de validação do zod em português, inclusive nos schemas do @pdv/shared.
 z.config(z.locales.pt());
@@ -65,7 +69,9 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
     if (erro instanceof Error && 'statusCode' in erro && typeof erro.statusCode === 'number' && erro.statusCode < 500) {
       return reply.status(erro.statusCode).send({ erro: 'requisicao_invalida', mensagem: erro.message });
     }
-    request.log.error(erro);
+    // Erros do driver podem carregar SQL/params, incluindo mensagens pessoais de suporte.
+    // O request ID do logger permite correlacionar a falha sem divulgar esses dados.
+    request.log.error({ codigo: 'erro_interno' }, 'Falha interna na API.');
     return reply.status(500).send({ erro: 'erro_interno', mensagem: 'Erro interno. Tente novamente em instantes.' });
   });
   app.setNotFoundHandler((_request, reply) =>
@@ -89,6 +95,10 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
     privado.decorateRequest('sessao');
     privado.addHook('onRequest', exigirSessao(deps.db, deps.relogio));
     rotasContaProtegidas(privado, deps);
+    rotasEquipe(privado, deps);
+    rotasCaixa(privado, deps);
+    rotasGestao(privado, deps);
+    rotasSuporte(privado, deps);
     rotasAssinatura(privado, deps);
     rotasSync(privado, deps);
     rotasCatalogo(privado, deps);

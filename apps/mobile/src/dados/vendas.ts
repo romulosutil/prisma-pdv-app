@@ -29,6 +29,7 @@ export interface NovaVenda {
   itens: ItemNovaVenda[];
   pagamentos: PagamentoNovaVenda[];
   caixaId?: string | null;
+  fiado?: Venda['fiado'];
 }
 
 export interface EstadoVendas {
@@ -40,6 +41,9 @@ export interface EstadoVendas {
 export interface ContextoVendas {
   sessao: () => { lojaId: string; aparelhoId: string; operadorId: string };
   caixaId?: () => string | null;
+  autorizarCancelamento?: () => void;
+  autorizarVenda?: () => void;
+  conferirOutros?: () => boolean;
 }
 
 export const totalDoItem = (item: ItemNovaVenda): Centavos => multiplicarPreco(item.precoUnitarioCentavos, item.quantidadeMilesimos);
@@ -53,6 +57,10 @@ export class VendasRepo extends Persistido<EstadoVendas> {
     private readonly contexto: ContextoVendas,
   ) {
     super(amb.armazenamento, 'vendas', { vendas: [], numeroBase: 0 });
+  }
+
+  protected validarCarregado(valor: EstadoVendas): EstadoVendas {
+    return this.contexto.conferirOutros?.() === false ? { ...valor, vendas: valor.vendas.filter(v => v.operadorId === this.contexto.sessao().operadorId) } : valor;
   }
 
   /** Da mais recente para a mais antiga. */
@@ -83,10 +91,11 @@ export class VendasRepo extends Persistido<EstadoVendas> {
   async registrar(nova: NovaVenda, id?: string, criadaEm?: string): Promise<Venda> {
     const existente = id ? this.obter().vendas.find((v) => v.id === id) : null;
     if (existente) return existente;
+    if (!id) this.contexto.autorizarVenda?.();
     if (nova.pagamentos.some((p) => !pagamentoManualDisponivel(p))) throw new Error('Pagamento integrado indisponível nesta fase.');
     if (nova.itens.length === 0) throw new ErroDeDominio('sem_itens', 'Adicione ao menos um item à venda.');
     const totalCentavos = totalDosItens(nova.itens);
-    if (somar(...nova.pagamentos.map((p) => p.valorCentavos)) !== totalCentavos) {
+    if (somar(...nova.pagamentos.map((p) => p.valorCentavos), nova.fiado?.valorCentavos ?? 0) !== totalCentavos) {
       throw new ErroDeDominio('pagamento_incompleto', 'Os pagamentos não fecham o total da venda.');
     }
     const { lojaId, aparelhoId, operadorId } = this.contexto.sessao();
@@ -95,6 +104,7 @@ export class VendasRepo extends Persistido<EstadoVendas> {
       lojaId,
       aparelhoId,
       operadorId,
+      ...(nova.fiado ? { fiado: nova.fiado } : {}),
       itens: nova.itens.map((item) => ({
         id: this.amb.novoId(),
         produtoId: item.produtoId,
@@ -125,6 +135,7 @@ export class VendasRepo extends Persistido<EstadoVendas> {
   }
 
   async cancelar(id: string, motivo = 'Cancelamento solicitado pelo operador'): Promise<Venda> {
+    this.contexto.autorizarCancelamento?.();
     let resultado: Venda | undefined;
     await this.modificar((atual) => {
       const venda = atual.vendas.find((v) => v.id === id);

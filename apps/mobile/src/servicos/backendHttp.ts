@@ -1,5 +1,7 @@
+import { OpcoesRelatorioSchema, ComandoGestaoSchema, ClienteSchema, EstoqueResSchema, EventoFiadoSchema, FiadoResSchema, FiltrosRelatorioSchema, LojaSchema, RelatorioSchema, type ComandoGestao, type FiltrosRelatorio } from '@pdv/shared';
 import {
   AssinaturaResSchema,
+  CaixaSchema, PainelCaixasSchema, ReservarCaixaReqSchema, OperacaoCaixaReqSchema, AutorizarTransferenciaReqSchema, TrocarAparelhoCaixaReqSchema,
   SyncPushReqSchema, SyncPushResSchema, SyncPullResSchema,
   PerfilResSchema,
   AparelhosResSchema,
@@ -9,6 +11,8 @@ import {
   RecuperacaoAparelhoSchema,
   SessaoSchema,
   PlanoIdSchema,
+  VinculosSchema, VinculoSchema,
+  type ConvidarReq, type AlterarVinculoReq,
   type AssinaturaRes,
   type CriarAssinaturaReq,
   type CriarContaReq,
@@ -20,6 +24,7 @@ import {
   type SyncPushReq,
 } from '@pdv/shared';
 import { z, type ZodType } from 'zod';
+import { SolicitacaoSuporteSchema, SolicitarSuporteSchema, type SolicitarSuporte } from '@pdv/shared';
 import { ErroBackend, type Backend, type CodigoErroBackend } from './backend';
 
 const TEMPO_LIMITE_MS = 15_000;
@@ -48,7 +53,7 @@ function codigoDoStatus(status: number): CodigoErroBackend {
 }
 
 const CODIGOS_CONHECIDOS: readonly string[] = ['cartao_recusado', 'token_invalido', 'valor_invalido', 'cupom_invalido'];
-const CODIGOS_CONFLITO: readonly string[] = ['limite_aparelhos', 'aparelho_em_uso', 'aparelho_revogado', 'aparelho_ja_autorizado', 'recuperacao_desnecessaria', 'recuperacao_desatualizada'];
+const CODIGOS_CONFLITO: readonly string[] = ['limite_aparelhos', 'aparelho_em_uso', 'aparelho_revogado', 'aparelho_ja_autorizado', 'recuperacao_desnecessaria', 'recuperacao_desatualizada', 'limite_operadores', 'vinculo_existente', 'convite_pendente', 'vinculo_desligado', 'aceitar_convite', 'selecionar_vinculo'];
 
 interface OpcoesChamada {
   corpo?: unknown;
@@ -61,7 +66,44 @@ interface OpcoesChamada {
 }
 
 export class BackendHttp implements Backend {
+  solicitarSuporte(req: SolicitarSuporte, token?: string) { return this.chamar('POST', '/suporte/solicitacoes', SolicitacaoSuporteSchema, { corpo: SolicitarSuporteSchema.parse(req), token }); }
+  listarSolicitacoesSuporte(token?: string) { return this.chamar('GET', '/suporte/solicitacoes', z.array(SolicitacaoSuporteSchema), { token }); }
+  exportarDadosSuporte(token?: string) { return this.chamar('GET', '/suporte/exportacao', z.record(z.string(), z.unknown()), { token }); }
   readonly modo = 'http' as const;
+  obterEstoque(token?: string) { return this.chamar('GET', '/estoque', EstoqueResSchema, { token }); }
+  obterFiado(token?: string) { return this.chamar('GET', '/fiado', FiadoResSchema, { token }); }
+  listarLojas(token?: string) { return this.chamar('GET', '/lojas', z.array(LojaSchema), { token }); }
+  obterOpcoesRelatorio(token?: string) { return this.chamar('GET', '/relatorios/filtros', OpcoesRelatorioSchema, { token }); }
+  obterRelatorio(filtros: FiltrosRelatorio, token?: string) {
+    const f = FiltrosRelatorioSchema.parse(filtros);
+    const consulta = Object.entries(f).map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v!)}`).join('&');
+    return this.chamar('GET', `/relatorios?${consulta}`, RelatorioSchema, { token });
+  }
+  executarGestao(comando: ComandoGestao, token?: string): Promise<unknown> {
+    const c = ComandoGestaoSchema.parse(comando);
+    if (c.acao === 'estoque') return this.chamar('POST', '/estoque/movimentos', z.object({ id: z.uuid() }), { corpo: c.dados, token });
+    if (c.acao === 'cliente') return this.chamar('POST', '/clientes', ClienteSchema, { corpo: c.dados, token });
+    if (c.acao === 'loja') return this.chamar('POST', '/lojas', LojaSchema, { corpo: c.dados, token });
+    return this.chamar('POST', c.acao === 'recebimento' ? '/fiado/recebimentos' : '/fiado/estornos', EventoFiadoSchema, { corpo: c.dados, token });
+  }
+
+  reservarCaixa(req: z.infer<typeof ReservarCaixaReqSchema>, token?: string) { return this.chamar('POST', '/caixas/reservar', CaixaSchema, { corpo: ReservarCaixaReqSchema.parse(req), token }); }
+  listarCaixas(token?: string) { return this.chamar('GET', '/caixas', PainelCaixasSchema, { token }); }
+  movimentarCaixa(id: string, req: z.infer<typeof OperacaoCaixaReqSchema>, token?: string) { z.uuid().parse(id); return this.chamar('POST', `/caixas/${id}/movimentos`, CaixaSchema, { corpo: OperacaoCaixaReqSchema.parse(req), token }); }
+  autorizarTransferencia(req: z.infer<typeof AutorizarTransferenciaReqSchema>, token?: string) { return this.chamar('POST', '/caixas/transferencias/autorizar', z.object({ id: z.uuid(), expiraEm: z.iso.datetime() }), { corpo: AutorizarTransferenciaReqSchema.parse(req), token }); }
+  executarTransferencia(autorizacaoId: string, token?: string) { z.uuid().parse(autorizacaoId); return this.chamar('POST', '/caixas/transferencias/executar', z.object({ id: z.uuid(), caixa: CaixaSchema }), { corpo: { autorizacaoId }, token }); }
+  conferirCaixa(id: string, eventoId: string, motivo: string, token?: string) { z.uuid().parse(id); return this.chamar('POST', `/caixas/${id}/conferir`, z.object({ id: z.uuid() }), { corpo: { id: eventoId, motivo }, token }); }
+  trocarAparelhoCaixa(id: string, req: z.infer<typeof TrocarAparelhoCaixaReqSchema>, token?: string) { z.uuid().parse(id); return this.chamar('POST', `/caixas/${id}/aparelho`, CaixaSchema, { corpo: TrocarAparelhoCaixaReqSchema.parse(req), token }); }
+
+  consultarVinculos(email: string, codigo: string) {
+    return this.chamar('POST', '/auth/vinculos', VinculosSchema, { corpo: { email, codigo }, publica: true });
+  }
+  listarEquipe() { return this.chamar('GET', '/equipe', VinculosSchema, {}); }
+  convidar(req: ConvidarReq) { return this.chamar('POST', '/equipe/convites', VinculoSchema, { corpo: req }); }
+  alterarVinculo(id: string, req: AlterarVinculoReq) {
+    z.uuid().parse(id);
+    return this.chamar('PUT', `/equipe/${encodeURIComponent(id)}`, VinculoSchema, { corpo: req });
+  }
 
   constructor(
     private readonly baseUrl: string,
@@ -91,8 +133,8 @@ export class BackendHttp implements Backend {
     await this.chamar('DELETE', `/aparelhos/${encodeURIComponent(id)}`, null, { espera204: true });
   }
 
-  async sair(): Promise<void> {
-    await this.chamar('POST', '/auth/logout', null, { espera204: true });
+  async sair(token?: string): Promise<void> {
+    await this.chamar('POST', '/auth/logout', null, { espera204: true, token });
   }
 
   criarConta(req: CriarContaReq): Promise<Sessao> {
@@ -204,6 +246,8 @@ function safeJson(texto: string): unknown {
 function erroDaResposta(status: number, corpo: unknown): ErroBackend {
   if (status === 429) return new ErroBackend('limite_autenticacao', '', status);
   const campos = typeof corpo === 'object' && corpo !== null ? (corpo as Record<string, unknown>) : {};
+  if (status === 403 && campos.erro === 'proibido') return new ErroBackend('permissao_negada', '', status);
+  if (status === 409 && campos.erro === 'conflito' && typeof campos.mensagem === 'string' && campos.mensagem.length <= 500) return new ErroBackend('conflito', campos.mensagem, status);
   const conflito = status === 409 ? [campos.codigo, campos.erro].find((v): v is string => typeof v === 'string' && CODIGOS_CONFLITO.includes(v)) : undefined;
   if (conflito) return new ErroBackend(conflito as CodigoErroBackend, '', status);
   const codigoServidor = [campos.codigo, campos.erro].find((v): v is string => typeof v === 'string' && CODIGOS_CONHECIDOS.includes(v));

@@ -1,6 +1,6 @@
-import { PLANOS, planoMinimoPara, type MovimentoCaixa } from '@pdv/shared';
+import { PLANOS, planoMinimoPara, ROTULOS_MOVIMENTO, sinalMovimento, type MovimentoCaixa } from '@pdv/shared';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Botao } from '@/componentes/Botao';
 import { Dinheiro } from '@/componentes/Dinheiro';
@@ -8,7 +8,8 @@ import { Icone } from '@/componentes/Icone';
 import { LinhaLista } from '@/componentes/LinhaLista';
 import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
-import { useCaixa, useConta, useLicenca, useResumoDoDia, useVendas } from '@/dados/hooks';
+import { useCaixa, useConta, useDados, useLicenca, useResumoDoDia, useVendas } from '@/dados/hooks';
+import { useObservavel } from '@/dados/observavel';
 import { cores, raio } from '@/tema';
 import { FolhaDePlano } from '@/componentes/FolhaDePlano';
 import { falarDinheiro } from '@/util/dinheiroFalado';
@@ -21,12 +22,17 @@ import { cancelamentosAposFechamento } from './historicoDoCaixa';
 
 type TipoMovimento = MovimentoCaixa['tipo'];
 
-const ROTULO_MOVIMENTO: Record<TipoMovimento, string> = { sangria: 'Sangria', suprimento: 'Suprimento' };
+const ROTULO_MOVIMENTO = ROTULOS_MOVIMENTO;
 
 export function ResumoCaixa() {
   const router = useRouter();
+  const dados = useDados();
+  const sync = useObservavel(dados.sincronizacao);
+  const [fechamentoPendente, setFechamentoPendente] = useState(false);
   const { perfil, primeiroNome, identidade } = useConta();
-  const { caixa, historico } = useCaixa();
+  const { caixa, historico: todos } = useCaixa();
+  const historico = todos.filter(c => c.operadorId === identidade?.operadorId);
+  useEffect(() => { let ativo = true; void dados.listarPendenciasSync().then(entradas => { if (ativo) setFechamentoPendente(entradas.some(e => e.mutacao.entidade === 'caixa' && e.mutacao.operacao === 'upsert' && !!e.mutacao.dados.fechamento)); }).catch(() => { if (ativo) setFechamentoPendente(true); }); return () => { ativo = false; }; }, [dados, sync, todos]);
   const { vendas, numeroDe } = useVendas();
   const resumo = useResumoDoDia();
   const { podeUsar } = useLicenca();
@@ -40,7 +46,7 @@ export function ResumoCaixa() {
     .sort((a, b) => b.em.localeCompare(a.em))[0];
   const fechados = historico.filter((c) => c.fechamento).sort((a, b) => b.fechamento!.em.localeCompare(a.fechamento!.em));
   const semVinculo = vendas.filter((v) => !v.caixaId).length;
-  const caixasAnterioresAbertos = historico.filter((c) => !c.fechamento && c.aparelhoId !== identidade?.aparelhoId);
+  const caixasAnterioresAbertos = historico.filter((c) => !c.fechamento && (c.aparelhoAtualId ?? c.aparelhoId) !== identidade?.aparelhoId);
 
   const meios = [
     { nome: 'Dinheiro', icone: 'dinheiro', valor: resumo.porMeio.dinheiro },
@@ -50,7 +56,7 @@ export function ResumoCaixa() {
 
   const esperado = resumo.esperadoNaGavetaCentavos;
   // Apenas vendas explicitamente vinculadas ao caixa atual entram na gaveta.
-  const dinheiroVendido = esperado === null ? 0 : esperado - resumo.trocoInicialCentavos - resumo.suprimentosCentavos + resumo.sangriasCentavos;
+  const dinheiroVendido = esperado === null ? 0 : esperado - resumo.trocoInicialCentavos - resumo.suprimentosCentavos + resumo.sangriasCentavos + resumo.retiradasCentavos - resumo.outrosMovimentosCentavos;
 
   const abrirMovimento = (tipo: TipoMovimento) => {
     if (movimentosLiberados) router.push({ pathname: '/caixa/movimento', params: { tipo } });
@@ -60,6 +66,8 @@ export function ResumoCaixa() {
   return (
     <TelaBase rolavel bordas={['top']} style={estilos.tela}>
       <CabecalhoCaixa secao="resumo" />
+      {fechamentoPendente ? <Texto estilo="corpo" accessibilityRole="alert">Fechamento salvo neste aparelho e pendente de confirmação. Sincronize antes de reservar outro turno.</Texto> : null}
+      {dados.backend.modo === 'http' ? <Botao rotulo={dados.pode('conferir_caixas') ? 'Caixas da loja e conferência' : 'Meus turnos e transferências'} variante="terciario" onPress={() => router.push('/caixa/turnos')} /> : null}
 
       <View
         accessible
@@ -96,6 +104,7 @@ export function ResumoCaixa() {
         ))}
       </View>
 
+      {resumo.totalCentavos > resumo.porMeio.dinheiro + resumo.porMeio.pix + resumo.porMeio.cartao ? <LinhaValor rotulo="Fiado concedido hoje (crédito original)" centavos={resumo.totalCentavos - resumo.porMeio.dinheiro - resumo.porMeio.pix - resumo.porMeio.cartao} /> : null}
       {caixa && esperado !== null ? (
         <>
           <View style={estilos.cartao}>
@@ -106,6 +115,8 @@ export function ResumoCaixa() {
             <LinhaValor rotulo="Dinheiro vendido" centavos={dinheiroVendido} divisor />
             {resumo.suprimentosCentavos > 0 ? <LinhaValor rotulo="Suprimentos" sinal="+" centavos={resumo.suprimentosCentavos} divisor /> : null}
             {resumo.sangriasCentavos > 0 ? <LinhaValor rotulo="Sangrias" sinal="−" centavos={resumo.sangriasCentavos} divisor /> : null}
+            {resumo.retiradasCentavos > 0 ? <LinhaValor rotulo="Retiradas" sinal="−" centavos={resumo.retiradasCentavos} divisor /> : null}
+            {resumo.outrosMovimentosCentavos !== 0 ? <LinhaValor rotulo="Transferências, devoluções e correções" centavos={resumo.outrosMovimentosCentavos} divisor /> : null}
             <LinhaValor rotulo="Esperado na gaveta" centavos={esperado} destaque divisor />
           </View>
 
@@ -113,7 +124,7 @@ export function ResumoCaixa() {
 
           <View style={estilos.movimentos}>
             <View style={estilos.botoesMovimento}>
-              {(['sangria', 'suprimento'] as const).map((tipo) => (
+              {(['suprimento', 'sangria', 'retirada'] as const).map((tipo) => (
                 <Botao
                   key={tipo}
                   rotulo={ROTULO_MOVIMENTO[tipo]}
@@ -145,7 +156,7 @@ export function ResumoCaixa() {
                   titulo={ROTULO_MOVIMENTO[m.tipo]}
                   subtitulo={`${formatarHora(new Date(m.criadoEm))}${m.motivo ? ` · ${m.motivo}` : ''}`}
                   rotuloAcessivel={`${ROTULO_MOVIMENTO[m.tipo]} às ${formatarHora(new Date(m.criadoEm))}${m.motivo ? `, ${m.motivo}` : ''}: ${falarDinheiro(m.valorCentavos)}`}
-                  miniatura={<IconeCaixa nome={m.tipo} />}
+                  miniatura={<IconeCaixa nome={sinalMovimento(m.tipo) > 0 ? 'suprimento' : 'sangria'} />}
                   divisor={i < movimentos.length - 1}
                   valor={<Dinheiro centavos={m.valorCentavos} estilo="corpoMedio" accessible={false} />}
                 />
@@ -171,7 +182,7 @@ export function ResumoCaixa() {
 
       {caixasAnterioresAbertos.length > 0 ? <View style={estilos.cartao}>
         <Texto estilo="tituloM" accessibilityRole="header" style={estilos.tituloCartao}>Caixas de aparelhos anteriores</Texto>
-        <Texto estilo="corpo" cor={cores.ink2}>{`${caixasAnterioresAbertos.length} caixa(s) continuam abertos no histórico de outro aparelho. Os registros foram preservados; abra um novo caixa para operar neste aparelho.`}</Texto>
+        <Texto estilo="corpo" cor={cores.ink2}>{`${caixasAnterioresAbertos.length} turno(s) seus estão vinculados a outro aparelho. Sincronize o aparelho anterior e retome o turno em Meus turnos antes de operar aqui.`}</Texto>
       </View> : null}
 
       {fechados.length > 0 ? (

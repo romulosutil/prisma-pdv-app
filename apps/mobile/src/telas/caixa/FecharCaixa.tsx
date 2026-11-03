@@ -18,6 +18,7 @@ import { IconeCaixa } from './icones';
 import { compararGaveta, textoDaGaveta, type ResultadoGaveta } from './logica';
 import { LinhaValor } from './LinhaValor';
 import { TelaDeValor } from './TelaDeValor';
+import { Campo } from '@/componentes/Campo';
 
 const VISUAL = {
   bate: { fundo: cores.folhaSoft, cor: cores.folha },
@@ -33,6 +34,7 @@ export function FecharCaixa() {
   const resumo = useResumoDoDia();
   const [contado, setContado] = useState<Centavos>(0);
   const [digitou, setDigitou] = useState(false);
+  const [trocoFica, setTrocoFica] = useState('0');
   const [confirmando, setConfirmando] = useState(false);
   const [fechando, setFechando] = useState(false);
 
@@ -56,13 +58,14 @@ export function FecharCaixa() {
     if (!resultado) return;
     setFechando(true);
     try {
-      await fechar(contado);
-      toast.mostrar(`Caixa fechado. ${textoDaGaveta(resultado)}.`, { tipo: 'sucesso' });
+      const fica = Number(trocoFica.replace(',', '.')) * 100;
+      await fechar(contado, Math.round(fica));
+      toast.mostrar(`Fechamento salvo. ${textoDaGaveta(resultado)}. Sincronize para confirmar no servidor.`, { tipo: 'sucesso' });
       router.replace('/caixa');
     } catch (erro) {
       setConfirmando(false);
       if (ehErroDeDominio(erro, 'caixa_fechado')) router.replace('/caixa');
-      else toast.mostrar('Não foi possível fechar o caixa. Tente de novo.', { tipo: 'erro' });
+      else toast.mostrar(ehErroDeDominio(erro) ? erro.message : 'Não foi possível fechar o caixa. Tente de novo.', { tipo: 'erro' });
     } finally {
       setFechando(false);
     }
@@ -85,14 +88,17 @@ export function FecharCaixa() {
           setContado(valor);
           setDigitou(true);
         }}
-        depois={resultado ? <ResultadoDaContagem resultado={resultado} /> : null}
+        depois={<View style={{ gap: 12 }}>
+          <Campo rotulo="Troco que permanece na gaveta (R$)" value={trocoFica} onChangeText={setTrocoFica} keyboardType="decimal-pad" ajuda={`O restante do valor contado será registrado como recolhido. A contagem é feita antes dessa destinação.`} />
+          {resultado ? <ResultadoDaContagem resultado={resultado} /> : null}
+        </View>}
         acao={{ rotulo: 'Fechar caixa', onPress: () => setConfirmando(true), desabilitado: !digitou }}
       />
       <Confirmacao
         visivel={confirmando}
         onFechar={() => setConfirmando(false)}
         titulo="Fechar o caixa?"
-        texto={`Você contou ${formatarBRL(contado)} e o esperado era ${formatarBRL(esperado)}. ${resultado ? `${textoDaGaveta(resultado)}. ` : ''}Depois de fechado, você abre um novo caixa quando quiser.`}
+        texto={`Você contou ${formatarBRL(contado)} e o esperado era ${formatarBRL(esperado)}. ${resultado ? `${textoDaGaveta(resultado)}. ` : ''}O turno fica encerrado neste aparelho. Para abrir outro no modo conectado, o servidor precisa confirmar este fechamento.`}
         rotuloConfirmar="Fechar caixa"
         carregando={fechando}
         onConfirmar={confirmar}

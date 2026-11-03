@@ -16,6 +16,8 @@ export interface EventoDiagnostico {
   cat: CategoriaDiagnostico;
   msg: string;
   dados?: unknown;
+  /** Partição interna. Eventos legados sem autoria não são exportados em modo com perfis. */
+  perfil?: string | null;
 }
 
 export interface DiagnosticoJson {
@@ -47,6 +49,7 @@ const CONTEXTO_VAZIO: ContextoDiagnostico = {
 let eventos: EventoDiagnostico[] = [];
 let armazenamento: Armazenamento | null = null;
 let fonteDeContexto: (() => ContextoDiagnostico) | null = null;
+let fonteDePerfil: (() => string | null) | null = null;
 let rotaAtual: string | null = null;
 let temporizador: ReturnType<typeof setTimeout> | null = null;
 let sujo = false;
@@ -75,6 +78,17 @@ export function definirFonteDeContexto(fonte: () => ContextoDiagnostico): void {
   fonteDeContexto = fonte;
 }
 
+export function definirFonteDePerfil(fonte: () => string | null): void {
+  if (!FERRAMENTAS_TESTE) return;
+  fonteDePerfil = fonte;
+  notificar();
+}
+
+function eventosDoPerfil(): EventoDiagnostico[] {
+  const perfil = fonteDePerfil?.();
+  return fonteDePerfil ? eventos.filter(e => e.perfil === perfil) : eventos;
+}
+
 export function definirRotaAtual(rota: string): void {
   if (!FERRAMENTAS_TESTE) return;
   rotaAtual = rota;
@@ -86,6 +100,7 @@ export function registrar(cat: CategoriaDiagnostico, mensagem: string, dados?: u
   emRegistro = true;
   try {
     const evento: EventoDiagnostico = { t: new Date().toISOString(), cat, msg: sanitizarTexto(String(mensagem).slice(0, 600)) };
+    if (fonteDePerfil) evento.perfil = fonteDePerfil();
     if (dados !== undefined) {
       const limpo = sanitizar(dados);
       if (limpo !== undefined) evento.dados = limpo;
@@ -127,7 +142,7 @@ export async function salvarAgora(): Promise<void> {
 }
 
 export function quantidadeDeEventos(): number {
-  return FERRAMENTAS_TESTE ? eventos.length : 0;
+  return FERRAMENTAS_TESTE ? eventosDoPerfil().length : 0;
 }
 
 export function assinarRegistro(ouvinte: () => void): () => void {
@@ -148,20 +163,22 @@ export async function exportar(): Promise<DiagnosticoJson> {
     // Exporta mesmo assim, só com os eventos.
   }
   const estado = { ...contexto.estado, rotaAtual: contexto.estado.rotaAtual ?? rotaAtual };
-  return { geradoEm, app: { ...contexto.app, ferramentasTeste: true }, aparelho: contexto.aparelho, estado, eventos: [...eventos] };
+  return { geradoEm, app: { ...contexto.app, ferramentasTeste: true }, aparelho: contexto.aparelho, estado, eventos: eventosDoPerfil().map(({ perfil: _perfil, ...evento }) => evento) };
 }
 
 /** Apaga os eventos da memória e do armazenamento. */
 export async function limpar(): Promise<void> {
   if (!FERRAMENTAS_TESTE) return;
-  eventos = [];
+  const perfil = fonteDePerfil?.();
+  eventos = fonteDePerfil ? eventos.filter(e => e.perfil !== perfil) : [];
   sujo = false;
   if (temporizador) {
     clearTimeout(temporizador);
     temporizador = null;
   }
   try {
-    await armazenamento?.remover(CHAVE_DIAGNOSTICO);
+    if (fonteDePerfil) await armazenamento?.gravar(CHAVE_DIAGNOSTICO, eventos);
+    else await armazenamento?.remover(CHAVE_DIAGNOSTICO);
   } catch {
     // Já está vazio em memória.
   }

@@ -57,8 +57,9 @@ export default function Bloqueio() {
             : 'Não conseguimos cobrar seu cartão e o prazo de 7 dias terminou. Atualize o cartão para voltar a abrir vendas.'}
         </Texto>
         <Texto estilo="corpo" cor={cores.ink3} style={estilos.centrado}>
-          Seus dados continuam guardados por 90 dias.
+          Seus registros permanecem preservados. Consulte o suporte para exportação e pedidos de exclusão.
         </Texto>
+        <Botao rotulo="Suporte, privacidade e exportação" variante="terciario" onPress={() => router.push('/suporte')} />
         {erro ? (
           <View style={estilos.aviso}>
             <Banner tipo="erro" texto={erro} />

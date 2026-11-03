@@ -3,7 +3,7 @@ import { and, asc, eq, inArray, lte, or, sql } from 'drizzle-orm';
 import type { Relogio } from '@pdv/shared';
 import { sha256 } from '../auth';
 import type { Db } from '../db/conexao';
-import { codigosLogin, contas, entregasCodigo } from '../db/schema';
+import { codigosLogin, contas, entregasCodigo, operadores, usuarios } from '../db/schema';
 import { ErroCanalEmail, type MensagemCodigo } from './contrato';
 import type { ChavesCodigo, EmissaoCodigo, MotivoEntregaCodigo, OpcoesEntregaCodigo, ResumoEntregaCodigo } from './tiposEntrega';
 
@@ -23,7 +23,7 @@ export async function enfileirarCodigo(tx: Db, chaves: ChavesCodigo, dados: { co
 export async function cancelarEntregasDaConta(tx: Db, contaId: string, agora: Date): Promise<void> {
   await tx.update(entregasCodigo).set({ ...limpar, estado: 'cancelada', motivo: 'substituida', atualizadoEm: agora, encerradoEm: agora }).where(and(eq(entregasCodigo.contaId, contaId), inArray(entregasCodigo.estado, ativos)));
 }
-export async function cancelarEntregaDoCodigo(tx: Db, codigoId: string, agora: Date, motivo: 'usado' | 'esgotado'): Promise<void> {
+export async function cancelarEntregaDoCodigo(tx: Db, codigoId: string, agora: Date, motivo: 'usado' | 'esgotado' | 'substituida'): Promise<void> {
   await tx.update(entregasCodigo).set({ ...limpar, estado: 'cancelada', motivo, atualizadoEm: agora, encerradoEm: agora }).where(and(eq(entregasCodigo.codigoId, codigoId), inArray(entregasCodigo.estado, ativos)));
 }
 
@@ -64,7 +64,11 @@ export async function processarEntregasCodigo(db: Db, opcoes: OpcoesEntregaCodig
         const now = opcoes.relogio.agora();
         if (!e || !((e.estado === 'pendente' && e.proximaTentativaEm <= now) || (e.estado === 'enviando' && e.leaseExpiraEm && e.leaseExpiraEm <= now))) return { tipo: 'ignoradas' as const };
         const [otp] = await tx.select().from(codigosLogin).where(eq(codigosLogin.id, e.codigoId));
-        let motivo: MotivoEntregaCodigo | null = e.expiraEm <= now || (otp && otp.expiraEm <= now) ? 'expirado' : otp?.usadoEm ? 'usado' : otp && otp.tentativas >= 5 ? 'esgotado' : !otp || !conta || otp.email !== conta.email || otp.criadoEm.getTime() !== e.criadoEm.getTime() || otp.expiraEm.getTime() !== e.expiraEm.getTime() ? 'substituida' : null;
+        const [destinatario] = otp ? await tx.select({ email: usuarios.email }).from(usuarios)
+          .innerJoin(operadores, eq(operadores.usuarioId, usuarios.id))
+          .where(and(eq(usuarios.email, otp.email), eq(operadores.contaId, e.contaId),
+            or(eq(operadores.estado, 'ativo'), eq(operadores.estado, 'convidado')))) : [];
+        let motivo: MotivoEntregaCodigo | null = e.expiraEm <= now || (otp && otp.expiraEm <= now) ? 'expirado' : otp?.usadoEm ? 'usado' : otp && otp.tentativas >= 5 ? 'esgotado' : !otp || !conta || (!destinatario && otp.email !== conta.email) || otp.criadoEm.getTime() !== e.criadoEm.getTime() || otp.expiraEm.getTime() !== e.expiraEm.getTime() ? 'substituida' : null;
         if (motivo) { await terminal(tx, e.id, now, 'cancelada', motivo); return { tipo: 'canceladas' as const }; }
         if (e.tentativas >= 5) { await terminal(tx, e.id, now, 'falhou', 'tentativas_esgotadas'); return { tipo: 'falhas' as const }; }
         let mensagem: MensagemCodigo | undefined;
@@ -72,7 +76,7 @@ export async function processarEntregasCodigo(db: Db, opcoes: OpcoesEntregaCodig
         if (!cifrador) motivo = 'chave_ausente';
         else if (e.dominioRemetente !== opcoes.dominioRemetente) motivo = 'canal_incompativel';
         else try { mensagem = cifrador.decifrar(e.envelope, { id: e.id, codigoId: e.codigoId }); } catch { motivo = 'payload_invalido'; }
-        if (mensagem && (mensagem.destinatario !== conta!.email || mensagem.expiraEm !== e.expiraEm.toISOString() || sha256(`${mensagem.destinatario}:${mensagem.codigo}`) !== otp!.codigoHash)) motivo = 'payload_invalido';
+        if (mensagem && (mensagem.destinatario !== otp!.email || mensagem.expiraEm !== e.expiraEm.toISOString() || sha256(`${mensagem.destinatario}:${mensagem.codigo}`) !== otp!.codigoHash)) motivo = 'payload_invalido';
         if (motivo || !mensagem) { await tx.update(entregasCodigo).set({ estado: 'pendente', leaseToken: null, leaseExpiraEm: null, motivo: motivo ?? 'payload_invalido', atualizadoEm: now, ordemFila: ordemNova }).where(eq(entregasCodigo.id, e.id)); return { tipo: 'bloqueadas' as const }; }
         const token = randomUUID();
         await tx.update(entregasCodigo).set({ estado: 'enviando', tentativas: e.tentativas + 1, leaseToken: token, leaseExpiraEm: new Date(now.getTime() + 60000), atualizadoEm: now, motivo: null }).where(eq(entregasCodigo.id, e.id));

@@ -84,6 +84,7 @@ export function filtrarPorMeio(vendas: readonly Venda[], filtro: FiltroMeio): Ve
 /** "Pix", "Dinheiro + Pix". */
 export function rotuloDosPagamentos(venda: Venda): string {
   const rotulos = venda.pagamentos.map((p) => rotuloDoMeio(p.meio));
+  if (venda.fiado) rotulos.push('Fiado');
   return [...new Set(rotulos)].join(' + ') || 'Sem pagamento';
 }
 

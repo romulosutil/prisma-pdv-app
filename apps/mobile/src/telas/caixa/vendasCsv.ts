@@ -16,7 +16,7 @@ export function csvDeVendas(vendas: readonly Venda[], numeroDe: (venda: Venda) =
       numeroDe(venda),
       formatarData(quando),
       formatarHora(quando),
-      venda.status === 'concluida' ? 'Paga' : 'Cancelada',
+      venda.status === 'concluida' ? venda.fiado ? 'Venda com fiado' : 'Paga' : 'Cancelada',
       rotuloDosPagamentos(venda),
       neutralizarFormula(item.descricao),
       quantidadeBR(item.quantidadeMilesimos),

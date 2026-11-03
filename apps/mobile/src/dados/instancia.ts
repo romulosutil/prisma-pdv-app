@@ -2,11 +2,18 @@ import { configurarCatalogoEan } from '@/servicos/catalogoEan';
 import { novoId } from '@/util/ids';
 import { criarArmazenamento } from './armazenamentoPlataforma';
 import { Dados } from './dados';
+import { resolverAmbiente } from '../../config/ambiente';
 
-const urlApi = process.env.EXPO_PUBLIC_API_URL;
+const configuracao = resolverAmbiente({
+  ambiente: process.env.EXPO_PUBLIC_AMBIENTE,
+  urlApi: process.env.EXPO_PUBLIC_API_URL,
+  ferramentasTeste: process.env.EXPO_PUBLIC_FERRAMENTAS_TESTE === '1',
+  desenvolvimento: __DEV__,
+});
+const urlApi = configuracao.urlApi;
 const armazenamento = criarArmazenamento();
 
-/** Instância única do app. `EXPO_PUBLIC_API_URL` definida liga a API; sem ela o app roda 100% local (demo). */
+/** Configuração conectada inválida interrompe a carga; nunca ativa o backend demo. */
 export const dados = new Dados(armazenamento, novoId, urlApi);
 
 // O catálogo de códigos de barras usa a mesma API e a mesma sessão; sem API, fica a base simulada.

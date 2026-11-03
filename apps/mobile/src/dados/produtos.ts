@@ -20,6 +20,8 @@ export interface NovoProduto {
 export interface ContextoProdutos {
   lojaId: () => string;
   planoId: () => PlanoId;
+  autorizar?: () => void;
+  estoquePorMovimentos?: boolean;
 }
 
 /** "Pão Francês" → "pao frances": busca sem acento nem caixa. */
@@ -75,6 +77,7 @@ export class ProdutosRepo extends Persistido<Produto[]> {
 
   /** Lança `ErroDeDominio('limite_plano')` quando o plano não comporta mais um produto. */
   async criar(dados: NovoProduto): Promise<Produto> {
+    this.contexto.autorizar?.();
     if (!dentroDoLimite(this.contexto.planoId(), 'produtos', this.listar().length)) {
       throw new ErroDeDominio('limite_plano', 'O plano atual não comporta mais produtos.', 'produtos');
     }
@@ -101,8 +104,11 @@ export class ProdutosRepo extends Persistido<Produto[]> {
   }
 
   async editar(id: string, mudancas: Partial<NovoProduto>): Promise<Produto> {
+    this.contexto.autorizar?.();
     const atual = this.buscarPorId(id);
     if (!atual) throw new ErroDeDominio('produto_inexistente', 'Produto não encontrado.');
+    if (this.contexto.estoquePorMovimentos && mudancas.estoque !== undefined && mudancas.estoque !== atual.estoque) throw new ErroDeDominio('valor_invalido', 'Use os movimentos de estoque para alterar o saldo.');
+    if (this.contexto.estoquePorMovimentos && atual.estoque !== null && mudancas.unidade && mudancas.unidade !== atual.unidade) throw new ErroDeDominio('valor_invalido', 'A unidade de um estoque controlado não pode mudar. Cadastre outro produto.');
     this.validar(mudancas, id);
     const editado: Produto = {
       ...atual,
@@ -122,6 +128,7 @@ export class ProdutosRepo extends Persistido<Produto[]> {
   }
 
   async excluir(id: string): Promise<void> {
+    this.contexto.autorizar?.();
     const atual = this.buscarPorId(id);
     if (!atual) throw new ErroDeDominio('produto_inexistente', 'Produto não encontrado.');
     const agora = this.amb.relogio.agora().toISOString();

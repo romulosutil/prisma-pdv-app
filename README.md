@@ -2,6 +2,8 @@
 
 Monorepo com npm workspaces. Documentação em `docs/`.
 
+Roadmap atual: [app completo com caixa por usuário](docs/roadmap-app-completo.md), incluindo vários usuários, entrada, sangria, retirada, sincronização e integrações reais.
+
 ```
 apps/        mobile (Expo), api (Fastify) e, no futuro, desktop
 packages/
@@ -22,17 +24,45 @@ npm run typecheck  checa os tipos de todos os workspaces
 
 ```
 npm run start -w @pdv/mobile   abre o Expo; leia o QR com o app Expo Go no Android
-npm run web -w @pdv/mobile     mesma coisa no navegador (sem câmera: digite o código ou use "Simular bip")
+npm run web -w @pdv/mobile     mesma coisa no navegador (sem câmera: digite o código)
 npm run dev -w @pdv/api        API em http://localhost:3333 (opcional)
 ```
 
-Sem `EXPO_PUBLIC_API_URL` o app roda em **modo de testes**, 100% no aparelho, com cobrança simulada.
+Todo início exige `EXPO_PUBLIC_AMBIENTE` explícito, inclusive no desenvolvimento. Para testar os serviços reais no PowerShell:
+
+```powershell
+$env:EXPO_PUBLIC_AMBIENTE = 'homologacao'
+$env:EXPO_PUBLIC_API_URL = 'https://aladdin-pdv-api-homologacao.jicnzg.easypanel.host'
+$env:EXPO_PUBLIC_FERRAMENTAS_TESTE = '0'
+npm run start -w @pdv/mobile
+```
+
+Os perfis conectados exigem URL HTTPS, recusam ferramentas de teste e nunca recorrem à demo quando a rede falha. A API assume cobrança desativada sem `BILLING_PROVIDER`; o simulador exige configuração explícita de desenvolvimento/teste e é recusado em produção. O scanner usa apenas câmera real ou digitação, sem imagem ou leitura simulada. A demo legada e os mocks dos testes continuam separados do APK conectado; para a demo, escolher explicitamente `EXPO_PUBLIC_AMBIENTE=demo` e remover `EXPO_PUBLIC_API_URL`.
 Cartões de teste: `4242 4242 4242 4242` aprova; `4000 0000 0000 0002` recusa no cadastro; `4000 0000 0000 0341` recusa as cobranças.
 Em Ajustes → Assinatura, o "Relógio de teste" avança os dias para ver o fim do teste, a cobrança e a falha de pagamento.
 
 `@pdv/shared` é consumido como TypeScript fonte (sem build): `import { formatarBRL } from '@pdv/shared'`.
 
 ## APK de testes
+
+### APK conectado (R0)
+
+O perfil `homologacao` usa a API e o PostgreSQL isolados no EasyPanel, login por e-mail real e acesso sem cartão/cobrança. Instala como **PDV Homologação** (`br.com.pdv.mobile.homologacao`), separado da demo 0.1.4. Não leva produtos ou vendas fictícios. Pagamentos de vendas continuam sendo registros manuais.
+
+```powershell
+./scripts/build-android.ps1 -Perfil homologacao
+# Resultado: builds/pdv-homologacao-0.1.7.apk + SHA256, assinatura e metadados
+```
+
+O script usa a cópia curta `C:/p` já preparada, configura o ambiente pelo `eas.json`, confere `/saude`, compila e verifica o bundle dentro do APK. Os diretórios `C:/p` e `C:/x`, o SDK e suas dependências devem estar preparados conforme as instruções Windows abaixo. Não inclua arquivos `.env` na cópia.
+
+| Perfil EAS | Backend | Ferramentas | Pacote Android |
+|---|---|---|---|
+| `demo` / `teste` | Local, simulado | Ligadas | `br.com.pdv.mobile` |
+| `homologacao` | API de homologação HTTPS | Desligadas | `br.com.pdv.mobile.homologacao` |
+| `producao` | API de produção HTTPS | Desligadas | `br.com.pdv.mobile` |
+
+Para EAS, use `eas build --profile homologacao --platform android`. O perfil EAS `producao` gera AAB; a assinatura de distribuição e a validação física ainda precisam ser homologadas. O script local gera APK para testes e usa o certificado debug; isso não comprova prontidão para a Play Store. Evidências e pendências de R0: [homologação conectada](docs/r0-api-apk-conectado.md).
 
 O APK de testes é um build de release (`__DEV__` falso) gerado com `EXPO_PUBLIC_FERRAMENTAS_TESTE=1`, definida no perfil `teste` do `apps/mobile/eas.json`:
 
@@ -73,6 +103,7 @@ cmd /c mklink /J C:\p\node_modules\@pdv\shared C:\p\packages\shared
 $env:JAVA_HOME = 'C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot'
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:EXPO_PUBLIC_FERRAMENTAS_TESTE = '1'   # liga as ferramentas de teste no bundle JS
+$env:EXPO_PUBLIC_AMBIENTE = 'demo'       # este exemplo histórico gera a demo local
 $env:NODE_ENV = 'production'
 cd C:\p\apps\mobile
 npx expo prebuild --platform android --clean
@@ -112,12 +143,14 @@ saem mascarados (`***.***.*47-25`, `a***@bompreco.com.br`). Código: `apps/mobil
 
 Checklist (a captura e os botões só existem com `EXPO_PUBLIC_FERRAMENTAS_TESTE=1`; o gate em tempo de execução é `FERRAMENTAS_TESTE`):
 
-- [ ] Build SEM `EXPO_PUBLIC_FERRAMENTAS_TESTE` (não definida no ambiente do `gradlew`/EAS; o perfil `teste` do `eas.json` é o único que a define).
+- [ ] Build com `EXPO_PUBLIC_AMBIENTE=producao`, URL HTTPS correta e ferramentas desligadas. `demo`/`teste` são os únicos perfis que habilitam ferramentas no `eas.json`.
 - [ ] Verificar no bundle que a string "Copiar diagnóstico" não aparece. No Metro o texto é emitido com escape (`diagn\xf3stico`), então
   busque o prefixo `Copiar diagn` e também `Compartilhar arquivo`:
 
   ```powershell
   Remove-Item Env:EXPO_PUBLIC_FERRAMENTAS_TESTE -ErrorAction SilentlyContinue
+  $env:EXPO_PUBLIC_AMBIENTE = 'producao'
+  $env:EXPO_PUBLIC_API_URL = 'https://aladdin-pdv-api.jicnzg.easypanel.host'
   cd apps\mobile
   npx expo export --platform android --no-bytecode --output-dir dist
   Select-String -Path dist\_expo\static\js\android\*.js -Pattern 'Copiar diagn','Compartilhar arquivo','Limpar diagn' -SimpleMatch   # não pode retornar nada
@@ -127,3 +160,14 @@ Checklist (a captura e os botões só existem com `EXPO_PUBLIC_FERRAMENTAS_TESTE
   Para conferir o APK final (bundle Hermes), extraia `assets/index.android.bundle` do `.apk` (é um zip) e procure `Compartilhar arquivo`
   (ASCII puro, aparece como texto no bytecode): não pode existir. Com `EXPO_PUBLIC_FERRAMENTAS_TESTE=1` o mesmo comando acha as strings.
 - [ ] Em Ajustes do app de produção não há as seções "Diagnóstico (versão de testes)" nem "Desenvolvimento".
+
+
+### Quinta entrega: gestão, estoque e lojas (R4)
+
+No modo conectado, **Ajustes → Gestão** reúne estoque/movimentos, clientes/fiado, relatórios/CSV e lojas/vínculos. Estoque é movimentado por eventos; dinheiro de fiado pertence ao turno que recebeu. Operador consulta suas finanças e o dono pode consolidar a empresa. Pagamentos seguem manuais; recebimentos de fiado e ajustes de estoque exigem conexão. [Política, evidências e pendências de homologação R4](docs/r4-gestao-catalogo-fiado-lojas.md).
+
+### Sexta entrega: piloto, backup e suporte (R5)
+
+**Suporte e privacidade** reúne políticas do piloto, protocolos pessoais, exportação de dados autorizados e pedido de análise de exclusão. O acesso fica disponível também na entrada e durante bloqueio comercial. O resumo técnico é opcional; solicitações preservam seu identificador após resposta perdida. Atendimento manual e implantação da API compatível precisam ser comprovados antes do piloto.
+
+Builds conectados usam implementações sem semente, tokenização/gateway simulados, relógio artificial ou diagnóstico de teste. `scripts/verificar-release-mobile.mjs` inspeciona bundle/source map; a configuração `metro.config.js` é obrigatória na compilação. O script local gera APK interno de homologação; distribuição de produção exige assinatura própria. [Evidências R5](docs/r5-piloto-backup-suporte.md), [roteiro físico](docs/roteiro-piloto-android.md) e [operação/restauração/atendimento](docs/operacao-backup-suporte.md). Testes HTTP e bundle não equivalem à execução em Android real.

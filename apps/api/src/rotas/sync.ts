@@ -4,6 +4,9 @@ import { SyncPullResSchema, SyncPushReqSchema, SyncPushResSchema } from '@pdv/sh
 import type { Deps } from '../deps';
 import { ErroApi } from '../erros';
 import { aplicarPush, buscarMudancas } from '../servicos/sync';
+import { autorizacaoAtual, revalidarSessaoSync } from '../auth';
+import { eq } from 'drizzle-orm';
+import { contas } from '../db/schema';
 
 const PullQuerySchema = z.object({
   desde: z
@@ -23,6 +26,11 @@ export function rotasSync(app: FastifyInstance, { db, relogio }: Deps): void {
 
   app.get('/sync/pull', async (request) => {
     const { desde } = PullQuerySchema.parse(request.query);
-    return SyncPullResSchema.parse(await buscarMudancas(db, request.sessao.lojaId, Number(desde)));
+    return db.transaction(async tx => {
+      await tx.select({ id: contas.id }).from(contas).where(eq(contas.id, request.sessao.contaId)).for('update');
+      await revalidarSessaoSync(tx, request.sessaoId, request.sessao, relogio.agora());
+      const { permissoes } = await autorizacaoAtual(tx, request.sessao.operadorId);
+      return SyncPullResSchema.parse(await buscarMudancas(tx, request.sessao.lojaId, Number(desde), permissoes.includes('conferir_caixas') ? undefined : request.sessao.operadorId));
+    });
   });
 }

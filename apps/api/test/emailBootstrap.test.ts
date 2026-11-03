@@ -13,6 +13,8 @@ vi.mock('../src/email/smtp', async importOriginal => ({ ...(await importOriginal
 vi.mock('../src/servidor', () => ({ criarApp: m.criar }));
 vi.mock('../src/jobs', () => ({ agendarCobranca: m.cobranca }));
 vi.mock('../src/jobsEmail', () => ({ agendarEntregasCodigo: m.agendar }));
+vi.mock('../src/servicos/retencaoSuporte', () => ({ limparSuporteConcluido: vi.fn(async () => 0), agendarRetencaoSuporte: vi.fn(() => async () => undefined) }));
+import { limparSuporteConcluido, agendarRetencaoSuporte } from '../src/servicos/retencaoSuporte';
 import { iniciarApi } from '../src/iniciarApi';
 
 const smtp = { NODE_ENV: 'test', EMAIL_CODIGO_MODE: 'smtp', SMTP_HOST: '127.0.0.1', SMTP_PORT: '2525', SMTP_FROM: 'ENVIO@Example.com', SMTP_MODE: 'local', EMAIL_CODIGO_KEY_ID: 'k', EMAIL_CODIGO_KEYS: JSON.stringify({ k: Buffer.alloc(32, 7).toString('base64') }) };
@@ -23,7 +25,7 @@ describe('bootstrap de entrega', () => {
   it('recusa configuração inválida e billing mock de produção antes de abrir banco', async () => {
     env({ EMAIL_CODIGO_MODE: 'smtp' });
     await expect(iniciarApi()).rejects.toThrow(); expect(m.abrir).not.toHaveBeenCalled(); expect(m.canal).not.toHaveBeenCalled();
-    env({ ...smtp, NODE_ENV: 'production', DATABASE_URL: 'postgres://localhost/test', PORT: '3333', JOBS: 'off' });
+    env({ ...smtp, NODE_ENV: 'production', DATABASE_URL: 'postgres://localhost/test', PORT: '3333', JOBS: 'off', BILLING_PROVIDER: 'mock' });
     await expect(iniciarApi()).rejects.toThrow('Nenhum provedor de cobrança disponível é permitido em produção.'); expect(m.abrir).not.toHaveBeenCalled();
   });
   it('limpa expiradas e valida pendências antes de servir em desenvolvimento, com JOBS off', async () => {
@@ -31,6 +33,7 @@ describe('bootstrap de entrega', () => {
     expect(m.ordem).toEqual(['db.open', 'expirar', 'validar', 'app', 'listen']);
     expect(m.validar.mock.calls[0]?.[1]).toEqual({ modo: 'desenvolvimento' });
     expect(m.agendar).not.toHaveBeenCalled(); expect(m.cobranca).not.toHaveBeenCalled(); await parar();
+    expect(limparSuporteConcluido).toHaveBeenCalledOnce(); expect(agendarRetencaoSuporte).not.toHaveBeenCalled();
     expect(m.ordem.slice(-2)).toEqual(['app.close', 'db.close']);
   });
   it('recusa pendências e fecha banco antes de criar app ou canal', async () => {
@@ -46,7 +49,7 @@ describe('bootstrap de entrega', () => {
     await parar();
   });
   it('compõe canal e domínio, agenda após listen e aguarda drain antes do banco', async () => {
-    env(smtp); let liberar!: () => void;
+    env({ ...smtp, BILLING_PROVIDER: 'mock' }); let liberar!: () => void;
     m.agendar.mockImplementation((processar: () => Promise<unknown>) => { m.ordem.push('email'); void processar(); return () => new Promise<void>(resolve => { liberar = resolve; m.ordem.push('email.stop'); }); });
     const { parar } = await iniciarApi();
     expect(m.ordem).toEqual(['db.open', 'expirar', 'validar', 'canal', 'app', 'listen', 'cobranca', 'email']);
@@ -54,7 +57,7 @@ describe('bootstrap de entrega', () => {
     expect(m.criar.mock.calls[0]?.[0]).toMatchObject({ emissaoCodigo: { modo: 'email', dominioRemetente: 'example.com' } });
     expect(m.canal.mock.calls[0]?.[0]).toMatchObject({ remetente: 'envio@example.com' });
     expect(m.processar.mock.calls[0]?.[1]).toMatchObject({ dominioRemetente: 'example.com', canal: expect.any(Object) });
-    const espera = parar(); expect(m.fechar).not.toHaveBeenCalled(); liberar(); await espera; await parar(); expect(m.fechar).toHaveBeenCalledTimes(1);
+    const espera = parar(); expect(m.fechar).not.toHaveBeenCalled(); await vi.waitFor(() => expect(liberar).toBeTypeOf('function')); liberar(); await espera; await parar(); expect(m.fechar).toHaveBeenCalledTimes(1);
   });
   it('falhas de listen e limpeza liberam todos os recursos com erro sanitizado', async () => {
     m.app.listen.mockRejectedValueOnce(new Error('password')); m.app.close.mockRejectedValueOnce(new Error('sql'));
@@ -64,7 +67,7 @@ describe('bootstrap de entrega', () => {
     await expect(parar()).rejects.toThrow('Falha ao encerrar a API.'); expect(m.fechar).toHaveBeenCalledTimes(2);
   });
   it('continua a limpeza se parada dos jobs falha', async () => {
-    env(smtp);
+    env({ ...smtp, BILLING_PROVIDER: 'mock' });
     m.cobranca.mockImplementationOnce(() => vi.fn(() => { throw new Error('segredo cobrança'); }));
     m.agendar.mockImplementationOnce(() => async () => { throw new Error('segredo email'); });
     const { parar } = await iniciarApi();

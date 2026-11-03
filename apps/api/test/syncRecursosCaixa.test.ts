@@ -41,7 +41,7 @@ for (const plano of ['essencial', 'negocio', 'pro'] as PlanoId[]) for (const tip
       expect(await snapshot()).toEqual(antes);
     } else {
       expect(res.corpo.aceitas).toEqual([pedido.id]);
-      expect(await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.id, m.id))).toEqual([{ ...m, caixaId: cx.id, lojaId: cx.lojaId, criadoEm: new Date(m.criadoEm) }]);
+      expect(await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.id, m.id))).toEqual([{ ...m, caixaId: cx.id, lojaId: cx.lojaId, criadoEm: new Date(m.criadoEm), detalhes: null }]);
     }
   });
 }
@@ -52,6 +52,8 @@ it('preserva histórico após downgrade, rejeita novo e aceita o mesmo pedido ap
   const antigos = [movimento('sangria'), movimento('suprimento')];
   expect((await enviar(amb, conta, [mutacao('caixa', { ...cx, movimentos: antigos })])).corpo.rejeitadas).toEqual([]);
   const outroCaixa = caixa(conta), outroHistorico = movimento();
+  // Histórico legado com dois turnos já existentes é preservado; nova reserva simultânea é recusada em R2.
+  await amb.db.insert(caixas).values({ id: outroCaixa.id, lojaId: conta.lojaId, operadorId: conta.operadorId, aparelhoId: conta.aparelhoId, abertoEm: INICIO, trocoInicialCentavos: 100, criadoEm: INICIO, atualizadoEm: INICIO, versao: 1 });
   expect((await enviar(amb, conta, [mutacao('caixa', { ...outroCaixa, movimentos: [outroHistorico] })])).corpo.rejeitadas).toEqual([]);
   expect((await chamar(amb, 'POST', '/assinatura/trocar-plano', { token: conta.token, corpo: { planoId: 'essencial' } })).corpo.licenca.planoId).toBe('essencial');
   const replay = mutacao('caixa', { ...cx, movimentos: antigos });
@@ -59,9 +61,9 @@ it('preserva histórico após downgrade, rejeita novo e aceita o mesmo pedido ap
   expect((await enviar(amb, conta, [replay, omitido])).corpo.aceitas).toEqual([replay.id, omitido.id]);
   const fechamento = mutacao('caixa', { ...outroCaixa, fechamento: { em: INICIO.toISOString(), esperadoCentavos: 100, contadoCentavos: 100 } });
   expect((await enviar(amb, conta, [fechamento])).corpo.aceitas).toEqual([fechamento.id]);
-  expect(await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.id, outroHistorico.id))).toEqual([{ ...outroHistorico, caixaId: outroCaixa.id, lojaId: conta.lojaId, criadoEm: INICIO }]);
+  expect(await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.id, outroHistorico.id))).toEqual([{ ...outroHistorico, caixaId: outroCaixa.id, lojaId: conta.lojaId, criadoEm: INICIO, detalhes: null }]);
   const linhasHistoricas = await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.caixaId, cx.id));
-  expect(linhasHistoricas.sort((a, b) => a.id.localeCompare(b.id))).toEqual(antigos.map(m => ({ ...m, caixaId: cx.id, lojaId: conta.lojaId, criadoEm: INICIO })).sort((a, b) => a.id.localeCompare(b.id)));
+  expect(linhasHistoricas.sort((a, b) => a.id.localeCompare(b.id))).toEqual(antigos.map(m => ({ ...m, caixaId: cx.id, lojaId: conta.lojaId, criadoEm: INICIO, detalhes: null })).sort((a, b) => a.id.localeCompare(b.id)));
   const pullEssencial = await chamar(amb, 'GET', '/sync/pull?desde=0', { token: conta.token });
   expect(pullEssencial.status).toBe(200);
   expect(pullEssencial.corpo.mudancas).toHaveLength(2);
@@ -75,8 +77,8 @@ it('preserva histórico após downgrade, rejeita novo e aceita o mesmo pedido ap
   expect((await chamar(amb, 'POST', '/assinatura/trocar-plano', { token: conta.token, corpo: { planoId: 'negocio' } })).corpo.licenca.planoId).toBe('negocio');
   expect((await enviar(amb, conta, [pedido])).corpo.aceitas).toEqual([pedido.id]);
   expect(await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.caixaId, cx.id))).toHaveLength(3);
-  for (const antigo of antigos) expect(await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.id, antigo.id))).toEqual([{ ...antigo, caixaId: cx.id, lojaId: conta.lojaId, criadoEm: INICIO }]);
-  expect(await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.id, novo.id))).toEqual([{ ...novo, caixaId: cx.id, lojaId: conta.lojaId, criadoEm: INICIO }]);
+  for (const antigo of antigos) expect(await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.id, antigo.id))).toEqual([{ ...antigo, caixaId: cx.id, lojaId: conta.lojaId, criadoEm: INICIO, detalhes: null }]);
+  expect(await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.id, novo.id))).toEqual([{ ...novo, caixaId: cx.id, lojaId: conta.lojaId, criadoEm: INICIO, detalhes: null }]);
   const fechar = mutacao('caixa', { ...cx, movimentos: [], fechamento: { em: INICIO.toISOString(), esperadoCentavos: 100, contadoCentavos: 100 } });
   expect((await enviar(amb, conta, [fechar])).corpo.aceitas).toEqual([fechar.id]);
   const pull = await chamar(amb, 'GET', '/sync/pull?desde=0', { token: conta.token });
@@ -181,7 +183,7 @@ if (process.env.PDV_TEST_POSTGRES_URL) it('reverte o push concorrente e permite 
     expect(bloqueado).toBe(true);
     const vencedor = mutacao('caixa', { ...cxVencedora, movimentos: [evento] });
     expect((await enviar(amb, vencedora, [vencedor])).corpo.aceitas).toEqual([vencedor.id]);
-    const eventoPersistido = [{ ...evento, caixaId: cxVencedora.id, lojaId: vencedora.lojaId, criadoEm: INICIO }];
+    const eventoPersistido = [{ ...evento, caixaId: cxVencedora.id, lojaId: vencedora.lojaId, criadoEm: INICIO, detalhes: null }];
     expect(await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.id, evento.id))).toEqual(eventoPersistido);
     const antes = await snapshot();
     await controle`select pg_advisory_unlock(87654321)`;

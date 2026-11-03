@@ -21,11 +21,11 @@ async function snapshot() {
 function caixa(conta: { lojaId: string; aparelhoId: string; operadorId: string }) {
   return { id: gerarId(), lojaId: conta.lojaId, aparelhoId: conta.aparelhoId, operadorId: conta.operadorId, abertura: { em: INICIO.toISOString(), trocoInicialCentavos: 100 }, fechamento: null, movimentos: [] };
 }
-it('rejeita escrita por operador e confirma ACK anterior', async () => {
+it('rejeita escrita com permissões retiradas e confirma ACK anterior', async () => {
   const conta = await contaEmTeste(amb);
   const anterior = mutacao('venda', venda(conta));
   expect((await enviar(amb, conta, [anterior])).corpo.aceitas).toEqual([anterior.id]);
-  await amb.db.update(operadores).set({ papel: 'operador' }).where(eq(operadores.id, conta.operadorId));
+  await amb.db.update(operadores).set({ papel: 'operador', permissoes: [] }).where(eq(operadores.id, conta.operadorId));
   const nova = mutacao('venda', venda(conta));
   const antes = await snapshot();
   const res = await enviar(amb, conta, [anterior, nova]);
@@ -65,9 +65,12 @@ it('nega todas as mutações novas de operador e papel desconhecido, mantendo pu
     expect(JSON.stringify(pull.corpo)).toContain(p.id);
   }
   await amb.db.update(operadores).set({ papel: 'dono' }).where(eq(operadores.id, operadorId));
-  expect((await enviar(amb, operador, lote)).corpo.aceitas).toEqual(lote.map(m => m.id));
+  const novaAbertura = lote[3]!;
+  const resposta = (await enviar(amb, operador, lote)).corpo;
+  expect(resposta.aceitas).toEqual(lote.filter(m => m.id !== novaAbertura.id).map(m => m.id));
+  expect(resposta.rejeitadas).toEqual([{ id: novaAbertura.id, motivo: 'caixa_ja_aberto' }]);
   expect(await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.id, suprimento.id))).toEqual([
-    { ...suprimento, lojaId: dono.lojaId, caixaId: caixaExistente.id, criadoEm: INICIO },
+    { ...suprimento, lojaId: dono.lojaId, caixaId: caixaExistente.id, criadoEm: INICIO, detalhes: null },
   ]);
 });
 it('exige origem da sessão em venda e caixa novos', async () => {
@@ -91,6 +94,7 @@ it('exige origem da sessão em venda e caixa novos', async () => {
       expect(await snapshot()).toEqual(antes);
       const corrigidas = [mutacao('venda', vendaValida), mutacao('caixa', caixaValido)];
       expect((await enviar(amb, conta, corrigidas)).corpo.aceitas).toEqual(corrigidas.map(m => m.id));
+      expect((await enviar(amb, conta, [mutacao('caixa', { ...caixaValido, fechamento: { em: INICIO.toISOString(), esperadoCentavos: 100, contadoCentavos: 100 } })])).corpo.rejeitadas).toEqual([]);
     }
   }
   const validas = [mutacao('venda', venda(conta)), mutacao('caixa', caixa(conta))];
@@ -157,10 +161,10 @@ it('preserva origem histórica após troca e revogação do aparelho', async () 
   expect(await amb.db.select().from(caixas).where(eq(caixas.id, abertura.id))).toEqual([{
     id: abertura.id, lojaId: a.lojaId, aparelhoId: a.aparelhoId, operadorId: a.operadorId,
     abertoEm: INICIO, trocoInicialCentavos: 100, fechadoEm: null, esperadoCentavos: null,
-    contadoCentavos: null, criadoEm: INICIO, atualizadoEm: INICIO, excluidoEm: null, versao: 2,
+    contadoCentavos: null, criadoEm: INICIO, atualizadoEm: INICIO, excluidoEm: null, versao: 2, reservado: false, detalhes: null,
   }]);
   expect(await amb.db.select().from(movimentosCaixa).where(eq(movimentosCaixa.caixaId, abertura.id))).toEqual([
-    { ...suprimento, caixaId: abertura.id, lojaId: a.lojaId, criadoEm: INICIO },
+    { ...suprimento, caixaId: abertura.id, lojaId: a.lojaId, criadoEm: INICIO, detalhes: null },
   ]);
   expect(await amb.db.select().from(itensVenda).orderBy(itensVenda.id)).toEqual(filhosAntes.itens);
   expect(await amb.db.select().from(pagamentosVenda).orderBy(pagamentosVenda.id)).toEqual(filhosAntes.pagamentos);

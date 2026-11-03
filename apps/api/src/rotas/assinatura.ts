@@ -27,7 +27,7 @@ import {
 } from '@pdv/shared';
 import { contas, testesUsados } from '../db/schema';
 import type { Deps } from '../deps';
-import { exigirDono } from '../auth';
+import { autorizacaoAtual, exigirDono } from '../auth';
 import { ErroApi } from '../erros';
 import { carregarAssinatura, registrarEvento, salvarAssinatura } from '../servicos/assinatura';
 import { chaveAvulsa, cobrarFatura, descricaoDaFatura, type TipoFatura } from '../servicos/cobranca';
@@ -67,7 +67,12 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing, co
   app.get('/assinatura', async (request) => {
     const agora = relogio.agora();
     const { assinatura } = await carregarAssinatura(db, request.sessao.contaId, agora);
-    return resposta(assinatura, agora);
+    const res = resposta(assinatura, agora);
+    if ((await autorizacaoAtual(db, request.sessao.operadorId)).papel !== 'dono') {
+      res.assinatura.cartao = null;
+      res.assinatura.cupom = null;
+    }
+    return res;
   });
 
   app.post('/assinatura', { preHandler: permitirCobranca }, async (request, reply) => {

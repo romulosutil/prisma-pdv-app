@@ -1,25 +1,27 @@
 import type { Armazenamento } from './armazenamento';
-import type { IdentidadeLocal } from './estadoConta';
+import { escopoDoPerfil, type IdentidadeLocal } from './estadoConta';
 
-const METADATA = new Set(['assinatura', 'preferencias', 'atalhos_ordem', 'chavePix', 'catalogo_ean_cache']);
+const METADATA = new Set(['assinatura', 'preferencias', 'atalhos_ordem', 'chavePix', 'catalogo_ean_cache', 'aberturaCaixaPendente', 'operacaoCaixaPendente', 'operacaoGestaoPendente', 'suporte_pendente']);
 const FINANCEIROS = new Set(['produtos', 'caixas', 'vendas']);
 const DONO_LEGADO = 'proprietario_metadata_v1';
 
 /** Isola metadata por conta/loja. SQLite já particiona seus agregados financeiros. */
 export class ArmazenamentoEscopo implements Armazenamento {
   private bloqueado = false;
-  constructor(private readonly base: Armazenamento, private readonly identidade: () => IdentidadeLocal | null, private readonly financeiroSqlite: boolean) {}
+  constructor(private readonly base: Armazenamento, private readonly identidade: () => IdentidadeLocal | null, private readonly financeiroSqlite: boolean, private readonly antesDeGravar?: (chave: string) => Promise<void>) {}
 
   readonly obterEscopo = (): string | null => {
     const i = this.identidade();
-    return i ? JSON.stringify([i.contaId, i.lojaId]) : null;
+    return i ? escopoDoPerfil(i) : null;
   };
   bloquearAlteracoes(valor: boolean): void { this.bloqueado = valor; }
   readonly podeAlterar = (): boolean => !this.bloqueado;
 
   private particionada(chave: string): boolean { return METADATA.has(chave) || (!this.financeiroSqlite && FINANCEIROS.has(chave)); }
   private endereco(chave: string): { chave: string; escopo: string } | null {
-    const escopo = this.obterEscopo();
+    const i = this.identidade();
+    if (chave === 'suporte_pendente') return i ? { chave: `conta:${JSON.stringify([i.contaId, i.lojaId, i.operadorId])}:${chave}`, escopo: this.obterEscopo()! } : null;
+    const escopo = i && ['chavePix', 'catalogo_ean_cache'].includes(chave) ? JSON.stringify([i.contaId, i.lojaId]) : this.obterEscopo();
     return escopo ? { chave: `conta:${escopo}:${chave}`, escopo } : null;
   }
 
@@ -28,11 +30,12 @@ export class ArmazenamentoEscopo implements Armazenamento {
     const alvo = this.endereco(chave);
     if (!alvo) return null;
     const salvo = await this.base.obter<T>(alvo.chave);
+    if (chave === 'suporte_pendente') return salvo;
     if (salvo !== null) return salvo;
     const marcador = `${alvo.chave}:migrada`;
     if (await this.base.obter(marcador)) return null;
     let dono = await this.base.obter<string>(DONO_LEGADO);
-    if (dono === null) { await this.base.gravar(DONO_LEGADO, alvo.escopo); dono = alvo.escopo; }
+    if (dono === null && (!this.identidade()?.papel || this.identidade()?.papel === 'dono')) { await this.base.gravar(DONO_LEGADO, alvo.escopo); dono = alvo.escopo; }
     if (dono !== alvo.escopo) { await this.base.gravar(marcador, true); return null; }
     const legado = await this.base.obter<T>(chave);
     if (legado !== null) {
@@ -50,8 +53,10 @@ export class ArmazenamentoEscopo implements Armazenamento {
 
   async gravar<T>(chave: string, valor: T): Promise<void> {
     if (this.bloqueado) throw new Error('Aguarde a troca de conta antes de alterar os dados.');
+    const alvo = this.particionada(chave) ? this.endereco(chave) : null;
+    await this.antesDeGravar?.(chave);
     if (!this.particionada(chave)) return this.base.gravar(chave, valor);
-    const alvo = this.endereco(chave);
+    if (alvo?.chave !== this.endereco(chave)?.chave) throw new Error('O perfil mudou antes da gravação.');
     if (!alvo) throw new Error('Identifique a conta antes de guardar dados da loja.');
     await this.base.gravar(alvo.chave, valor);
     await this.base.gravar(`${alvo.chave}:migrada`, true);

@@ -34,13 +34,14 @@ describe('recursos', () => {
   });
 
   it('planoMinimoPara acha o primeiro plano que oferece o recurso', () => {
-    expect(planoMinimoPara('integracao_pagamentos')).toBe('negocio');
+    expect(podeUsar('pro', 'integracao_pagamentos')).toBe(false);
+    expect(() => planoMinimoPara('integracao_pagamentos')).toThrow();
     expect(planoMinimoPara('exportar_csv')).toBe('negocio');
     expect(planoMinimoPara('multiloja')).toBe('pro');
   });
 
   it('todo recurso existe em algum plano', () => {
-    for (const r of RECURSOS) expect(() => planoMinimoPara(r)).not.toThrow();
+    for (const r of RECURSOS.filter(r => r !== 'integracao_pagamentos')) expect(() => planoMinimoPara(r)).not.toThrow();
   });
 });
 

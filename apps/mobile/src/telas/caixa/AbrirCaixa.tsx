@@ -6,6 +6,7 @@ import { ehErroDeDominio } from '@/dados/erros';
 import { useCaixa } from '@/dados/hooks';
 import { useVoltar } from '@/util/useVoltar';
 import { TelaDeValor } from './TelaDeValor';
+import { mensagemDeErro } from '@/servicos/backend';
 
 export function AbrirCaixa() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export function AbrirCaixa() {
       router.replace('/caixa');
     } catch (erro) {
       if (ehErroDeDominio(erro, 'caixa_ja_aberto')) router.replace('/caixa');
-      else toast.mostrar('Não foi possível abrir o caixa. Tente de novo.', { tipo: 'erro' });
+      else toast.mostrar(ehErroDeDominio(erro) ? erro.message : mensagemDeErro(erro), { tipo: 'erro' });
     } finally {
       setAbrindo(false);
     }
@@ -33,7 +34,7 @@ export function AbrirCaixa() {
     <TelaDeValor
       titulo="Abrir caixa"
       onVoltar={voltar}
-      descricao="Quanto de dinheiro você deixa na gaveta para dar troco? Pode ser zero."
+      descricao="Quanto de dinheiro você deixa na gaveta para dar troco? Pode ser zero. No modo conectado, a abertura exige internet e só permite um turno seu por loja."
       rotuloCampo="Troco inicial"
       valorCentavos={troco}
       onChange={setTroco}

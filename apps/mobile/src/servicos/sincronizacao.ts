@@ -18,6 +18,7 @@ export interface OpcoesSincronizacao {
   vinculo: () => string | null;
   agora: () => Date;
   aplicarLocal: <T>(tarefa: () => Promise<T>) => Promise<T>;
+  revalidar?: () => Promise<void>;
 }
 
 class ContextoAlterado extends Error {}
@@ -37,7 +38,8 @@ export class SincronizacaoServico extends Observavel<EstadoSincronizacao> {
 
   private conferir(ctx: ReturnType<SincronizacaoServico['contexto']>): void {
     const atual = this.contexto();
-    if (atual.vinculo !== ctx.vinculo || JSON.stringify(atual.sessao) !== JSON.stringify(ctx.sessao)) throw new ContextoAlterado();
+    const credencial = (s: Sessao | null) => s && [s.token, s.contaId, s.lojaId, s.operadorId, s.aparelhoId];
+    if (atual.vinculo !== ctx.vinculo || JSON.stringify(credencial(atual.sessao)) !== JSON.stringify(credencial(ctx.sessao))) throw new ContextoAlterado();
   }
 
   async atualizarEstado(): Promise<void> {
@@ -63,7 +65,12 @@ export class SincronizacaoServico extends Observavel<EstadoSincronizacao> {
     await this.atualizarEstado();
   }
 
-  exportar(): Promise<string> { return this.op.repositorio.exportar(); }
+  async exportar(): Promise<string> {
+    const ctx = this.contexto();
+    const arquivo = await this.op.repositorio.exportar();
+    this.conferir(ctx);
+    return arquivo;
+  }
 
   private async executar(opcoes: { forcar?: boolean }): Promise<void> {
     const ctx = this.contexto();
@@ -75,6 +82,9 @@ export class SincronizacaoServico extends Observavel<EstadoSincronizacao> {
       if (!this.op.backend.enviarMutacoes || !this.op.backend.receberMudancas) throw new Error('Sincronização indisponível.');
       this.conferir(ctx);
       this.definir({ ...this.obter(), situacao: 'sincronizando', mensagem: null });
+      await this.op.revalidar?.();
+      // Permissões podem ter mudado na revalidação; a credencial e o vínculo permanecem.
+      this.conferir(ctx);
       await this.op.aplicarLocal(async () => { this.conferir(ctx); await this.op.repositorio.preparar(); });
       this.conferir(ctx);
       while (true) {
@@ -85,10 +95,12 @@ export class SincronizacaoServico extends Observavel<EstadoSincronizacao> {
           const chave = `${e.mutacao.entidade}:${e.mutacao.dados.id}`;
           if (vistas.has(chave)) return false;
           vistas.add(chave);
+          const m = e.mutacao;
+          if (m.entidade === 'caixa' && m.operacao === 'upsert' && m.dados.versaoContrato === 2 && m.dados.fechamento && estado.entradas.some(x => x.mutacao.entidade === 'venda' && x.mutacao.operacao === 'upsert' && x.mutacao.dados.caixaId === m.dados.id)) return false;
           return !e.bloqueada && (opcoes.forcar || !e.proximaTentativaEm || Date.parse(e.proximaTentativaEm) <= this.op.agora().getTime());
         });
-        const prioridade = { produto: 0, caixa: 1, venda: 2 };
-        enviadas = elegiveis.sort((a, b) => prioridade[a.mutacao.entidade] - prioridade[b.mutacao.entidade]).slice(0, 100);
+        const prioridade = (e: EntradaSync) => e.mutacao.entidade === 'produto' ? 0 : e.mutacao.entidade === 'caixa' && e.mutacao.operacao === 'upsert' && e.mutacao.dados.versaoContrato !== 2 ? 1 : e.mutacao.entidade === 'venda' ? 2 : 3;
+        enviadas = elegiveis.sort((a, b) => prioridade(a) - prioridade(b)).slice(0, 100);
         if (!enviadas.length) {
           pendenciasEmEspera = estado.entradas.some(e => !e.bloqueada);
           break;
@@ -119,13 +131,19 @@ export class SincronizacaoServico extends Observavel<EstadoSincronizacao> {
         cursor = pagina.cursor;
         if (pagina.mudancas.length < 500) break;
       }
-      if (!pendenciasEmEspera) await this.op.aplicarLocal(async () => { this.conferir(ctx); await this.op.repositorio.finalizar(this.op.agora().toISOString()); });
+      const restantes = (await this.op.repositorio.estado()).entradas;
+      if (!pendenciasEmEspera && !restantes.length) await this.op.aplicarLocal(async () => { this.conferir(ctx); await this.op.repositorio.finalizar(this.op.agora().toISOString()); });
       this.conferir(ctx);
       await this.atualizarEstado();
       this.conferir(ctx);
       this.definir({ ...this.obter(), situacao: 'ocioso', mensagem: null });
     } catch (erro) {
       if (erro instanceof ContextoAlterado) return;
+      if (erro instanceof ErroBackend && erro.codigo === 'nao_autorizado' && this.op.vinculo() === ctx.vinculo && !this.op.sessao()) {
+        await this.atualizarEstado();
+        this.definir({ ...this.obter(), situacao: 'reautenticacao', mensagem: 'Entre novamente neste perfil. As operações foram preservadas.' });
+        return;
+      }
       try { this.conferir(ctx); } catch { return; }
       const auth = erro instanceof ErroBackend && erro.codigo === 'nao_autorizado';
       const rede = erro instanceof ErroBackend && erro.codigo === 'rede';

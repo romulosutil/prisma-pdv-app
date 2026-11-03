@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, isNull, max, sql } from 'drizzle-orm';
+import { and, asc, eq, exists, gt, inArray, isNull, max, or, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
   adicionarDias,
@@ -7,6 +7,8 @@ import {
   dentroDoLimite,
   licencaDe,
   podeUsar,
+  saldoDoCaixa,
+  sinalMovimento,
   OFFLINE_MAX_DIAS,
   type Assinatura,
   type Caixa,
@@ -20,12 +22,14 @@ import {
   type SyncPushReq,
   type SyncPushRes,
   type Venda,
+  type Papel, type Permissao,
 } from '@pdv/shared';
-import { revalidarSessaoSync, type SessaoAutenticada } from '../auth';
+import { autorizacaoAtual, revalidarSessaoSync, type SessaoAutenticada } from '../auth';
 import type { Db } from '../db/conexao';
-import { contas, sessoes, caixas, itensVenda, movimentosCaixa, mudancas, mutacoesAplicadas, pagamentosVenda, produtos, vendas } from '../db/schema';
+import { contas, sessoes, caixas, clientes, eventosFiado, movimentosEstoque, itensVenda, movimentosCaixa, mudancas, mutacoesAplicadas, pagamentosVenda, produtos, vendas } from '../db/schema';
 import { ErroApi } from '../erros';
 import { carregarAssinatura } from './assinatura';
+import { baixarVenda, validarBaixas } from './estoque';
 import { vendaConsistente } from './valoresVenda';
 
 export const PULL_LIMITE = 500;
@@ -36,7 +40,8 @@ type Resultado = string | null;
 interface Contexto {
   tx: Db;
   sessao: SessaoAutenticada;
-  papel: 'dono' | 'operador';
+  papel: Papel;
+  permissoes: Permissao[];
   agora: Date;
   licenca: Licenca;
   /** Último instante em que o app ainda deixava abrir uma venda; `null` = nunca. */
@@ -88,6 +93,8 @@ async function upsertProduto(c: Contexto, p: Produto): Promise<Resultado> {
   const [atual] = await c.tx.select().from(produtos).where(eq(produtos.id, p.id));
   if (atual && atual.lojaId !== p.lojaId) return 'loja_invalida';
 
+  if (atual?.estoque != null && atual.unidade !== p.unidade) return 'unidade_estoque_imutavel';
+  if ((p.estoque !== null && !Number.isSafeInteger(p.estoque)) || (p.estoqueMinimo !== null && !Number.isSafeInteger(p.estoqueMinimo))) return 'estoque_fora_do_limite';
   const atualizadoEm = noMaximoAgora(p.atualizadoEm, c.agora);
   // Last-write-wins: a mutação velha é aceita (já foi tratada) mas não altera nada.
   if (atual && atualizadoEm < atual.atualizadoEm) return null;
@@ -97,14 +104,14 @@ async function upsertProduto(c: Contexto, p: Produto): Promise<Resultado> {
   if (!vivoAntes && vivoDepois && !dentroDoLimite(c.licenca.planoId, 'produtos', c.produtosAtivos)) return 'limite_plano';
 
   if (!podeUsar(c.licenca.planoId, 'estoque') &&
-      (p.estoque !== (atual?.estoque ?? null) || p.estoqueMinimo !== (atual?.estoqueMinimo ?? null))) return 'recurso_plano';
+      ((!atual && p.estoque !== null) || p.estoqueMinimo !== (atual?.estoqueMinimo ?? null))) return 'recurso_plano';
 
   const campos = {
     nome: p.nome,
     ean: p.ean,
     precoCentavos: p.precoCentavos,
     unidade: p.unidade,
-    estoque: p.estoque,
+    estoque: atual ? atual.estoque : p.estoque,
     estoqueMinimo: p.estoqueMinimo,
     atalho: p.atalho,
     atualizadoEm,
@@ -115,6 +122,7 @@ async function upsertProduto(c: Contexto, p: Produto): Promise<Resultado> {
   } else {
     await c.tx.insert(produtos).values({ id: p.id, lojaId: p.lojaId, ...campos, criadoEm: new Date(p.criadoEm), versao: 1 });
   }
+  if (!atual && p.estoque !== null) await c.tx.insert(movimentosEstoque).values({ id: p.id, lojaId: p.lojaId, produtoId: p.id, tipo: 'inicial', quantidadeMilesimos: p.estoque, motivo: 'Estoque inicial do cadastro', operadorId: c.sessao.operadorId, aparelhoId: c.sessao.aparelhoId, criadoEm: c.agora });
   c.produtosAtivos += Number(vivoDepois) - Number(vivoAntes);
   await registrarMudanca(c, 'produto', p.id);
   return null;
@@ -144,9 +152,10 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
 
   if (atual) {
     if (atual.lojaId !== v.lojaId) return 'loja_invalida';
+    if (atual.operadorId !== c.sessao.operadorId && !c.permissoes.includes('conferir_caixas')) return 'permissao_negada';
     const salva = (await carregarVendas(c.tx, [v.id])).get(v.id);
     if (!salva || salva.entidade !== 'venda' || salva.operacao !== 'upsert') return 'venda_imutavel';
-    const financeiro = (x: Venda) => [x.lojaId, x.aparelhoId, x.operadorId, x.caixaId ?? null, x.totalCentavos,
+    const financeiro = (x: Venda) => [x.lojaId, x.aparelhoId, x.operadorId, x.caixaId ?? null, x.totalCentavos, x.fiado ?? null,
       x.itens.map(i => [i.id, i.produtoId, i.descricao, i.precoUnitarioCentavos, i.quantidadeMilesimos, i.totalCentavos]),
       x.pagamentos.map(p => [p.id, p.meio, p.provedor, p.valorCentavos, p.trocoCentavos])];
     if (JSON.stringify(financeiro(v)) !== JSON.stringify(financeiro(salva.dados))) return 'venda_imutavel';
@@ -156,8 +165,13 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
       return null;
     }
     if (v.status !== 'cancelada') return 'venda_imutavel';
+    if (!c.permissoes.includes('cancelar_venda')) return 'permissao_negada';
     if (v.cancelamento && v.cancelamento.operadorId !== c.sessao.operadorId) return 'origem_invalida';
     if (v.cancelamento && !eventoValido(v.cancelamento, atual.criadoEm, c.agora)) return 'cancelamento_invalido';
+    if (atual.fiado) {
+      const eventos = await c.tx.select().from(eventosFiado).where(eq(eventosFiado.vendaId, v.id));
+      if (eventos.reduce((s, e) => s + (e.tipo === 'recebimento' ? 1 : -1) * e.valorCentavos, 0) !== 0) return 'fiado_com_recebimentos';
+    }
     const cancelamento = v.cancelamento ?? { id: randomUUID(), em: c.agora.toISOString(), operadorId: c.sessao.operadorId, motivo: 'Cancelamento solicitado pelo operador', estorno: 'nao_realizado' as const };
     await c.tx
       .update(vendas)
@@ -168,12 +182,13 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
   }
 
   if (v.aparelhoId !== c.sessao.aparelhoId || v.operadorId !== c.sessao.operadorId) return 'origem_invalida';
+  if (!c.permissoes.includes('vender') || (v.status === 'cancelada' && !c.permissoes.includes('cancelar_venda'))) return 'permissao_negada';
   // Vale o momento da venda, não o de agora: venda feita offline enquanto o app permitia nunca se perde.
   const criadoEm = noMaximoAgora(v.criadaEm, c.agora);
   if (v.caixaId) {
     const [caixa] = await c.tx.select().from(caixas).where(eq(caixas.id, v.caixaId));
     const instanteVenda = new Date(v.criadaEm);
-    if (!caixa || caixa.lojaId !== v.lojaId || caixa.aparelhoId !== v.aparelhoId || caixa.operadorId !== v.operadorId || instanteVenda < caixa.abertoEm || criadoEm < caixa.abertoEm || (caixa.fechadoEm && (instanteVenda > caixa.fechadoEm || criadoEm > caixa.fechadoEm))) return 'caixa_invalido';
+    if (!caixa || caixa.lojaId !== v.lojaId || (caixa.detalhes?.aparelhoAtualId ?? caixa.aparelhoId) !== v.aparelhoId || caixa.operadorId !== v.operadorId || instanteVenda < caixa.abertoEm || criadoEm < caixa.abertoEm || (caixa.fechadoEm && (caixa.reservado || instanteVenda > caixa.fechadoEm || criadoEm > caixa.fechadoEm))) return 'caixa_invalido';
   }
   if (v.status === 'concluida' && v.cancelamento) return 'venda_imutavel';
   if (v.cancelamento && v.cancelamento.operadorId !== c.sessao.operadorId) return 'origem_invalida';
@@ -184,6 +199,13 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
   if (criadoEm < adicionarDias(c.agora, -OFFLINE_MAX_DIAS)) return 'venda_fora_da_janela_offline';
   if (!vendaConsistente(v)) return 'venda_inconsistente';
   if (v.pagamentos.some(p => p.meio === 'tap' || p.provedor !== null)) return 'pagamento_indisponivel';
+  if (v.fiado) {
+    if (!podeUsar(c.licenca.planoId, 'fiado')) return 'recurso_plano';
+    const [cliente] = await c.tx.select().from(clientes).where(and(eq(clientes.id, v.fiado.clienteId), eq(clientes.lojaId, v.lojaId)));
+    if (!cliente) return 'cliente_invalido';
+  }
+  const erroEstoque = await validarBaixas(c.tx, v);
+  if (erroEstoque) return erroEstoque;
   await c.tx.insert(vendas).values({
     id: v.id,
     lojaId: v.lojaId,
@@ -191,6 +213,7 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
     operadorId: v.operadorId,
     caixaId: v.caixaId ?? null,
     cancelamento,
+    fiado: v.fiado ?? null,
     totalCentavos: v.totalCentavos,
     status: v.status,
     criadoEm,
@@ -228,6 +251,7 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
       })),
     );
   }
+  await baixarVenda(c.tx, v, c.agora);
   await registrarMudanca(c, 'venda', v.id);
   return null;
 }
@@ -238,13 +262,18 @@ async function upsertCaixa(c: Contexto, cx: Caixa): Promise<Resultado> {
   if (cx.lojaId !== c.sessao.lojaId) return 'loja_invalida';
   if (new Date(cx.abertura.em) > c.agora || (cx.fechamento && new Date(cx.fechamento.em) < new Date(cx.abertura.em))) return 'caixa_invalido';
   const [atual] = await c.tx.select().from(caixas).where(eq(caixas.id, cx.id));
+  if (!atual && cx.versaoContrato === 2) return 'reserva_obrigatoria';
+  if (atual?.reservado && (cx.versaoContrato !== 2 || cx.contaId !== c.sessao.contaId || cx.aparelhoAtualId !== atual.detalhes?.aparelhoAtualId || c.sessao.aparelhoId !== atual.detalhes?.aparelhoAtualId || cx.operadorId !== c.sessao.operadorId)) return 'origem_invalida';
   if (atual && atual.lojaId !== cx.lojaId) return 'loja_invalida';
+  if (atual && atual.operadorId !== c.sessao.operadorId) return 'permissao_negada';
   const origem = atual ?? c.sessao;
   if (cx.aparelhoId !== origem.aparelhoId || cx.operadorId !== origem.operadorId) return 'origem_invalida';
   if (atual && (atual.abertoEm.getTime() !== new Date(cx.abertura.em).getTime() || atual.trocoInicialCentavos !== cx.abertura.trocoInicialCentavos)) return 'caixa_imutavel';
   if (atual?.fechadoEm) {
     const salva = (await carregarCaixas(c.tx, [cx.id])).get(cx.id);
-    if (salva?.entidade === 'caixa' && salva.operacao === 'upsert' && JSON.stringify(salva.dados) === JSON.stringify(cx)) return null;
+    const recebido = cx.versaoContrato === 2 ? cx : { ...cx, contaId: undefined, aparelhoAtualId: undefined };
+    const comparar = (x: Caixa) => ({ ...x, movimentos: [...x.movimentos].sort((a, b) => a.id.localeCompare(b.id)) });
+    if (salva?.entidade === 'caixa' && salva.operacao === 'upsert' && jsonIgual(comparar(salva.dados), comparar(recebido))) return null;
     return 'caixa_fechada';
   }
 
@@ -253,11 +282,40 @@ async function upsertCaixa(c: Contexto, cx: Caixa): Promise<Resultado> {
   const confirmados = ids.length ? await c.tx.select().from(movimentosCaixa).where(inArray(movimentosCaixa.id, ids)) : [];
   const porId = new Map(confirmados.map((m) => [m.id, m]));
   for (const m of cx.movimentos) {
+    if (['recebimento_fiado', 'estorno_fiado'].includes(m.tipo) && !porId.has(m.id)) return 'recebimento_exige_rota_fiado';
     const anterior = porId.get(m.id);
     if (anterior && (anterior.caixaId !== cx.id || anterior.lojaId !== cx.lojaId || anterior.tipo !== m.tipo || anterior.valorCentavos !== m.valorCentavos || anterior.motivo !== m.motivo || anterior.criadoEm.getTime() !== new Date(m.criadoEm).getTime())) return 'movimento_invalido';
+    if (anterior?.detalhes && !jsonIgual(anterior.detalhes, m)) return 'movimento_imutavel';
   }
   const novos = cx.movimentos.filter((m) => !porId.has(m.id));
+  if (novos.some(m => !['sangria', 'suprimento', 'retirada'].includes(m.tipo))) return 'operacao_online_obrigatoria';
+  if (novos.some(m => m.tipo !== 'suprimento') && !c.permissoes.includes('retirar_dinheiro')) return 'permissao_negada';
+  for (const m of novos) {
+    if ((atual?.reservado || m.tipo === 'retirada') && m.versaoContrato !== 2) return 'autoria_obrigatoria';
+    if (m.versaoContrato === 2 && (m.autorOperadorId !== c.sessao.operadorId || m.responsavelOperadorId !== cx.operadorId || m.aparelhoId !== c.sessao.aparelhoId || (m.aprovadorId && m.aprovadorId !== c.sessao.operadorId) || m.transferenciaId || m.originalId)) return 'origem_invalida';
+    if (m.versaoContrato === 2 && (new Date(m.criadoEm) < new Date(cx.abertura.em) || new Date(m.criadoEm) > c.agora || (cx.fechamento && new Date(m.criadoEm) > new Date(cx.fechamento.em)))) return 'movimento_invalido';
+  }
   if (novos.length && !podeUsar(c.licenca.planoId, 'sangria_suprimento')) return 'recurso_plano';
+  if (!atual && !cx.fechamento && await c.tx.$count(caixas, and(eq(caixas.lojaId, cx.lojaId), eq(caixas.operadorId, cx.operadorId), isNull(caixas.fechadoEm)))) return 'caixa_ja_aberto';
+  if (atual?.reservado && novos.length) {
+    const salva = (await carregarCaixas(c.tx, [cx.id])).get(cx.id);
+    if (!salva || salva.entidade !== 'caixa' || salva.operacao !== 'upsert') return 'caixa_invalido';
+    let saldo = await saldoPersistido(c.tx, salva.dados);
+    for (const m of novos) {
+      saldo += sinalMovimento(m.tipo) * m.valorCentavos;
+      if (saldo < 0) return 'saldo_insuficiente';
+    }
+  }
+
+  if (atual?.reservado && cx.fechamento) {
+    if (new Date(cx.fechamento.em) > c.agora) return 'fechamento_invalido';
+    const salva = (await carregarCaixas(c.tx, [cx.id])).get(cx.id);
+    if (!salva || salva.operacao !== 'upsert' || salva.entidade !== 'caixa') return 'caixa_invalido';
+    if (salva.dados.movimentos.some(m => !ids.includes(m.id))) return 'caixa_desatualizado';
+    const saldo = await saldoPersistido(c.tx, { ...cx, movimentos: [...salva.dados.movimentos, ...novos] });
+    const f = cx.fechamento;
+    if (f.esperadoCentavos !== saldo || f.conferenteId !== c.sessao.operadorId || f.diferencaCentavos !== f.contadoCentavos - saldo || f.recolhidoCentavos === undefined || f.trocoRestanteCentavos === undefined || f.recolhidoCentavos + f.trocoRestanteCentavos !== f.contadoCentavos) return 'fechamento_inconsistente';
+  }
 
   const campos = {
     aparelhoId: cx.aparelhoId,
@@ -270,7 +328,7 @@ async function upsertCaixa(c: Contexto, cx: Caixa): Promise<Resultado> {
     atualizadoEm: c.agora,
   };
   if (atual) {
-    await c.tx.update(caixas).set({ ...campos, versao: atual.versao + 1 }).where(eq(caixas.id, cx.id));
+    await c.tx.update(caixas).set({ ...campos, ...(atual.reservado ? { detalhes: { ...atual.detalhes, fechamento: cx.fechamento } } : {}), versao: atual.versao + 1 }).where(eq(caixas.id, cx.id));
   } else {
     await c.tx.insert(caixas).values({ id: cx.id, lojaId: cx.lojaId, ...campos, criadoEm: c.agora, versao: 1 });
   }
@@ -286,6 +344,7 @@ async function upsertCaixa(c: Contexto, cx: Caixa): Promise<Resultado> {
           tipo: m.tipo,
           valorCentavos: m.valorCentavos,
           motivo: m.motivo,
+          detalhes: m.versaoContrato === 2 ? m : null,
           criadoEm: new Date(m.criadoEm),
         })),
       )
@@ -299,7 +358,9 @@ async function upsertCaixa(c: Contexto, cx: Caixa): Promise<Resultado> {
 // ---------- Push ----------
 
 async function aplicar(c: Contexto, m: Mutacao): Promise<Resultado> {
-  if (c.papel !== 'dono') return 'permissao_negada';
+  if (!c.permissoes.length) return 'permissao_negada';
+  if (m.entidade === 'produto' && !c.permissoes.includes('cadastrar_produto')) return 'permissao_negada';
+  if (m.entidade === 'caixa' && !c.permissoes.includes('movimentar_proprio_caixa')) return 'permissao_negada';
   if (m.operacao === 'delete') {
     return m.entidade === 'produto' ? excluirProduto(c, m.dados.id, m.criadaEm) : 'exclusao_nao_permitida';
   }
@@ -325,6 +386,7 @@ export function aplicarPush(db: Db, sessaoId: string, sessao: SessaoAutenticada,
     await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${sessao.lojaId}))`);
     const agora = relogio.agora();
     const papel = await revalidarSessaoSync(tx, sessaoId, sessao, agora);
+    const { permissoes } = await autorizacaoAtual(tx, sessao.operadorId);
 
     const { assinatura: salva } = await carregarAssinatura(tx, sessao.contaId, agora);
     const assinatura = avaliar(salva, agora);
@@ -333,6 +395,7 @@ export function aplicarPush(db: Db, sessaoId: string, sessao: SessaoAutenticada,
       tx,
       sessao,
       papel,
+      permissoes,
       agora,
       licenca,
       vendaPermitidaAte: vendaPermitidaAte(assinatura, licenca),
@@ -355,7 +418,8 @@ export function aplicarPush(db: Db, sessaoId: string, sessao: SessaoAutenticada,
     const rejeitadas: SyncPushRes['rejeitadas'] = [];
     const novas: (typeof mutacoesAplicadas.$inferInsert)[] = [];
     const resultados = new Map<number, Resultado>();
-    const ordem = req.mutacoes.map((m, i) => ({ m, i })).sort((a, b) => Number(b.m.entidade === 'caixa') - Number(a.m.entidade === 'caixa'));
+    const prioridade = (m: Mutacao) => m.entidade === 'caixa' && m.operacao === 'upsert' ? (m.dados.versaoContrato === 2 ? 3 : 0) : m.entidade === 'produto' ? 1 : 2;
+    const ordem = req.mutacoes.map((m, i) => ({ m, i })).sort((a, b) => prioridade(a.m) - prioridade(b.m));
     for (const { m, i } of ordem) {
       if (jaAplicadas.has(m.id)) {
         resultados.set(i, null);
@@ -388,12 +452,16 @@ export function aplicarPush(db: Db, sessaoId: string, sessao: SessaoAutenticada,
  * Cada entidade aparece uma vez, no estado atual (a última mudança vence). O cliente
  * repete a chamada com o cursor devolvido enquanto vierem `PULL_LIMITE` mudanças.
  */
-export async function buscarMudancas(db: Db, lojaId: string, desde: number): Promise<SyncPullRes> {
+export async function buscarMudancas(db: Db, lojaId: string, desde: number, operadorId?: string): Promise<SyncPullRes> {
   const ultimaSeq = max(mudancas.seq);
   const pagina = await db
     .select({ entidade: mudancas.entidade, id: mudancas.entidadeId, seq: ultimaSeq })
     .from(mudancas)
-    .where(and(eq(mudancas.lojaId, lojaId), gt(mudancas.seq, desde)))
+    .where(and(eq(mudancas.lojaId, lojaId), gt(mudancas.seq, desde), operadorId ? or(
+      eq(mudancas.entidade, 'produto'),
+      and(eq(mudancas.entidade, 'venda'), exists(db.select({ id: vendas.id }).from(vendas).where(and(eq(vendas.id, mudancas.entidadeId), eq(vendas.lojaId, lojaId), eq(vendas.operadorId, operadorId))))),
+      and(eq(mudancas.entidade, 'caixa'), exists(db.select({ id: caixas.id }).from(caixas).where(and(eq(caixas.id, mudancas.entidadeId), eq(caixas.lojaId, lojaId), eq(caixas.operadorId, operadorId))))),
+    ) : undefined))
     .groupBy(mudancas.entidade, mudancas.entidadeId)
     .orderBy(asc(ultimaSeq))
     .limit(PULL_LIMITE);
@@ -449,7 +517,7 @@ async function carregarProdutos(db: Db, ids: string[]): Promise<Map<string, Muda
   return resultado;
 }
 
-async function carregarVendas(db: Db, ids: string[]): Promise<Map<string, Mudanca>> {
+export async function carregarVendas(db: Db, ids: string[]): Promise<Map<string, Mudanca>> {
   const resultado = new Map<string, Mudanca>();
   if (ids.length === 0) return resultado;
   const [linhas, itens, pagamentos] = await Promise.all([
@@ -467,6 +535,7 @@ async function carregarVendas(db: Db, ids: string[]): Promise<Map<string, Mudanc
         aparelhoId: v.aparelhoId,
         operadorId: v.operadorId,
         ...(v.caixaId ? { caixaId: v.caixaId } : {}),
+        ...(v.fiado ? { fiado: v.fiado } : {}),
         ...(v.cancelamento ? { cancelamento: v.cancelamento } : {}),
         itens: itens
           .filter((i) => i.vendaId === v.id)
@@ -496,12 +565,12 @@ async function carregarVendas(db: Db, ids: string[]): Promise<Map<string, Mudanc
   return resultado;
 }
 
-async function carregarCaixas(db: Db, ids: string[]): Promise<Map<string, Mudanca>> {
+export async function carregarCaixas(db: Db, ids: string[]): Promise<Map<string, Mudanca>> {
   const resultado = new Map<string, Mudanca>();
   if (ids.length === 0) return resultado;
   const [linhas, movimentos] = await Promise.all([
     db.select().from(caixas).where(inArray(caixas.id, ids)),
-    db.select().from(movimentosCaixa).where(inArray(movimentosCaixa.caixaId, ids)).orderBy(asc(movimentosCaixa.criadoEm)),
+    db.select().from(movimentosCaixa).where(inArray(movimentosCaixa.caixaId, ids)).orderBy(asc(movimentosCaixa.criadoEm), asc(movimentosCaixa.id)),
   ]);
   for (const cx of linhas) {
     resultado.set(cx.id, {
@@ -512,14 +581,16 @@ async function carregarCaixas(db: Db, ids: string[]): Promise<Map<string, Mudanc
         lojaId: cx.lojaId,
         aparelhoId: cx.aparelhoId,
         operadorId: cx.operadorId,
+        ...(cx.detalhes ? { versaoContrato: cx.detalhes.versaoContrato, contaId: cx.detalhes.contaId, aparelhoAtualId: cx.detalhes.aparelhoAtualId } : {}),
         abertura: { em: iso(cx.abertoEm), trocoInicialCentavos: cx.trocoInicialCentavos },
         fechamento:
           cx.fechadoEm && cx.esperadoCentavos !== null && cx.contadoCentavos !== null
-            ? { em: iso(cx.fechadoEm), esperadoCentavos: cx.esperadoCentavos, contadoCentavos: cx.contadoCentavos }
+            ? { ...cx.detalhes?.fechamento, em: iso(cx.fechadoEm), esperadoCentavos: cx.esperadoCentavos, contadoCentavos: cx.contadoCentavos }
             : null,
         movimentos: movimentos
           .filter((m) => m.caixaId === cx.id)
           .map((m) => ({
+            ...m.detalhes,
             id: m.id,
             tipo: m.tipo,
             valorCentavos: m.valorCentavos,
@@ -530,4 +601,12 @@ async function carregarCaixas(db: Db, ids: string[]): Promise<Map<string, Mudanc
     });
   }
   return resultado;
+}
+
+const canonico = (v: unknown): unknown => Array.isArray(v) ? v.map(canonico) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, canonico(x)])) : v;
+export const jsonIgual = (a: unknown, b: unknown): boolean => JSON.stringify(canonico(a)) === JSON.stringify(canonico(b));
+export async function saldoPersistido(db: Db, cx: Caixa): Promise<number> {
+  const ids = await db.select({ id: vendas.id }).from(vendas).where(and(eq(vendas.lojaId, cx.lojaId), eq(vendas.caixaId, cx.id)));
+  const carregadas = await carregarVendas(db, ids.map(v => v.id));
+  return saldoDoCaixa(cx, [...carregadas.values()].flatMap(m => m.entidade === 'venda' && m.operacao === 'upsert' ? [m.dados] : []));
 }

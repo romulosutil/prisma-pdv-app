@@ -1,13 +1,13 @@
 # Reconhecimento de produto por código de barras — v0.1
 
-Dono: Produto · Status: **API e app implementados com catálogo próprio + Open Food Facts; Cosmos pendente (plano pago); falta medir os critérios da seção 5** · Decisão de 24/10/2026
+Dono: Produto · Status: **API e app conectados com catálogo próprio + Open Food Facts; fumaça HTTPS de três produtos aprovada em R4; cobertura de campo/4G pendente; fonte adicional somente após medir cobertura** · Decisão de 24/10/2026
 
 ## 1. Duas capacidades diferentes
 
 | Capacidade | O que é | Status |
 |---|---|---|
 | **Ler o código** | A câmera decodifica qualquer EAN-13, EAN-8, UPC-A, UPC-E ou Code 128, de qualquer produto, usando o ML Kit embutido no app (funciona offline) | **Pronta na versão de testes.** Tem que funcionar sempre: é bloqueante para qualquer build |
-| **Reconhecer o produto** | A partir do código, sugerir nome, marca, conteúdo e foto para preencher o cadastro | **Pré-produção.** Na versão de testes é simulada (`apps/mobile/src/servicos/catalogoEan.ts`, poucos códigos de demonstração) |
+| **Reconhecer o produto** | A partir do código, sugerir nome, marca, conteúdo e foto para preencher o cadastro | **Conectada:** API própria + Open Food Facts, com timeout e cadastro manual. **Demo:** pequena base simulada. Ver [evidência R4](r4-gestao-catalogo-fiado-lojas.md). |
 
 O reconhecimento só **acelera o cadastro**. Venda e cadastro funcionam sem ele: o código não reconhecido vira um formulário com o código já preenchido.
 
@@ -25,7 +25,7 @@ O reconhecimento só **acelera o cadastro**. Venda e cadastro funcionam sem ele:
 |---|---|---|---|---|
 | 1 | **Catálogo próprio** (tabela `catalogo_ean` na nossa API) | Zero | Cresce com o uso | Sempre primeiro |
 | 2 | **Open Food Facts** | Grátis e aberta (exige `User-Agent` identificado) | Boa em alimentos e bebidas de marca; fraca em limpeza, bazar e marcas regionais | Segunda consulta |
-| 3 | **Cosmos (Bluesoft)** | **Só plano pago.** Pelos Termos de Uso, o acesso gratuito à API foi desativado em 01/10/2026 e o período de teste não inclui consultas. Cada requisição (e cada página) conta na franquia diária do plano. Preços e franquias: `cosmos.bluesoft.com.br/api-pricings` (conferir no navegador) | A mais completa do varejo brasileiro | Reserva, só quando 1 e 2 falham |
+| 3 | **Cosmos (Bluesoft)** | **Só plano pago.** Pelos Termos de Uso, o acesso gratuito à API foi desativado em 01/10/2026 e o período de teste não inclui consultas. Cada requisição (e cada página) conta na franquia diária do plano. Preços e franquias: `cosmos.bluesoft.com.br/api-pricings` (conferir no navegador) | A mais completa do varejo brasileiro | Avaliar somente se a cobertura medida de 1 e 2 justificar; não contratado |
 | — | GS1 Brasil | Contrato | Oficial | Avaliar depois, se a qualidade de 2 e 3 não bastar |
 
 O resultado de qualquer fonte externa é gravado no catálogo próprio. Assim cada código é pago no máximo uma vez.

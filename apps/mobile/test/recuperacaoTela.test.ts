@@ -86,6 +86,7 @@ describe('recuperação na tela de entrada', () => {
     const perfil = { contaId: id(2), lojaId: id(3), operadorId: id(4), email: 'dona@example.com', nomeResponsavel: 'Dona', nomeLoja: 'Loja real', papel: 'dono' as const };
     const real = new Dados(new ArmazenamentoMemoria(), criarContadorDeIds(), 'http://api.local'); m.real = real;
     vi.spyOn(real.backend, 'pedirCodigo').mockResolvedValue();
+    vi.spyOn(real.backend, 'consultarVinculos').mockResolvedValue([{ ...perfil, usuarioId: id(10), nome: perfil.nomeResponsavel, estado: 'ativo', conviteExpiraEm: null, permissoes: [] }]);
     vi.spyOn(real.backend, 'entrar').mockRejectedValue(new ErroBackend('limite_aparelhos', '', 409));
     const inicio = vi.spyOn(real.backend, 'iniciarRecuperacao').mockImplementation(async req => ({ id: id(9), token: 'a'.repeat(43), expiraEm: '2026-10-29T12:05:00.000Z', perfil, aparelhoNovoId: req.aparelhoId, aparelhoNovoNome: req.aparelhoNome, aparelhos: [{ id: id(6), nome: 'Caixa antigo', ultimoAcessoEm: '2026-10-28T12:00:00.000Z' }] }));
     const confirmar = vi.spyOn(real.backend, 'confirmarRecuperacao').mockImplementation(async () => ({ token: 'sessao', contaId: id(2), lojaId: id(3), operadorId: id(4), aparelhoId: inicio.mock.calls[0]![0].aparelhoId }));

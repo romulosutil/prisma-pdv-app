@@ -4,6 +4,11 @@ import { decidirRota } from '../src/nucleo/fluxo';
 const base = { temConta: true, assinatura: null, agora: new Date('2026-10-29T12:00:00.000Z'), reautenticacaoNecessaria: true };
 
 describe('recuperação de acesso e checkout em andamento', () => {
+  it('perfil vencido pode consultar pendências e alternar para outro perfil autorizado', () => {
+    expect(decidirRota(base, ['ajustes', 'usuarios'])).toBeNull();
+    expect(decidirRota(base, ['(tabs)', 'caixa', 'sync'])).toBeNull();
+    expect(decidirRota(base, ['(tabs)', 'caixa', 'turnos'])).toBe('/entrar');
+  });
   it('solicita login com identidade local e nenhuma credencial, sem permitir nova venda', () => {
     expect(decidirRota(base, ['(tabs)'])).toBe('/entrar');
     expect(decidirRota(base, ['vender'])).toBe('/entrar');

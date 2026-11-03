@@ -49,7 +49,7 @@ it('envia operações offline por HTTP real, perde resposta e restaura sem dupli
   await dados.carrinho.adicionarParcela({ meio: 'dinheiro', valorCentavos: 1000 });
   const segunda = await dados.carrinho.concluir();
   await dados.vendas.cancelar(segunda.id);
-  await dados.caixa.registrarMovimento('suprimento', 500, 'Teste offline');
+  await dados.caixa.registrarMovimento('suprimento', 500, 'Teste offline', { categoria: 'troco', destino: 'Tesouraria' });
   const fechado = await dados.caixa.fechar(2500, dados.vendas.obter().vendas);
   await dados.produtos.excluir(produto.id);
   const ids = (await sync.estado()).entradas.map((e) => e.mutacao.id);
@@ -68,7 +68,8 @@ it('envia operações offline por HTTP real, perde resposta e restaura sem dupli
   await retomado.sincronizacao.sincronizar({ forcar: true });
   expect((await sync.estado()).entradas).toEqual([]);
   expect((await amb.db.select().from(vendas)).map((v) => [v.id, v.status]).sort()).toEqual([[primeira.id, 'concluida'], [segunda.id, 'cancelada']].sort());
-  expect((await amb.db.select().from(caixas)).find((v) => v.id === caixa.id)).toMatchObject({ esperadoCentavos: 2500, contadoCentavos: 2500 });
+  // Cancelamento comercial conserva os R$ 10 recebidos até uma devolução efetiva.
+  expect((await amb.db.select().from(caixas)).find((v) => v.id === caixa.id)).toMatchObject({ esperadoCentavos: 3500, contadoCentavos: 2500 });
   const acks = await amb.db.select().from(mutacoesAplicadas);
   expect(acks.map((m) => m.id).sort()).toEqual([...ids].sort());
   const antes = await amb.db.select().from(mudancas);
@@ -146,7 +147,7 @@ it('protege edição pendente durante pull e converge ao agregado mais recente a
   expect((await amb.db.select().from(produtos).where(eq(produtos.id, produto.id)))[0]?.nome).toBe('Remoto mais recente');
 }, 30000);
 
-it('restaura caixa aberto histórico sem adotá-lo para novas vendas do aparelho autorizado', async () => {
+it('restaura turno histórico sem adotá-lo automaticamente; retomada explícita preserva a origem', async () => {
   const c = await contaEmTeste(amb);
   const origem = await instalar(c);
   const anterior = await origem.dados.caixa.abrir(0);
@@ -161,13 +162,16 @@ it('restaura caixa aberto histórico sem adotá-lo para novas vendas do aparelho
   await nova.dados.sincronizacao.sincronizar();
   expect(nova.dados.caixa.obter()).toEqual([anterior]);
   expect(nova.dados.caixa.atual()).toBeNull();
-  const atual = await nova.dados.caixa.abrir(0);
+  await expect(nova.dados.caixa.abrir(0)).rejects.toThrow('Retome ou encerre');
+  await nova.dados.operacaoCaixaOnline('aparelho', { caixaId: anterior.id, dados: { aparelhoAnteriorId: anterior.aparelhoId, motivo: 'Retomada após sincronizar a origem', confirmarSincronizacaoAnterior: true } });
+  const atual = nova.dados.caixa.atual()!;
+  expect(atual.id).toBe(anterior.id); expect(atual.aparelhoId).toBe(c.aparelhoId); expect(atual.aparelhoAtualId).toBe(login.corpo.aparelhoId);
   await nova.dados.carrinho.adicionarAvulso(100, 'Nova');
   await nova.dados.carrinho.adicionarParcela({ meio: 'dinheiro', valorCentavos: 100 });
   const vendaAtual = await nova.dados.carrinho.concluir();
   await nova.dados.sincronizacao.sincronizar();
   expect(nova.dados.sincronizacao.obter()).toMatchObject({ pendentes: 0, rejeitadas: 0 });
-  expect(nova.dados.caixa.obter().find((cx) => cx.id === anterior.id)).toEqual(anterior);
+  expect(nova.dados.caixa.obter()).toEqual([atual]);
   expect(vendaAnterior.caixaId).toBe(anterior.id);
   expect(vendaAtual.caixaId).toBe(atual.id);
   expect(vendaAtual.aparelhoId).toBe(login.corpo.aparelhoId);

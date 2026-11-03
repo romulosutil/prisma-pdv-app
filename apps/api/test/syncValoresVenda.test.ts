@@ -110,7 +110,7 @@ describe('validação de venda no push', () => {
     expect(final.mudancas.map(x => [x.entidade, x.entidadeId])).toEqual([['caixa', caixa.id], ...[anterior.id, a.dados.id, b.dados.id, ruim.id].map(id => ['venda', id])]);
     const aceitas = [anterior, a.dados, b.dados, corrigida.dados];
     const porId = <T extends { id: string }>(xs: T[]) => xs.sort((x, y) => x.id.localeCompare(y.id));
-    expect(final.vendas).toEqual(porId(aceitas.map(x => ({ id: x.id, lojaId: x.lojaId, aparelhoId: x.aparelhoId, operadorId: x.operadorId, caixaId: null, cancelamento: null, totalCentavos: x.totalCentavos, status: x.status, criadoEm: INICIO, atualizadoEm: INICIO, excluidoEm: null, versao: 1 }))));
+    expect(final.vendas).toEqual(porId(aceitas.map(x => ({ id: x.id, lojaId: x.lojaId, aparelhoId: x.aparelhoId, operadorId: x.operadorId, caixaId: null, cancelamento: null, fiado: null, totalCentavos: x.totalCentavos, status: x.status, criadoEm: INICIO, atualizadoEm: INICIO, excluidoEm: null, versao: 1 }))));
     expect(final.itens).toEqual(porId(aceitas.flatMap(x => x.itens.map((i, posicao) => ({ ...i, vendaId: x.id, lojaId: x.lojaId, posicao, criadoEm: INICIO })))));
     expect(final.pagamentos).toEqual(porId(aceitas.flatMap(x => x.pagamentos.map((p, posicao) => ({ ...p, vendaId: x.id, lojaId: x.lojaId, posicao, criadoEm: INICIO })))));
     expect(final.acks).toEqual(porId([mc.id, ma.id, a.id, b.id, rejeitada.id].map(id => ({ id, lojaId: conta.lojaId, aparelhoId: conta.aparelhoId, criadoEm: INICIO }))));

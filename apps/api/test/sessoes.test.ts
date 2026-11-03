@@ -3,7 +3,7 @@ import { AparelhosResSchema, gerarId, PerfilResSchema } from '@pdv/shared';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { criarSessao } from '../src/auth';
 import type { Conexao } from '../src/db/conexao';
-import { aparelhos, codigosLogin, contas, operadores, sessoes } from '../src/db/schema';
+import { aparelhos, codigosLogin, contas, operadores, sessoes, usuarios } from '../src/db/schema';
 import { abrirBanco, chamar, contaEmTeste, criarAmbiente, criarConta, type Ambiente } from './ajuda';
 
 let banco: Conexao;
@@ -96,7 +96,9 @@ describe('sessões e aparelhos', () => {
     expect(novo.status).toBe(200);
     const operadorId = gerarId();
     const agora = amb.relogio.agora();
-    await amb.db.insert(operadores).values({ id: operadorId, contaId: conta.contaId, lojaId: conta.lojaId, nome: 'Operador', papel: 'operador', criadoEm: agora, atualizadoEm: agora });
+    const usuarioId = gerarId();
+    await amb.db.insert(usuarios).values({ id: usuarioId, email: 'operador@exemplo.com', nome: 'Operador', criadoEm: agora, atualizadoEm: agora });
+    await amb.db.insert(operadores).values({ id: operadorId, usuarioId, contaId: conta.contaId, lojaId: conta.lojaId, nome: 'Operador', papel: 'operador', criadoEm: agora, atualizadoEm: agora });
     const operador = await criarSessao(amb.db, { contaId: conta.contaId, lojaId: conta.lojaId, operadorId, aparelhoId: novoId }, agora);
     expect((await chamar(amb, 'GET', '/aparelhos', { token: operador.token })).status).toBe(403);
     expect((await apagar(operador.token, conta.aparelhoId)).status).toBe(403);

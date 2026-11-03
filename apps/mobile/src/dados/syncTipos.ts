@@ -23,6 +23,8 @@ export interface RepositorioSync {
   rejeitar(rejeitadas: readonly { id: string; motivo: string }[]): Promise<void>;
   aplicarPagina(pagina: SyncPullRes): Promise<void>;
   finalizar(em: string): Promise<void>;
+  /** Recomeça a leitura após mudança de permissão; pendências mantêm o conteúdo original. */
+  atualizarVisibilidade?(operadorId: string | null): Promise<void>;
   /** Reabre a tentativa, sem mudar ID, conteúdo ou data da operação original. */
   retentarRejeitadas(): Promise<void>;
   /** JSON local para revisão; nunca contém token/sessão/credencial. */

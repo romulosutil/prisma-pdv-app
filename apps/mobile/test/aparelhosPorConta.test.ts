@@ -43,7 +43,7 @@ describe('aparelhos por conta', () => {
   });
   it('bloqueia antes do backend e do vínculo novo quando há pendências', async () => {
     const base = new ArmazenamentoMemoria(); const dados = new Dados(base, ids(), 'https://api.teste');
-    await dados.conta.registrar(sessao, perfil); await dados.produtos.criar({ nome: 'Produto', precoCentavos: 2500 });
+    await dados.conta.registrar(sessao, perfil); await dados.acessoOffline.confirmar(sessao); await dados.produtos.criar({ nome: 'Produto', precoCentavos: 2500 });
     const entrar = vi.spyOn(dados.backend, 'entrar'); const criar = vi.spyOn(dados.backend, 'criarConta');
     await expect(dados.entrar('b@example.com', '123456')).rejects.toMatchObject({ codigo: 'conflito' });
     await expect(dados.criarConta({ ...formulario, email: 'b@example.com' })).rejects.toMatchObject({ codigo: 'conflito' });
@@ -57,7 +57,7 @@ describe('aparelhos por conta', () => {
   });
   it('verifica pendências persistidas mesmo antes de iniciar o app', async () => {
     const base = new ArmazenamentoMemoria(); const primeiro = new Dados(base, ids(), 'https://api.teste');
-    await primeiro.conta.registrar(sessao, perfil); await primeiro.produtos.criar({ nome: 'Produto', precoCentavos: 2500 });
+    await primeiro.conta.registrar(sessao, perfil); await primeiro.acessoOffline.confirmar(sessao); await primeiro.produtos.criar({ nome: 'Produto', precoCentavos: 2500 });
     const reiniciado = new Dados(base, ids(), 'https://api.teste'); const entrar = vi.spyOn(reiniciado.backend, 'entrar');
     await expect(reiniciado.entrar('b@example.com', '123456')).rejects.toMatchObject({ codigo: 'conflito' });
     expect(entrar).not.toHaveBeenCalled(); expect(await base.obter('instalacao_aparelhos')).toBeNull();
@@ -86,6 +86,7 @@ describe('aparelhos por conta', () => {
   it.each(['backend', 'perfil'])('libera bloqueio quando %s falha', async falha => {
     const base = new ArmazenamentoMemoria(); const dados = new Dados(base, ids(), 'https://api.teste');
     await dados.conta.registrar(sessao, perfil);
+    await dados.acessoOffline.confirmar(sessao); // Fixture de perfil já autenticado antes da falha.
     vi.spyOn(dados.backend, 'entrar').mockImplementation(async entrada => {
       if (falha === 'backend') throw Error('backend falhou');
       return { token: 'token-B', contaId: id(30), lojaId: id(31), operadorId: id(32), aparelhoId: entrada.aparelhoId };

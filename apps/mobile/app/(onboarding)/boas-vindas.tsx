@@ -15,6 +15,7 @@ export default function BoasVindas() {
         <>
           <Botao rotulo="Começar" onPress={() => router.push('/criar-conta')} />
           <Botao rotulo="Já tenho conta" variante="ghost" tamanho="M" larguraTotal onPress={() => router.push('/entrar')} />
+          <Botao rotulo="Suporte, privacidade e termos" variante="ghost" tamanho="M" larguraTotal onPress={() => router.push('/suporte')} />
         </>
       }
     >

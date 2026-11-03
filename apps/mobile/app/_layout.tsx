@@ -14,6 +14,7 @@ import { DadosProvider, useAssinatura, useConta } from '@/dados/hooks';
 import { decidirRota } from '@/nucleo/fluxo';
 import { cores, FONTES_PARA_CARREGAR } from '@/tema';
 import { useCarrinho } from '@/dados/carrinho';
+import { escopoDoPerfil } from '@/dados/estadoConta';
 
 // A splash fica até as fontes e os dados locais carregarem e o guarda de fluxo escolher a tela.
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -77,7 +78,7 @@ function GuardaDeFluxo() {
   const segmentos = useSegments();
   const navegacaoPronta = useRootNavigationState()?.key !== undefined;
   const { temConta, identidade, reautenticacaoNecessaria, carregandoConta } = useConta();
-  const escopo = identidade ? JSON.stringify([identidade.contaId, identidade.lojaId]) : null;
+  const escopo = identidade ? escopoDoPerfil(identidade) : null;
   const escopoAnterior = useRef(escopo);
   const carrinho = useCarrinho();
   const { assinatura, agora, servico } = useAssinatura();
@@ -113,7 +114,7 @@ function GuardaDeFluxo() {
   useEffect(() => {
     let ativo = AppState.currentState === 'active';
     const tentar = () => {
-      if (ativo) void dados.sincronizacao.sincronizar().catch(() => undefined);
+      if (ativo) void dados.processarSaidasPendentes().then(() => dados.sincronizacao.sincronizar()).catch(() => undefined);
     };
     tentar();
     const assinatura = AppState.addEventListener('change', (estado) => {

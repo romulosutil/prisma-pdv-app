@@ -1,3 +1,4 @@
+import type { OpcoesRelatorio, ComandoGestao, FiltrosRelatorio, Relatorio, FiadoRes, EstoqueResSchema, LojaSchema } from '@pdv/shared';
 import type { z } from 'zod';
 import type { PerfilResSchema, AparelhosResSchema } from '@pdv/shared';
 import type {
@@ -10,6 +11,8 @@ import type {
   PlanoId,
   Sessao,
   SyncPushReq, SyncPushRes, SyncPullRes,
+  Vinculo, ConvidarReq, AlterarVinculoReq,
+  Caixa, PainelCaixas, ReservarCaixaReqSchema, OperacaoCaixaReqSchema, AutorizarTransferenciaReqSchema, TrocarAparelhoCaixaReqSchema,
 } from '@pdv/shared';
 
 export type CodigoErroBackend =
@@ -26,6 +29,7 @@ export type CodigoErroBackend =
   | 'aparelho_ja_autorizado' | 'recuperacao_desnecessaria' | 'recuperacao_desatualizada'
   | 'recuperacao_indisponivel'
   | 'resposta_invalida'
+  | 'permissao_negada' | 'limite_operadores' | 'vinculo_existente' | 'convite_pendente' | 'vinculo_desligado' | 'aceitar_convite' | 'selecionar_vinculo'
   | 'desconhecido';
 
 export class ErroBackend extends Error {
@@ -57,6 +61,13 @@ const MENSAGENS: Record<CodigoErroBackend, string> = {
   recuperacao_desatualizada: 'Esta recuperação está desatualizada. Peça um novo código.',
   recuperacao_indisponivel: 'Recuperação de aparelho indisponível no modo demo.',
   resposta_invalida: 'O servidor respondeu algo inesperado. Tente de novo em instantes.',
+  permissao_negada: 'Seu vínculo não permite esta operação. Fale com o dono da loja.',
+  limite_operadores: 'O plano atual não permite mais usuários.',
+  vinculo_existente: 'Esta pessoa já possui vínculo. Altere o acesso na lista da equipe.',
+  convite_pendente: 'A pessoa precisa aceitar o convite com seu código pessoal.',
+  vinculo_desligado: 'Envie um novo convite para retomar o acesso.',
+  aceitar_convite: 'Confirme o aceite do convite para entrar nesta loja.',
+  selecionar_vinculo: 'Escolha a empresa e a loja para entrar.',
   desconhecido: 'Algo deu errado. Tente de novo em instantes.',
 };
 
@@ -74,13 +85,33 @@ export type Perfil = z.infer<typeof PerfilResSchema>;
 export type Aparelhos = z.infer<typeof AparelhosResSchema>;
 
 export interface Backend {
+  solicitarSuporte?(req: import('@pdv/shared').SolicitarSuporte, token?: string): Promise<import('@pdv/shared').SolicitacaoSuporte>;
+  listarSolicitacoesSuporte?(token?: string): Promise<import('@pdv/shared').SolicitacaoSuporte[]>;
+  exportarDadosSuporte?(token?: string): Promise<Record<string, unknown>>;
   readonly modo: 'demo' | 'http';
+  executarGestao?(comando: ComandoGestao, token?: string): Promise<unknown>;
+  obterEstoque?(token?: string): Promise<z.infer<typeof EstoqueResSchema>>;
+  obterFiado?(token?: string): Promise<FiadoRes>;
+  listarLojas?(token?: string): Promise<z.infer<typeof LojaSchema>[]>;
+  obterOpcoesRelatorio?(token?: string): Promise<OpcoesRelatorio>;
+  obterRelatorio?(filtros: FiltrosRelatorio, token?: string): Promise<Relatorio>;
+  reservarCaixa?(req: z.infer<typeof ReservarCaixaReqSchema>, token?: string): Promise<Caixa>;
+  listarCaixas?(token?: string): Promise<PainelCaixas>;
+  movimentarCaixa?(id: string, req: z.infer<typeof OperacaoCaixaReqSchema>, token?: string): Promise<Caixa>;
+  autorizarTransferencia?(req: z.infer<typeof AutorizarTransferenciaReqSchema>, token?: string): Promise<{ id: string; expiraEm: string }>;
+  executarTransferencia?(autorizacaoId: string, token?: string): Promise<{ id: string; caixa: Caixa }>;
+  conferirCaixa?(id: string, eventoId: string, motivo: string, token?: string): Promise<{ id: string }>;
+  trocarAparelhoCaixa?(id: string, req: z.infer<typeof TrocarAparelhoCaixaReqSchema>, token?: string): Promise<Caixa>;
+  consultarVinculos?(email: string, codigo: string): Promise<Vinculo[]>;
+  listarEquipe?(): Promise<Vinculo[]>;
+  convidar?(req: ConvidarReq): Promise<Vinculo>;
+  alterarVinculo?(id: string, req: AlterarVinculoReq): Promise<Vinculo>;
   enviarMutacoes?(req: SyncPushReq, token?: string): Promise<SyncPushRes>;
   receberMudancas?(desde: string, token?: string): Promise<SyncPullRes>;
   obterPerfil(token?: string): Promise<Perfil>;
   listarAparelhos(): Promise<Aparelhos>;
   revogarAparelho(id: string): Promise<void>;
-  sair(): Promise<void>;
+  sair(token?: string): Promise<void>;
   criarConta(req: CriarContaReq): Promise<Sessao>;
   pedirCodigo(email: string): Promise<void>;
   entrar(req: LoginReq): Promise<Sessao>;

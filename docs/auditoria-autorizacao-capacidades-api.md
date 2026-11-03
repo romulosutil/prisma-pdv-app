@@ -1,5 +1,7 @@
 # Autorização e capacidades da API no escopo inicial
 
+Atualização de 01/11/2026: o texto abaixo conserva a evidência do escopo inicial. A implementação local de R1 substitui a guarda global de dono no push por autorização por operação e acrescenta equipe/gerente e filtro financeiro no pull. Política atual e limites da validação: [R1 — Equipe e permissões](r1-equipe-permissoes.md). A implantação anterior de R0 permanece na versão registrada em seu relatório.
+
 Concluída localmente em29/10/2026, fonte1b960b2 e verificações independentes em .specs/features/pagamentos-manuais-api/validation.md. Quatro ACs PASS,5/5mutações detectadas, validate_state0. Inventário confrontado com as rotas pelo gestor e por revisor novo. Sustenta P0-04-C/AC-P0-04-2 no escopo inicial de uma loja/pessoa/aparelho e pagamentos manuais/Pix estático. Não homologa Android, compra real ou produção.
 
 ## Operações expostas

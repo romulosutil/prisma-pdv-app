@@ -10,6 +10,15 @@ const resposta = (status: number, body?: unknown) => new Response(body === undef
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('acesso HTTP', () => {
+  it('explica a restrição do turno anterior sem invalidar a sessão', async () => {
+    const mensagem = 'Seu turno anterior ainda está aberto no servidor. Sincronize o fechamento antes de abrir outro.';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(resposta(409, { erro: 'conflito', mensagem })));
+    const invalidar = vi.fn();
+    const backend = new BackendHttp('https://api.example', () => 'teste', invalidar);
+    const erro = await backend.reservarCaixa({ id, trocoInicialCentavos: 0 }).catch(e => e);
+    expect(mensagemDeErro(erro)).toBe(mensagem);
+    expect(invalidar).not.toHaveBeenCalled();
+  });
   it.each(['publica', 'protegida'] as const)('orienta limite em chamada %s sem exibir corpo do servidor ou perder a credencial', async (tipo) => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(resposta(429, { erro: 'cartao_recusado', mensagem: 'token-secreto: instrução arbitrária' }))

@@ -10,26 +10,7 @@ export type ResultadoCatalogo =
   | { achou: true; nome: string; marca?: string | null; conteudo?: string | null; imagemUrl?: string | null; fonte?: FonteCatalogo }
   | { achou: false };
 
-/**
- * Base local que simula o catálogo nacional (modo demo, sem API): EAN -> nome sugerido.
- * Os códigos 789000000xxxx são os do cadastro de demonstração.
- */
-const BASE_LOCAL: Readonly<Record<string, string>> = {
-  '7890000000017': 'Arroz tipo 1 5kg',
-  '7890000000024': 'Feijão carioca 1kg',
-  '7890000000031': 'Leite integral 1L',
-  '7890000000048': 'Café torrado 500g',
-  '7890000000055': 'Biscoito recheado 130g',
-  '7890000000062': 'Refrigerante cola 2L',
-  '7896543210987': 'Achocolatado em pó 400g',
-  '7891000100103': 'Leite condensado 395g',
-  '7891910000197': 'Açúcar refinado 1kg',
-  '7891000053508': 'Creme de leite 200g',
-  '7896004000012': 'Macarrão espaguete 500g',
-  '7894900011517': 'Refrigerante laranja 2L',
-  '7891150024391': 'Sabão em pó 1kg',
-  '7898080640147': 'Água mineral 1,5L',
-};
+import { buscarCatalogoDemo, consultarCatalogoDemo } from './catalogoDemo';
 
 export interface OpcoesConsulta {
   /** Atraso artificial que imita a ida à rede (só no modo demo). */
@@ -51,7 +32,6 @@ export interface ConfigCatalogoApi {
   buscar?: typeof fetch;
 }
 
-const ATRASO_PADRAO_MS = 900;
 /** Passou disso, o cadastro segue sem sugestão: ninguém espera no balcão. */
 export const PRAZO_CONSULTA_MS = 2500;
 const PRAZO_CONFIRMACAO_MS = 8000;
@@ -98,31 +78,13 @@ export class CatalogoEan {
       const guardado = codigo ? this.cache.get(codigo) : undefined;
       return guardado ? resultadoDe(guardado) : { achou: false };
     }
-    const nome = BASE_LOCAL[ean.replace(/\D/g, '')];
-    return nome ? { achou: true, nome } : { achou: false };
+    return buscarCatalogoDemo(ean);
   }
 
   /** Rejeita com `AbortError` só quando o `sinal` de quem chamou cancela; qualquer outra falha vira `{ achou: false }`. */
-  consultar(ean: string, { atrasoMs = ATRASO_PADRAO_MS, sinal }: OpcoesConsulta = {}): Promise<ResultadoCatalogo> {
+  consultar(ean: string, { atrasoMs, sinal }: OpcoesConsulta = {}): Promise<ResultadoCatalogo> {
     if (sinal?.aborted) return Promise.reject(erroDeCancelamento());
-    return this.config ? this.consultarNaApi(this.config, ean, sinal) : this.consultarNoDemo(ean, atrasoMs, sinal);
-  }
-
-  private consultarNoDemo(ean: string, atrasoMs: number, sinal?: AbortSignal): Promise<ResultadoCatalogo> {
-    const inicio = Date.now();
-    return new Promise((resolver, rejeitar) => {
-      const cancelar = () => {
-        clearTimeout(espera);
-        rejeitar(erroDeCancelamento());
-      };
-      const espera = setTimeout(() => {
-        sinal?.removeEventListener('abort', cancelar);
-        const resultado = this.buscarLocal(ean);
-        registrar('leitura', 'consulta de catálogo', { fonte: 'demo', achou: resultado.achou, ms: Date.now() - inicio, ean: ean.replace(/\D/g, '') });
-        resolver(resultado);
-      }, atrasoMs);
-      sinal?.addEventListener('abort', cancelar, { once: true });
-    });
+    return this.config ? this.consultarNaApi(this.config, ean, sinal) : consultarCatalogoDemo(ean, atrasoMs, sinal);
   }
 
   private async consultarNaApi(config: ConfigCatalogoApi, ean: string, sinal?: AbortSignal): Promise<ResultadoCatalogo> {

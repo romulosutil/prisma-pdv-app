@@ -40,6 +40,7 @@ async function criar() {
   let logout: () => Promise<Response> = async () => vazio(204);
   let protegido: () => Promise<Response> = async () => vazio(404);
   const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
+    if (url.endsWith('/caixas/reservar')) { const req = JSON.parse(String(init.body)); return json({ id: req.id, ...identidade, versaoContrato: 2, aparelhoAtualId: identidade.aparelhoId, abertura: { em: new Date().toISOString(), trocoInicialCentavos: req.trocoInicialCentavos }, fechamento: null, movimentos: [] }); }
     if (url.endsWith('/auth/login')) return respostaLogin(JSON.parse(String(init.body)).aparelhoId);
     if (url.endsWith('/conta')) return respostaPerfil();
     if (url.endsWith('/auth/logout')) return logout();

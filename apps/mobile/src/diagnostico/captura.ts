@@ -5,7 +5,7 @@ import type { Dados } from '@/dados/dados';
 import { ArmazenamentoAsync } from '@/dados/armazenamento';
 import { FERRAMENTAS_TESTE } from '@/util/ferramentasTeste';
 import { criarFonteDeContexto } from './contexto';
-import { definirFonteDeContexto, definirRotaAtual, iniciarRegistro, registrar, salvarAgora } from './registro';
+import { definirFonteDeContexto, definirFonteDePerfil, definirRotaAtual, iniciarRegistro, registrar, salvarAgora } from './registro';
 
 type Argumentos = readonly unknown[];
 
@@ -84,6 +84,10 @@ export function instalarDiagnostico(dados: Dados): void {
   if (!FERRAMENTAS_TESTE || instalado) return;
   instalado = true;
   definirFonteDeContexto(criarFonteDeContexto(dados));
+  definirFonteDePerfil(() => {
+    const i = dados.conta.obter().identidade;
+    return i ? JSON.stringify([i.contaId, i.lojaId, i.operadorId]) : null;
+  });
   capturarConsole();
   capturarErrosNaoTratados();
   capturarEstadoDoApp();

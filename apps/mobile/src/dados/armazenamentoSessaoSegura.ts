@@ -23,7 +23,23 @@ const erro = () => new Error('Não foi possível acessar o armazenamento seguro 
 
 export class ArmazenamentoSessaoSegura implements Armazenamento {
   private fila: Promise<unknown> = Promise.resolve();
+  private perfis = new Map<string, ArmazenamentoSessaoSegura>();
   constructor(private base: Armazenamento, private cofre: CofreSessao, private novoId: () => string) {}
+
+  private perfil(chave: string): ArmazenamentoSessaoSegura | null {
+    if (!chave.startsWith('perfil-conta:')) return null;
+    uuid.parse(chave.slice('perfil-conta:'.length));
+    let perfil = this.perfis.get(chave);
+    if (!perfil) {
+      const endereco = (k: string) => k === 'conta' ? chave : `${chave}:${k}`;
+      perfil = new ArmazenamentoSessaoSegura({
+        obter: k => this.base.obter(endereco(k)), gravar: (k, v) => this.base.gravar(endereco(k), v),
+        remover: k => this.base.remover(endereco(k)), limpar: async () => { throw erro(); },
+      }, this.cofre, this.novoId);
+      this.perfis.set(chave, perfil);
+    }
+    return perfil;
+  }
 
   private executar<T>(acao: () => Promise<T>): Promise<T> {
     const resultado = this.fila.then(acao, acao);
@@ -105,6 +121,8 @@ export class ArmazenamentoSessaoSegura implements Armazenamento {
     return this.limparPendentes(meta);
   }
   async obter<T>(chave: string): Promise<T | null> {
+    const perfil = this.perfil(chave);
+    if (perfil) return perfil.obter<T>('conta');
     if (chave !== 'conta') return this.base.obter<T>(chave);
     return this.executar(async () => {
       const meta = await this.lerMeta();
@@ -123,6 +141,16 @@ export class ArmazenamentoSessaoSegura implements Armazenamento {
     });
   }
   async gravar<T>(chave: string, valor: T): Promise<void> {
+    const perfil = this.perfil(chave);
+    if (perfil) {
+      await this.executar(async () => {
+        const ids = z.array(uuid).parse(await this.base.obter('cofre_perfis') ?? []);
+        const id = chave.slice('perfil-conta:'.length);
+        if (!ids.includes(id)) await this.base.gravar('cofre_perfis', [...ids, id]);
+        await perfil.gravar('conta', valor);
+      });
+      return;
+    }
     if (chave !== 'conta') return this.base.gravar(chave, valor);
     return this.executar(async () => {
       let estado: EstadoConta;
@@ -142,6 +170,8 @@ export class ArmazenamentoSessaoSegura implements Armazenamento {
     });
   }
   async remover(chave: string): Promise<void> {
+    const perfil = this.perfil(chave);
+    if (perfil) return perfil.remover('conta');
     if (chave !== 'conta') return this.base.remover(chave);
     return this.executar(async () => {
       const meta = await this.lerMeta();
@@ -157,6 +187,17 @@ export class ArmazenamentoSessaoSegura implements Armazenamento {
   }
   async limpar(): Promise<void> {
     return this.executar(async () => {
+      const perfis = z.array(uuid).parse(await this.base.obter('cofre_perfis') ?? []);
+      const credenciaisPerfis: string[] = [];
+      for (const id of perfis) {
+        const chave = `perfil-conta:${id}`;
+        const bruto = await this.base.obter(chave);
+        if (bruto !== null) {
+          const meta = Metadata.parse(bruto);
+          credenciaisPerfis.push(...meta.referenciasParaExcluir, ...(meta.referenciaCredencial ? [meta.referenciaCredencial] : []));
+        }
+        credenciaisPerfis.push(...Journal.parse(await this.base.obter(`${chave}:${CHAVE_JOURNAL}`) ?? []));
+      }
       let bruto: unknown;
       try { bruto = await this.base.obter<unknown>('conta'); } catch { throw erro(); }
       const journal = await this.lerJournal();
@@ -167,7 +208,7 @@ export class ArmazenamentoSessaoSegura implements Armazenamento {
         else if (typeof bruto === 'object' && bruto !== null && 'versao' in bruto) throw erro();
         else { try { normalizarEstadoConta(bruto); } catch { throw erro(); } }
       }
-      const ids = [...new Set([...journal, ...(meta?.referenciasParaExcluir ?? []), ...(meta?.referenciaCredencial ? [meta.referenciaCredencial] : [])])];
+      const ids = [...new Set([...credenciaisPerfis, ...journal, ...(meta?.referenciasParaExcluir ?? []), ...(meta?.referenciaCredencial ? [meta.referenciaCredencial] : [])])];
       try { await this.base.limpar(); } catch { throw erro(); }
       const restantes: string[] = [];
       for (const id of ids) { try { await this.cofre.remover(chaveCofre(id)); } catch { restantes.push(id); } }

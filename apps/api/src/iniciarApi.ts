@@ -14,6 +14,7 @@ import { agendarCobranca } from './jobs';
 import { agendarEntregasCodigo } from './jobsEmail';
 import { RelogioDeDesenvolvimento } from './relogio-dev';
 import { criarApp } from './servidor';
+import { agendarRetencaoSuporte, limparSuporteConcluido } from './servicos/retencaoSuporte';
 
 export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () => Promise<void> }> {
   const configuracao = validarConfiguracao(process.env);
@@ -26,12 +27,14 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
   let app: FastifyInstance | undefined;
   let pararCobranca: (() => void) | undefined;
   let pararEmail: (() => Promise<void>) | undefined;
+  let pararSuporte: (() => Promise<void>) | undefined;
   let parada: Promise<void> | undefined;
   const parar = (): Promise<void> => {
     if (parada) return parada;
     parada = (async () => {
       let falhou = false;
       try { pararCobranca?.(); } catch { falhou = true; }
+      try { await pararSuporte?.(); } catch { falhou = true; }
       try { await pararEmail?.(); } catch { falhou = true; }
       try { await app?.close(); } catch { falhou = true; }
       try { await conexao?.fechar(); } catch { falhou = true; }
@@ -44,6 +47,7 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
       : await abrirPglite(fileURLToPath(new URL('../.data/pglite', import.meta.url)));
     await encerrarEntregasExpiradas(conexao.db, relogio);
     await validarPendenciasEntrega(conexao.db, emissao, relogio);
+    await limparSuporteConcluido(conexao.db, relogio);
     const canal = entrega.modo === 'smtp' ? criarCanalSmtp(entrega.smtp) : undefined;
     const cobrancaDesativada = configuracao.billingProvider === 'disabled';
     const billing = cobrancaDesativada ? criarBillingDesativado() : criarBilling(configuracao.billingProvider);
@@ -52,6 +56,7 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
     if (process.env.JOBS !== 'off') {
       const db = conexao.db;
       const registrar = (mensagem: string) => app!.log.info(mensagem);
+      pararSuporte = agendarRetencaoSuporte(() => limparSuporteConcluido(db, relogio), registrar);
       if (!cobrancaDesativada) pararCobranca = agendarCobranca(db, billing, relogio, registrar);
       if (entrega.modo === 'smtp' && emissao.modo === 'email' && canal) {
         pararEmail = agendarEntregasCodigo(() => processarEntregasCodigo(db, { chaves: entrega.chaves, canal, dominioRemetente: emissao.dominioRemetente, relogio }), registrar);

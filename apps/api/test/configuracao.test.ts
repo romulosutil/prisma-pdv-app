@@ -9,7 +9,6 @@ describe('configuração da API', () => {
     [{ NODE_ENV: 'production', PORT: '3333' }, 'DATABASE_URL é obrigatória'],
     [{ ...producao, DATABASE_URL: 'https://usuario:segredo@localhost/banco' }, 'DATABASE_URL deve ser'],
     [{ ...producao, DATABASE_URL: 'invalida-segredo' }, 'DATABASE_URL deve ser'],
-    [{ ...producao }, 'Nenhum provedor'],
     [{ ...producao, BILLING_PROVIDER: 'mock', JOBS: 'off' }, 'Nenhum provedor'],
     [{ ...producao, BILLING_PROVIDER: 'provedor-segredo' }, 'BILLING_PROVIDER não é suportado'],
     [{ ...producao, PORT: '' }, 'PORT deve ser'],
@@ -31,7 +30,7 @@ describe('configuração da API', () => {
   });
 
   it.each(['development', 'test'])('mantém defaults e aceita PostgreSQL em %s', (ambiente) => {
-    expect(validarConfiguracao({ NODE_ENV: ambiente })).toEqual({ ambiente, porta: 3333, databaseUrl: undefined, billingProvider: 'mock' });
+    expect(validarConfiguracao({ NODE_ENV: ambiente })).toEqual({ ambiente, porta: 3333, databaseUrl: undefined, billingProvider: 'disabled' });
     expect(validarConfiguracao({ NODE_ENV: ambiente, PORT: '8080', BILLING_PROVIDER: 'mock', DATABASE_URL: 'postgres://localhost/banco' }))
       .toEqual({ ambiente, porta: 8080, databaseUrl: 'postgres://localhost/banco', billingProvider: 'mock' });
   });
@@ -41,7 +40,15 @@ describe('configuração da API', () => {
   });
 
   it('sanitiza nomes desconhecidos também na fábrica de billing', () => {
-    expect(() => criarBilling('provedor-segredo')).toThrow('BILLING_PROVIDER não é suportado. Valores aceitos: mock.');
+    expect(() => criarBilling('provedor-segredo')).toThrow('BILLING_PROVIDER não é suportado. Valores aceitos: disabled, mock.');
     try { criarBilling('provedor-segredo'); } catch (erro) { expect((erro as Error).message).not.toContain('segredo'); }
+  });
+
+  it('produção sem seleção de gateway não simula verificação, cobrança ou estorno', async () => {
+    expect(validarConfiguracao(producao).billingProvider).toBe('disabled');
+    const billing = criarBilling();
+    await expect(billing.verificarCartao('qualquer-token')).rejects.toMatchObject({ codigo: 'cobranca_desativada' });
+    await expect(billing.cobrar({ clienteRef: 'cliente', valorCentavos: 100, descricao: 'Teste', chaveIdempotencia: 'pedido' })).rejects.toMatchObject({ codigo: 'cobranca_desativada' });
+    await expect(billing.estornar('transacao')).rejects.toMatchObject({ codigo: 'cobranca_desativada' });
   });
 });

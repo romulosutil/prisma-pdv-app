@@ -1,7 +1,7 @@
 import { useNavigation, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
-import type { RecuperacaoAparelho } from '@pdv/shared';
+import type { RecuperacaoAparelho, Vinculo } from '@pdv/shared';
 import { Banner } from '@/componentes/Banner';
 import { Botao } from '@/componentes/Botao';
 import { BotaoIcone } from '@/componentes/BotaoIcone';
@@ -33,6 +33,8 @@ export default function Entrar() {
   const [selecionado, setSelecionado] = useState<string | null>(null);
   const [fixado, setFixado] = useState(false);
   const [folha, setFolha] = useState(false);
+  const [vinculos, setVinculos] = useState<Vinculo[] | null>(null);
+  const [vinculoId, setVinculoId] = useState<string | null>(null);
   const trava = useRef(false);
   const confirmando = useRef(false);
   const geracao = useRef(0);
@@ -80,6 +82,7 @@ export default function Entrar() {
     dados.cancelarRecuperacao();
     setOcupado(false); setVisao(null); setSelecionado(null); setFixado(false); setFolha(false);
     setOferta(false); setCodigo(''); setCodigoEnviado(false); setErro(null);
+    setVinculos(null); setVinculoId(null);
   };
   const executar = async (acao: () => Promise<void>, aoErro?: (e: unknown) => void) => {
     if (trava.current || carregandoConta) return;
@@ -103,7 +106,23 @@ export default function Entrar() {
     if (trava.current || carregandoConta) return;
     if (!/^\d{6}$/.test(codigo)) { setErro('O código tem 6 números.'); return; }
     setOferta(false);
-    void executar(() => dados.entrar(email.trim().toLowerCase(), codigo), e => {
+    const atual = geracao.current + 1; const origem = contextoRef.current;
+    void executar(async () => {
+      const endereco = email.trim().toLowerCase();
+      if (dados.backend.consultarVinculos && vinculos === null) {
+        const lista = await dados.consultarVinculos(endereco, codigo);
+        if (!montado.current || geracao.current !== atual || contextoRef.current !== origem) return;
+        if (lista.length === 1 && lista[0]!.estado === 'ativo') { await dados.entrar(endereco, codigo, lista[0]); return; }
+        setVinculos(lista); setVinculoId(lista.length === 1 ? lista[0]!.operadorId : null);
+        if (!lista.length) setErro('Nenhuma loja disponível para este acesso. Peça ao dono um novo convite.');
+        return;
+      }
+      if (vinculos !== null) {
+        const escolhido = vinculos.find(v => v.operadorId === vinculoId);
+        if (!escolhido) { setErro('Escolha a empresa e a loja para continuar.'); return; }
+        await dados.entrar(endereco, codigo, escolhido);
+      } else await dados.entrar(endereco, codigo);
+    }, e => {
       if (dados.backend.modo !== 'demo' && e instanceof ErroBackend && e.codigo === 'limite_aparelhos' && e.status === 409) setOferta(true);
     });
   };
@@ -140,11 +159,12 @@ export default function Entrar() {
   const alvo = visaoAtual?.aparelhos.find(a => a.id === selecionado);
 
   return (
-    <TelaBase rolavel rodape={visaoAtual ? <Botao rotulo={fixado ? 'Tentar novamente' : 'Continuar'} onPress={() => { if (!carregandoConta) setFolha(true); }} desabilitado={!selecionado || ocupado || carregandoConta} /> : <Botao rotulo={codigoEnviado ? 'Entrar' : 'Enviar código'} onPress={codigoEnviado ? entrar : enviarCodigo} carregando={ocupado || carregandoConta} />}>
+    <TelaBase rolavel rodape={visaoAtual ? <Botao rotulo={fixado ? 'Tentar novamente' : 'Continuar'} onPress={() => { if (!carregandoConta) setFolha(true); }} desabilitado={!selecionado || ocupado || carregandoConta} /> : <Botao rotulo={vinculos ? vinculos.find(v => v.operadorId === vinculoId)?.estado === 'convidado' ? 'Aceitar convite e entrar' : 'Entrar na loja' : codigoEnviado ? 'Entrar' : 'Enviar código'} desabilitado={vinculos !== null && !vinculoId} onPress={codigoEnviado ? entrar : enviarCodigo} carregando={ocupado || carregandoConta} />}>
       <View style={estilos.topo}><BotaoIcone icone="voltar" rotulo="Voltar" onPress={() => { if (confirmando.current || carregandoConta) return; if (visao || oferta) cancelar(); else router.back(); }} /></View>
       <View style={estilos.corpo}>
         <Texto estilo="tituloXL" accessibilityRole="header">{visaoAtual ? 'Substituir aparelho' : reautenticacaoNecessaria ? 'Entre novamente' : 'Entrar na sua conta'}</Texto>
         {reautenticacaoNecessaria ? <Banner tipo="atencao" texto="Seu acesso precisa ser confirmado. Os registros e recebimentos deste aparelho continuam guardados." /> : null}
+        {identidade ? <Botao rotulo="Usuários e pendências neste aparelho" variante="terciario" onPress={() => router.push('/ajustes/usuarios')} desabilitado={ocupado || carregandoConta} /> : null}
         {!carrinho.vazio ? <Botao rotulo="Continuar venda em andamento" variante="secundario" desabilitado={ocupado || carregandoConta} onPress={() => { if (!carregandoConta && !trava.current) router.replace('/pagar'); }} /> : null}
         {visaoAtual ? <>
           <Texto estilo="corpo">{visaoAtual.perfil.nomeLoja} · {visaoAtual.perfil.email}</Texto>
@@ -156,6 +176,13 @@ export default function Entrar() {
           <Campo rotulo="E-mail" value={email} onChangeText={t => { if (carregandoConta || trava.current) return; cancelar(); setEmail(t); }} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress" editable={!codigoEnviado && !ocupado && !carregandoConta} returnKeyType="done" onSubmitEditing={enviarCodigo} />
           {codigoEnviado ? <><Campo rotulo="Código" value={codigo} onChangeText={t => { if (carregandoConta || trava.current) return; setOferta(false); setCodigo(t.replace(/\D/g, '').slice(0, 6)); }} keyboardType="number-pad" maxLength={6} autoComplete="one-time-code" textContentType="oneTimeCode" editable={!ocupado && !carregandoConta} ajuda={dados.backend.modo === 'demo' ? 'Modo de testes: qualquer código de 6 números funciona.' : undefined} returnKeyType="done" onSubmitEditing={entrar} /><Botao rotulo="Alterar e-mail ou pedir novo código" variante="ghost" desabilitado={ocupado || carregandoConta} onPress={cancelar} /></> : null}
           {oferta ? <Botao rotulo="Recuperar acesso neste aparelho" variante="secundario" onPress={iniciar} carregando={ocupado || carregandoConta} /> : null}
+          {vinculos ? <>
+            <Texto estilo="tituloL">Escolha onde trabalhar</Texto>
+            {vinculos.map(v => <Pressable key={v.operadorId} accessibilityRole="radio" accessibilityLabel={`${v.nomeLoja}, ${v.papel}${v.estado === 'convidado' ? ', convite pendente' : ''}`} accessibilityState={{ checked: vinculoId === v.operadorId, disabled: ocupado || carregandoConta }} disabled={ocupado || carregandoConta} onPress={() => setVinculoId(v.operadorId)} style={estilos.opcao}>
+              <Texto estilo="corpo">{vinculoId === v.operadorId ? '● ' : '○ '}{v.nomeLoja} · {v.papel}</Texto>
+              <Texto estilo="legenda">{v.estado === 'convidado' ? 'Convite pendente: ao continuar, você aceita participar desta loja.' : 'Acesso autorizado'}</Texto>
+            </Pressable>)}
+          </> : null}
         </>}
         {erro ? <Banner tipo="erro" texto={erro} /> : null}
       </View>

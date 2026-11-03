@@ -205,14 +205,14 @@ function LinhaDaVenda({ venda, numero, divisor, onPress }: { venda: Venda; numer
     <LinhaLista
       titulo={`${numero} · ${pagamentos}`}
       subtitulo={`${hora} · ${textoDeItens(venda.itens.length)}`}
-      rotuloAcessivel={`Venda ${numero.slice(1)}, ${pagamentos}, ${hora}, ${falarDinheiro(venda.totalCentavos)}, ${paga ? 'paga' : 'cancelada'}. Toque para ver os detalhes`}
+      rotuloAcessivel={`Venda ${numero.slice(1)}, ${pagamentos}, ${hora}, ${falarDinheiro(venda.totalCentavos)}, ${paga ? venda.fiado ? 'com fiado' : 'paga' : 'cancelada'}. Toque para ver os detalhes`}
       miniatura={<Icone nome={iconeDoMeio(venda.pagamentos[0]?.meio ?? 'dinheiro')} tamanho={22} />}
       divisor={divisor}
       onPress={onPress}
       valor={
         <View style={estilos.valorVenda}>
           <Dinheiro centavos={venda.totalCentavos} estilo="corpoMedio" accessible={false} cor={paga ? cores.ink : cores.ink2} style={paga ? undefined : estilos.riscado} />
-          <StatusPill tipo={paga ? 'pago' : 'cancelado'} />
+          <StatusPill tipo={paga ? venda.fiado ? 'pendente' : 'pago' : 'cancelado'} texto={paga && venda.fiado ? 'Com fiado' : undefined} />
         </View>
       }
     />

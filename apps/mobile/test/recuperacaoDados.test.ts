@@ -213,10 +213,10 @@ describe('Dados recuperação AC10 e AC11', () => {
     });
     const confirmar = dados.confirmarRecuperacao(id(6)); await entrou.promessa;
     expect(dados.conta.transicao.obter()).toBe(true);
-    dados.cancelarRecuperacao(); const login = dados.entrar(perfil.email, '123456');
+    dados.cancelarRecuperacao(); await expect(dados.entrar(perfil.email, '123456')).rejects.toMatchObject({ codigo: 'conflito' });
     expect(loginBackend).not.toHaveBeenCalled(); expect(dados.conta.obter().sessao).toBeNull();
     liberar.resolver(); await confirmar;
-    await login;
+    await dados.entrar(perfil.email, '123456');
     expect(ordem).toEqual(['aplicação iniciada', 'recuperação gravada', 'login remoto']);
     expect(dados.conta.obter().sessao?.token).toBe('token-novo');
     expect(dados.conta.transicao.obter()).toBe(false);
@@ -228,6 +228,8 @@ describe('Dados recuperação AC10 e AC11', () => {
     await dados.conta.registrar(local, { email: 'outra@exemplo.com', nomeResponsavel: 'Outra', nomeLoja: 'Outra', aparelhoNome: 'Novo' });
     await dados.iniciar();
     await dados.iniciarRecuperacao(perfil.email, '123456');
+    // Fixture: representa autorização anterior do perfil local, sem autenticar a outra conta.
+    await dados.acessoOffline.confirmar(local);
     await dados.carrinho.adicionarAvulso(2500, 'Pendente');
     await expect(dados.confirmarRecuperacao(id(6))).rejects.toMatchObject({ codigo: 'conflito' });
     expect(iniciar).toHaveBeenCalledTimes(1); expect(confirmar).not.toHaveBeenCalled();
@@ -237,7 +239,7 @@ describe('Dados recuperação AC10 e AC11', () => {
     const { dados, iniciar } = montar();
     const local = { ...sessao, contaId: id(20), lojaId: id(21), operadorId: id(22), aparelhoId: id(23) };
     await dados.conta.registrar(local, { email: 'outra@exemplo.com', nomeResponsavel: 'Outra', nomeLoja: 'Outra', aparelhoNome: 'Novo' });
-    await dados.iniciar(); await dados.carrinho.adicionarAvulso(2500, 'Pendente');
+    await dados.iniciar(); await dados.acessoOffline.confirmar(local); await dados.carrinho.adicionarAvulso(2500, 'Pendente');
     await expect(dados.iniciarRecuperacao(perfil.email, '123456')).rejects.toMatchObject({ codigo: 'conflito' });
     expect(iniciar).not.toHaveBeenCalled();
   });

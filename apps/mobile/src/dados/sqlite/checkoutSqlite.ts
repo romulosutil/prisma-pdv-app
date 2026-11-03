@@ -5,7 +5,7 @@ import type { PersistenciaCheckout, RegistroCheckout } from '../checkoutTipos';
 import type { EstadoVendas } from '../vendas';
 import type { ArmazenamentoSqlite } from './armazenamentoSqlite';
 import type { SqlExecutor } from './driver';
-import { lerFinanceiro, type ParticaoLocal } from './financeiro';
+import { lerFinanceiro, lojaLocal, type ParticaoLocal } from './financeiro';
 
 const inteiro = z.number().int().safe();
 const itemSchema = z.object({
@@ -36,7 +36,7 @@ function validar(valor: unknown): RegistroCheckout {
 }
 
 async function ler(tx: SqlExecutor, p: ParticaoLocal): Promise<RegistroCheckout | null> {
-  const linhas = await tx.getAllAsync<{ venda_id: string; payload_json: string }>('SELECT venda_id, payload_json FROM rascunhos WHERE conta_id = ? AND loja_id = ?', p.contaId, p.lojaId);
+  const linhas = await tx.getAllAsync<{ venda_id: string; payload_json: string }>('SELECT venda_id, payload_json FROM rascunhos WHERE conta_id = ? AND loja_id = ?', p.contaId, lojaLocal(p));
   if (linhas.length > 1) throw new Error('Mais de um checkout local. Preserve os dados para recuperação.');
   const linha = linhas[0];
   if (!linha) return null;
@@ -93,9 +93,9 @@ export class CheckoutSqlite implements PersistenciaCheckout {
       }
       if (novo?.estado.parcelas.slice(anterior?.estado.parcelas.length ?? 0).some((p) => !pagamentoManualDisponivel(p))) throw new Error('Pagamento integrado indisponível nesta fase.');
       if (!novo) {
-        await tx.runAsync('DELETE FROM rascunhos WHERE conta_id = ? AND loja_id = ?', p.contaId, p.lojaId);
+        await tx.runAsync('DELETE FROM rascunhos WHERE conta_id = ? AND loja_id = ?', p.contaId, lojaLocal(p));
       } else {
-        await tx.runAsync('INSERT INTO rascunhos VALUES (?, ?, ?, ?) ON CONFLICT(conta_id, loja_id, venda_id) DO UPDATE SET payload_json = excluded.payload_json', p.contaId, p.lojaId, novo.vendaId, JSON.stringify(novo));
+        await tx.runAsync('INSERT INTO rascunhos VALUES (?, ?, ?, ?) ON CONFLICT(conta_id, loja_id, venda_id) DO UPDATE SET payload_json = excluded.payload_json', p.contaId, lojaLocal(p), novo.vendaId, JSON.stringify(novo));
       }
     });
   }
@@ -129,12 +129,12 @@ export class CheckoutSqlite implements PersistenciaCheckout {
         itens: itens.map((i) => ({ id: this.novoId(), produtoId: i.produtoId, descricao: i.descricao, precoUnitarioCentavos: i.precoUnitarioCentavos, quantidadeMilesimos: i.quantidadeMilesimos, totalCentavos: multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos) })),
         pagamentos: parcelas.map((parcela) => ({ id: this.novoId(), meio: parcela.meio, provedor: parcela.provedor ?? null, valorCentavos: parcela.valorCentavos, trocoCentavos: parcela.trocoCentavos ?? 0 })), totalCentavos, status: 'concluida', criadaEm: registro.criadaEm, caixaId: registro.caixaId });
       const mutacao = MutacaoSchema.parse({ id: this.novoId(), criadaEm: registro.criadaEm, entidade: 'venda', operacao: 'upsert', dados: venda });
-      await tx.runAsync('INSERT INTO vendas VALUES (?, ?, ?, ?, ?)', p.contaId, p.lojaId, venda.id, registro.caixaId, JSON.stringify(venda));
+      await tx.runAsync('INSERT INTO vendas VALUES (?, ?, ?, ?, ?)', p.contaId, lojaLocal(p), venda.id, registro.caixaId, JSON.stringify(venda));
       for (const [tabela, filhos] of [['itens_venda', venda.itens], ['pagamentos_venda', venda.pagamentos]] as const) {
-        for (const [posicao, filho] of filhos.entries()) await tx.runAsync(`INSERT INTO ${tabela} VALUES (?, ?, ?, ?, ?, ?)`, p.contaId, p.lojaId, venda.id, filho.id, posicao, JSON.stringify(filho));
+        for (const [posicao, filho] of filhos.entries()) await tx.runAsync(`INSERT INTO ${tabela} VALUES (?, ?, ?, ?, ?, ?)`, p.contaId, lojaLocal(p), venda.id, filho.id, posicao, JSON.stringify(filho));
       }
-      await tx.runAsync('INSERT INTO outbox (conta_id, loja_id, id, payload_json) VALUES (?, ?, ?, ?)', p.contaId, p.lojaId, mutacao.id, JSON.stringify(mutacao));
-      await tx.runAsync('UPDATE rascunhos SET payload_json = ? WHERE conta_id = ? AND loja_id = ? AND venda_id = ?', JSON.stringify({ ...registro, estado: { ...registro.estado, concluidaId: venda.id } }), p.contaId, p.lojaId, venda.id);
+      await tx.runAsync('INSERT INTO outbox (conta_id, loja_id, id, payload_json) VALUES (?, ?, ?, ?)', p.contaId, lojaLocal(p), mutacao.id, JSON.stringify(mutacao));
+      await tx.runAsync('UPDATE rascunhos SET payload_json = ? WHERE conta_id = ? AND loja_id = ? AND venda_id = ?', JSON.stringify({ ...registro, estado: { ...registro.estado, concluidaId: venda.id } }), p.contaId, lojaLocal(p), venda.id);
       resultado = venda;
     });
     if (!resultado) throw new Error('Venda não concluída.');

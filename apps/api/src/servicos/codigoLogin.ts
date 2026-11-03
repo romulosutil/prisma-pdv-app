@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { Relogio } from '@pdv/shared';
 import type { Db } from '../db/conexao';
-import { codigosLogin, contas } from '../db/schema';
+import { codigosLogin, contas, usuarios } from '../db/schema';
 import { sha256 } from '../auth';
 import { ErroApi } from '../erros';
 import { limitarAuth } from './limitesAuth';
@@ -17,11 +17,11 @@ export async function consumirCodigoLogin(tx: Db, id: string, agora: Date): Prom
 }
 
 /** Verifica o código sob a trava da conta; o chamador o consome apenas após suas verificações. */
-export async function verificarCodigo(tx: Db, email: string, codigo: string, relogio: Relogio) {
+export async function verificarCodigoUsuario(tx: Db, email: string, codigo: string, relogio: Relogio) {
   const invalido = new ErroApi(401, 'codigo_invalido', 'Código inválido ou expirado.');
   if (!await limitarAuth(tx, 'falha_email', email, relogio, false)) return invalido;
-  const [conta] = await tx.select().from(contas).where(eq(contas.email, email)).for('update');
-  if (!conta) { await limitarAuth(tx, 'falha_email', email, relogio); return invalido; }
+  const [usuario] = await tx.select().from(usuarios).where(eq(usuarios.email, email)).for('update');
+  if (!usuario) { await limitarAuth(tx, 'falha_email', email, relogio); return invalido; }
   const agora = relogio.agora();
   const [pendente] = await tx.select().from(codigosLogin)
     .where(and(eq(codigosLogin.email, email), isNull(codigosLogin.usadoEm)))
@@ -34,5 +34,16 @@ export async function verificarCodigo(tx: Db, email: string, codigo: string, rel
     if (pendente.tentativas + 1 >= 5) await cancelarEntregaDoCodigo(tx, pendente.id, agora, 'esgotado');
     await limitarAuth(tx, 'falha_email', email, relogio); return invalido;
   }
-  return { conta, pendente, agora };
+  return { usuario, pendente, agora };
+}
+
+/** Recuperação de aparelhos permanece exclusiva do responsável pela empresa. */
+export async function verificarCodigo(tx: Db, email: string, codigo: string, relogio: Relogio) {
+  const prova = await verificarCodigoUsuario(tx, email, codigo, relogio);
+  if (prova instanceof ErroApi) return prova;
+  const [conta] = await tx.select().from(contas).where(eq(contas.email, email)).for('update');
+  if (!conta) return new ErroApi(403, 'proibido', 'Somente o dono pode substituir aparelhos.');
+  const agora = relogio.agora();
+  if (prova.pendente.expiraEm <= agora) return new ErroApi(401, 'codigo_invalido', 'Código inválido ou expirado.');
+  return { conta, pendente: prova.pendente, agora };
 }

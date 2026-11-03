@@ -4,7 +4,9 @@ import type { EstadoVendas } from '../vendas';
 import { esperadoNaGaveta } from '../caixa';
 import type { SqlExecutor } from './driver';
 
-export interface ParticaoLocal { contaId: string; lojaId: string }
+export interface ParticaoLocal { contaId: string; lojaId: string; perfilId?: string }
+/** Chave opaca de cache no SQLite; o contrato mantém o ID real da loja no payload. */
+export const lojaLocal = (p: ParticaoLocal): string => p.perfilId ? JSON.stringify([p.lojaId, p.perfilId]) : p.lojaId;
 export type ChaveFinanceira = 'produtos' | 'caixas' | 'vendas';
 export const ehFinanceira = (chave: string): chave is ChaveFinanceira => ['produtos', 'caixas', 'vendas'].includes(chave);
 const EstadoVendasSchema = z.object({ vendas: z.array(VendaSchema), numeroBase: z.number().int().nonnegative() });
@@ -22,7 +24,7 @@ export function validarFinanceiro(chave: ChaveFinanceira, valor: unknown, partic
   return dados;
 }
 
-const chaveNumeroBase = (p: ParticaoLocal): string => JSON.stringify(['numeroBase', p.contaId, p.lojaId]);
+const chaveNumeroBase = (p: ParticaoLocal): string => JSON.stringify(['numeroBase', p.contaId, lojaLocal(p)]);
 const canonico = (valor: unknown): unknown => Array.isArray(valor) ? valor.map(canonico) : valor !== null && typeof valor === 'object'
   ? Object.fromEntries(Object.entries(valor).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => [k, canonico(v)])) : valor;
 const iguais = (a: unknown, b: unknown): boolean => JSON.stringify(canonico(a)) === JSON.stringify(canonico(b));
@@ -30,7 +32,7 @@ const iguais = (a: unknown, b: unknown): boolean => JSON.stringify(canonico(a)) 
 export async function lerFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira, p: ParticaoLocal): Promise<unknown> {
   const tabela = chave; // enum fechado, nunca entrada SQL livre
   const linhas = await tx.getAllAsync<{ id: string; payload_json: string; caixa_id?: string | null }>(
-    `SELECT id, payload_json${chave === 'vendas' ? ', caixa_id' : ''} FROM ${tabela} WHERE conta_id = ? AND loja_id = ? ORDER BY rowid`, p.contaId, p.lojaId,
+    `SELECT id, payload_json${chave === 'vendas' ? ', caixa_id' : ''} FROM ${tabela} WHERE conta_id = ? AND loja_id = ? ORDER BY rowid`, p.contaId, lojaLocal(p),
   );
   let valor: unknown;
   try { valor = linhas.map((l) => JSON.parse(l.payload_json)); }
@@ -44,8 +46,8 @@ export async function lerFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira, p: 
         venda.caixaId = linha.caixa_id;
         // Recupera somente vínculo já registrado na coluna, sem inferir por data.
         VendaSchema.parse(venda);
-        await tx.runAsync('UPDATE vendas SET payload_json = ? WHERE conta_id = ? AND loja_id = ? AND id = ?', JSON.stringify(venda), p.contaId, p.lojaId, linha.id);
-        const mutacoes = await tx.getAllAsync<{ id: string; payload_json: string }>('SELECT id, payload_json FROM outbox WHERE conta_id = ? AND loja_id = ?', p.contaId, p.lojaId);
+        await tx.runAsync('UPDATE vendas SET payload_json = ? WHERE conta_id = ? AND loja_id = ? AND id = ?', JSON.stringify(venda), p.contaId, lojaLocal(p), linha.id);
+        const mutacoes = await tx.getAllAsync<{ id: string; payload_json: string }>('SELECT id, payload_json FROM outbox WHERE conta_id = ? AND loja_id = ?', p.contaId, lojaLocal(p));
         for (const m of mutacoes) {
           let mutacao: unknown;
           try { mutacao = JSON.parse(m.payload_json); } catch { throw new Error('Outbox inválida. Preserve o banco para recuperação.'); }
@@ -54,7 +56,7 @@ export async function lerFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira, p: 
           if (parsed.data.entidade === 'venda' && parsed.data.operacao === 'upsert' && parsed.data.dados.id === linha.id) {
             const dados = parsed.data.dados;
             if (dados.caixaId !== undefined && dados.caixaId !== linha.caixa_id) throw new Error('Vínculo da outbox divergente. Preserve o banco para recuperação.');
-            await tx.runAsync('UPDATE outbox SET payload_json = ? WHERE conta_id = ? AND loja_id = ? AND id = ?', JSON.stringify({ ...parsed.data, dados: { ...dados, caixaId: linha.caixa_id } }), p.contaId, p.lojaId, m.id);
+            await tx.runAsync('UPDATE outbox SET payload_json = ? WHERE conta_id = ? AND loja_id = ? AND id = ?', JSON.stringify({ ...parsed.data, dados: { ...dados, caixaId: linha.caixa_id } }), p.contaId, lojaLocal(p), m.id);
           }
         }
       }
@@ -70,7 +72,7 @@ export async function lerFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira, p: 
     for (const venda of (validado as EstadoVendas).vendas) {
       for (const [tabelaFilhos, esperados] of [['itens_venda', venda.itens], ['pagamentos_venda', venda.pagamentos]] as const) {
         const filhos = await tx.getAllAsync<{ id: string; posicao: number; payload_json: string }>(
-          `SELECT id, posicao, payload_json FROM ${tabelaFilhos} WHERE conta_id = ? AND loja_id = ? AND venda_id = ? ORDER BY posicao`, p.contaId, p.lojaId, venda.id,
+          `SELECT id, posicao, payload_json FROM ${tabelaFilhos} WHERE conta_id = ? AND loja_id = ? AND venda_id = ? ORDER BY posicao`, p.contaId, lojaLocal(p), venda.id,
         );
         let conferem = filhos.length === esperados.length;
         try {
@@ -103,7 +105,7 @@ export async function escreverFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira
         if (!iguais({ ...caixa, fechamento: null }, anterior)) throw new Error('Dados do caixa mudaram. Atualize antes de fechar.');
         if (caixa.fechamento!.esperadoCentavos !== esperadoNaGaveta(caixa, vendas)) throw new Error('Vendas do caixa mudaram. Atualize os dados antes de fechar.');
       }
-      const rascunhos = await tx.getAllAsync<{ payload_json: string }>('SELECT payload_json FROM rascunhos WHERE conta_id = ? AND loja_id = ?', p.contaId, p.lojaId);
+      const rascunhos = await tx.getAllAsync<{ payload_json: string }>('SELECT payload_json FROM rascunhos WHERE conta_id = ? AND loja_id = ?', p.contaId, lojaLocal(p));
       for (const linha of rascunhos) {
         let r: { caixaId?: unknown; estado?: { concluidaId?: unknown; itens?: unknown[]; parcelas?: unknown[] } };
         try { r = JSON.parse(linha.payload_json); } catch { throw new Error('Checkout inválido. Preserve o banco para recuperação.'); }
@@ -113,35 +115,36 @@ export async function escreverFinanceiro(tx: SqlExecutor, chave: ChaveFinanceira
     }
   }
   if (chave === 'vendas') {
-    await tx.runAsync('DELETE FROM vendas WHERE conta_id = ? AND loja_id = ?', p.contaId, p.lojaId);
+    await tx.runAsync('DELETE FROM vendas WHERE conta_id = ? AND loja_id = ?', p.contaId, lojaLocal(p));
   }
   for (const entidade of entidades) {
     if (chave === 'vendas') {
       const venda = entidade as Venda;
       const anterior = anteriores.find((v) => v.id === venda.id);
       if (!remoto && anterior && (anterior.caixaId ?? null) !== (venda.caixaId ?? null)) throw new Error('Vínculo da venda não pode ser alterado.');
+      if (!remoto && anterior && !iguais(anterior.fiado ?? null, venda.fiado ?? null)) throw new Error('Crédito da venda é imutável.');
       if (!remoto && anterior?.cancelamento && !iguais(anterior.cancelamento, venda.cancelamento)) throw new Error('Cancelamento da venda é imutável.');
       const caixaId = venda.caixaId ?? null;
-      await tx.runAsync('INSERT INTO vendas VALUES (?, ?, ?, ?, ?)', p.contaId, p.lojaId, venda.id, caixaId, JSON.stringify(venda));
+      await tx.runAsync('INSERT INTO vendas VALUES (?, ?, ?, ?, ?)', p.contaId, lojaLocal(p), venda.id, caixaId, JSON.stringify(venda));
       for (const [tabela, filhos] of [['itens_venda', venda.itens], ['pagamentos_venda', venda.pagamentos]] as const) {
         for (const [posicao, filho] of filhos.entries()) {
-          await tx.runAsync(`INSERT INTO ${tabela} VALUES (?, ?, ?, ?, ?, ?)`, p.contaId, p.lojaId, venda.id, filho.id, posicao, JSON.stringify(filho));
+          await tx.runAsync(`INSERT INTO ${tabela} VALUES (?, ?, ?, ?, ?, ?)`, p.contaId, lojaLocal(p), venda.id, filho.id, posicao, JSON.stringify(filho));
         }
       }
       if (!remoto && venda.cancelamento && !anterior?.cancelamento) {
         const mutacao = MutacaoSchema.parse({ id: venda.cancelamento.id, criadaEm: venda.cancelamento.em, entidade: 'venda', operacao: 'upsert', dados: venda });
-        await tx.runAsync('INSERT INTO outbox (conta_id, loja_id, id, payload_json) VALUES (?, ?, ?, ?)', p.contaId, p.lojaId, mutacao.id, JSON.stringify(mutacao));
+        await tx.runAsync('INSERT INTO outbox (conta_id, loja_id, id, payload_json) VALUES (?, ?, ?, ?)', p.contaId, lojaLocal(p), mutacao.id, JSON.stringify(mutacao));
       }
     } else {
       await tx.runAsync(`INSERT INTO ${chave} VALUES (?, ?, ?, ?) ON CONFLICT(conta_id, loja_id, id) DO UPDATE SET payload_json = excluded.payload_json`,
-        p.contaId, p.lojaId, entidade.id, JSON.stringify(entidade));
+        p.contaId, lojaLocal(p), entidade.id, JSON.stringify(entidade));
     }
   }
   if (chave !== 'vendas') {
-    const existentes = await tx.getAllAsync<{ id: string }>(`SELECT id FROM ${chave} WHERE conta_id = ? AND loja_id = ?`, p.contaId, p.lojaId);
+    const existentes = await tx.getAllAsync<{ id: string }>(`SELECT id FROM ${chave} WHERE conta_id = ? AND loja_id = ?`, p.contaId, lojaLocal(p));
     const manter = new Set(entidades.map((e) => e.id));
     for (const { id } of existentes) {
-      if (!manter.has(id)) await tx.runAsync(`DELETE FROM ${chave} WHERE conta_id = ? AND loja_id = ? AND id = ?`, p.contaId, p.lojaId, id);
+      if (!manter.has(id)) await tx.runAsync(`DELETE FROM ${chave} WHERE conta_id = ? AND loja_id = ? AND id = ?`, p.contaId, lojaLocal(p), id);
     }
   } else {
     await tx.runAsync('INSERT INTO estado_local VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor_json = excluded.valor_json',

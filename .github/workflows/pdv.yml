@@ -43,6 +43,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - name: Operational verification tools
+        run: node --test scripts/test/*.test.mjs
       - name: Shared tests
         run: npm run test -w @pdv/shared -- --maxWorkers=1
       - name: API tests with isolated PostgreSQL

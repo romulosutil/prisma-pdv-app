@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { and, eq, isNull, or } from 'drizzle-orm';
+import { and, asc, eq, isNull, or } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import {
@@ -13,15 +13,17 @@ import {
   licencaDe,
   PerfilResSchema,
   AparelhosResSchema,
+  ConsultarVinculosReqSchema, permissoesEfetivas,
 } from '@pdv/shared';
 import { criarSessao, exigirDono, validarDonoAtual } from '../auth';
-import { aparelhos, codigosLogin, contas, lojas, operadores, sessoes, recuperacoesAparelho } from '../db/schema';
+import { aparelhos, codigosLogin, contas, lojas, operadores, sessoes, recuperacoesAparelho, usuarios } from '../db/schema';
 import type { Deps } from '../deps';
 import { ErroApi } from '../erros';
 import { carregarAssinatura, salvarAssinatura, registrarEvento } from '../servicos/assinatura';
 import { limitarAuth } from '../servicos/limitesAuth';
-import { normalizarEmail, hashDoCodigo, limiteAuth, verificarCodigo, consumirCodigoLogin } from '../servicos/codigoLogin';
-import { cancelarEntregasDaConta, enfileirarCodigo } from '../email/filaCodigo';
+import { normalizarEmail, hashDoCodigo, limiteAuth, verificarCodigoUsuario, consumirCodigoLogin } from '../servicos/codigoLogin';
+import { cancelarEntregaDoCodigo, enfileirarCodigo } from '../email/filaCodigo';
+import { vinculosDoUsuario } from '../servicos/equipe';
 
 const CODIGO_VALIDADE_MS = 10 * 60 * 1000;
 
@@ -35,6 +37,8 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
     const agora = relogio.agora();
 
     const sessao = await db.transaction(async (tx) => {
+      const [usuarioExistente] = await tx.select({ id: usuarios.id }).from(usuarios).where(eq(usuarios.email, email));
+      if (usuarioExistente) throw new ErroApi(409, 'email_ja_cadastrado', 'Este e-mail já tem acesso. Entre com seu código pessoal.');
       const [existente] = await tx
         .select({ email: contas.email, documento: contas.documento })
         .from(contas)
@@ -47,6 +51,8 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
       const contaId = gerarId();
       const lojaId = gerarId();
       const operadorId = gerarId();
+      const usuarioId = gerarId();
+      await tx.insert(usuarios).values({ id: usuarioId, email, nome: req.nomeResponsavel, criadoEm: agora, atualizadoEm: agora });
       await tx.insert(contas).values({
         id: contaId,
         email,
@@ -58,7 +64,7 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
       await tx.insert(lojas).values({ id: lojaId, contaId, nome: req.nomeLoja, criadoEm: agora, atualizadoEm: agora });
       await tx
         .insert(operadores)
-        .values({ id: operadorId, contaId, lojaId, nome: req.nomeResponsavel, papel: 'dono', criadoEm: agora, atualizadoEm: agora });
+        .values({ id: operadorId, usuarioId, contaId, lojaId, nome: req.nomeResponsavel, papel: 'dono', aceitoEm: agora, criadoEm: agora, atualizadoEm: agora });
       await tx
         .insert(aparelhos)
         .values({ id: req.aparelhoId, contaId, lojaId, nome: req.aparelhoNome, criadoEm: agora, ultimoAcessoEm: agora });
@@ -80,13 +86,23 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
     try { codigo = await db.transaction(async (tx) => {
       if (!await limitarAuth(tx, 'emissao_ip', request.ip, relogio)) return limiteAuth();
       if (!await limitarAuth(tx, 'emissao_email', email, relogio)) return limiteAuth();
-      const [conta] = await tx.select({ id: contas.id }).from(contas).where(eq(contas.email, email)).for('update');
+      const [usuario] = await tx.select().from(usuarios).where(eq(usuarios.email, email)).for('update');
+      if (!usuario) return null;
+      let agora = relogio.agora();
+      const vinculos = await vinculosDoUsuario(tx, usuario.id, agora);
+      const primeiro = vinculos[0];
+      if (!primeiro) return null;
+      // Um usuário pode ter vínculo com outra empresa além daquela de que é dono.
+      const vinculadas = await tx.select().from(contas).where(or(eq(contas.id, primeiro.contaId), eq(contas.email, email))).orderBy(asc(contas.id)).for('update');
+      const conta = vinculadas.find(c => c.id === primeiro.contaId);
       if (!conta) return null;
-      const agora = relogio.agora();
+      agora = relogio.agora();
       const codigo = String(randomInt(0, 1_000_000)).padStart(6, '0');
+      const anteriores = await tx.select({ id: codigosLogin.id }).from(codigosLogin).where(and(eq(codigosLogin.email, email), isNull(codigosLogin.usadoEm)));
+      for (const c of anteriores) await cancelarEntregaDoCodigo(tx, c.id, agora, 'substituida');
       await tx.update(codigosLogin).set({ usadoEm: agora }).where(and(eq(codigosLogin.email, email), isNull(codigosLogin.usadoEm)));
-      await tx.update(recuperacoesAparelho).set({ invalidadoEm: agora }).where(and(eq(recuperacoesAparelho.contaId, conta.id), isNull(recuperacoesAparelho.confirmadoEm), isNull(recuperacoesAparelho.invalidadoEm)));
-      await cancelarEntregasDaConta(tx, conta.id, agora);
+      const propria = vinculadas.find(c => c.email === email);
+      if (propria) await tx.update(recuperacoesAparelho).set({ invalidadoEm: agora }).where(and(eq(recuperacoesAparelho.contaId, propria.id), isNull(recuperacoesAparelho.confirmadoEm), isNull(recuperacoesAparelho.invalidadoEm)));
       const codigoId = gerarId();
       const expiraEm = new Date(agora.getTime() + CODIGO_VALIDADE_MS);
       await tx.insert(codigosLogin).values({
@@ -110,28 +126,52 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
     return { codigo };
   });
 
+  app.post('/auth/vinculos', async request => {
+    const req = ConsultarVinculosReqSchema.parse(request.body);
+    const resultado = await db.transaction(async tx => {
+      if (!await limitarAuth(tx, 'login_ip', request.ip, relogio)) return limiteAuth();
+      const prova = await verificarCodigoUsuario(tx, normalizarEmail(req.email), req.codigo, relogio);
+      if (prova instanceof ErroApi) return prova;
+      return vinculosDoUsuario(tx, prova.usuario.id, prova.agora);
+    });
+    if (resultado instanceof ErroApi) throw resultado;
+    return resultado;
+  });
+
   app.post('/auth/login', async (request) => {
     const req = LoginReqSchema.parse(request.body);
     const email = normalizarEmail(req.email);
 
     const sessao = await db.transaction(async (tx) => {
       if (!await limitarAuth(tx, 'login_ip', request.ip, relogio)) return limiteAuth();
-      const prova = await verificarCodigo(tx, email, req.codigo, relogio);
+      const prova = await verificarCodigoUsuario(tx, email, req.codigo, relogio);
       if (prova instanceof ErroApi) return prova;
-      const { conta, pendente, agora } = prova;
-
-      const [dono] = await tx
-        .select()
-        .from(operadores)
-        .where(and(eq(operadores.contaId, conta.id), eq(operadores.papel, 'dono')));
-      if (!dono) throw new Error(`Conta ${conta.id} sem operador dono`);
+      const { usuario, pendente } = prova;
+      let agora = prova.agora;
+      const vinculos = await vinculosDoUsuario(tx, usuario.id, agora);
+      if (!req.operadorId && vinculos.length !== 1) return new ErroApi(409, 'selecionar_vinculo', 'Escolha a empresa e a loja para entrar.');
+      const escolhido = req.operadorId ? vinculos.find(v => v.operadorId === req.operadorId) : vinculos[0];
+      if (!escolhido) return new ErroApi(403, 'proibido', 'Você não tem acesso a este vínculo.');
+      const [conta] = await tx.select().from(contas).where(eq(contas.id, escolhido.contaId)).for('update');
+      if (!conta) return new ErroApi(403, 'proibido', 'Vínculo indisponível.');
+      agora = relogio.agora();
+      if (pendente.expiraEm <= agora) return new ErroApi(401, 'codigo_invalido', 'Código inválido ou expirado.');
+      // A conta serializa alterações de equipe, aceite e sincronização.
+      const [operador] = await tx.select().from(operadores).where(and(eq(operadores.id, escolhido.operadorId), eq(operadores.usuarioId, usuario.id)));
+      if (!operador || !['ativo', 'convidado'].includes(operador.estado)) return new ErroApi(403, 'proibido', 'Vínculo indisponível.');
+      if (operador.estado === 'convidado') {
+        if (!req.aceitarConvite || !operador.conviteExpiraEm || operador.conviteExpiraEm <= agora) return new ErroApi(409, 'aceitar_convite', 'Confirme o aceite do convite para esta loja.');
+        const { assinatura } = await carregarAssinatura(tx, conta.id, agora);
+        const total = await tx.$count(operadores, and(eq(operadores.contaId, conta.id), eq(operadores.estado, 'ativo')));
+        if (!dentroDoLimite(licencaDe(assinatura, agora).planoId, 'operadores', total)) return new ErroApi(409, 'limite_operadores', 'O plano atual não permite ativar mais usuários.');
+      }
 
       const [aparelho] = await tx.select().from(aparelhos).where(eq(aparelhos.id, req.aparelhoId));
       if (aparelho && aparelho.contaId !== conta.id) {
         return new ErroApi(409, 'aparelho_em_uso', 'Este aparelho já pertence a outra conta.');
       }
       if (aparelho?.revogadoEm) return new ErroApi(409, 'aparelho_revogado', 'Este aparelho foi revogado.');
-      if (aparelho && aparelho.lojaId !== dono.lojaId) return new ErroApi(409, 'aparelho_em_uso', 'Este aparelho pertence a outra loja.');
+      if (aparelho && aparelho.lojaId !== operador.lojaId) return new ErroApi(409, 'aparelho_em_uso', 'Este aparelho pertence a outra loja.');
       if (aparelho) {
         await tx.update(aparelhos).set({ nome: req.aparelhoNome, ultimoAcessoEm: agora }).where(eq(aparelhos.id, aparelho.id));
       } else {
@@ -143,11 +183,12 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
         }
         await tx
           .insert(aparelhos)
-          .values({ id: req.aparelhoId, contaId: conta.id, lojaId: dono.lojaId, nome: req.aparelhoNome, criadoEm: agora, ultimoAcessoEm: agora });
+          .values({ id: req.aparelhoId, contaId: conta.id, lojaId: operador.lojaId, nome: req.aparelhoNome, criadoEm: agora, ultimoAcessoEm: agora });
       }
 
       await consumirCodigoLogin(tx, pendente.id, agora);
-      return criarSessao(tx, { contaId: conta.id, lojaId: dono.lojaId, operadorId: dono.id, aparelhoId: req.aparelhoId }, agora);
+      if (operador.estado === 'convidado') await tx.update(operadores).set({ estado: 'ativo', aceitoEm: agora, atualizadoEm: agora }).where(eq(operadores.id, operador.id));
+      return criarSessao(tx, { contaId: conta.id, lojaId: operador.lojaId, operadorId: operador.id, aparelhoId: req.aparelhoId }, agora);
     });
 
     if (sessao instanceof ErroApi) throw sessao;
@@ -158,20 +199,20 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
 export function rotasContaProtegidas(app: FastifyInstance, { db, relogio }: Deps): void {
   async function perfil(request: import('fastify').FastifyRequest) {
     const s = request.sessao;
-    const [p] = await db.select({ contaId: contas.id, lojaId: lojas.id, operadorId: operadores.id, email: contas.email, nomeResponsavel: contas.nomeResponsavel, nomeLoja: lojas.nome, papel: operadores.papel })
+    const [p] = await db.select({ contaId: contas.id, lojaId: lojas.id, operadorId: operadores.id, usuarioId: usuarios.id, email: usuarios.email, nomeResponsavel: operadores.nome, nomeLoja: lojas.nome, papel: operadores.papel, permissoes: operadores.permissoes })
       .from(contas).innerJoin(lojas, and(eq(lojas.contaId, contas.id), eq(lojas.id, s.lojaId)))
       .innerJoin(operadores, and(eq(operadores.id, s.operadorId), eq(operadores.contaId, contas.id), eq(operadores.lojaId, lojas.id)))
+      .innerJoin(usuarios, eq(usuarios.id, operadores.usuarioId))
       .where(eq(contas.id, s.contaId));
     if (!p) throw new ErroApi(401, 'nao_autenticado', 'Sessão inválida. Entre novamente.');
-    return PerfilResSchema.parse(p);
+    return PerfilResSchema.parse({ ...p, permissoes: permissoesEfetivas(p.papel, p.permissoes) });
   }
   app.get('/conta', async (request) => perfil(request));
   app.post('/auth/logout', async (request, reply) => {
     await db.update(sessoes).set({ revogadaEm: relogio.agora() }).where(eq(sessoes.id, request.sessaoId));
     return reply.status(204).send();
   });
-  app.get('/aparelhos', async (request) => {
-    if ((await perfil(request)).papel !== 'dono') throw new ErroApi(403, 'proibido', 'Operação permitida somente ao dono.');
+  app.get('/aparelhos', { preHandler: exigirDono(db, relogio) }, async (request) => {
     const s = request.sessao;
     const lista = await db.select().from(aparelhos).where(and(eq(aparelhos.contaId, s.contaId), eq(aparelhos.lojaId, s.lojaId)));
     return AparelhosResSchema.parse(lista.map((a) => ({ id: a.id, nome: a.nome, criadoEm: a.criadoEm.toISOString(), ultimoAcessoEm: a.ultimoAcessoEm.toISOString(), revogadoEm: a.revogadoEm?.toISOString() ?? null, atual: a.id === s.aparelhoId })));

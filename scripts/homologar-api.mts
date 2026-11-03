@@ -1,0 +1,65 @@
+/** Smoke opt-in em banco de homologação vazio. Tokens e OTP ficam somente na memória. */
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { createInterface } from 'node:readline/promises';
+import { stdin, stdout } from 'node:process';
+import { writeFile } from 'node:fs/promises';
+import { BackendHttp } from '../apps/mobile/src/servicos/backendHttp.ts';
+
+const [urlApi, email, arquivo] = process.argv.slice(2);
+assert.equal(urlApi, 'https://aladdin-pdv-api-homologacao.jicnzg.easypanel.host', 'Este roteiro só pode usar a API de homologação.');
+assert.ok(email && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email), 'Informe o destinatário autorizado.');
+const resultados: string[] = [];
+const ok = (cenario: string) => { resultados.push(cenario); console.log('PASS ' + cenario); };
+let token: string | null = null;
+const backend = new BackendHttp(urlApi, () => token);
+const saude = await fetch(urlApi + '/saude');
+assert.equal(saude.status, 200); assert.deepEqual(await saude.json(), { status: 'ok' }); ok('HTTPS e consulta ao banco');
+assert.equal((await fetch(urlApi + '/dev/relogio/avancar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"dias":1}' })).status, 404);
+ok('Rotas de desenvolvimento ausentes');
+const aparelhoId = randomUUID();
+const sessao = await backend.criarConta({ email, documento: '900' + String(Date.now()).slice(-11), nomeResponsavel: 'Homologação R0', nomeLoja: 'Teste descartável R0', aparelhoId, aparelhoNome: 'Smoke R0 origem' });
+token = sessao.token;
+try {
+  const assinatura = await backend.obterAssinatura();
+  assert.equal(assinatura?.assinatura.status, 'liberada'); assert.equal(assinatura.assinatura.cartao, null);
+  assert.equal(assinatura.licenca.status, 'liberada'); ok('Cadastro com acesso liberado, sem cartão ou cobrança');
+  assert.deepEqual((await backend.receberMudancas('0')).mudancas, []); ok('Conta vazia, sem semente fictícia');
+  const agora = new Date().toISOString(); const produtoId = randomUUID(); const caixaId = randomUUID(); const vendaId = randomUUID();
+  const produto = { id: produtoId, lojaId: sessao.lojaId, nome: 'Produto teste R0', ean: null, precoCentavos: 700, unidade: 'un', estoque: null, estoqueMinimo: null, atalho: false, criadoEm: agora, atualizadoEm: agora, excluidoEm: null, versao: 0 };
+  const caixa = { id: caixaId, lojaId: sessao.lojaId, aparelhoId, operadorId: sessao.operadorId, abertura: { em: agora, trocoInicialCentavos: 1000 }, fechamento: null, movimentos: [] };
+  const venda = { id: vendaId, lojaId: sessao.lojaId, aparelhoId, operadorId: sessao.operadorId, caixaId, itens: [{ id: randomUUID(), produtoId, descricao: produto.nome, precoUnitarioCentavos: 700, quantidadeMilesimos: 1000, totalCentavos: 700 }], pagamentos: [{ id: randomUUID(), meio: 'dinheiro', provedor: null, valorCentavos: 700, trocoCentavos: 300 }], totalCentavos: 700, status: 'concluida', criadaEm: agora };
+  const mutacoes = [{ id: randomUUID(), entidade: 'produto', operacao: 'upsert', dados: produto, criadaEm: agora }, { id: randomUUID(), entidade: 'caixa', operacao: 'upsert', dados: caixa, criadaEm: agora }, { id: randomUUID(), entidade: 'venda', operacao: 'upsert', dados: venda, criadaEm: agora }] as import('@pdv/shared').Mutacao[];
+  const push = await backend.enviarMutacoes({ aparelhoId, mutacoes });
+  assert.deepEqual(push.rejeitadas, []); assert.equal(push.aceitas.length, 3);
+  assert.deepEqual((await backend.enviarMutacoes({ aparelhoId, mutacoes })).rejeitadas, []);
+  ok('Produto, abertura e venda manual sincronizados; reenvio idempotente');
+  await backend.sair();
+  await assert.rejects(() => backend.obterPerfil(), (e: any) => e.status === 401); token = null;
+  ok('Logout revoga sessão no servidor');
+  const respostaCodigo = await fetch(urlApi + '/auth/codigo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+  assert.equal(respostaCodigo.status, 204); assert.equal(await respostaCodigo.text(), '');
+  ok('Solicitação SMTP sem expor código na resposta');
+  if (arquivo) await writeFile(arquivo + '.pendente.json', JSON.stringify({ executadoEm: new Date().toISOString(), api: urlApi, resultados, dados: { contaId: sessao.contaId, lojaId: sessao.lojaId, produtoId, caixaId, vendaId, totalCentavos: 700 } }, null, 2) + '\n');
+  console.log('AGUARDANDO_CODIGO: digite o código recebido no destinatário autorizado.');
+  const leitor = createInterface({ input: stdin, output: stdout });
+  const codigo = (process.env.PDV_CODIGO_SMOKE ?? await leitor.question('')).trim(); leitor.close();
+  const aparelhoNovoId = randomUUID();
+  const req = { email, codigo, aparelhoId: aparelhoNovoId, aparelhoNome: 'Smoke R0 restauração' };
+  const restaurada = await backend.entrar(req); token = restaurada.token;
+  assert.equal(restaurada.contaId, sessao.contaId); assert.equal(restaurada.lojaId, sessao.lojaId); assert.equal(restaurada.operadorId, sessao.operadorId);
+  assert.equal((await backend.obterPerfil()).email, email); ok('Código recebido por e-mail autentica nova instalação');
+  await assert.rejects(() => backend.entrar(req), (e: any) => e.status === 401); ok('Código consumido não pode ser reutilizado');
+  const pagina = await backend.receberMudancas('0');
+  assert.equal(pagina.mudancas.length, 3);
+  const recebida = pagina.mudancas.find(m => m.entidade === 'venda');
+  assert.ok(recebida?.entidade === 'venda' && recebida.operacao === 'upsert');
+  assert.equal(recebida.dados.id, vendaId); assert.equal(recebida.dados.caixaId, caixaId); assert.equal(recebida.dados.totalCentavos, 700); assert.equal(recebida.dados.operadorId, sessao.operadorId); assert.equal(recebida.dados.aparelhoId, aparelhoId);
+  ok('Restauração preserva IDs, autoria, caixa e valor; uma única venda');
+  await backend.sair(); token = null;
+  const relatorio = { executadoEm: new Date().toISOString(), api: urlApi, resultados, dados: { contaId: sessao.contaId, lojaId: sessao.lojaId, produtoId, caixaId, vendaId, totalCentavos: 700 }, limites: ['Smoke HTTP com BackendHttp do app; não substitui homologação física do APK.'] };
+  if (arquivo) await writeFile(arquivo, JSON.stringify(relatorio, null, 2) + '\n');
+  console.log('HOMOLOGACAO_CONCLUIDA');
+} finally {
+  if (token) await backend.sair().catch(() => undefined);
+}

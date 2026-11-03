@@ -52,6 +52,30 @@ export class InstalacaoRepo {
     });
   }
 
+  aparelhoDaLoja(contaId: string, lojaId: string, legado?: string): Promise<string> {
+    return this.enfileirar(async () => {
+      idSchema.parse(contaId); idSchema.parse(lojaId);
+      const chave = JSON.stringify([contaId, lojaId]);
+      const mapa = z.record(z.string(), idSchema).parse(await this.armazenamento.obter('instalacao_lojas') ?? {});
+      const existente = mapa[chave];
+      if (existente) return existente;
+      const id = legado ?? idSchema.parse(this.novoId());
+      if (Object.values(mapa).includes(id)) throw new Error('Identidade de aparelho já associada a outra loja.');
+      await this.armazenamento.gravar('instalacao_lojas', { ...mapa, [chave]: id });
+      return id;
+    });
+  }
+
+  confirmarAparelhoDaLoja(contaId: string, lojaId: string, aparelhoId: string): Promise<void> {
+    return this.enfileirar(async () => {
+      idSchema.parse(contaId); idSchema.parse(lojaId); idSchema.parse(aparelhoId);
+      const mapa = z.record(z.string(), idSchema).parse(await this.armazenamento.obter('instalacao_lojas') ?? {});
+      const chave = JSON.stringify([contaId, lojaId]);
+      if (Object.entries(mapa).some(([k, v]) => k !== chave && v === aparelhoId)) throw new Error('Identidade de aparelho já associada a outra loja.');
+      if (mapa[chave] !== aparelhoId) await this.armazenamento.gravar('instalacao_lojas', { ...mapa, [chave]: aparelhoId });
+    });
+  }
+
   private async obterOuCriarInterno(aparelhoLegado?: string): Promise<string> {
     const salvo = await this.armazenamento.obter<unknown>('instalacao');
     if (salvo !== null) {

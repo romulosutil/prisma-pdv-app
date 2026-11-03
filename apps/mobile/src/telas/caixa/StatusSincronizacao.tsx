@@ -17,6 +17,7 @@ function motivoDaPendencia(motivo: string | null): string {
   if (motivo === 'venda_fora_da_janela_offline') return 'Venda antiga: precisa de revisão autenticada. A data e o conteúdo foram preservados.';
   if (motivo === 'recurso_plano' || motivo === 'limite_plano') return 'O recurso ou limite do plano precisa ser revisto antes do envio.';
   if (motivo === 'origem_invalida' || motivo === 'permissao_negada') return 'A origem ou permissão desta operação precisa de revisão.';
+  if (motivo && ['caixa_fechada', 'caixa_desatualizado', 'fechamento_inconsistente', 'caixa_imutavel', 'movimento_imutavel'].includes(motivo)) return 'Conflito de turno: o registro local foi preservado. Confira o histórico confirmado com o responsável; correções exigem motivo e autoria. O turno não será reaberto nem sobrescrito.';
   return 'O registro está preservado neste aparelho e precisa de revisão antes de ser confirmado.';
 }
 
@@ -97,6 +98,7 @@ export function StatusSincronizacao() {
         })}
         <Texto estilo="legenda" cor={cores.ink2}>Exporte o arquivo e solicite revisão pela conta autenticada no atendimento. Não reinstale o app nem altere a data da venda. O arquivo permanece local até você escolher compartilhá-lo.</Texto>
         <Botao rotulo="Exportar pendências para revisão" variante="secundario" carregando={exportando} onPress={() => void exportar()} />
+        {!semSessao ? <Botao rotulo="Conferir turnos confirmados" variante="terciario" onPress={() => router.push('/(tabs)/caixa/turnos')} /> : null}
         {!semSessao ? <Botao rotulo="Tentar novamente após revisão" variante="terciario" onPress={() => void retentar()} /> : null}
       </> : null}
       {!demo ? <Texto estilo="legenda" cor={cores.ink3}>Uma instalação recuperada recebe somente o que foi confirmado no servidor. Pendências de outro aparelho não são recuperadas automaticamente.</Texto> : null}

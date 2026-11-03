@@ -26,5 +26,6 @@ export function vendaConsistente(v: Venda): boolean {
     pago += BigInt(p.valorCentavos);
     if (pago > limite) return false;
   }
-  return pago === total;
+  if (v.fiado && (!seguro(v.fiado.valorCentavos) || v.fiado.valorCentavos === 0)) return false;
+  return pago + BigInt(v.fiado?.valorCentavos ?? 0) === total;
 }

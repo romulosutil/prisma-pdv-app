@@ -53,43 +53,37 @@ for (const plano of ['essencial', 'negocio', 'pro'] as PlanoId[]) {
   }
 }
 
-it('conserva histórico no downgrade e retenta os mesmos IDs após upgrade', async () => {
+it('conserva saldo por movimentos no downgrade e retenta configuração de mínimo após upgrade', async () => {
   const conta = await contaEmTeste(amb);
   const p = produto(conta.lojaId, { estoque: 7, estoqueMinimo: 2 });
   expect((await enviar(amb, conta, [mutacao('produto', p)])).corpo.rejeitadas).toEqual([]);
-  expect((await chamar(amb, 'POST', '/assinatura/trocar-plano', { token: conta.token, corpo: { planoId: 'essencial' } })).corpo.licenca.planoId).toBe('essencial');
+  await chamar(amb, 'POST', '/assinatura/trocar-plano', { token: conta.token, corpo: { planoId: 'essencial' } });
   const editado = { ...p, nome: 'Alterado', precoCentavos: 3000 };
   const edicao = mutacao('produto', editado);
   expect((await enviar(amb, conta, [edicao])).corpo.aceitas).toEqual([edicao.id]);
   await conferirProduto(editado, edicao, conta, 2, INICIO, 2);
-  for (const campos of [{ estoque: 8 }, { estoqueMinimo: 3 }, { estoque: null }, { estoqueMinimo: null }]) {
-    const pedido = mutacao('produto', { ...editado, ...campos });
+  for (const estoqueMinimo of [3, null]) {
+    const pedido = mutacao('produto', { ...editado, estoqueMinimo });
     const antes = await snapshot();
     expect((await enviar(amb, conta, [pedido])).corpo.rejeitadas).toEqual([{ id: pedido.id, motivo: 'recurso_plano' }]);
     expect(await snapshot()).toEqual(antes);
   }
-  const pull = await chamar(amb, 'GET', '/sync/pull?desde=0', { token: conta.token });
-  expect(pull.corpo.mudancas.find((m: { dados: { id: string } }) => m.dados.id === p.id)).toEqual({ entidade: 'produto', operacao: 'upsert', dados: { ...editado, versao: 2 } });
-  const pedido = mutacao('produto', { ...editado, estoque: 8 });
-  const antes = await snapshot();
+  const pedido = mutacao('produto', { ...editado, estoque: 999, estoqueMinimo: 3 });
   expect((await enviar(amb, conta, [pedido])).corpo.rejeitadas).toEqual([{ id: pedido.id, motivo: 'recurso_plano' }]);
-  expect(await snapshot()).toEqual(antes);
-  expect((await chamar(amb, 'POST', '/assinatura/trocar-plano', { token: conta.token, corpo: { planoId: 'negocio' } })).corpo.licenca.planoId).toBe('negocio');
+  await chamar(amb, 'POST', '/assinatura/trocar-plano', { token: conta.token, corpo: { planoId: 'negocio' } });
   expect((await enviar(amb, conta, [pedido])).corpo.aceitas).toEqual([pedido.id]);
-  await conferirProduto({ ...editado, estoque: 8 }, pedido, conta, 3, INICIO, 3);
+  const confirmado = { ...editado, estoqueMinimo: 3 };
+  await conferirProduto(confirmado, pedido, conta, 3, INICIO, 3);
   const depois = await snapshot();
   expect((await enviar(amb, conta, [pedido])).corpo.aceitas).toEqual([pedido.id]);
   expect(await snapshot()).toEqual(depois);
-  expect((await amb.db.select().from(produtos).where(eq(produtos.id, p.id)))[0]).toMatchObject({ estoque: 8, estoqueMinimo: 2 });
-  expect((await chamar(amb, 'POST', '/assinatura/trocar-plano', { token: conta.token, corpo: { planoId: 'essencial' } })).corpo.licenca.planoId).toBe('essencial');
+  await chamar(amb, 'POST', '/assinatura/trocar-plano', { token: conta.token, corpo: { planoId: 'essencial' } });
   const del = exclusao('produto', p.id);
   expect((await enviar(amb, conta, [del])).corpo.aceitas).toEqual([del.id]);
-  await conferirProduto({ ...editado, estoque: 8, excluidoEm: INICIO.toISOString() }, del, conta, 4, INICIO, 4);
-  expect((await amb.db.select().from(produtos).where(eq(produtos.id, p.id)))[0]).toMatchObject({ estoque: 8, estoqueMinimo: 2, excluidoEm: INICIO });
-  const restaurar = mutacao('produto', { ...editado, estoque: 8 });
+  await conferirProduto({ ...confirmado, excluidoEm: INICIO.toISOString() }, del, conta, 4, INICIO, 4);
+  const restaurar = mutacao('produto', confirmado);
   expect((await enviar(amb, conta, [restaurar])).corpo.aceitas).toEqual([restaurar.id]);
-  await conferirProduto({ ...editado, estoque: 8 }, restaurar, conta, 5, INICIO, 5);
-  expect((await amb.db.select().from(produtos).where(eq(produtos.id, p.id)))[0]).toMatchObject({ estoque: 8, estoqueMinimo: 2, excluidoEm: null });
+  await conferirProduto(confirmado, restaurar, conta, 5, INICIO, 5);
 });
 
 if (process.env.PDV_TEST_POSTGRES_URL) for (const limite of [false, true]) it(`usa plano reduzido após aguardar a conta: ${limite ? 'limite' : 'estoque'}`, async () => {
@@ -212,7 +206,7 @@ it('permite null, preserva LWW e aceita venda manual após downgrade', async () 
   expect(await amb.db.select().from(mutacoesAplicadas).where(eq(mutacoesAplicadas.id, antigo.id))).toEqual([{ id: antigo.id, lojaId: conta.lojaId, aparelhoId: conta.aparelhoId, criadoEm: agora }]);
   await conferirProduto(vizinho.dados as Produto, vizinho, conta, 1, agora);
   const v = manual.dados as ReturnType<typeof venda>;
-  expect(await amb.db.select().from(vendas).where(eq(vendas.id, v.id))).toEqual([{ id: v.id, lojaId: v.lojaId, aparelhoId: v.aparelhoId, operadorId: v.operadorId, caixaId: null, cancelamento: null, totalCentavos: v.totalCentavos, status: v.status, criadoEm: INICIO, atualizadoEm: agora, excluidoEm: null, versao: 1 }]);
+  expect(await amb.db.select().from(vendas).where(eq(vendas.id, v.id))).toEqual([{ id: v.id, lojaId: v.lojaId, aparelhoId: v.aparelhoId, operadorId: v.operadorId, caixaId: null, cancelamento: null, fiado: null, totalCentavos: v.totalCentavos, status: v.status, criadoEm: INICIO, atualizadoEm: agora, excluidoEm: null, versao: 1 }]);
   expect(await amb.db.select().from(itensVenda).where(eq(itensVenda.vendaId, v.id)).orderBy(asc(itensVenda.posicao))).toEqual(v.itens.map((item, posicao) => ({ ...item, vendaId: v.id, lojaId: v.lojaId, posicao, criadoEm: INICIO })));
   expect(await amb.db.select().from(pagamentosVenda).where(eq(pagamentosVenda.vendaId, v.id)).orderBy(asc(pagamentosVenda.posicao))).toEqual(v.pagamentos.map((pagamento, posicao) => ({ ...pagamento, vendaId: v.id, lojaId: v.lojaId, posicao, criadoEm: INICIO })));
   expect(await amb.db.select().from(mutacoesAplicadas).where(eq(mutacoesAplicadas.id, manual.id))).toEqual([{ id: manual.id, lojaId: conta.lojaId, aparelhoId: conta.aparelhoId, criadoEm: agora }]);

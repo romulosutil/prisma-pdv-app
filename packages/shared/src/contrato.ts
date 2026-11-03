@@ -3,6 +3,7 @@ import { STATUS_ASSINATURA, type AssinaturaSerializada } from './assinatura';
 import { BANDEIRAS } from './cartao';
 import type { LicencaSerializada } from './licenca';
 import { PLANOS_ORDEM, RECURSOS } from './planos';
+import { PapelSchema, PermissoesSchema } from './equipe';
 
 // Contrato da API. Datas trafegam como string ISO 8601; dinheiro em centavos inteiros.
 
@@ -93,6 +94,7 @@ export const VendaSchema = z.object({
     motivo: z.string().trim().min(1).max(500),
     estorno: z.literal('nao_realizado'),
   }).nullable().optional(),
+  fiado: z.object({ clienteId: IdSchema, vencimento: z.iso.date(), valorCentavos: z.number().int().positive().refine(Number.isSafeInteger) }).nullable().optional(),
   itens: z.array(ItemVendaSchema),
   pagamentos: z.array(PagamentoVendaSchema),
   totalCentavos: CentavosNaoNegativosSchema,
@@ -105,10 +107,23 @@ export type Venda = z.infer<typeof VendaSchema>;
 
 export const MovimentoCaixaSchema = z.object({
   id: IdSchema,
-  tipo: z.enum(['sangria', 'suprimento']),
+  tipo: z.enum(['sangria', 'suprimento', 'retirada', 'transferencia_entrada', 'transferencia_saida', 'devolucao', 'correcao_entrada', 'correcao_saida', 'recebimento_fiado', 'estorno_fiado']),
   valorCentavos: z.number().int().positive(),
   motivo: z.string().nullable(),
   criadoEm: DataIsoSchema,
+  versaoContrato: z.literal(2).optional(),
+  autorOperadorId: IdSchema.optional(),
+  responsavelOperadorId: IdSchema.optional(),
+  aparelhoId: IdSchema.optional(),
+  aprovadorId: IdSchema.optional(),
+  categoria: z.string().trim().min(1).max(100).optional(),
+  destino: z.string().trim().min(1).max(150).optional(),
+  transferenciaId: IdSchema.optional(),
+  originalId: IdSchema.optional(),
+}).superRefine((m, ctx) => {
+  if (m.versaoContrato === 2 && (!m.autorOperadorId || !m.responsavelOperadorId || !m.aparelhoId || !m.motivo?.trim() || !m.categoria || !m.destino)) {
+    ctx.addIssue({ code: 'custom', message: 'Movimento v2 exige autoria, responsável, origem/destino, categoria e motivo.' });
+  }
 });
 export type MovimentoCaixa = z.infer<typeof MovimentoCaixaSchema>;
 
@@ -117,17 +132,33 @@ export const CaixaSchema = z.object({
   lojaId: IdSchema,
   aparelhoId: IdSchema,
   operadorId: IdSchema,
+  versaoContrato: z.literal(2).optional(),
+  contaId: IdSchema.optional(),
+  aparelhoAtualId: IdSchema.optional(),
   abertura: z.object({ em: DataIsoSchema, trocoInicialCentavos: CentavosNaoNegativosSchema }),
   fechamento: z
     .object({
       em: DataIsoSchema,
       esperadoCentavos: CentavosSchema,
       contadoCentavos: CentavosNaoNegativosSchema,
+      diferencaCentavos: CentavosSchema.optional(),
+      conferenteId: IdSchema.optional(),
+      recolhidoCentavos: CentavosNaoNegativosSchema.optional(),
+      trocoRestanteCentavos: CentavosNaoNegativosSchema.optional(),
     })
     .nullable(),
   movimentos: z.array(MovimentoCaixaSchema),
 });
 export type Caixa = z.infer<typeof CaixaSchema>;
+
+export const ReservarCaixaReqSchema = z.object({ id: IdSchema, trocoInicialCentavos: CentavosNaoNegativosSchema }).strict();
+export const OperacaoCaixaReqSchema = z.object({ id: IdSchema, tipo: z.enum(['suprimento', 'sangria', 'retirada', 'devolucao', 'correcao_entrada', 'correcao_saida']), valorCentavos: z.number().int().positive(), motivo: z.string().trim().min(1).max(500), categoria: z.string().trim().min(1).max(100), destino: z.string().trim().min(1).max(150), originalId: IdSchema.optional() }).strict();
+export const AutorizarTransferenciaReqSchema = z.object({ id: IdSchema, origemId: IdSchema, destinoId: IdSchema, valorCentavos: z.number().int().positive(), motivo: z.string().trim().min(1).max(500) }).strict();
+export const ExecutarTransferenciaReqSchema = z.object({ autorizacaoId: IdSchema }).strict();
+export const ConferirCaixaReqSchema = z.object({ id: IdSchema, motivo: z.string().trim().min(1).max(500) }).strict();
+export const TrocarAparelhoCaixaReqSchema = z.object({ aparelhoAnteriorId: IdSchema, motivo: z.string().trim().min(1).max(500), confirmarSincronizacaoAnterior: z.literal(true) }).strict();
+export const PainelCaixasSchema = z.array(z.object({ caixa: CaixaSchema, nomeOperador: z.string(), saldoCentavos: CentavosSchema, atualizadoEm: DataIsoSchema, auditoria: z.array(z.object({ id: IdSchema, tipo: z.string(), autorOperadorId: IdSchema, dados: z.record(z.string(), z.unknown()), em: DataIsoSchema })) }));
+export type PainelCaixas = z.infer<typeof PainelCaixasSchema>;
 
 // ---------- Conta e sessão ----------
 
@@ -137,10 +168,13 @@ export const SessaoSchema = z.object({
   lojaId: IdSchema,
   operadorId: IdSchema,
   aparelhoId: IdSchema,
+  usuarioId: IdSchema.optional(),
+  papel: PapelSchema.optional(),
+  permissoes: PermissoesSchema.optional(),
 });
 export type Sessao = z.infer<typeof SessaoSchema>;
 
-export const PerfilResSchema = z.object({ contaId: IdSchema, lojaId: IdSchema, operadorId: IdSchema, email: z.email(), nomeResponsavel: z.string(), nomeLoja: z.string(), papel: z.enum(['dono', 'operador']) });
+export const PerfilResSchema = z.object({ contaId: IdSchema, lojaId: IdSchema, operadorId: IdSchema, usuarioId: IdSchema.optional(), email: z.email(), nomeResponsavel: z.string(), nomeLoja: z.string(), papel: PapelSchema, permissoes: PermissoesSchema.optional() });
 export const AparelhoResSchema = z.object({ id: IdSchema, nome: z.string(), criadoEm: DataIsoSchema, ultimoAcessoEm: DataIsoSchema, revogadoEm: DataIsoSchema.nullable(), atual: z.boolean() });
 export const AparelhosResSchema = z.array(AparelhoResSchema);
 
@@ -159,10 +193,12 @@ export type CriarContaRes = Sessao;
 
 export const LoginReqSchema = z.object({
   email: z.email(),
-  /** Código de 6 dígitos enviado por e-mail (mock). */
+  /** Código de uso único enviado ao e-mail pessoal. */
   codigo: z.string().regex(/^\d{6}$/),
   aparelhoId: IdSchema,
   aparelhoNome: z.string().min(1),
+  operadorId: IdSchema.optional(),
+  aceitarConvite: z.boolean().optional(),
 });
 export type LoginReq = z.infer<typeof LoginReqSchema>;
 export const LoginResSchema = SessaoSchema;

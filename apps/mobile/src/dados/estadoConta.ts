@@ -3,6 +3,9 @@ import { z } from 'zod';
 
 export const IdentidadeLocalSchema = SessaoSchema.omit({ token: true });
 export type IdentidadeLocal = z.infer<typeof IdentidadeLocalSchema>;
+/** O dono conserva a partição legada; funcionários nunca herdam seu cache financeiro. */
+export const perfilFinanceiro = (i: IdentidadeLocal): string | undefined => i.papel && i.papel !== 'dono' ? i.operadorId : undefined;
+export const escopoDoPerfil = (i: IdentidadeLocal): string => JSON.stringify(perfilFinanceiro(i) ? [i.contaId, i.lojaId, i.operadorId] : [i.contaId, i.lojaId]);
 export const PerfilLocalSchema = z.object({
   nomeResponsavel: z.string(), nomeLoja: z.string(), tipoLoja: z.string().optional(),
   email: z.string(), aparelhoNome: z.string(),

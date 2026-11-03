@@ -51,6 +51,10 @@ Gerar o aplicativo com EXPO_PUBLIC_API_URL no endereço HTTPS da API e ferrament
 
 ## Evidências
 
+Decisão de escopo de 01/11/2026: cópia externa e alertas de falha de backup/saúde ficam no backlog após a validação do produto. Os backups locais e healthchecks existentes são preservados; essas melhorias deixam de bloquear o MVP. Nenhum novo serviço, destino ou canal foi criado na inspeção desta rodada. Serviços do PDV usam o prefixo `pdv-`. Ver [CP 003](checkpoints-roadmap.md#cp-20261101-003-foco-no-mvp-e-backlog-operacional).
+
+Atualização 01/11/2026 — R0: ambos os domínios responderam `/saude` 200 com HTTPS válido. Produção e homologação executam `bc786bc86abac934754ee1dd35d8524f9c04c9c1`, aprovado no CI. Foram criados `pdv-api-homologacao` e `pdv-postgres-homologacao`, com banco e chave de cifra próprios e sem cópia das demos. O APK 0.1.5 aponta para homologação e instala em pacote separado. Backup diário configurado e **restauração aprovada em banco isolado**: 24 tabelas e 38 registros iguais à origem; destino temporário desativado após a conferência. O armazenamento é Local Disk; cópia externa e alertas continuam pendentes. Ver [teste de restauração](r0-restauracao-backup.md) e [R0 — API e APK conectado](r0-api-apk-conectado.md).
+
 Estado de implantação, CI, backup e smoke externo será registrado após execução. A existência deste roteiro não comprova essas etapas.
 
 Preparação local revisada em30/10/2026: parecer independente PASS para AC1–10, sensor7/7 e relatório em `.specs/features/easypanel-sem-cobranca/validation.md`. Usuário confirmou login HTTPS e autorizou transferir somente a credencial SMTP e chaves de cifra locais para pdv-api e conectar o banco exclusivo. Ambiente foi salvo por HTTPS, com billingdisabled e JOBSon, sem exposição dos valores. Segredo EASYPANEL_DEPLOY_URL foi gravado no GitHub Actions e o arquivo temporário de transferência removido. Isso ainda não comprova implantação ativa nem novo envio Resend.

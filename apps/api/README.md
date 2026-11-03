@@ -36,7 +36,13 @@ Erros: `{ "erro": "codigo_estavel", "mensagem": "Texto em português" }`. Rotas 
 | `GET /planos` | Catálogo `PLANOS`, em ordem. |
 | `POST /contas` | Cria conta + loja + operador dono + aparelho + sessão. 409 `email_ja_cadastrado`, `documento_ja_cadastrado`, `aparelho_em_uso`. |
 | `POST /auth/codigo` | `{ email }`: gera código de 6 dígitos (10 min). Fora de produção responde `{ codigo }` e loga; em produção, 204. |
-| `POST /auth/login` | E-mail + código + aparelho. 401 `codigo_invalido` (5 erros bloqueiam o código); 409 `limite_aparelhos`. |
+| `POST /auth/vinculos` | E-mail pessoal + código: lista somente vínculos ativos/convites válidos da pessoa. Não cria sessão nem consome o código. |
+| `POST /auth/login` | E-mail + código + aparelho e `operadorId` selecionado; convite exige `aceitarConvite: true`. 401 `codigo_invalido` (5 erros bloqueiam o código); 409 `limite_aparelhos`, `selecionar_vinculo`, `aceitar_convite`. |
+| `GET /conta` (auth) | Identidade pessoal e papel/permissões no vínculo da sessão. |
+| `GET /equipe` (auth, dono) | Usuários e convites da loja atual. |
+| `POST /equipe/convites` (auth, dono) | Nome, e-mail pessoal, papel gerente/operador e permissões opcionais; convite de sete dias, sem envio automático de mensagem. |
+| `PUT /equipe/:id` (auth, dono) | Altera estado, papel ou permissões; revoga sessões do vínculo e conserva histórico. |
+| `POST /auth/logout` (auth) | Revoga a sessão atual. |
 | `GET /assinatura` (auth) | Assinatura + licença. Conta sem assinatura vem como `sem_assinatura`. |
 | `POST /assinatura` (auth) | Plano + token do cartão; inicia o teste. 402 `cartao_recusado`; 409 `teste_ja_usado` (um por CPF/CNPJ e por cartão), `assinatura_existente`. |
 | `POST /assinatura/trocar-plano` (auth) | Upgrade cobra a prorata e vale na hora; downgrade fica agendado. 402 `pagamento_recusado`. |
@@ -51,3 +57,32 @@ Erros: `{ "erro": "codigo_estavel", "mensagem": "Texto em português" }`. Rotas 
 ### Sincronização
 
 O cursor é uma sequência global (`mudancas.seq`): cada escrita sincronizável acrescenta uma linha por loja, e o pull lê só esse índice. Cada entidade aparece uma vez por página, no estado atual (produto excluído vira `operacao: "delete"`). O `cursor` do push é a posição atual do servidor; para ler as mudanças, o aparelho continua usando o cursor do seu último pull.
+
+R1 autoriza o push por operação e filtra o pull no servidor: funcionário sem `conferir_caixas` recebe catálogo compartilhado e somente suas vendas/caixas. Gerente não ganha administração de equipe/aparelhos/cobrança. A migração `0008_mute_maddog.sql` preserva IDs e histórico do dono. [Fluxo, política, evidências e homologação pendente](../../docs/r1-equipe-permissoes.md).
+
+
+### Gestão R4 (implementada e validada localmente)
+
+| Rota protegida | Comportamento |
+|---|---|
+| `GET /estoque` | Projeção confirmada e histórico autorizado; negativo explícito. |
+| `POST /estoque/movimentos` | Entrada/ajuste/devolução, ID estável, motivo e autoria; permissão de cadastro e recurso de estoque. |
+| `POST /clientes` | Cadastro por loja, com ID idempotente. |
+| `GET /fiado` | Clientes e títulos/eventos financeiros autorizados no servidor. |
+| `POST /fiado/recebimentos` | Parcial/total, sem exceder saldo; dinheiro credita o turno receptor na mesma transação. |
+| `POST /fiado/estornos` | Evento integral referenciado, sem alterar original; não executa estorno bancário. |
+| `GET /lojas`, `POST /lojas` | Vínculos permitidos e cadastro de filial pelo dono, respeitando limite de plano. |
+| `GET /relatorios/filtros` | Lojas, nomes e turnos permitidos; operador recebe somente o próprio vínculo/turnos. |
+| `GET /relatorios` | Filtros `inicio`, `fim` (exclusivo), `lojaId` (ID ou `todas` para dono), `operadorId`, `caixaId`, `meio`; eventos e totais separados. |
+
+`Venda.fiado` conserva cliente, vencimento e valor original; soma de parcelas recebidas + fiado = total da venda. Venda confirmada baixa estoque uma vez. O saldo existente não é substituído pelo cadastro. Migração `0010_keen_arclight.sql` registra abertura legada sem reaplicar vendas antigas. Gestão usa a mesma ordem de travas e autorização transacional da sincronização. Histórico, limites de operação e roteiro de homologação: [R4](../../docs/r4-gestao-catalogo-fiado-lojas.md).
+
+### Suporte R5 (validação local)
+
+| Rota protegida | Comportamento |
+|---|---|
+| `POST /suporte/solicitacoes` | UUID idempotente, tipo `suporte`/`exclusao`, mensagem, resumo opcional com schema fechado e versão das políticas. Dez solicitações abertas por vínculo. Não apaga dados. |
+| `GET /suporte/solicitacoes` | Cem protocolos pessoais mais recentes da conta/loja/operador da sessão; resposta manual da equipe. Dono não recebe mensagens dos funcionários. |
+| `GET /suporte/exportacao` | Dados confirmados da loja atual conforme permissão, finanças próprias sem `conferir_caixas`, identidade pessoal e protocolos próprios. Sem credenciais/cartões/sessões; não é backup restaurável. |
+
+Migração aditiva `0011_condemned_unus.sql`. Retenção de protocolos concluídos há mais de 90 dias no startup e diariamente com jobs ativos, com drain no shutdown. Abertos/em análise preservados. [Procedimento de atendimento, retenção, monitoramento, backup e retorno compatível](../../docs/operacao-backup-suporte.md). Implantação externa e responsável pelo atendimento ainda exigem registro de homologação.

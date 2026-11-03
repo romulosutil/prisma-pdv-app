@@ -65,7 +65,7 @@ export function DetalheVenda() {
       <CabecalhoTela titulo={`Venda ${numero}`} onVoltar={voltar} rotuloVoltar="Voltar para as vendas" />
 
       <View style={estilos.resumo}>
-        <StatusPill tipo={paga ? 'pago' : 'cancelado'} />
+        <StatusPill tipo={paga ? venda.fiado ? 'pendente' : 'pago' : 'cancelado'} texto={paga && venda.fiado ? 'Venda com fiado' : undefined} />
         <Texto estilo="corpo" cor={cores.ink2} numerico>
           {`${formatarData(quando)} às ${formatarHora(quando)}`}
         </Texto>
@@ -105,6 +105,7 @@ export function DetalheVenda() {
         </View>
       </View>
 
+      {venda.fiado ? <View style={estilos.secao}><Texto estilo="tituloM">Fiado</Texto><LinhaValor rotulo={`Crédito original · vence ${venda.fiado.vencimento}`} centavos={venda.fiado.valorCentavos} /><Texto>Consulte Clientes e fiado para o saldo atualizado e os recebimentos posteriores.</Texto></View> : null}
       <View style={estilos.secao}>
         <Texto estilo="tituloM" accessibilityRole="header">
           Pagamento

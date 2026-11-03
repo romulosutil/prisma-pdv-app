@@ -31,7 +31,7 @@ export function validarConfiguracao(env: NodeJS.ProcessEnv): Configuracao {
     throw new Error('PORT deve ser um inteiro entre 1 e 65535.');
   }
 
-  const billingProvider = env.BILLING_PROVIDER ?? 'mock';
+  const billingProvider = env.BILLING_PROVIDER ?? 'disabled';
   if (billingProvider !== 'mock' && billingProvider !== 'disabled') {
     throw new Error('BILLING_PROVIDER não é suportado.');
   }

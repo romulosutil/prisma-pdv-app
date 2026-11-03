@@ -31,7 +31,7 @@ async function snapshot() {
 const porId = <T extends { id: string }>(xs: T[]) => xs.sort((a, b) => a.id.localeCompare(b.id));
 function esperado(vs: Venda[], ids: string[], conta: { lojaId: string; aparelhoId: string }) {
   return {
-    vendas: porId(vs.map(v => ({ id: v.id, lojaId: v.lojaId, aparelhoId: v.aparelhoId, operadorId: v.operadorId, caixaId: null, cancelamento: null, totalCentavos: v.totalCentavos, status: v.status, criadoEm: new Date(v.criadaEm), atualizadoEm: INICIO, excluidoEm: null, versao: 1 }))),
+    vendas: porId(vs.map(v => ({ id: v.id, lojaId: v.lojaId, aparelhoId: v.aparelhoId, operadorId: v.operadorId, caixaId: null, cancelamento: null, fiado: null, totalCentavos: v.totalCentavos, status: v.status, criadoEm: new Date(v.criadaEm), atualizadoEm: INICIO, excluidoEm: null, versao: 1 }))),
     itens: porId(vs.flatMap(v => v.itens.map((i, posicao) => ({ ...i, vendaId: v.id, lojaId: v.lojaId, posicao, criadoEm: new Date(v.criadaEm) })))),
     pagamentos: porId(vs.flatMap(v => v.pagamentos.map((p, posicao) => ({ ...p, vendaId: v.id, lojaId: v.lojaId, posicao, criadoEm: new Date(v.criadaEm) })))),
     mudancas: vs.map((v, i) => ({ seq: i + 1, lojaId: v.lojaId, entidade: 'venda', entidadeId: v.id, criadoEm: INICIO })),

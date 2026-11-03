@@ -13,11 +13,13 @@ export function criarBillingDesativado(): BillingProvider {
  * Ponto de extensão do gateway: um `case` por provider real (Stripe, Asaas, Google Play)
  * implementando `BillingProvider`. Hoje só existe o mock.
  */
-export function criarBilling(nome: string = 'mock'): BillingProvider {
+export function criarBilling(nome: string = 'disabled'): BillingProvider {
   switch (nome) {
+    case 'disabled':
+      return criarBillingDesativado();
     case 'mock':
       return new MockBillingProvider();
     default:
-      throw new Error('BILLING_PROVIDER não é suportado. Valores aceitos: mock.');
+      throw new Error('BILLING_PROVIDER não é suportado. Valores aceitos: disabled, mock.');
   }
 }

@@ -21,6 +21,28 @@ class Cofre implements CofreSessao {
 function criar() { const base = new Base(); const cofre = new Cofre(); let n = 10; return { base, cofre, adaptador: new ArmazenamentoSessaoSegura(base, cofre, () => id(n++)) }; }
 const conta = { sessao, perfil };
 describe('armazenamento seguro', () => {
+  it('guarda perfil pausado em cofre separado e um 401 da credencial ativa não o apaga', async () => {
+    const { base, cofre, adaptador } = criar();
+    const chave = `perfil-conta:${id(40)}`;
+    await adaptador.gravar(chave, { sessao: { ...sessao, operadorId: id(40), token: 'credencial-pausada' }, perfil });
+    await adaptador.gravar('conta', conta);
+    expect(JSON.stringify([...base.dados.values()])).not.toContain('credencial-pausada');
+    expect(JSON.stringify([...base.dados.values()])).not.toContain('segredo');
+    await adaptador.retirarCredencial(sessao.token);
+    expect(await adaptador.obter(chave)).toMatchObject({ sessao: { token: 'credencial-pausada' } });
+    expect([...cofre.dados.values()]).toEqual(['credencial-pausada']);
+    await adaptador.remover(chave); expect(cofre.dados.size).toBe(0);
+  });
+  it('limpeza recupera também credenciais de perfis quando o cofre falha na exclusão', async () => {
+    const { base, cofre, adaptador } = criar();
+    await adaptador.gravar(`perfil-conta:${id(40)}`, { sessao: { ...sessao, token: 'perfil-pausado' }, perfil });
+    await adaptador.gravar('conta', conta);
+    cofre.falha = 'remover'; await adaptador.limpar();
+    expect(cofre.dados.size).toBe(2);
+    expect(await base.obter('cofre_sessao_pendentes')).toHaveLength(2);
+    cofre.falha = null; await adaptador.obter('conta');
+    expect(cofre.dados.size).toBe(0);
+  });
   it('migra legado uma vez após verificar e nunca escreve token na base', async () => {
     const { base, cofre, adaptador } = criar(); base.dados.set('conta', conta);
     expect(await adaptador.obter('conta')).toMatchObject(conta);

@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
-import { ConfirmarRecuperacaoReqSchema, IniciarRecuperacaoReqSchema, RecuperacaoAparelhoSchema, SessaoSchema, dentroDoLimite, gerarId, licencaDe } from '@pdv/shared';
+import { ConfirmarRecuperacaoReqSchema, IniciarRecuperacaoReqSchema, RecuperacaoAparelhoSchema, SessaoSchema, dentroDoLimite, gerarId, licencaDe, permissoesEfetivas } from '@pdv/shared';
 import type { FastifyInstance } from 'fastify';
 import { criarSessao, sha256 } from '../auth';
 import { aparelhos, contas, lojas, operadores, recuperacoesAparelho, sessoes } from '../db/schema';
@@ -65,7 +65,8 @@ export function rotasRecuperacao(app: FastifyInstance, { db, relogio }: Deps): v
         const [sessao] = await tx.select().from(sessoes).where(eq(sessoes.id, r.sessaoId!));
         const [novo] = await tx.select().from(aparelhos).where(eq(aparelhos.id, r.aparelhoNovoId));
         if (!sessao || sessao.revogadaEm || sessao.expiraEm <= agora || sessao.tokenHash !== sha256(token) || sessao.contaId !== r.contaId || sessao.lojaId !== r.lojaId || sessao.operadorId !== r.operadorId || sessao.aparelhoId !== r.aparelhoNovoId || !novo || novo.revogadoEm || novo.contaId !== r.contaId || novo.lojaId !== r.lojaId) return invalida();
-        return SessaoSchema.parse({ token, contaId: r.contaId, lojaId: r.lojaId, operadorId: r.operadorId, aparelhoId: r.aparelhoNovoId });
+        return SessaoSchema.parse({ token, contaId: r.contaId, lojaId: r.lojaId, operadorId: r.operadorId, aparelhoId: r.aparelhoNovoId,
+          ...(dono.usuarioId ? { usuarioId: dono.usuarioId, papel: dono.papel, permissoes: permissoesEfetivas(dono.papel, dono.permissoes) } : {}) });
       }
       if (!r.aparelhosPermitidos.includes(req.aparelhoSubstituidoId)) return conflito('recuperacao_desatualizada');
       const [alvo] = await tx.select().from(aparelhos).where(and(eq(aparelhos.id, req.aparelhoSubstituidoId), eq(aparelhos.contaId, r.contaId), eq(aparelhos.lojaId, r.lojaId), isNull(aparelhos.revogadoEm)));

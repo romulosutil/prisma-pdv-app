@@ -82,7 +82,7 @@ for (const papel of ['operador', 'desconhecido']) {
     const provider = vigiarProvider();
     const negada = await executar(conta, pedido);
     expect(negada.statusCode).toBe(403);
-    expect(negada.json()).toEqual({ erro: 'proibido', mensagem: 'Operação permitida somente ao dono.' });
+    expect(negada.json()).toEqual({ erro: 'proibido', mensagem: rota === 'catalogo' ? 'Seu vínculo não permite esta operação.' : 'Operação permitida somente ao dono.' });
     expect(await snapshot()).toEqual(antes);
     provider.intacto();
     await amb.db.update(schema.operadores).set({ papel: 'dono' }).where(eq(schema.operadores.id, conta.operadorId));
@@ -174,7 +174,7 @@ it('nega não dono antes de validar DTOs e parâmetros das escritas', async () =
   for (const pedido of pedidos) {
     const resposta = await executar(conta, pedido);
     expect(resposta.statusCode).toBe(403);
-    expect(resposta.json()).toEqual({ erro: 'proibido', mensagem: 'Operação permitida somente ao dono.' });
+    expect(resposta.json()).toEqual({ erro: 'proibido', mensagem: pedido.url.startsWith('/catalogo/') ? 'Seu vínculo não permite esta operação.' : 'Operação permitida somente ao dono.' });
     expect(await snapshot()).toEqual(operador);
   }
   provider.intacto();

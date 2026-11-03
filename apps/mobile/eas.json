@@ -4,13 +4,32 @@
     "appVersionSource": "local"
   },
   "build": {
-    "teste": {
+    "demo": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
       },
       "env": {
+        "EXPO_PUBLIC_AMBIENTE": "demo",
         "EXPO_PUBLIC_FERRAMENTAS_TESTE": "1"
+      }
+    },
+    "teste": { "extends": "demo" },
+    "homologacao": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_AMBIENTE": "homologacao",
+        "EXPO_PUBLIC_API_URL": "https://aladdin-pdv-api-homologacao.jicnzg.easypanel.host",
+        "EXPO_PUBLIC_FERRAMENTAS_TESTE": "0"
+      }
+    },
+    "producao": {
+      "android": { "buildType": "app-bundle" },
+      "env": {
+        "EXPO_PUBLIC_AMBIENTE": "producao",
+        "EXPO_PUBLIC_API_URL": "https://aladdin-pdv-api.jicnzg.easypanel.host",
+        "EXPO_PUBLIC_FERRAMENTAS_TESTE": "0"
       }
     }
   }

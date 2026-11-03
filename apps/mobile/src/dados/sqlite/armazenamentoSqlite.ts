@@ -1,7 +1,7 @@
-import { IdentidadeLocalSchema } from '../estadoConta';
+import { IdentidadeLocalSchema, perfilFinanceiro } from '../estadoConta';
 import type { Armazenamento } from '../armazenamento';
 import type { BancoSqlite, SqlExecutor } from './driver';
-import { ehFinanceira, escreverFinanceiro, lerFinanceiro, validarFinanceiro, type ChaveFinanceira, type ParticaoLocal } from './financeiro';
+import { ehFinanceira, escreverFinanceiro, lerFinanceiro, validarFinanceiro, lojaLocal, type ChaveFinanceira, type ParticaoLocal } from './financeiro';
 import { inicializarSchema } from './schema';
 import { alterar, vazioSync } from '../syncAplicacao';
 
@@ -43,21 +43,21 @@ export class ArmazenamentoSqlite implements Armazenamento {
     if (!identidade) return null;
     const sessao = IdentidadeLocalSchema.safeParse(identidade);
     if (!sessao.success) throw new Error('Identidade local inválida. Recupere o acesso sem apagar os dados.');
-    return { contaId: sessao.data.contaId, lojaId: sessao.data.lojaId };
+    return { contaId: sessao.data.contaId, lojaId: sessao.data.lojaId, ...(perfilFinanceiro(sessao.data) ? { perfilId: perfilFinanceiro(sessao.data) } : {}) };
   }
 
   private async migrar(db: BancoSqlite, p: ParticaoLocal): Promise<void> {
-    const marcador = await db.getFirstAsync('SELECT chave FROM migracoes_legado WHERE conta_id = ? AND loja_id = ? AND chave = ?', p.contaId, p.lojaId, 'financeiro_v1');
+    const marcador = await db.getFirstAsync('SELECT chave FROM migracoes_legado WHERE conta_id = ? AND loja_id = ? AND chave = ?', p.contaId, lojaLocal(p), 'financeiro_v1');
     if (marcador) return;
     const proprietario = await db.getFirstAsync<{ valor_json: string }>('SELECT valor_json FROM estado_local WHERE chave = ?', PROPRIETARIO_LEGADO);
     // Os mesmos dados de origem nunca são importados para uma segunda conta.
-    const importar = !proprietario || proprietario.valor_json === JSON.stringify(p);
+    const importar = !p.perfilId && (!proprietario || proprietario.valor_json === JSON.stringify(p));
     const valores = importar ? await Promise.all(CHAVES.map((chave) => this.legado.obter(chave))) : [null, null, null];
     const entrada = Object.fromEntries(CHAVES.map((chave, i) => [chave, validarFinanceiro(chave, valores[i] ?? (chave === 'vendas' ? { vendas: [], numeroBase: 0 } : []), p)]));
     await db.withExclusiveTransactionAsync(async (tx) => {
       // Não sobrescrever destino sem marcador: pode ser um banco recuperado.
       for (const chave of CHAVES) {
-        const existente = await tx.getFirstAsync(`SELECT id FROM ${chave} WHERE conta_id = ? AND loja_id = ? LIMIT 1`, p.contaId, p.lojaId);
+        const existente = await tx.getFirstAsync(`SELECT id FROM ${chave} WHERE conta_id = ? AND loja_id = ? LIMIT 1`, p.contaId, lojaLocal(p));
         if (existente) throw new Error(ERRO_MIGRACAO);
       }
       for (const chave of ['produtos', 'caixas', 'vendas'] as const) await escreverFinanceiro(tx, chave, entrada[chave], p);
@@ -68,11 +68,11 @@ export class ArmazenamentoSqlite implements Armazenamento {
       }
       // Guardar somente contagens/totais no marcador, nunca o conteúdo financeiro completo.
       const vendas = entrada.vendas as { vendas: { totalCentavos: number }[]; numeroBase: number };
-      await tx.runAsync('INSERT INTO migracoes_legado VALUES (?, ?, ?, ?)', p.contaId, p.lojaId, 'financeiro_v1', JSON.stringify({
+      await tx.runAsync('INSERT INTO migracoes_legado VALUES (?, ?, ?, ?)', p.contaId, lojaLocal(p), 'financeiro_v1', JSON.stringify({
         produtos: (entrada.produtos as unknown[]).length, caixas: (entrada.caixas as unknown[]).length,
         vendas: vendas.vendas.length, totalCentavos: vendas.vendas.reduce((s, v) => s + v.totalCentavos, 0), numeroBase: vendas.numeroBase,
       }));
-      if (!proprietario) await tx.runAsync('INSERT INTO estado_local VALUES (?, ?)', PROPRIETARIO_LEGADO, JSON.stringify(p));
+      if (!proprietario && !p.perfilId) await tx.runAsync('INSERT INTO estado_local VALUES (?, ?)', PROPRIETARIO_LEGADO, JSON.stringify(p));
     });
   }
 
@@ -104,9 +104,9 @@ export class ArmazenamentoSqlite implements Armazenamento {
         const payload = JSON.stringify(entrada.mutacao);
         const existente = await tx.getFirstAsync<{ conta_id: string; loja_id: string; payload_json: string }>('SELECT conta_id, loja_id, payload_json FROM outbox WHERE id = ?', entrada.mutacao.id);
         if (existente) {
-          if (existente.conta_id !== p.contaId || existente.loja_id !== p.lojaId || existente.payload_json !== payload) throw new Error('ID de mutação já usado com conteúdo diferente. Preserve os dados para recuperação.');
+          if (existente.conta_id !== p.contaId || existente.loja_id !== lojaLocal(p) || existente.payload_json !== payload) throw new Error('ID de mutação já usado com conteúdo diferente. Preserve os dados para recuperação.');
         } else {
-          await tx.runAsync('INSERT INTO outbox (conta_id, loja_id, id, payload_json) VALUES (?, ?, ?, ?)', p.contaId, p.lojaId, entrada.mutacao.id, payload);
+          await tx.runAsync('INSERT INTO outbox (conta_id, loja_id, id, payload_json) VALUES (?, ?, ?, ?)', p.contaId, lojaLocal(p), entrada.mutacao.id, payload);
         }
       }
     });

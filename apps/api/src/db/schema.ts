@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
   bigint,
@@ -21,6 +22,8 @@ import {
   type FonteCatalogo,
   type Venda,
   type CupomAplicado,
+  type Permissao,
+  type Caixa, type MovimentoCaixa,
 } from '@pdv/shared';
 import type { EnvelopeCodigo } from '../email/cifrador';
 import type { MotivoEntregaCodigo } from '../email/tiposEntrega';
@@ -54,6 +57,13 @@ export const lojas = pgTable('lojas', {
   atualizadoEm: atualizadoEm(),
 });
 
+export const usuarios = pgTable('usuarios', {
+  id: uuid('id').primaryKey(),
+  email: text('email').notNull().unique(),
+  nome: text('nome').notNull(),
+  criadoEm: criadoEm(), atualizadoEm: atualizadoEm(),
+});
+
 export const operadores = pgTable('operadores', {
   id: uuid('id').primaryKey(),
   contaId: uuid('conta_id')
@@ -63,10 +73,16 @@ export const operadores = pgTable('operadores', {
     .notNull()
     .references(() => lojas.id),
   nome: text('nome').notNull(),
-  papel: text('papel', { enum: ['dono', 'operador'] }).notNull(),
+  papel: text('papel', { enum: ['dono', 'gerente', 'operador'] }).notNull(),
+  usuarioId: uuid('usuario_id').references(() => usuarios.id),
+  estado: text('estado', { enum: ['convidado', 'ativo', 'suspenso', 'desligado'] }).notNull().default('ativo'),
+  permissoes: jsonb('permissoes').$type<Permissao[]>(),
+  conviteExpiraEm: instante('convite_expira_em'),
+  convidadoPor: uuid('convidado_por'),
+  aceitoEm: instante('aceito_em'),
   criadoEm: criadoEm(),
   atualizadoEm: atualizadoEm(),
-});
+}, (t) => [uniqueIndex('operadores_usuario_loja_idx').on(t.usuarioId, t.lojaId)]);
 
 /** O id é gerado no aparelho; vale para uma conta só. */
 export const aparelhos = pgTable('aparelhos', {
@@ -184,6 +200,7 @@ export const vendas = pgTable(
     operadorId: uuid('operador_id').notNull(),
     caixaId: uuid('caixa_id').references((): AnyPgColumn => caixas.id),
     cancelamento: jsonb('cancelamento').$type<Venda['cancelamento']>(),
+    fiado: jsonb('fiado').$type<Venda['fiado']>(),
     totalCentavos: inteiro('total_centavos').notNull(),
     status: text('status', { enum: ['concluida', 'cancelada'] }).notNull(),
     criadoEm: criadoEm(),
@@ -241,12 +258,14 @@ export const caixas = pgTable(
     fechadoEm: instante('fechado_em'),
     esperadoCentavos: inteiro('esperado_centavos'),
     contadoCentavos: inteiro('contado_centavos'),
+    reservado: boolean('reservado').notNull().default(false),
+    detalhes: jsonb('detalhes').$type<Pick<Caixa, 'versaoContrato' | 'contaId' | 'aparelhoAtualId' | 'fechamento'>>(),
     criadoEm: criadoEm(),
     atualizadoEm: atualizadoEm(),
     excluidoEm: instante('excluido_em'),
     versao: integer('versao').notNull(),
   },
-  (t) => [index('caixas_loja_idx').on(t.lojaId)],
+  (t) => [index('caixas_loja_idx').on(t.lojaId), uniqueIndex('caixas_reserva_ativa_idx').on(t.lojaId, t.operadorId).where(sql`${t.reservado} = true and ${t.fechadoEm} is null`)],
 );
 
 export const movimentosCaixa = pgTable('movimentos_caixa', {
@@ -257,11 +276,23 @@ export const movimentosCaixa = pgTable('movimentos_caixa', {
   lojaId: uuid('loja_id')
     .notNull()
     .references(() => lojas.id),
-  tipo: text('tipo', { enum: ['sangria', 'suprimento'] }).notNull(),
+  tipo: text('tipo', { enum: ['sangria', 'suprimento', 'retirada', 'transferencia_entrada', 'transferencia_saida', 'devolucao', 'correcao_entrada', 'correcao_saida', 'recebimento_fiado', 'estorno_fiado'] }).notNull(),
   valorCentavos: inteiro('valor_centavos').notNull(),
   motivo: text('motivo'),
+  detalhes: jsonb('detalhes').$type<MovimentoCaixa>(),
   criadoEm: criadoEm(),
 });
+
+/** Eventos de autorização, troca de aparelho e conferência; nunca substituem o histórico financeiro. */
+export const auditoriaCaixa = pgTable('auditoria_caixa', {
+  id: uuid('id').primaryKey(),
+  lojaId: uuid('loja_id').notNull().references(() => lojas.id),
+  caixaId: uuid('caixa_id').notNull().references(() => caixas.id),
+  autorOperadorId: uuid('autor_operador_id').notNull(),
+  tipo: text('tipo').notNull(),
+  dados: jsonb('dados').$type<Record<string, unknown>>().notNull(),
+  criadoEm: criadoEm(),
+}, t => [index('auditoria_caixa_loja_idx').on(t.lojaId, t.caixaId)]);
 
 // ---------- Catálogo por código de barras ----------
 
@@ -417,3 +448,36 @@ export const limitesAuth = pgTable('limites_auth', {
   usos: integer('usos').notNull(),
   ultimoUsoEm: instante('ultimo_uso_em'),
 });
+
+// ---------- Gestão R4: eventos imutáveis e cadastros por loja ----------
+export const movimentosEstoque = pgTable('movimentos_estoque', {
+  id: uuid('id').primaryKey(), lojaId: uuid('loja_id').notNull().references(() => lojas.id),
+  produtoId: uuid('produto_id').notNull().references(() => produtos.id),
+  tipo: text('tipo', { enum: ['inicial', 'entrada', 'ajuste', 'venda', 'devolucao'] }).notNull(),
+  quantidadeMilesimos: inteiro('quantidade_milesimos').notNull(), motivo: text('motivo').notNull(),
+  itemVendaId: uuid('item_venda_id'), operadorId: uuid('operador_id'), aparelhoId: uuid('aparelho_id'), criadoEm: criadoEm(),
+}, t => [index('movimentos_estoque_produto_idx').on(t.lojaId, t.produtoId),
+  uniqueIndex('movimentos_estoque_baixa_item_idx').on(t.itemVendaId).where(sql`${t.tipo} = 'venda'`)]);
+export const clientes = pgTable('clientes', {
+  id: uuid('id').primaryKey(), lojaId: uuid('loja_id').notNull().references(() => lojas.id),
+  nome: text('nome').notNull(), contato: text('contato').notNull(), criadoEm: criadoEm(),
+}, t => [index('clientes_loja_idx').on(t.lojaId)]);
+export const eventosFiado = pgTable('eventos_fiado', {
+  id: uuid('id').primaryKey(), lojaId: uuid('loja_id').notNull().references(() => lojas.id),
+  vendaId: uuid('venda_id').notNull().references(() => vendas.id), operadorId: uuid('operador_id').notNull(),
+  aparelhoId: uuid('aparelho_id').notNull(), tipo: text('tipo', { enum: ['recebimento', 'estorno'] }).notNull(),
+  valorCentavos: inteiro('valor_centavos').notNull(), meio: text('meio', { enum: ['dinheiro', 'pix', 'cartao_credito', 'cartao_debito'] }).notNull(),
+  caixaId: uuid('caixa_id').references(() => caixas.id), originalId: uuid('original_id'), motivo: text('motivo').notNull(), criadoEm: criadoEm(),
+}, t => [index('eventos_fiado_venda_idx').on(t.lojaId, t.vendaId), uniqueIndex('eventos_fiado_estorno_idx').on(t.originalId)]);
+/** Solicitações pessoais: nunca são compartilhadas com o dono ou outros operadores. */
+export const solicitacoesSuporte = pgTable('solicitacoes_suporte', {
+  id: uuid('id').primaryKey(), contaId: uuid('conta_id').notNull().references(() => contas.id),
+  lojaId: uuid('loja_id').notNull().references(() => lojas.id),
+  operadorId: uuid('operador_id').notNull().references(() => operadores.id),
+  aparelhoId: uuid('aparelho_id').notNull().references(() => aparelhos.id),
+  tipo: text('tipo', { enum: ['suporte', 'exclusao'] }).notNull(), mensagem: text('mensagem').notNull(),
+  diagnostico: jsonb('diagnostico').$type<import('@pdv/shared').SolicitarSuporte['diagnostico']>(),
+  versaoPoliticas: text('versao_politicas').notNull(),
+  estado: text('estado', { enum: ['aberto', 'em_analise', 'concluido'] }).notNull().default('aberto'),
+  resposta: text('resposta'), criadoEm: criadoEm(), atualizadoEm: atualizadoEm(),
+}, t => [index('solicitacoes_suporte_perfil_idx').on(t.contaId, t.lojaId, t.operadorId)]);

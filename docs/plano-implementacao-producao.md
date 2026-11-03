@@ -2,6 +2,8 @@
 
 Data de referência: 28/10/2026.
 
+Ampliação de escopo em 01/11/2026: o [roadmap do app completo com caixa por usuário](roadmap-app-completo.md) inclui vários usuários por loja, empresas isoladas e caixas individuais com entrada, sangria e retirada. Ele orienta as próximas entregas; o escopo de operador único abaixo descreve a etapa inicial, e os registros de aceite anteriores permanecem como histórico.
+
 Status: implementação local em andamento sob Goal persistente. Checkpoints, decisões e retomada em .specs/STATE.md. Somente itens com evidências estão verificados; homologação externa e critérios globais permanecem pendentes. O projeto ainda não está pronto para produção.
 
 ## Objetivo e escopo
@@ -17,6 +19,7 @@ Manter Fastify, Drizzle/PostgreSQL, Expo/React Native e o domínio em `packages/
 Execução reorganizada em30/10/2026 em [fases com checkpoints no app](fases-e-checkpoints.md). Fases1–2 aprovadas pelo usuário. Fase3 implementada localmente em `d30ea9f`/`8a0b3e5`/`985c9b1`, com revisão técnica PASS e checkpoint3 entregue. Posteriormente, o usuário autorizou avançar localmente enquanto o domínio verifica no Resend; fase4A local iniciada em `79fe157`. Essa autorização não presume aceite de Android, e-mail externo ou produção. Os blocos reduzidos continuam sujeitos aos checkpoints registrados.
 
 - IDs `P0-01-A` identificam tarefas; IDs `AC-P0-01-1` identificam critérios de aceite.
+- A cada entrega ou avanço parcial, atualizar o roadmap e registrar o que foi construído, validado e ainda pendente no [histórico de checkpoints](checkpoints-roadmap.md), antes de encerrar a resposta ou iniciar o próximo lote. A regra persistente está no `AGENTS.md` da raiz.
 - Marcar uma tarefa apenas quando o resultado correspondente estiver implementado e verificado.
 - Marcar um critério apenas com evidência: teste, comando e resultado, ou roteiro manual com versão do artefato e aparelho/ambiente.
 - Registrar evidências na seção final; a existência de testes antigos não comprova os novos critérios.

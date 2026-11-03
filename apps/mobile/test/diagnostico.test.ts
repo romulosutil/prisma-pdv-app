@@ -26,6 +26,21 @@ afterEach(() => {
 });
 
 describe('sanitizarTexto', () => {
+  it('diagnóstico exporta e limpa somente eventos do perfil atual, sem atribuir histórico legado', async () => {
+    const r = await carregar(true);
+    const base = new ArmazenamentoMemoria();
+    r.registrar('venda', 'Legado sem autoria', { totalCentavos: 9000 });
+    let perfil = 'empresa/loja/ana'; r.definirFonteDePerfil(() => perfil);
+    await r.iniciarRegistro(base);
+    r.registrar('venda', 'Venda da Ana', { totalCentavos: 700 });
+    perfil = 'empresa/loja/bruno'; r.registrar('venda', 'Venda do Bruno', { totalCentavos: 400 });
+    expect((await r.exportar()).eventos.map(e => e.msg)).toEqual(['Venda do Bruno']);
+    expect(r.quantidadeDeEventos()).toBe(1);
+    await r.limpar(); expect((await r.exportar()).eventos).toEqual([]);
+    perfil = 'empresa/loja/ana';
+    expect((await r.exportar()).eventos.map(e => e.msg)).toEqual(['Venda da Ana']);
+    expect(JSON.stringify(await base.obter('diagnostico'))).toContain('Legado sem autoria');
+  });
   it('mascara CPF formatado mantendo os 4 últimos dígitos', () => {
     expect(sanitizarTexto('cliente 123.456.747-25 pagou')).toBe('cliente ***.***.*47-25 pagou');
   });

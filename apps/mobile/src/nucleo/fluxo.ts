@@ -23,12 +23,20 @@ const DEPOIS_DE_ASSINAR = ['cartao', 'teste-iniciado', 'pagamentos', 'camera'];
 export function decidirRota(estado: EstadoDoFluxo, segmentos: readonly string[]): DestinoDoFluxo | null {
   const [raiz, tela = ''] = segmentos;
   const noOnboarding = raiz === '(onboarding)';
+  // Políticas e ajuda continuam acessíveis sem sessão ou licença comercial.
+  if (raiz === 'suporte') return null;
 
   if (!estado.temConta) return noOnboarding && ANTES_DA_CONTA.includes(tela) ? null : '/boas-vindas';
 
   // Uma venda já iniciada não perde parcelas nem é interrompida por vencimento da sessão/licença.
   if (estado.vendaEmAndamento && (raiz === 'vender' || raiz === 'pagar')) return null;
-  if (estado.reautenticacaoNecessaria) return noOnboarding && tela === 'entrar' ? null : '/entrar';
+  if (estado.reautenticacaoNecessaria) {
+    if ((raiz === 'ajustes' && tela === 'usuarios') || (raiz === '(tabs)' && tela === 'caixa' && segmentos[2] === 'sync')) return null;
+    return noOnboarding && tela === 'entrar' ? null : '/entrar';
+  }
+
+  // A pessoa autenticada também pode iniciar o acesso a outro perfil sem sair.
+  if (noOnboarding && tela === 'entrar') return null;
 
   const { assinatura, agora } = estado;
   if (assinatura?.status === 'liberada') {

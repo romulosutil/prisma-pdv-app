@@ -37,8 +37,10 @@ export function useDados(): Dados {
 
 /** Conta deste aparelho: sessão (token, lojaId, operadorId, aparelhoId) e nomes exibidos. */
 export function useConta() {
-  const { conta } = useDados();
-  const { sessao, perfil, identidade, reautenticacaoNecessaria } = useObservavel(conta);
+  const dados = useDados();
+  const { conta } = dados;
+  const { sessao, perfil, identidade, reautenticacaoNecessaria: reautenticacaoSalva } = useObservavel(conta);
+  const reautenticacaoNecessaria = reautenticacaoSalva || (dados.backend.modo === 'http' && !!identidade && !dados.acessoOffline.permitido(identidade));
   const carregandoConta = useObservavel(conta.transicao);
   return {
     sessao,
@@ -113,16 +115,17 @@ export function useSincronizacao() {
 }
 
 export function useCaixa() {
-  const { caixa: repo, vendas } = useDados();
+  const dados = useDados();
+  const { caixa: repo, vendas } = dados;
   const historico = useObservavel(repo);
   return useMemo(
     () => ({
       caixa: repo.atual(),
       historico,
-      abrir: (trocoInicialCentavos: Centavos): Promise<Caixa> => repo.abrir(trocoInicialCentavos),
-      fechar: (contadoCentavos: Centavos): Promise<Caixa> => repo.fechar(contadoCentavos, vendas.obter().vendas),
-      registrarMovimento: (tipo: 'sangria' | 'suprimento', valorCentavos: Centavos, motivo?: string): Promise<Caixa> =>
-        repo.registrarMovimento(tipo, valorCentavos, motivo ?? null),
+      abrir: (trocoInicialCentavos: Centavos): Promise<Caixa> => dados.abrirCaixa(trocoInicialCentavos),
+      fechar: (contadoCentavos: Centavos, trocoRestanteCentavos = 0): Promise<Caixa> => repo.fechar(contadoCentavos, vendas.obter().vendas, trocoRestanteCentavos),
+      registrarMovimento: (tipo: 'sangria' | 'suprimento' | 'retirada', valorCentavos: Centavos, motivo?: string, detalhes?: { categoria: string; destino: string }): Promise<Caixa> =>
+        repo.registrarMovimento(tipo, valorCentavos, motivo ?? null, detalhes),
     }),
     [repo, vendas, historico],
   );
@@ -130,14 +133,15 @@ export function useCaixa() {
 
 /** Totais do dia (padrão: hoje no relógio do app) — Início e Caixa usam o mesmo cálculo. */
 export function useResumoDoDia(dia?: Date): ResumoDoDia {
-  const { vendas, caixa, relogio } = useDados();
+  const { vendas, caixa, relogio, conta } = useDados();
+  const estadoConta = useObservavel(conta);
   const estadoVendas = useObservavel(vendas);
   const caixas = useObservavel(caixa);
   const diasDeDesvio = useObservavel(relogio);
   return useMemo(
-    () => resumirDia(dia ?? relogio.agora(), estadoVendas.vendas, caixa.atual()),
+    () => resumirDia(dia ?? relogio.agora(), estadoVendas.vendas.filter(v => v.operadorId === estadoConta.identidade?.operadorId), caixa.atual()),
     // `caixas` e `diasDeDesvio` mudam quando o caixa ou o relógio de teste mudam.
-    [dia, estadoVendas, caixas, diasDeDesvio, relogio, caixa],
+    [dia, estadoVendas, caixas, diasDeDesvio, relogio, caixa, estadoConta],
   );
 }
 

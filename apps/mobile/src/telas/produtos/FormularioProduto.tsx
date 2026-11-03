@@ -15,7 +15,7 @@ import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
 import { useToast } from '@/componentes/Toast';
 import { ehErroDeDominio } from '@/dados/erros';
-import { useLicenca, useProdutos } from '@/dados/hooks';
+import { useDados, useLicenca, useProdutos } from '@/dados/hooks';
 import type { NovoProduto } from '@/dados/produtos';
 import type { Unidade } from '@/dados/tipos';
 import { confirmarNoCatalogo } from '@/servicos/catalogoEan';
@@ -54,6 +54,8 @@ const OPCOES_UNIDADE = [
 
 export function FormularioProduto({ produto, sugestao, atalhoInicial = false, daCamera = false }: FormularioProdutoProps) {
   const router = useRouter();
+  const dadosApp = useDados();
+  const saldoPorMovimentos = !!produto && dadosApp.backend.modo === 'http';
   const toast = useToast();
   const voltar = useVoltar('/produtos');
   const { produtos, criar, editar, excluir, buscarPorEan } = useProdutos();
@@ -92,14 +94,14 @@ export function FormularioProduto({ produto, sugestao, atalhoInicial = false, da
     if (precoCentavos <= 0) novos.preco = 'Digite o preço de venda.';
     const lidoEstoque = lerQuantidade(estoque);
     const lidoMinimo = lerQuantidade(minimo);
-    if (comEstoque && !lidoEstoque.valida) novos.estoque = 'Use só números, com vírgula para fração (ex.: 2,5).';
+    if (comEstoque && !saldoPorMovimentos && !lidoEstoque.valida) novos.estoque = 'Use só números, com vírgula para fração (ex.: 2,5).';
     if (comEstoque && !lidoMinimo.valida) novos.minimo = 'Use só números, com vírgula para fração (ex.: 2,5).';
     setErros(novos);
     if (Object.keys(novos).length > 0) return null;
 
     const dados: NovoProduto = { nome: nome.trim(), ean: ean || null, precoCentavos, unidade, atalho };
     if (comEstoque) {
-      dados.estoque = lidoEstoque.valida ? lidoEstoque.milesimos : null;
+      if (!saldoPorMovimentos) dados.estoque = lidoEstoque.valida ? lidoEstoque.milesimos : null;
       dados.estoqueMinimo = lidoMinimo.valida ? lidoMinimo.milesimos : null;
     }
     return dados;
@@ -245,15 +247,17 @@ export function FormularioProduto({ produto, sugestao, atalhoInicial = false, da
 
       {comEstoque ? (
         <View style={estilos.grupo}>
+          {saldoPorMovimentos ? <Botao rotulo="Ver movimentos de estoque" variante="terciario" onPress={() => router.push('/gestao/estoque')} /> : null}
           <Campo
             rotulo={`Estoque atual (${unidade})`}
+            editable={!saldoPorMovimentos}
             value={estoque}
             onChangeText={(t) => {
               setEstoque(t);
               setErros((e) => ({ ...e, estoque: undefined }));
             }}
             erro={erros.estoque}
-            ajuda="Deixe vazio se não controla este item."
+            ajuda={saldoPorMovimentos ? "Último saldo confirmado. Use movimentos para registrar entradas, ajustes ou devoluções." : "Deixe vazio se não controla este item."}
             keyboardType="decimal-pad"
             maxLength={10}
           />

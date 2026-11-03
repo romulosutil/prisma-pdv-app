@@ -7,8 +7,13 @@ export * from './cupons';
 export * from './datas';
 export * from './dinheiro';
 export * from './ean';
+export * from './equipe';
 export * from './ids';
 export * from './licenca';
 export * from './planos';
 export * from './relogio';
 export * from './tokens';
+export * from './caixa';
+
+export * from './gestao';
+export * from './suporte';

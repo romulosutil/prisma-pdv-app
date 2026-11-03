@@ -41,8 +41,8 @@ export interface Plano {
   recursos: Recurso[];
 }
 
+// O ID de integração continua legível em licenças antigas, mas não integra a oferta atual.
 const RECURSOS_NEGOCIO: Recurso[] = [
-  'integracao_pagamentos',
   'estoque',
   'sangria_suprimento',
   'relatorios_periodo',
@@ -72,7 +72,7 @@ export const PLANOS: Record<PlanoId, Plano> = {
     id: 'pro',
     nome: 'Pro',
     precoMensalCentavos: 4990,
-    descricaoCurta: 'Venda e registre seus recebimentos em um só plano',
+    descricaoCurta: 'Estoque, fiado, equipe e até 3 lojas com pagamentos manuais',
     maisEscolhido: false,
     limites: { produtos: null, aparelhos: 10, operadores: null, lojas: 3, historicoDias: null },
     recursos: [

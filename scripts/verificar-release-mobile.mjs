@@ -9,7 +9,7 @@ export async function verificarRelease(bundle, host, mapa) {
   const bytes = await readFile(bundle), texto = bytes.toString('utf8');
   assert.ok(texto.includes(host), 'Host conectado ausente');
   for (const marca of ['tok_mock_', 'txn_mock_', 'pix.simulado.invalid', 'Simular bip', 'Simular pagamento recebido', 'Zerar dados do app', 'Copiar diagn', 'Limpar diagn', 'Relógio de teste']) assert.ok(!texto.includes(marca), `Ferramenta/simulação no release: ${marca}`);
-  for (const marca of ['/suporte/solicitacoes', '/suporte/exportacao', 'versaoPoliticas']) assert.ok(texto.includes(marca), `Recurso do piloto ausente: ${marca}`);
+  for (const marca of ['/suporte/solicitacoes', '/suporte/exportacao', 'versaoPoliticas', 'x-pdv-agora']) assert.ok(texto.includes(marca), `Recurso do piloto ausente: ${marca}`);
   let fontes = null;
   if (mapa) {
     const { sources } = JSON.parse(await readFile(mapa, 'utf8'));

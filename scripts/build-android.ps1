@@ -15,8 +15,10 @@ $env:EXPO_PUBLIC_FERRAMENTAS_TESTE = $perfilPdv.env.EXPO_PUBLIC_FERRAMENTAS_TEST
 Remove-Item Env:EXPO_PUBLIC_API_URL -ErrorAction SilentlyContinue
 if ($perfilPdv.env.EXPO_PUBLIC_API_URL) {
   $env:EXPO_PUBLIC_API_URL = $perfilPdv.env.EXPO_PUBLIC_API_URL
-  $saudePdv = Invoke-RestMethod "$env:EXPO_PUBLIC_API_URL/saude" -TimeoutSec 20
+  $respostaSaudePdv = Invoke-WebRequest "$env:EXPO_PUBLIC_API_URL/saude" -TimeoutSec 20
+  $saudePdv = $respostaSaudePdv.Content | ConvertFrom-Json
   if ($saudePdv.status -ne 'ok') { throw 'API indisponível. Build conectado interrompido.' }
+  if (!$respostaSaudePdv.Headers['x-pdv-agora']) { throw 'API sem referência precisa de hora. Implante a versão compatível antes de gerar o APK.' }
   $suportePdv = Invoke-WebRequest "$env:EXPO_PUBLIC_API_URL/suporte/solicitacoes" -SkipHttpErrorCheck -TimeoutSec 20
   $apiCompativelPdv = [int]$suportePdv.StatusCode -eq 401
   if (!$apiCompativelPdv) { throw 'API incompatível com o piloto: suporte deve responder 401 sem sessão. Implante a versão compatível antes de gerar o APK para o celular.' }

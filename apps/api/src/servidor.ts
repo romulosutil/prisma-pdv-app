@@ -47,6 +47,11 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
     orcamentoEanMs: config.orcamentoEanMs,
   };
   const app = Fastify({ logger: config.logger ?? false });
+  // Referência precisa para novas operações do aparelho; não depende do Date HTTP arredondado.
+  app.addHook('onSend', async (_request, reply, payload) => {
+    reply.header('x-pdv-agora', deps.relogio.agora().toISOString());
+    return payload;
+  });
 
   // Aceita POST com Content-Type JSON e corpo vazio (ex.: /assinatura/cancelar).
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (_request, corpo, feito) => {
@@ -79,7 +84,7 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
   );
 
   if (!producao) {
-    await app.register(cors, { origin: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] });
+    await app.register(cors, { origin: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], exposedHeaders: ['x-pdv-agora'] });
   }
 
   app.get('/saude', async () => {

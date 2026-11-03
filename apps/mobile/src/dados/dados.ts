@@ -94,7 +94,7 @@ export class Dados {
     });
     this.instalacao = new InstalacaoRepo(armazenamento, novoId);
     this.backend = urlApi
-      ? new BackendHttp(urlApi.replace(/\/+$/, ''), () => this.conta.obter().sessao?.token ?? null, (token) => this.conta.invalidarSessao(token))
+      ? new BackendHttp(urlApi.replace(/\/+$/, ''), () => this.conta.obter().sessao?.token ?? null, (token) => this.conta.invalidarSessao(token), (hora, recebidaEm) => this.relogio.sincronizarServidor(hora, recebidaEm))
       : new BackendLocal(armazenamento, this.relogio, novoId);
     this.assinatura = new AssinaturaServico(this.armazenamentoDaLoja, this.relogio, this.backend, () => !this.conta.transicao.obter() && this.conta.obter().sessao !== null, () => this.conta.obter().identidade?.contaId ?? null);
     this.suporte = new SuporteServico(this.backend, this.armazenamentoDaLoja, () => this.conta.obter().sessao, novoId);

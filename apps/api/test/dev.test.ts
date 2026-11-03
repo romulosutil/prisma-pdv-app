@@ -16,6 +16,14 @@ afterEach(() => vi.unstubAllEnvs());
 const criar = (relogio: Relogio) => criarApp({ db: banco.db, relogio, billing: new MockBillingProvider(), fontesEan: [], ...(process.env.NODE_ENV === 'production' ? { emissaoCodigo: emissaoTeste } : {}) });
 
 describe('rotas /dev', () => {
+  it('informa hora precisa da API sem depender do relógio do cliente', async () => {
+    const app = await criar(new RelogioFalso(INICIO));
+    try {
+      const resposta = await app.inject({ method: 'GET', url: '/saude' });
+      expect(resposta.headers['x-pdv-agora']).toBe(INICIO.toISOString());
+      expect(resposta.json()).toEqual({ status: 'ok' });
+    } finally { await app.close(); }
+  });
   it('fora de produção: avançam o relógio e rodam o job', async () => {
     const relogio = new RelogioFalso(INICIO);
     const app = await criar(relogio);

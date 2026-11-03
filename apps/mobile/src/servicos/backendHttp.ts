@@ -109,6 +109,7 @@ export class BackendHttp implements Backend {
     private readonly baseUrl: string,
     private readonly obterToken: () => string | null,
     private readonly aoSessaoInvalida?: (tokenUsado: string) => Promise<void> | void,
+    private readonly aoHoraServidor?: (horaIso: string, recebidaEm: number) => Promise<void>,
   ) {}
 
   enviarMutacoes(req: SyncPushReq, token?: string) {
@@ -194,6 +195,7 @@ export class BackendHttp implements Backend {
     const controle = new AbortController();
     let resposta: Response;
     let texto: string;
+    let recebidaEm: number;
     let prazo: ReturnType<typeof setTimeout> | undefined;
     try {
       const chamada = (async () => {
@@ -204,7 +206,8 @@ export class BackendHttp implements Backend {
           signal: controle.signal,
         });
         // A autenticação não depende do corpo, que pode conter dados sensíveis.
-        return { resposta: recebida, texto: recebida.status === 401 ? '' : await recebida.text() };
+        const em = Date.now();
+        return { resposta: recebida, recebidaEm: em, texto: recebida.status === 401 ? '' : await recebida.text() };
       })();
       const limite = new Promise<never>((_, rejeitar) => {
         prazo = setTimeout(() => {
@@ -212,7 +215,7 @@ export class BackendHttp implements Backend {
           rejeitar(new Error('Tempo limite excedido.'));
         }, TEMPO_LIMITE_MS);
       });
-      ({ resposta, texto } = await Promise.race([chamada, limite]));
+      ({ resposta, texto, recebidaEm } = await Promise.race([chamada, limite]));
     } catch {
       throw new ErroBackend('rede', 'Sem conexão com o servidor.');
     } finally {
@@ -228,9 +231,14 @@ export class BackendHttp implements Backend {
 
     if (!resposta.ok) throw erroDaResposta(resposta.status, json);
     if (opcoes.espera204 && resposta.status !== 204) throw new ErroBackend('resposta_invalida', 'Resposta fora do contrato.', resposta.status);
-    if (!schema) return undefined as T;
+    const sincronizarHora = async () => {
+      const hora = resposta.headers.get('x-pdv-agora');
+      if (hora && z.iso.datetime().safeParse(hora).success) await this.aoHoraServidor?.(hora, recebidaEm);
+    };
+    if (!schema) { await sincronizarHora(); return undefined as T; }
     const lido = schema.safeParse(json);
     if (!lido.success) throw new ErroBackend('resposta_invalida', 'Resposta fora do contrato.', resposta.status);
+    await sincronizarHora();
     return lido.data;
   }
 }

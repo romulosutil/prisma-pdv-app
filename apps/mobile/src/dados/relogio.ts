@@ -23,4 +23,7 @@ export class RelogioApp extends Persistido<number> implements Relogio {
   async voltarAoNormal(): Promise<void> {
     await this.modificar(() => 0);
   }
+
+  /** A demo usa relógio de teste; o Metro fornece a implementação real nos perfis conectados. */
+  async sincronizarServidor(_horaIso: string, _recebidaEm: number): Promise<void> {}
 }

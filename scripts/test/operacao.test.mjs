@@ -17,7 +17,7 @@ test('gate do bundle exige recursos/host e recusa simulador ou fonte de diagnós
   const pasta = await mkdtemp(join(tmpdir(), 'pdv-r5-'));
   try {
     const bundle = join(pasta, 'app.hbc'), mapa = join(pasta, 'app.map');
-    const texto = 'aladdin-pdv-api-homologacao.jicnzg.easypanel.host /suporte/solicitacoes /suporte/exportacao versaoPoliticas';
+    const texto = 'aladdin-pdv-api-homologacao.jicnzg.easypanel.host /suporte/solicitacoes /suporte/exportacao versaoPoliticas x-pdv-agora';
     await writeFile(bundle, texto); await writeFile(mapa, JSON.stringify({ sources: ['/apps/mobile/src/release/registro.ts'] }));
     assert.equal((await verificarRelease(bundle, 'aladdin-pdv-api-homologacao.jicnzg.easypanel.host', mapa)).resultado, 'PASS');
     await writeFile(bundle, texto + ' tok_mock_'); await assert.rejects(verificarRelease(bundle, 'aladdin-pdv-api-homologacao.jicnzg.easypanel.host', mapa));

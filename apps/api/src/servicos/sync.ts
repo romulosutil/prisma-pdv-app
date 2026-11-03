@@ -7,6 +7,9 @@ import {
   dentroDoLimite,
   licencaDe,
   podeUsar,
+  controlaEstoque,
+  mesclarAjustesEstoque,
+  type AjusteEstoque,
   OFFLINE_MAX_DIAS,
   type Assinatura,
   type Caixa,
@@ -89,15 +92,28 @@ async function upsertProduto(c: Contexto, p: Produto): Promise<Resultado> {
   if (atual && atual.lojaId !== p.lojaId) return 'loja_invalida';
 
   const atualizadoEm = noMaximoAgora(p.atualizadoEm, c.agora);
-  // Last-write-wins: a mutação velha é aceita (já foi tratada) mas não altera nada.
-  if (atual && atualizadoEm < atual.atualizadoEm) return null;
-
+  let ajustes: AjusteEstoque[];
+  try { ajustes = mesclarAjustesEstoque(atual?.ajustesEstoque ?? [], p.ajustesEstoque ?? []); }
+  catch { return 'movimento_estoque_invalido'; }
+  const novosAjustes = ajustes.length - (atual?.ajustesEstoque?.length ?? 0);
+  const velho = atual && atualizadoEm < atual.atualizadoEm;
+  // LWW vale para metadados. Novos ajustes imutáveis sobrevivem a um snapshot antigo.
+  if (velho && !novosAjustes) return null;
   const vivoAntes = atual !== undefined && atual.excluidoEm === null;
   const vivoDepois = p.excluidoEm === null;
-  if (!vivoAntes && vivoDepois && !dentroDoLimite(c.licenca.planoId, 'produtos', c.produtosAtivos)) return 'limite_plano';
-
-  if (!podeUsar(c.licenca.planoId, 'estoque') &&
-      (p.estoque !== (atual?.estoque ?? null) || p.estoqueMinimo !== (atual?.estoqueMinimo ?? null))) return 'recurso_plano';
+  if (!velho && !vivoAntes && vivoDepois && !dentroDoLimite(c.licenca.planoId, 'produtos', c.produtosAtivos)) return 'limite_plano';
+  if (atual?.ajustesEstoque !== null && atual?.ajustesEstoque !== undefined && p.estoque !== atual.estoque) return 'estoque_desatualizado';
+  if (atual?.estoque !== null && atual?.estoque !== undefined && (atual.ajustesEstoque !== null || p.ajustesEstoque !== undefined) && p.unidade !== atual.unidade) return 'unidade_estoque_invalida';
+  if (p.estoque === null && ajustes.length) return 'movimento_estoque_invalido';
+  const estoqueAtivo = p.estoqueAtivo ?? atual?.estoqueAtivo ?? null;
+  if (!podeUsar(c.licenca.planoId, 'estoque') && (novosAjustes || (!velho && (
+    p.estoque !== (atual?.estoque ?? null) || p.estoqueMinimo !== (atual?.estoqueMinimo ?? null) ||
+    (estoqueAtivo ?? true) !== (atual?.estoqueAtivo ?? true))))) return 'recurso_plano';
+  if (velho) {
+    await c.tx.update(produtos).set({ ajustesEstoque: ajustes, versao: atual.versao + 1 }).where(eq(produtos.id, p.id));
+    await registrarMudanca(c, 'produto', p.id);
+    return null;
+  }
 
   const campos = {
     nome: p.nome,
@@ -106,6 +122,8 @@ async function upsertProduto(c: Contexto, p: Produto): Promise<Resultado> {
     unidade: p.unidade,
     estoque: p.estoque,
     estoqueMinimo: p.estoqueMinimo,
+    ajustesEstoque: p.ajustesEstoque !== undefined || atual?.ajustesEstoque != null ? ajustes : null,
+    estoqueAtivo,
     atalho: p.atalho,
     atualizadoEm,
     excluidoEm: p.excluidoEm === null ? null : new Date(p.excluidoEm),
@@ -150,6 +168,7 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
       x.itens.map(i => [i.id, i.produtoId, i.descricao, i.precoUnitarioCentavos, i.quantidadeMilesimos, i.totalCentavos]),
       x.pagamentos.map(p => [p.id, p.meio, p.provedor, p.valorCentavos, p.trocoCentavos])];
     if (JSON.stringify(financeiro(v)) !== JSON.stringify(financeiro(salva.dados))) return 'venda_imutavel';
+    if (v.itens.some((i, n) => i.controlaEstoque !== undefined && i.controlaEstoque !== salva.dados.itens[n]?.controlaEstoque)) return 'venda_imutavel';
     if (atual.cancelamento && v.cancelamento && !eventoIgual(atual.cancelamento, v.cancelamento)) return 'venda_imutavel';
     if (v.status === atual.status) {
       if (!atual.cancelamento && v.cancelamento) return 'venda_imutavel';
@@ -184,6 +203,14 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
   if (criadoEm < adicionarDias(c.agora, -OFFLINE_MAX_DIAS)) return 'venda_fora_da_janela_offline';
   if (!vendaConsistente(v)) return 'venda_inconsistente';
   if (v.pagamentos.some(p => p.meio === 'tap' || p.provedor !== null)) return 'pagamento_indisponivel';
+  const idsProdutos = [...new Set(v.itens.flatMap(i => i.produtoId ? [i.produtoId] : []))];
+  const produtosDaVenda = idsProdutos.length ? await c.tx.select().from(produtos).where(inArray(produtos.id, idsProdutos)) : [];
+  const porProduto = new Map(produtosDaVenda.map(p => [p.id, p]));
+  if (produtosDaVenda.some(p => p.lojaId !== v.lojaId)) return 'loja_invalida';
+  for (const i of v.itens) {
+    const p = i.produtoId ? porProduto.get(i.produtoId) : undefined;
+    if (i.controlaEstoque === true && (!p || p.estoque === null)) return 'produto_estoque_invalido';
+  }
   await c.tx.insert(vendas).values({
     id: v.id,
     lojaId: v.lojaId,
@@ -208,6 +235,8 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
         descricao: item.descricao,
         precoUnitarioCentavos: item.precoUnitarioCentavos,
         quantidadeMilesimos: item.quantidadeMilesimos,
+        controlaEstoque: item.controlaEstoque ?? (item.produtoId && porProduto.has(item.produtoId)
+          ? controlaEstoque({ estoque: porProduto.get(item.produtoId)!.estoque, estoqueAtivo: porProduto.get(item.produtoId)!.estoqueAtivo ?? undefined }) : null),
         totalCentavos: item.totalCentavos,
         criadoEm,
       })),
@@ -227,6 +256,14 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
         criadoEm,
       })),
     );
+  }
+  // A partir da primeira baixa a base fica fixa, inclusive para clientes antigos.
+  for (const p of produtosDaVenda) {
+    const marcada = v.itens.some(i => i.produtoId === p.id && (i.controlaEstoque ?? controlaEstoque({ estoque: p.estoque, estoqueAtivo: p.estoqueAtivo ?? undefined })));
+    if (marcada && p.ajustesEstoque === null) {
+      await c.tx.update(produtos).set({ ajustesEstoque: [], versao: p.versao + 1 }).where(eq(produtos.id, p.id));
+      await registrarMudanca(c, 'produto', p.id);
+    }
   }
   await registrarMudanca(c, 'venda', v.id);
   return null;
@@ -355,7 +392,8 @@ export function aplicarPush(db: Db, sessaoId: string, sessao: SessaoAutenticada,
     const rejeitadas: SyncPushRes['rejeitadas'] = [];
     const novas: (typeof mutacoesAplicadas.$inferInsert)[] = [];
     const resultados = new Map<number, Resultado>();
-    const ordem = req.mutacoes.map((m, i) => ({ m, i })).sort((a, b) => Number(b.m.entidade === 'caixa') - Number(a.m.entidade === 'caixa'));
+    const prioridade = { caixa: 0, produto: 1, venda: 2 };
+    const ordem = req.mutacoes.map((m, i) => ({ m, i })).sort((a, b) => prioridade[a.m.entidade] - prioridade[b.m.entidade]);
     for (const { m, i } of ordem) {
       if (jaAplicadas.has(m.id)) {
         resultados.set(i, null);
@@ -437,6 +475,8 @@ async function carregarProdutos(db: Db, ids: string[]): Promise<Map<string, Muda
               unidade: p.unidade,
               estoque: p.estoque,
               estoqueMinimo: p.estoqueMinimo,
+              ...(p.ajustesEstoque !== null ? { ajustesEstoque: p.ajustesEstoque } : {}),
+              ...(p.estoqueAtivo !== null ? { estoqueAtivo: p.estoqueAtivo } : {}),
               atalho: p.atalho,
               criadoEm: iso(p.criadoEm),
               atualizadoEm: iso(p.atualizadoEm),
@@ -476,6 +516,7 @@ async function carregarVendas(db: Db, ids: string[]): Promise<Map<string, Mudanc
             descricao: i.descricao,
             precoUnitarioCentavos: i.precoUnitarioCentavos,
             quantidadeMilesimos: i.quantidadeMilesimos,
+            ...(i.controlaEstoque !== null ? { controlaEstoque: i.controlaEstoque } : {}),
             totalCentavos: i.totalCentavos,
           })),
         pagamentos: pagamentos

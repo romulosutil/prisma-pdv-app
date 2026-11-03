@@ -24,7 +24,7 @@ async function snapshot() {
   return Promise.all([produtos, vendas, itensVenda, pagamentosVenda, mudancas, mutacoesAplicadas].map(async t => (await amb.db.select().from(t)).map(row => JSON.stringify(row)).sort()));
 }
 async function conferirProduto(p: Produto, m: Mutacao, conta: { lojaId: string; aparelhoId: string }, versao = 1, instante = INICIO, quantidadeMudancas = 1) {
-  expect(await amb.db.select().from(produtos).where(eq(produtos.id, p.id))).toEqual([{ ...p, criadoEm: new Date(p.criadoEm), atualizadoEm: new Date(p.atualizadoEm), excluidoEm: p.excluidoEm ? new Date(p.excluidoEm) : null, versao }]);
+  expect(await amb.db.select().from(produtos).where(eq(produtos.id, p.id))).toEqual([{ ...p, ajustesEstoque: p.ajustesEstoque ?? null, estoqueAtivo: p.estoqueAtivo ?? null, criadoEm: new Date(p.criadoEm), atualizadoEm: new Date(p.atualizadoEm), excluidoEm: p.excluidoEm ? new Date(p.excluidoEm) : null, versao }]);
   const registros = await amb.db.select().from(mudancas).where(eq(mudancas.entidadeId, p.id)).orderBy(asc(mudancas.seq));
   expect(registros).toHaveLength(quantidadeMudancas);
   expect(registros[registros.length - 1]).toEqual({ seq: expect.any(Number), lojaId: conta.lojaId, entidade: 'produto', entidadeId: p.id, criadoEm: instante });
@@ -172,7 +172,7 @@ if (process.env.PDV_TEST_POSTGRES_URL) it('serializa a última vaga entre dois p
     expect(await amb.db.select().from(mutacoesAplicadas).where(eq(mutacoesAplicadas.id, perdedor.id))).toEqual([]);
     expect(await amb.db.select().from(mudancas).where(eq(mudancas.entidadeId, perdedor.dados.id))).toEqual([]);
     const p = vencedorPedido.dados as ReturnType<typeof produto>;
-    expect(await amb.db.select().from(produtos).where(eq(produtos.id, p.id))).toEqual([{ ...p, criadoEm: INICIO, atualizadoEm: INICIO, versao: 1 }]);
+    expect(await amb.db.select().from(produtos).where(eq(produtos.id, p.id))).toEqual([{ ...p, ajustesEstoque: null, estoqueAtivo: null, criadoEm: INICIO, atualizadoEm: INICIO, versao: 1 }]);
     expect(await amb.db.select().from(mutacoesAplicadas).where(eq(mutacoesAplicadas.id, vencedor))).toEqual([{ id: vencedor, lojaId: conta.lojaId, aparelhoId: conta.aparelhoId, criadoEm: INICIO }]);
     await conferirProduto(p, vencedorPedido, conta);
     const depois = await snapshot();
@@ -213,7 +213,7 @@ it('permite null, preserva LWW e aceita venda manual após downgrade', async () 
   await conferirProduto(vizinho.dados as Produto, vizinho, conta, 1, agora);
   const v = manual.dados as ReturnType<typeof venda>;
   expect(await amb.db.select().from(vendas).where(eq(vendas.id, v.id))).toEqual([{ id: v.id, lojaId: v.lojaId, aparelhoId: v.aparelhoId, operadorId: v.operadorId, caixaId: null, cancelamento: null, totalCentavos: v.totalCentavos, status: v.status, criadoEm: INICIO, atualizadoEm: agora, excluidoEm: null, versao: 1 }]);
-  expect(await amb.db.select().from(itensVenda).where(eq(itensVenda.vendaId, v.id)).orderBy(asc(itensVenda.posicao))).toEqual(v.itens.map((item, posicao) => ({ ...item, vendaId: v.id, lojaId: v.lojaId, posicao, criadoEm: INICIO })));
+  expect(await amb.db.select().from(itensVenda).where(eq(itensVenda.vendaId, v.id)).orderBy(asc(itensVenda.posicao))).toEqual(v.itens.map((item, posicao) => ({ ...item, controlaEstoque: null, vendaId: v.id, lojaId: v.lojaId, posicao, criadoEm: INICIO })));
   expect(await amb.db.select().from(pagamentosVenda).where(eq(pagamentosVenda.vendaId, v.id)).orderBy(asc(pagamentosVenda.posicao))).toEqual(v.pagamentos.map((pagamento, posicao) => ({ ...pagamento, vendaId: v.id, lojaId: v.lojaId, posicao, criadoEm: INICIO })));
   expect(await amb.db.select().from(mutacoesAplicadas).where(eq(mutacoesAplicadas.id, manual.id))).toEqual([{ id: manual.id, lojaId: conta.lojaId, aparelhoId: conta.aparelhoId, criadoEm: agora }]);
   expect(await amb.db.select().from(mudancas).where(eq(mudancas.entidadeId, v.id))).toEqual([{ seq: expect.any(Number), lojaId: conta.lojaId, entidade: 'venda', entidadeId: v.id, criadoEm: agora }]);

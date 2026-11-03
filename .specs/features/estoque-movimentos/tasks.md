@@ -44,7 +44,7 @@ T1 → T2 → T3 → T4 → T5
 **Tests**: integration, EST-02; ajustes concorrentes, legado, permissões, isolamento e marcador imutável.
 **Gate**: full
 **Done when**: migração aditiva, merge e pull preservam eventos; testes e tipos aprovados.
-**Status**: pendente.
+**Status**: concluída; 33/33 PostgreSQL e tipos API PASS.
 
 ### T3: Conectar o saldo ao checkout persistido
 **Where**: `apps/mobile/src/dados`

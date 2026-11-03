@@ -21,6 +21,7 @@ import {
   type FonteCatalogo,
   type Venda,
   type CupomAplicado,
+  type AjusteEstoque,
 } from '@pdv/shared';
 import type { EnvelopeCodigo } from '../email/cifrador';
 import type { MotivoEntregaCodigo } from '../email/tiposEntrega';
@@ -164,6 +165,8 @@ export const produtos = pgTable(
     unidade: text('unidade', { enum: ['un', 'kg'] }).notNull(),
     estoque: inteiro('estoque'),
     estoqueMinimo: inteiro('estoque_minimo'),
+    ajustesEstoque: jsonb('ajustes_estoque').$type<AjusteEstoque[]>(),
+    estoqueAtivo: boolean('estoque_ativo'),
     atalho: boolean('atalho').notNull(),
     criadoEm: criadoEm(),
     atualizadoEm: atualizadoEm(),
@@ -207,6 +210,7 @@ export const itensVenda = pgTable('itens_venda', {
   descricao: text('descricao').notNull(),
   precoUnitarioCentavos: inteiro('preco_unitario_centavos').notNull(),
   quantidadeMilesimos: inteiro('quantidade_milesimos').notNull(),
+  controlaEstoque: boolean('controla_estoque'),
   totalCentavos: inteiro('total_centavos').notNull(),
   criadoEm: criadoEm(),
 });

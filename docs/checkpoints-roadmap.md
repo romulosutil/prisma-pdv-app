@@ -700,3 +700,23 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Fechamento documental:** git diff --check PASS; cinco documentos/115 links locais e âncoras, cercas Markdown e existência de destinos conferidos, zero falhas. Resumo em builds/pdv-acesso-correcao-validacao.json; sem acrescentar dados pessoais ou segredos à evidência.
 - **Artefato/ambiente preservados:** SHA256 do APK 0.1.9 reconferido como 5fe5118f97dee38c4f92710f9ab433d8f4e7d61cc0cd89d50945ff28ee8448f0. Não houve envio de e-mail real, escrita em aplicação externa, deploy, alteração de credenciais ou limpeza de base/aparelho nesta rodada. API externa permanece na última versão registrada df41823; sem nova consulta remota nesta entrega. Produção/backups e pendências de restauração/limpeza mantidos.
 - **Próximo passo:** fixar candidato com novo versionamento, executar CI com PostgreSQL e implantar API compatível somente em homologação antes de compilar/inspecionar novo APK; depois executar o roteiro específico de acesso no Samsung e continuar F01–F19. O app instalado continua na 0.1.9 com os defeitos relatados até receber atualização. Não concluir piloto, conformidade integral ou aceite humano pelos testes locais.
+
+
+<a id="cp-20261103-051-candidato-0110-e-ci-disparado"></a>
+
+## CP 20261103 051 Candidato 0.1.10 e CI disparado
+
+- **Data:** 03/11/2026, 14h55, America/Sao_Paulo.
+- **Etapa:** R5, continuidade autorizada do CP 050. Versionamento 0.1.10/11; fontes fixados no commit e350da7 na branch codex/pdv-homologacao-real, enviados ao repositório privado existente. CI 41688629339 disparado manualmente; produção/main não promovidas.
+- **Backup:** pré-atualização solicitado pelo conector e conclusão lida no painel: pdv-pre-acesso-0110-20261103, arquivo aladdin/pdv-postgres-homologacao/2026-11-03T17:52:49.257Z.sql.gz, 22,1 kB, Success em 03/11 às 14h52m50 local. Disco local do servidor; não equivale a cópia externa nem restauração. Retenção/agendamento preservados.
+- **Limites:** primeiro envio foi recusado pela revisão automática por destino não verificado. Leitura confirmou repositório privado romulosutil/prisma-pdv-app, permissão ADMIN, branch remota df41823 e owner/repo/ref idênticos ao serviço de homologação; nova avaliação aprovou o envio. Sem contornar o bloqueio. SQL de limpeza local preservado e não incluído no commit.
+- **Próximo passo:** aguardar CI PostgreSQL/imagem; só após PASS atualizar pdv-api-homologacao preservando ambiente/fonte, conferir HTTPS e compilar/inspecionar o APK. Nenhum deploy ou APK novo concluído neste checkpoint.
+
+
+<a id="cp-20261103-052-ajuste-de-tipos-no-ci-limpo"></a>
+
+## CP 20261103 052 Ajuste de tipos no CI limpo
+
+- **Data:** 03/11/2026, 14h56, America/Sao_Paulo.
+- **Resultado:** CI 41688629339 falhou no typecheck mobile TS2493: useSegments inferiu tupla de um elemento na instalação limpa. Hook agora declara a interface de segmentos como readonly string[], preservando a comparação de rota. Regressão dirigida da tela e tipos locais repetidos; logs pdv-0110-hook-{regressao,tipos}.log.
+- **Estado/próximo passo:** correção mínima para executar novo CI completo no novo SHA; backup do CP 051 preservado. Sem deploy/APK novo; não alegar CI aprovado enquanto o novo run não concluir.

@@ -7,7 +7,7 @@ import { useObservavel } from '@/dados/observavel';
 export function useConclusaoLogin(): void {
   const dados = useDados();
   const router = useRouter();
-  const segmentos = useSegments();
+  const segmentos: readonly string[] = useSegments();
   const conclusao = useObservavel(dados.conta.conclusoesAcesso);
   const anterior = useRef(conclusao);
   const { temConta, reautenticacaoNecessaria, carregandoConta } = useConta();

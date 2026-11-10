@@ -4,6 +4,14 @@ Referência: 01/11/2026. Objetivo: colocar o Android em uso real, com várias em
 
 O primeiro marco é um PDV conectado, com login real, vários operadores, vendas e caixa individuais, sincronização e recuperação. Dinheiro, Pix estático e cartão manual permitem esse marco enquanto pagamentos integrados e cobrança de assinatura seguem suas próprias etapas.
 
+**Estado consolidado em 03/11/2026, após CP 093:** o ciclo dirigido de produto, venda, caixa, parcela durável, modo avião, reboot, fechamento e reconexão passou no **Android Emulator/API real**, com cinco vendas/R$ 60, estoque 20→14 e fechamento 175/170/−5 confirmado no servidor. APKs 0.1.11/12 ARM e x86_64 produzidos, com correção do crash da lista e da mensagem de login retestadas; 600 testes mobile/tipos aprovados, sem CI/deploy novos. A fase continua **R5: concluir o piloto físico/multioperador e aceite**; R0–R4 têm implementação/API em homologação, R6/R7 seguem futuras. A versão 0.1.11 já abriu diretamente no início do Samsung por relato em 04/11; o restante do ciclo físico está pendente. [Ciclo emulado, artefatos e limites](ciclo-venda-caixa-offline-emulador.md).
+
+**Como ler as marcações:** `[x]` conclui somente a entrega e a validação descritas naquele item. Implementação, implantação, teste HTTP, emulador e aprovação em aparelho físico têm evidências distintas. Itens que juntavam entrega concluída e validação pendente foram separados nesta revisão; os registros de versões antigas abaixo continuam como histórico. Não há conclusão integral de R0–R5 nem liberação de R6. [Revisão do checklist, CP 082](checkpoints-roadmap.md#cp-20261103-082-roadmap-reconciliado-com-evidencias).
+
+**Reteste físico guiado em 04/11/2026:** na0.1.11, produto manual10/estoque20 e abertura100 confirmados por relato; primeira venda em dinheiro10/recebido20/troco10 conferida com fila0/0, uma ocorrência, gaveta110 e estoque19. Próxima etapa registra segunda venda10 em Pix manual, sem transferência real; ainda não executada/confirmada. Hash instalado/estado remoto integral não inspecionados. Ciclo físico, scanner e aceite permanecem pendentes; nenhum checkbox físico amplo concluído. [CP 100](checkpoints-roadmap.md#cp-20261104-100-primeira-venda-conferida-e-pix-manual-orientado).
+
+**Decisão do usuário em 10/11/2026:** o app será publicado na Google Play com planos pagos, vendidos dentro do app por Play Billing; R7 deixa de ser condicional. Integrações com Stone, InfinitePay e Mercado Pago são desejadas, em fluxo simples e automatizado que dispense o operador de confirmar o pagamento. Pesquisa documental registrada, sem contratação, implementação ou teste com provedor; nenhum checkbox encerrado. [CP 101](checkpoints-roadmap.md#cp-20261110-101-google-play-planos-e-integracoes-definidos). Execução por sessões: [blocos de prompts](prompts-sessoes-entrega.md), [CP 104](checkpoints-roadmap.md#cp-20261110-104-prompts-por-sessao-ate-a-entrega).
+
 <a id="revisao-de-prontidao-para-r6"></a>
 
 ## Situação real e pendências antes da R6
@@ -12,23 +20,23 @@ O primeiro marco é um PDV conectado, com login real, vários operadores, vendas
 
 **Base conectada preparada em 03/11:** fontes R1–R5 fixados na branch exclusiva `codex/pdv-homologacao-real`; candidato `a987c31` aprovado no CI remoto (592 API/PostgreSQL 17, 556 mobile/SQLite, 172 shared, tipos, ferramentas e imagem/isolamento) e implantado somente em homologação. Sete grupos do smoke HTTP autenticado passaram: conta vazia/sem cobrança, equipe/lojas/suporte, reserva concorrente, catálogo real, venda/estoque/reenvio, movimentos/isolamento e fechamento/relatório/exportação. Backups locais anterior e com schema R5 comprovados; restauração atual ainda pendente. [CI e backup, CP 032](checkpoints-roadmap.md#cp-20261103-032-ci-da-hora-real-e-backup-r5-aprovados) · [fluxo externo, CP 033](checkpoints-roadmap.md#cp-20261103-033-fluxo-financeiro-externo-aprovado).
 
-O candidato Android atual **0.1.9/versionCode 10 está gerado, com diagnóstico e pronto para reteste supervisionado no celular**, em `builds/pdv-homologacao-0.1.9.apk`, SHA256 `5fe5118f97dee38c4f92710f9ab433d8f4e7d61cc0cd89d50945ff28ee8448f0`. Os 18 achados da auditoria receberam tratamento nos fontes; CI do commit `df41823` aprovado com 597 API/PostgreSQL 17, 578 mobile e 172 shared (1.347 casos), tipos, ferramentas e imagem/isolamento. API de homologação no mesmo commit, cadastro verificado e recusa de criação sem prova conferidos por HTTPS. APK assinado, R8/shrink ativos com mapping, permissões revistas, diagnóstico local presente, 299 fontes sem divergência e alinhamentos verificados. Export de produção sem telemetria aprovado, sem publicação/implantação em produção. Scanner com R8, teclado/TalkBack, SecureStore, destinatário de arquivos, novo OTP externo e ciclo financeiro/offline ainda exigem execução física; nenhum aceite humano foi inferido. Base de homologação não foi limpa. [Entrega atual, CP 045](checkpoints-roadmap.md#cp-20261103-045-apk-019-pronto-para-reteste) · [matriz dos 18 achados](correcoes-auditoria-0.1.9.md) · [roteiro de reteste](roteiro-piloto-android.md#reteste-das-correções-da-auditoria-na-019). Artefatos anteriores preservados.
+O candidato anterior com CI e instalação física relatada é **0.1.10/versionCode 11**, em `builds/pdv-homologacao-0.1.10.apk`, SHA256 `4e32a8cd6f372b9bac7c622d30848c3773a8c4283bb8ac0dd598bb781be6ffdb`. Seu CI 41688960912 foi aprovado no commit 84dd0dc com 602 API/PostgreSQL 17, 593 mobile e 172 shared (1.367 casos), tipos, ferramentas e imagem/isolamento. API de homologação no mesmo SHA, verificação antecipada confirmada por HTTPS após backup comprovado. APK assinado, R8/mapping, manifesto, bundle/diagnóstico, 300 fontes e alinhamentos conferidos. [Entrega histórica e limites, CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste). A atualização interna disponível agora é a **0.1.11/12**, com mesmo pacote/certificado, validada no emulador; atualizar sem desinstalar/limpar dados. [Nova entrega, CP 093](checkpoints-roadmap.md#cp-20261103-093-ciclo-emulado-concluido-e-entrega-0111). Ciclo financeiro/offline físico e aceite continuam pendentes. Produção preservada.
 
 **Retorno físico da 0.1.9, 03/11:** diagnóstico recebido com 293 eventos no Samsung SM-S938B/Android 17; login aceito pela API, nova solicitação de código 429 ainda na entrada e chegada posterior à dashboard. Usuário confirmou leitura do código, sem identificação do produto; catálogo respondeu 404 e outra entrada foi considerada EAN inválido. Problema grave no login relatado, comportamento específico em esclarecimento e conclusão de navegação em investigação. Sync final ocioso/zero pendências/rejeições, sem prova do ciclo financeiro; tela branca não pode ser avaliada apenas pelos eventos. [CP 047 e limites](checkpoints-roadmap.md#cp-20261103-047-diagnostico-fisico-019-e-investigacao-do-login). Nenhum cenário completo ou aceite encerrado.
 
-**Correção local do acesso validada:** após esclarecimento do usuário e [diagnóstico CP 048](checkpoints-roadmap.md#cp-20261103-048-causas-do-cadastro-tardio-e-login), e-mail é conferido na primeira tela, CPF/CNPJ após OTP nessa mesma tela antes da loja, e login conclui navegação fora do Stack remontado. Checagem final e prova permanecem na API; novo gate exige verificação antecipada. Evidências locais consolidadas: 593 casos mobile (incluindo cinco HTTP localhost repetidos fora da restrição do sandbox), 41 API/PGlite, tipos e duas ferramentas aprovados; [CP 050](checkpoints-roadmap.md#cp-20261103-050-correcao-local-do-acesso-validada). Fontes locais diferem do APK 0.1.9 existente; API externa sem esta correção. CI PostgreSQL/API de homologação, novo APK/versionamento e [reteste físico](roteiro-piloto-android.md#reteste-ajuste-acesso-pos-019) continuam pendentes; nenhum cenário completo ou aceite encerrado.
+**Correção local do acesso validada:** após esclarecimento do usuário e [diagnóstico CP 048](checkpoints-roadmap.md#cp-20261103-048-causas-do-cadastro-tardio-e-login), e-mail é conferido na primeira tela, CPF/CNPJ após OTP nessa mesma tela antes da loja, e login conclui navegação fora do Stack remontado. Checagem final e prova permanecem na API; novo gate exige verificação antecipada. Evidências locais consolidadas: 593 casos mobile (incluindo cinco HTTP localhost repetidos fora da restrição do sandbox), 41 API/PGlite, tipos e duas ferramentas aprovados; [CP 050](checkpoints-roadmap.md#cp-20261103-050-correcao-local-do-acesso-validada). Entrega posterior concluída no CP 054: CI/API de homologação e APK 0.1.10 conferidos; [reteste físico](roteiro-piloto-android.md#reteste-ajuste-acesso-pos-019) e aceite continuam pendentes.
 
 | Etapa | O que tem evidência | O que falta para encerrar |
 |---|---|---|
-| R0 | API conectada, login/recuperação por HTTP, separação do banco de homologação e restauração do schema R0 | APK físico, limites/expiração externos e fechamento do isolamento de credenciais; SMTP de homologação ainda compartilha credencial/cota |
+| R0 | API conectada, APK 0.1.10, cadastro/login por OTP real no emulador, login/reabertura no Samsung por relato e restauração do schema R0 | Expiração/reenvio/recuperação físicos, venda/restauração no Android e fechamento do isolamento de credenciais; SMTP ainda compartilha credencial/cota |
 | R1 | Identidades/vínculos/permissões implantados em homologação, CI e contratos HTTP aprovados | Dono + dois usuários com OTP externo, isolamento e SecureStore no Android |
-| R2 | CI PostgreSQL aprovado; reserva concorrente, caixa/movimentos e contagem comprovados por HTTP externo | Ciclo financeiro com dois operadores em dois celulares e preservação do histórico no aparelho |
-| R3 | Filas/recuperação locais e CI aprovados; reenvio externo idempotente e hora real da API comprovados | Queda/reinício/reconexão/recuperação físicos e tratamento operacional dos conflitos; exportar uma pendência não a resolve |
+| R2 | CI PostgreSQL/HTTP externo; ciclo de um operador, movimentos e fechamento175/170/−5 emulados/API real | Ciclo financeiro com dois operadores em dois celulares e preservação do histórico físico |
+| R3 | Filas/CI/reenvio HTTP; modo avião real, parcela/force-stop, reboot, fechamento e reconexão sem duplicação no emulador | Queda/reinício/reconexão/recuperação físicos e tratamento operacional dos conflitos; exportar uma pendência não a resolve |
 | R4 | Gestão implantada, CI aprovado; estoque/relatório e EAN real conferidos por HTTP | Ciclo físico de gestão/fiado/filiais; amostra de 100 produtos e p95 em 4G continuam abertos |
-| R5 | API df41823 compatível/cadastro verificado, CI PostgreSQL/imagem e 1.347 casos aprovados; 18 achados tratados e APK 0.1.9/R8 inspecionado | Limpeza de homologação, reteste da tela branca/diagnóstico no Samsung, restauração atual, cenários F01–F19, atendimento e aceite humano |
+| R5 | API 84dd0dc/CI histórico de 1.367 casos; APKs 0.1.11/R8 locais, 600 mobile/tipos, ciclo financeiro/offline e mensagem de login emulados | Limpeza solicitada, estabilidade visual/scanner no Samsung, restauração atual, F01–F19, atendimento e aceite humano |
 | R6/R7 | Integrações planejadas | R6 aguarda piloto estável; R7 depende também da decisão de cobrança/distribuição |
 
-**Compatibilidade atual:** homologação no commit `df418233899256e33ba3d7c8e5c92fa164ac5185`, com implantação automática desativada e ambiente/fonte preservados. HTTPS confirmou saúde 200 com hora precisa, contrato 1/cadastro verificado e criação sem prova recusada com 400, sem enviar e-mail nem criar conta. CI e implantação nos [CPs 043–045](checkpoints-roadmap.md#cp-20261103-043-ci-e-api-019-em-homologacao); smoke financeiro autenticado anterior permanece como histórico do CP 033. Produção preservada, sem promoção desta rodada.
+**Compatibilidade atual:** homologação no SHA 84dd0dcd9825e7e1c3d04f7bfe08261a34739e79, autoDeploy false e configuração preservada; saúde/contrato/verificação sem prova conferidos por HTTPS. [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste). Produção preservada.
 
 O APK 0.1.6 e suas evidências do CP 025 foram preservados como histórico. A versão 0.1.7 reúne R1–R5 e a correção de hora; não é necessário gerar um APK histórico para cada etapa. Os itens que combinam geração e homologação continuam abertos pela parte física. Mudanças posteriores nos fontes exigem reavaliar o artefato e as verificações afetadas.
 
@@ -56,7 +64,7 @@ Pendência de evidência não significa defeito já observado. A ausência de te
 
 A API é o servidor do próprio PDV em `apps/api`, feito com Node.js, Fastify, Drizzle e PostgreSQL. O app Android chama esse servidor por HTTPS para cadastrar contas, autenticar usuários, sincronizar produtos/vendas/caixas, recuperar acesso e consultar o catálogo. Não se trata de uma API de pagamento contratada.
 
-O destino documentado é o serviço `pdv-api`, com banco `pdv-postgres`, no projeto `aladdin` do EasyPanel. O endereço registrado é `https://aladdin-pdv-api.jicnzg.easypanel.host`. Na geração do APK 0.1.4, esse host não resolveu no ambiente de compilação; a etapa R0 deve confirmar o endereço e a saúde reais.
+Os serviços de produção são `pdv-api`/`pdv-postgres`, no projeto `aladdin` do EasyPanel. O candidato de teste usa os serviços separados `pdv-api-homologacao`/`pdv-postgres-homologacao`, pela origem `https://aladdin-pdv-api-homologacao.jicnzg.easypanel.host`, conferida nos CPs 033/054. A falha de resolução do host de produção durante a geração histórica da 0.1.4 não descreve a API de homologação atual.
 
 O endereço entra no app por `EXPO_PUBLIC_API_URL`. O APK 0.1.4 foi gerado sem essa variável e usa `BackendLocal`: conta, assinatura e catálogo demonstrativos, sem comunicação com a nuvem. Já existem implementações HTTP e de sincronização no projeto; sua ausência nesse APK não significa que precisem ser reescritas.
 
@@ -69,26 +77,26 @@ Resend é o serviço externo de envio de e-mail, e Open Food Facts é uma fonte 
 | Android | APKs internos conectados, SQLite, SecureStore, produtos, venda e caixa | Homologar o candidato atual no aparelho |
 | Acesso | Cadastro, OTP, identidades, vínculos, convites e seleção implementados na API e app | Homologar funcionários com e-mails próprios e Android real |
 | Identidades | Usuário separado de empresa e múltiplos vínculos implementados | Homologar isolamento, alternância e recuperação físicos |
-| Caixa | R2 construída e validada localmente: turno por usuário, reserva, entradas/saídas, transferências e conferência | Homologar migração/concorrência externa e ciclo físico no Android |
+| Caixa | R2 implementada/implantada, PostgreSQL 17 no CI, reserva e movimentos por HTTP externo | Concluir histórico/retorno compatível e ciclo físico multioperador |
 | Autorização | Dono/gerente/operador e permissões por operação no servidor, validados em CI | Homologar UI/dados baixados no Android com cada papel |
-| Sincronização | R3 construída e validada localmente: filas/perfis isolados, autorização offline, revalidação, conflitos e restauração | Homologar concorrência externa, SecureStore e recuperação no Android físico |
+| Sincronização | R3 implementada/implantada, CI e reenvio idempotente externo; filas/perfis isolados e autorização offline | Homologar concorrência multiusuário, SecureStore e recuperação no Android físico |
 | Pagamentos | Dinheiro, Pix estático e cartão manual | Processamento externo real e conciliação |
-| Assinatura | Simulador e modo de acesso liberado sem cobrança na API | Usar gratuidade real inicialmente; integrar cobrança quando ativada |
-| Gestão | R4 construída e validada localmente: movimentos de estoque, relatórios/CSV, clientes/fiado e filiais | Homologar migração/concorrência externa, amostra de catálogo/4G e ciclo físico no Android |
+| Assinatura | Acesso real liberado sem cobrança; simulador restrito à demo/testes | Definir distribuição e integrar cobrança quando ativada |
+| Gestão | R4 implementada/implantada, CI e smoke externo de estoque/relatório/exportação | Homologar concorrência completa, amostra de catálogo/4G e ciclo físico |
 
 ## Modelo de empresas e usuários
 
 Uma empresa mantém seus usuários, lojas, produtos e registros financeiros. Empresas diferentes nunca compartilham esses dados. Dentro da mesma loja, os produtos são compartilhados e as vendas e movimentos conservam a identificação de quem os realizou.
 
-Cada pessoa terá uma identidade própria de acesso e um vínculo com a empresa/loja, contendo papel e permissões. O mesmo usuário poderá participar de mais de uma empresa ou loja e escolher onde trabalhar depois de se autenticar. Isso exige evoluir o login atual, que procura a conta empresarial pelo e-mail do responsável.
+R1 implementou identidade própria de acesso e vínculo com empresa/loja, contendo papel e permissões. Um usuário pode participar de mais de uma empresa ou loja e escolher onde trabalhar depois de se autenticar. API e app já contêm esse modelo; a homologação completa com funcionários, e-mails próprios e Android real continua pendente.
 
-| Papel | Acesso planejado |
+| Papel | Acesso implementado, sujeito à homologação por papel |
 |---|---|
 | Dono | Gerencia empresa, lojas, usuários e permissões; acompanha todos os caixas e autoriza ajustes |
 | Gerente | Acompanha e confere os caixas das lojas permitidas; aprova operações conforme permissão |
 | Operador | Vende e movimenta seu próprio caixa; consulta seus turnos e solicita operações restritas |
 
-O gerente será um papel novo. A API deve validar cada ação e o vínculo vigente; esconder um botão não substitui autorização. Intervenções de dono/gerente no caixa de outra pessoa identificam tanto o responsável pelo caixa quanto o autor da intervenção.
+O papel de gerente foi acrescentado em R1. A API valida cada ação e o vínculo vigente; esconder um botão não substitui autorização. Intervenções de dono/gerente no caixa de outra pessoa identificam tanto o responsável pelo caixa quanto o autor da intervenção.
 
 ## Regras do caixa separado
 
@@ -135,7 +143,7 @@ Por instrução do usuário em 01/11/2026, toda entrega coerente, correção ou 
 
 O checkpoint identifica etapa, data, entrega, arquivos/versão/commit quando disponíveis, testes e resultados, limitações, pendências e próximo passo. A resposta de entrega deve indicar o registro e seu link.
 
-Tarefas parciais permanecem abertas, com o avanço descrito. Marcar `[x]` somente após atender à implementação e à validação exigidas. Separar evidência local, externa, Android físico e aceite humano; não presumir aprovação do usuário. R0 continua em homologação conforme seu relatório; R1, R2, R3 e a implementação de R4 estão construídas e validadas localmente, com homologação pendente; R4 conserva a medição de catálogo em campo/4G aberta. R5 tem implementação local e APK interno preparados, aguardando homologação externa/física; R6 e R7 permanecem planejadas.
+Tarefas parciais permanecem abertas, com o avanço descrito. Marcar `[x]` somente após atender à implementação e à validação exigidas. Separar evidência local, externa, Android físico e aceite humano; não presumir aprovação do usuário. R0–R4 têm implementação, implantação de homologação, CI PostgreSQL e APK cumulativo entregues, com homologações específicas ainda pendentes; R4 conserva medição de catálogo em campo/4G aberta. R5 é a fase atual de fechamento do piloto, com validação externa/emulada parcial e critérios físicos/operacionais abertos. R6 e a integração/distribuição de R7 permanecem planejadas.
 
 ## R0 Colocar a API e o app conectado em funcionamento
 
@@ -146,11 +154,15 @@ Avanço de 01/11/2026, 21h40: **[restauração do backup aprovada](r0-restauraca
 Decisão do usuário em 01/11/2026: priorizar o MVP e a validação do produto. **Cópia externa e alertas de falha de backup/saúde passam para o [backlog após validação](#backlog-apos-validacao-do-produto)** e deixam de bloquear o MVP. Os backups locais e healthchecks existentes ficam preservados. R0 continua em homologação, com teste físico Android e demais verificações funcionais ainda abertas. Todos os serviços do PDV devem usar o prefixo `pdv-`; essa regra não altera serviços de outros produtos. Registro: [CP 20261101 003](checkpoints-roadmap.md#cp-20261101-003-foco-no-mvp-e-backlog-operacional).
 
 - [x] Confirmar serviço, domínio, HTTPS, migrações e `/saude` com consulta ao PostgreSQL; registrar o commit implantado.
-- [ ] Separar dados e credenciais de desenvolvimento, homologação e produção. Não importar a semente fictícia para contas reais.
-- [ ] Homologar envio e recebimento do código de acesso, validade, reenvio, limitação de tentativas e recuperação.
+- [x] Separar bancos de teste, homologação e produção e comprovar contas conectadas sem semente fictícia; PostgreSQL 17 dedicado no CI e banco próprio de homologação. [CPs 032–033](checkpoints-roadmap.md#cp-20261103-033-fluxo-financeiro-externo-aprovado).
+- [ ] Concluir isolamento de todas as credenciais entre desenvolvimento, homologação e produção; SMTP de homologação ainda compartilha credencial/cota.
+- [x] Comprovar envio/recebimento real do OTP, cadastro/login e retomada no emulador, além de login/retomada no Samsung por relato. [CPs 057–058](checkpoints-roadmap.md#cp-20261103-058-sessao-retomada-e-preparacao-do-cadastro) · [CP 080](checkpoints-roadmap.md#cp-20261103-080-rodada-emulada-concluida-com-achado-de-mensagem).
+- [x] Comprovar no emulador/API real recusa de código inválido, e-mail/CPF repetidos e limite de tentativas. [CP 080](checkpoints-roadmap.md#cp-20261103-080-rodada-emulada-concluida-com-achado-de-mensagem).
+- [ ] Completar a homologação de validade/expiração, reenvio e recuperação por código no Android; testes locais de código expirado não concluem essa execução física.
 - [x] Validar o modo de acesso liberado sem cartão e sem cobrança, já previsto na API. O app conectado deve sair do cadastro diretamente para a operação quando receber esse acesso.
 - [x] Criar perfis de build explícitos para demo local, homologação conectada e produção. No modo conectado, falha de rede não pode ativar silenciosamente o backend simulado.
-- [ ] Gerar APK conectado, cadastrar uma conta e comprovar venda manual sincronizada e restauração em instalação autorizada.
+- [x] Gerar/verificar APK conectado e cadastrar conta com OTP real no Android emulado. APK 0.1.10 entregue; cadastro físico também relatado, com seus limites próprios. [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste) · [CP 077](checkpoints-roadmap.md#cp-20261103-077-cadastro-e-retomada-emulados-aprovados).
+- [ ] Comprovar venda manual sincronizada e restauração em instalação Android autorizada. Smoke financeiro HTTP externo aprovado no CP 033; ciclo físico continua pendente.
 - [x] Preparar backup e testar restauração antes de usar dados comerciais. Arquivo de homologação restaurado em banco isolado e comparado com a origem; [evidência externa](r0-restauracao-backup.md).
 
 Cópia fora da VPS e alertas foram adiados por decisão de escopo, sem marcação de conclusão; sua execução está no backlog abaixo.
@@ -159,7 +171,7 @@ Cópia fora da VPS e alertas foram adiados por decisão de escopo, sem marcaçã
 
 **Construída e validada localmente em 01/11/2026; homologação pendente.** Identidades, equipe/convites, gerente, permissões no servidor, seleção de vínculo e perfis locais entregues. Regressão: 506 testes API, 511 mobile e 169 shared aprovados (1.186), tipos dos três workspaces e bundle Android/Hermes aprovados. [Relatório e roteiro de homologação](r1-equipe-permissoes.md) · [CP 008](checkpoints-roadmap.md#cp-20261101-008-isolamento-do-diagnostico-e-validacao-final-r1).
 
-Os itens marcados abaixo representam implementação e validação automatizada local. O serviço externo e o APK 0.1.5 permanecem na versão de R0; não há homologação física nem aceite humano de R1. O histórico incremental está nos CPs 004 a 008. Perfis na mesma instalação/loja conservam o aparelho; pausados têm cofre e dados próprios, e o logout offline mantém apenas a revogação protegida para a reconexão. A alternância exige conexão nesta etapa. Exportação e limpeza de diagnóstico também são restritas ao perfil; eventos legados sem autoria ficam preservados sem serem atribuídos.
+Os itens de implementação abaixo foram validados localmente nos CPs 004 a 008. **A situação de serviço/APK em R0 descrita naquela entrega foi superada:** API R1–R5 e APK cumulativo 0.1.10 entregues nos CPs 033/054, com PostgreSQL 17 no CI; homologação multiusuário física e aceite continuam pendentes. Perfis na mesma instalação/loja conservam o aparelho; pausados têm cofre e dados próprios, e o logout offline mantém apenas a revogação protegida para a reconexão. A alternância exige conexão na fronteira inicial de R1; R3 acrescenta alternância offline autorizada. Exportação e limpeza de diagnóstico também são restritas ao perfil; eventos legados sem autoria ficam preservados sem serem atribuídos.
 
 - [x] Criar identidade de usuário e vínculos com empresas/lojas; permitir convite, aceitação, suspensão e desligamento de operador.
 - [x] Migrar o dono atual para a nova identidade, preservando IDs de conta, loja, operador, vendas e caixas. Não compartilhar a credencial do dono com funcionários.
@@ -170,14 +182,15 @@ Os itens marcados abaixo representam implementação e validação automatizada 
 - [x] Substituir a exigência global de dono no push por autorização por operação: vender, movimentar o próprio caixa, cadastrar produto, cancelar, retirar dinheiro, conferir outro caixa e administrar equipe. Na fronteira de R1, a saída disponível era sangria; retirada completa e intervenção em outro caixa foram acrescentadas na entrega local de R2 abaixo.
 - [x] Filtrar também consultas, pull, exportações e diagnósticos por permissão. O operador não deve baixar dados financeiros de outros usuários para depois apenas escondê-los na interface.
 
-- [ ] Implantar a migração/API em homologação e validar o fluxo com OTP externo e PostgreSQL independente.
-- [ ] Gerar o APK conectado desta entrega e homologar dono + dois usuários em Android físico, incluindo SecureStore, alternância, suspensão e isolamento; registrar o aceite humano separadamente.
+- [x] Implantar migrações/API R1 em homologação e executar regressão em PostgreSQL 17 independente no CI; contratos de equipe/lojas conferidos por HTTP externo. [CP 033](checkpoints-roadmap.md#cp-20261103-033-fluxo-financeiro-externo-aprovado) · [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
+- [x] Gerar e entregar APK conectado cumulativo com R1–R5, atualmente 0.1.10/11. [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
+- [ ] Homologar dono + dois usuários com OTP externo próprio em Android físico, incluindo SecureStore, alternância, suspensão e isolamento; registrar o aceite humano separadamente. Login de um dono no emulador não conclui esse cenário.
 
 ## R2 Implementar caixa por usuário
 
 **Construída e validada localmente em 02/11/2026; homologação pendente.** API, mobile e contrato v2 entregues. Regressão completa: **514 testes API, 518 mobile e 170 shared — 1.202 aprovados**; tipos dos três workspaces e bundle Android/Hermes aprovados. [Relatório, arquivos e roteiro](r2-caixa-por-usuario.md) · [CP 011](checkpoints-roadmap.md#cp-20261102-011-entrega-local-e-conferencia-do-roadmap-r2).
 
-Os itens marcados abaixo representam implementação e validação automatizada local, com PostgreSQL embarcado/PGlite, SQLite real e HTTP local. O exemplo Ana R$ 250/Bruno R$ 100 foi comprovado. **Não houve deploy, APK novo, Android físico, PostgreSQL independente nem aceite humano desta entrega.** Incrementos: CPs 009 e 010, preservados no histórico.
+Os itens de implementação abaixo tiveram validação local com PGlite, SQLite real e HTTP local nos CPs 009–011; o exemplo Ana R$ 250/Bruno R$ 100 foi comprovado nesse ambiente. Posteriormente houve implantação R1–R5, CI PostgreSQL 17, smoke financeiro HTTP externo e APK cumulativo 0.1.10 (CPs 033/054). **Ciclo físico multioperador e aceite humano continuam pendentes.** A ausência de deploy/APK da entrega inicial é histórica.
 
 - [x] Trocar a seleção atual por loja/aparelho pela seleção de turno do operador na loja, mantendo a origem do aparelho.
 - [x] Implementar reserva de turno no servidor para impedir dois caixas ativos do mesmo usuário na mesma loja. Abertura e transferência de aparelho exigem conexão; o turno já autorizado continua vendendo offline.
@@ -189,8 +202,11 @@ Os itens marcados abaixo representam implementação e validação automatizada 
 - [x] Criar visão do dono/gerente com caixas abertos, valores por operador, pendências conhecidas, diferenças e conferências. Intervenções exigem motivo. O painel mostra valores confirmados; pendências offline de outro aparelho só se tornam conhecidas após conexão.
 - [x] Migrar histórico com operador conhecido sem alterar totais. Dados sem autoria comprovada ficam identificados como legados, sem atribuição inventada. Duplicatas históricas são preservadas e bloqueiam nova reserva até regularização.
 
-- [ ] Implantar R1/R2 e a migração 0009 em homologação; validar preservação do histórico, reserva concorrente e rollback em PostgreSQL independente.
-- [ ] Gerar APK conectado desta versão e homologar dono + dois operadores em Android físico, incluindo modo avião, SecureStore, transferências, troca de aparelho e contagem; registrar o aceite humano separadamente.
+- [x] Implantar R1/R2 e migração 0009 em homologação com backup, e executar regressão em PostgreSQL 17 independente no CI. [CPs 032–033](checkpoints-roadmap.md#cp-20261103-033-fluxo-financeiro-externo-aprovado).
+- [x] Comprovar reserva concorrente com uma vencedora, replay e movimentos idempotentes no PostgreSQL externo por HTTP. [CP 033](checkpoints-roadmap.md#cp-20261103-033-fluxo-financeiro-externo-aprovado).
+- [ ] Concluir comprovação do histórico legado e retorno à versão anterior compatível em PostgreSQL independente; restauração/retorno do schema atual continuam pendentes (F15/F19).
+- [x] Gerar APK conectado cumulativo com R2, incluída na 0.1.10 entregue. [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
+- [ ] Homologar dono + dois operadores em Android físico, incluindo modo avião, SecureStore, transferências, troca de aparelho e contagem; registrar o aceite humano separadamente.
 
 Retomar o turno em outro aparelho pressupõe sincronizar e interromper o anterior, com confirmação explícita. Conflitos entre intervenção remota e fechamento offline ficam preservados como pendência, bloqueando nova reserva; R3 abaixo acrescenta indicação explícita, exportação e encaminhamento à conferência auditada, além da recuperação por perfil. O [relatório](r2-caixa-por-usuario.md#limitações-e-próximos-ambientes) detalha os limites de R2. O bundle exportado não equivale a APK instalado.
 
@@ -198,7 +214,7 @@ Retomar o turno em outro aparelho pressupõe sincronizar e interromper o anterio
 
 **Construída e validada localmente em 02/11/2026; homologação pendente.** Quarta entrega funcional: autorização offline de sete dias por perfil/aparelho, retomada com filas/rascunhos separados, revalidação antes do envio, remoção de cache alheio após redução de permissão e recuperação somente do confirmado. Regressão: **514 testes API, 531 mobile e 170 shared — 1.215 aprovados**; tipos dos três workspaces e bundle Android/Hermes aprovados. [Relatório, política, evidências e roteiro físico](r3-sincronizacao-offline-recuperacao.md) · [CP 015](checkpoints-roadmap.md#cp-20261102-015-entrega-local-de-sincronizacao-offline-e-recuperacao-r3).
 
-Os itens marcados representam implementação e testes automatizados locais com SQLite real, HTTP local/injetado e PGlite. **Não houve deploy, APK novo, Android físico, PostgreSQL independente ou aceite humano.** Incrementos nos CPs 012 a 014. Somente o perfil ativo sincroniza; pausados preservam credenciais e pendências. Perfis legados sem registro de autorização precisam de uma primeira revalidação online. Vencimento e retrocesso observado do relógio impedem novas operações; cobranças já iniciadas conservam as parcelas e podem ser concluídas. Uma revalidação de rede lenta não bloqueia a escrita offline.
+Os itens de implementação foram validados inicialmente com SQLite, HTTP local/injetado e PGlite nos CPs 012–015. Depois, migrações/API R1–R5 e APK cumulativo foram entregues, com regressão em PostgreSQL 17 no CI e reenvio idempotente por HTTP externo (CPs 033/054). **Queda/recuperação/concorrência multiusuário no Android físico e aceite continuam pendentes.** Somente o perfil ativo sincroniza; pausados preservam credenciais e pendências. Perfis legados sem registro de autorização precisam de uma primeira revalidação online. Vencimento e retrocesso observado do relógio impedem novas operações; cobranças já iniciadas conservam as parcelas e podem ser concluídas. Uma revalidação de rede lenta não bloqueia a escrita offline.
 
 - [x] Gravar venda, parcelas, movimentos e outbox na mesma transação SQLite aplicável; interromper a UI antes de anunciar sucesso quando a escrita falhar.
 - [x] Vincular cada pendência ao usuário e ao turno originais. O envio deve usar a sessão correspondente, nunca trocar a autoria para o usuário atualmente visível.
@@ -209,8 +225,10 @@ Os itens marcados representam implementação e testes automatizados locais com 
 - [x] Impedir reabertura e alteração silenciosa de turno fechado. Conflitos ficam visíveis para conferência e correção auditada.
 - [x] Restaurar apenas dados confirmados no servidor; identificar separadamente o que ficou pendente no aparelho perdido. Exibir o estado de backup/sincronização de cada perfil. No substituto, quantidade e conteúdo nunca enviados são desconhecidos; a interface não promete sua recuperação. O indicador é de sincronização; backup externo segue no backlog.
 
-- [ ] Homologar migrações/API R1–R3 e concorrência em PostgreSQL independente, com usuários e aparelhos autorizados distintos.
-- [ ] Gerar APK conectado e executar o roteiro físico de queda/reinício/disco cheio/alternância/SecureStore/relógio/recuperação; registrar resultados físicos e aceite humano separadamente.
+- [x] Implantar migrações/API R1–R3 e executar regressão em PostgreSQL 17 independente no CI; reenvio de venda/estoque sem duplicação conferido no servidor externo por HTTP. [CPs 033/054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
+- [ ] Completar homologação conectada da concorrência/recuperação com usuários e aparelhos autorizados distintos, além das fixtures automatizadas e do smoke HTTP.
+- [x] Gerar APK conectado cumulativo com R3, incluída na 0.1.10 entregue. [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
+- [ ] Executar o roteiro físico de queda/reinício/disco cheio/alternância/SecureStore/relógio/recuperação; registrar resultados físicos e aceite humano separadamente.
 
 Conflitos preservam os originais locais e remotos e continuam bloqueando nova reserva até a revisão. A conferência/correção segue os eventos auditados de R2 e o [procedimento de pendências](revisao-pendencias-sync.md); não há aceite excepcional automático nem alteração do fechamento original para obter confirmação.
 
@@ -218,7 +236,7 @@ Conflitos preservam os originais locais e remotos e continuam bloqueando nova re
 
 **Implementação construída e validada localmente em 02/11/2026; homologação pendente.** Movimentos de estoque, política de negativo/offline, relatórios/CSV, clientes/fiado e filiais entregues no servidor e no app conectado. Regressão: **525 testes API, 540 mobile e 172 shared — 1.237 aprovados**, tipos dos três workspaces e bundle Android/Hermes aprovados. Open Food Facts reconheceu três produtos públicos por HTTPS (231–933 ms; cache próprio 1–2 ms), sem comprovar a amostra de campo ou o p95 em 4G. [Relatório, política, evidências e roteiro](r4-gestao-catalogo-fiado-lojas.md) · [CP 020](checkpoints-roadmap.md#cp-20261102-020-entrega-local-de-gestao-r4).
 
-Itens marcados representam implementação e validação automatizada local. Nenhuma API remota ou APK foi atualizado, nenhum Android físico foi testado e não há aceite humano. O checklist de catálogo e as homologações abaixo permanecem abertos. Saldos exibem o confirmado; recebimentos de fiado e ajustes são online. Cancelamento comercial, devolução de estoque e devolução financeira são eventos separados. A autoria de intervenção/cancelamento não troca o responsável financeiro do filtro. O histórico incremental está nos CPs 016 a 019.
+Itens de implementação foram validados localmente nos CPs 016–020. A ausência de API/APK atualizado naquela entrega foi superada pelos CPs 033/054: API R1–R5 em homologação, PostgreSQL 17 no CI e APK cumulativo 0.1.10. Catálogo real foi consultado por HTTP, mas amostra/4G e ciclo físico de gestão continuam pendentes, assim como aceite humano. Saldos exibem o confirmado; recebimentos de fiado e ajustes são online. Cancelamento comercial, devolução de estoque e devolução financeira são eventos separados. A autoria de intervenção/cancelamento não troca o responsável financeiro do filtro.
 
 - [x] Gerar entradas, baixas por venda, devoluções e ajustes de estoque como movimentos identificados. Em vários aparelhos, o saldo não pode depender de sobrescrever o estoque no cadastro por data da última edição.
 - [x] Definir tratamento de estoque negativo e conflito de vendas offline; exibir divergências. Não prometer reserva global em tempo real quando os aparelhos estiverem desconectados.
@@ -229,14 +247,16 @@ Itens marcados representam implementação e validação automatizada local. Nen
 - [x] Implementar cadastro e seleção de lojas, vínculos e permissões por loja e consolidado do dono. Cada loja mantém caixas, estoque e configurações próprios.
 - [x] Atualizar oferta, limites e descrições de plano conforme a disponibilidade real; retirar promessas de recursos ainda não entregues.
 
-- [ ] Implantar migração/API R1–R4 em homologação preservando backup e validar concorrência em PostgreSQL independente, estoque negativo/reenvio, recebimentos contra o mesmo saldo e isolamento/consolidado de filiais.
-- [ ] Gerar APK conectado e executar o ciclo físico com dono, gerente e dois operadores: estoque, fiado parcial/estorno/cancelamento, turno receptor, CSV/compartilhamento, alternância de lojas, queda/reinício e SecureStore; registrar o aceite humano separadamente.
+- [x] Implantar migrações/API R1–R4 em homologação com backup preservado, regressão em PostgreSQL 17 no CI e smoke externo de estoque/relatório/exportação. [CPs 033/054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
+- [ ] Completar homologação conectada da concorrência de estoque negativo/reenvio, recebimentos contra o mesmo saldo e isolamento/consolidado de filiais, além das fixtures do CI.
+- [x] Gerar APK conectado cumulativo com R4, incluída na 0.1.10 entregue. [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
+- [ ] Executar o ciclo físico com dono, gerente e dois operadores: estoque, fiado parcial/estorno/cancelamento, turno receptor, CSV/compartilhamento, alternância de lojas, queda/reinício e SecureStore; registrar o aceite humano separadamente.
 
 ## R5 Homologar o piloto Android e a operação
 
-**Atualização de 03/11/2026:** candidato **0.1.9/versionCode 10 pronto para reteste físico supervisionado**, após tratamento dos 18 achados, CI df41823 (597 API/PostgreSQL 17, 578 mobile, 172 shared), API de homologação compatível e APK com R8/diagnóstico/permissões/mapping/299 fontes conferidos. [Matriz](correcoes-auditoria-0.1.9.md) · [CP 045](checkpoints-roadmap.md#cp-20261103-045-apk-019-pronto-para-reteste). Pronto para reteste não equivale a piloto comercial aprovado: leitura real com R8, IME/TalkBack, SecureStore, compartilhamento, OTP externo novo, recuperação e F01–F19 permanecem abertos. APKs 0.1.6–0.1.8 e seus relatos foram preservados como histórico; produção não promovida e R6 não iniciada.
+**Situação atual, CPs 083–093:** APKs locais **0.1.11/versionCode 12** ARM/x86_64, R8 e mesmos fontes/bundle. Ciclo dirigido de um operador aprovado no emulador/API real: cinco vendas/R$ 60, movimentos, parcela/force-stop, modo avião, reboot, fechamento e confirmação/reenvio sem duplicação; 600 testes mobile e tipos PASS. Mensagem de login inválido retestada, sem invalidar o perfil anterior. API 84dd0dc preservada; CI de 1.367 casos e último relato físico são da 0.1.10. **Piloto comercial não aprovado:** ciclo físico/multioperador, restauração atual, scanner/acessibilidade/exportação físicos e aceite continuam pendentes. [Relatório emulado](ciclo-venda-caixa-offline-emulador.md). A 0.1.9 e seus 18 tratamentos/CI permanecem como evidência histórica na [matriz](correcoes-auditoria-0.1.9.md).
 
-**Implementada e validada localmente em 02/11/2026 — sexta entrega solicitada; homologação externa/física pendente.** Suporte, políticas, exportação autorizada e pedido de análise de exclusão construídos. Regressão: API 531, mobile 546, shared 172 aprovados; seis novos casos adicionais aprovados na revisão final (1.255 distintos no conjunto), tipos e ferramentas aprovados. APK interno 0.1.6/versionCode 7, assinatura de teste verificada e bundle sem simuladores/ferramentas. SHA256 APK `e6170b3b7e5fd2e40efdcff8d832fc5167baed3482c403bfadbeb9f757bcb2ff`. [Relatório R5](r5-piloto-backup-suporte.md) · [CP 025](checkpoints-roadmap.md#cp-20261102-025-apk-interno-e-entrega-local-r5). APIs saudáveis ainda sem rotas R5 (404); ADB sem aparelhos. PostgreSQL independente/restauração atual, CI remoto, atendimento humano e retorno compatível permanecem abertos. Cópia externa e alertas seguem no backlog já autorizado.
+**Registro da entrega inicial, 02/11/2026:** suporte, políticas, exportação autorizada e pedido de análise de exclusão foram construídos, com 1.255 casos distintos, tipos e ferramentas aprovados e APK interno 0.1.6. [Relatório R5](r5-piloto-backup-suporte.md) · [CP 025](checkpoints-roadmap.md#cp-20261102-025-apk-interno-e-entrega-local-r5). A ausência de rotas R5/CI/PostgreSQL independente daquele registro foi superada pelos CPs 033/054. Restauração do schema atual, atendimento humano, retorno compatível e homologação física continuam abertos. Cópia externa e alertas seguem no backlog já autorizado.
 
 Entregas locais adicionais, sem equivalência a homologação física/externa:
 
@@ -244,7 +264,12 @@ Entregas locais adicionais, sem equivalência a homologação física/externa:
 - [x] Retirar implementações de demonstração/ferramentas do bundle conectado e validar host, recursos e grafo de fontes; preparar versão 0.1.6/versionCode 7 com assinatura de produção separada.
 - [x] Preparar e testar ferramentas de comparação de restauração e inspeção de release; documentar atendimento/incidente, monitoramento manual, retorno compatível e [matriz física](roteiro-piloto-android.md), mantendo cenários ainda não executados abertos.
 - [x] Auditar estaticamente o candidato 0.1.8 nos cinco pilares solicitados, inventariar entradas/scroll e registrar parecer do APK e cenários UAT; [relatório e limites](auditoria-estatica-android-0.1.8.md), CP 040. Este item conclui a análise, sem concluir correções ou testes físicos.
-- [ ] Corrigir/validar os cinco P1 da auditoria 0.1.8 (H01, C01, C03, S04, N01), tratar os P2 dos fluxos incluídos e gerar novo APK rastreável antes de ampliar o piloto para usuários/dados reais. Repetir verificações afetadas e aceite físico; snippets são propostas não aplicadas.
+- [x] Construir os tratamentos dos cinco P1 da auditoria 0.1.8 (H01, C01, C03, S04, N01) e dos P2 incluídos, validar regressões/CI e gerar APK rastreável. Os 18 tratamentos foram aplicados e inspecionados na 0.1.9, preservados na 0.1.10. [Matriz](correcoes-auditoria-0.1.9.md) · [CPs 045/054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
+- [ ] Repetir no Android físico as verificações afetadas pela auditoria e registrar aceite antes de ampliar o piloto para usuários/dados reais; implementação e CI não concluem esse aceite.
+- [x] Executar rodada emulada de cadastro/login na API real: 14 verificações funcionais, com duplicidades, OTP, limite e retomada. [CP 080](checkpoints-roadmap.md#cp-20261103-080-rodada-emulada-concluida-com-achado-de-mensagem).
+- [x] Corrigir localmente a mensagem de código inválido do login e validar regressões/API local/tipos: 77 casos únicos aprovados. [CP 081](checkpoints-roadmap.md#cp-20261103-081-mensagem-de-codigo-invalido-corrigida-localmente).
+- [x] Gerar APKs rastreáveis com a mensagem corrigida e retestar essa mensagem no Android Emulator: ARM/x86_64 0.1.11/12, mesmo bundle/fontes, recusa pública com mensagem correta e perfil anterior preservado. Os binários 0.1.10 mantêm o texto antigo; reteste físico é separado. [CP 093](checkpoints-roadmap.md#cp-20261103-093-ciclo-emulado-concluido-e-entrega-0111).
+- [x] Concluir ciclo dirigido de um operador no Android Emulator/API real: cinco vendas/R$ 60, movimentos, parcela durável, modo avião, reboot, fechamento 175/170/−5, reconexão/reenvio sem duplicação, estoque 14 e painel/relatório confirmados. Não encerra os cenários físicos/multioperador abaixo. [Relatório e limites](ciclo-venda-caixa-offline-emulador.md) · [CP 093](checkpoints-roadmap.md#cp-20261103-093-ciclo-emulado-concluido-e-entrega-0111).
 
 - [ ] Testar o APK exato em aparelhos reais: instalação, atualização da 0.1.4, câmera/scanner, permissões, SecureStore, exportação e acessibilidade.
 - [ ] Simular encerramento forçado durante parcela e conclusão, disco cheio, rede intermitente, reinício do aparelho e atualização com pendências.
@@ -253,14 +278,19 @@ Entregas locais adicionais, sem equivalência a homologação física/externa:
 - [ ] Restaurar um backup do servidor e recuperar uma conta em aparelho substituto, conferindo IDs, quantidades, valores e pendências.
 - [x] Concluir regressão da API em banco de teste dedicado e sem competição com o build; executar tipos, testes mobile/shared, testes PostgreSQL/SQLite e checks do CI.
   - Correção `a987c31`, CI 41574379311 aprovado: API 592/PostgreSQL 17 dedicado, mobile 556/SQLite e shared 172; tipos, ferramentas e imagem/isolamento aprovados. Essa validação não conclui Android físico. CI anterior e reabertura para a correção estão nos CPs 029–032. Inspeção anterior de alcance dos advisories não encontrou biblioteca com aviso direto no JS embarcado/API; saneamento das ferramentas e análise nativa permanecem pendentes.
-- [ ] Remediar as dependências alcançáveis pelo runtime e repetir as verificações afetadas; remover simuladores e ferramentas de teste do build de produção.
-- [ ] Disponibilizar suporte, privacidade, termos, exportação e solicitação de exclusão. Definir retenção, acesso a diagnósticos e procedimento de incidente.
+- [x] Remover implementações simuladas/ferramentas de teste dos bundles conectados de release e validar o grafo final. Diagnóstico local de homologação tem escopo próprio; export de produção sem esse diagnóstico conferido. [CPs 045/054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
+- [ ] Concluir remediação/análise das dependências alcançáveis pelo runtime, incluindo análise nativa e ferramentas pendentes, e repetir as verificações afetadas.
+- [x] Implementar suporte, privacidade, termos, exportação e solicitação de análise de exclusão; documentar retenção, escopo dos diagnósticos e procedimento de incidente. API implantada, contratos HTTP conferidos e telas incluídas no APK. [Relatório R5](r5-piloto-backup-suporte.md) · [CPs 033/054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
+- [ ] Homologar suporte/exportação/políticas no Android, designar responsável pelo atendimento e concluir aceite operacional; F16/F17 continuam pendentes.
 - [ ] Validar monitoramento de API, e-mail, jobs, filas e backup, além do retorno à versão anterior compatível com o banco.
 
 ## R6 Integrar pagamentos reais
 
 **Planejada; critério de entrada ainda não atendido.** Antes da implementação, concluir a [revisão de prontidão e as pendências do piloto](#revisao-de-prontidao-para-r6), com evidências de R3 e piloto estável. O APK interno e os testes locais de R5 não substituem esse resultado.
 
+**Direção desejada pelo usuário em 10/11/2026:** confirmação automática com Stone, InfinitePay e Mercado Pago. Nas documentações públicas consultadas, os avisos ao servidor valem para cobranças criadas pela integração; aviso de toda transação da conta, inclusive maquininha sem integração, não foi confirmado em nenhum dos três. Ordem proposta, ainda sem aprovação: Pix do Mercado Pago, InfiniteTap por deeplink e Stone após resposta do programa de parceiros. [CP 101](checkpoints-roadmap.md#cp-20261110-101-google-play-planos-e-integracoes-definidos).
+
+- [ ] Permitir que o lojista escolha e conecte o próprio provedor em "Conectar minha maquininha", com um único fluxo de venda e um conector por provedor. Cada provedor oferece o nível de automação que sua integração permitir; marca não integrada, falha ou ausência de internet mantém a confirmação manual identificada. Decisão do usuário em 10/11/2026; [CP 103](checkpoints-roadmap.md#cp-20261110-103-escolha-da-maquininha-pelo-lojista-decidida).
 - [ ] Escolher o primeiro provedor conforme acesso à API/SDK, credenciais, aparelhos e fluxo de homologação; começar por uma integração completa.
 - [ ] Implementar Pix dinâmico, confirmação autenticada no servidor, expiração e conciliação. Confirmar por evento/consulta do provedor, sem botão de simulação.
 - [ ] Implementar cartão integrado e Tap/NFC somente nos aparelhos e fluxos suportados pelo provedor. Usar os componentes de captura/tokenização do provedor.
@@ -271,12 +301,16 @@ Entregas locais adicionais, sem equivalência a homologação física/externa:
 
 ## R7 Concluir assinatura e distribuição
 
-- [ ] Manter o acesso liberado sem cobrança enquanto essa for a política comercial. Não converter contas gratuitas em pagantes automaticamente.
+- [x] Implementar e validar o acesso liberado sem cobrança conforme a política comercial vigente, sem conversão automática de contas gratuitas em pagantes. Comprovado por HTTP real e onboarding emulado. [CP 033](checkpoints-roadmap.md#cp-20261103-033-fluxo-financeiro-externo-aprovado) · [CP 077](checkpoints-roadmap.md#cp-20261103-077-cadastro-e-retomada-emulados-aprovados). Mudança futura de política exige decisão própria.
 - [ ] Definir o canal de distribuição e o mecanismo de compra aplicável; então implementar provedor real no lugar de `MockBillingProvider` e da tokenização simulada.
 - [ ] Homologar compra, renovação, falha de pagamento, cancelamento, reembolso, restauração e notificações duplicadas ou fora de ordem.
 - [ ] Validar cupom, preço vigente, licença offline e limites de usuários/lojas/aparelhos sem cortar o acesso ao histórico financeiro.
 - [ ] Garantir que bloqueio comercial impeça novas operações conforme a política, preservando consulta, recuperação e exportação permitidas.
 - [ ] Publicar o artefato verificado com assinatura de distribuição, versão rastreável e implantação da API compatível.
+- [ ] Implementar `GooglePlayBillingProvider` para a compra dentro do app, conforme decisão do usuário em 10/11/2026 ([CP 102](checkpoints-roadmap.md#cp-20261110-102-assinatura-por-play-billing-decidida)), validar compra no servidor, confirmar em até três dias, tratar notificações e retirar o formulário de cartão da assinatura no build da Play. **Canal definido em 10/11/2026: Google Play.** `BILLING_PROVIDER` aceita hoje somente `disabled` e `mock`.
+- [ ] Gerar AAB de produção e configurar Play App Signing; `scripts/build-android.ps1` executa apenas `assembleRelease`. Target API 36 conferido no APK 0.1.11, a reconferir no artefato final.
+- [ ] Concluir ficha e declarações da Play: privacidade em URL pública, exclusão de conta no app e na web, segurança de dados, recursos financeiros e verificação do desenvolvedor.
+- [ ] Cumprir o teste fechado aplicável; conta pessoal criada após 13/11/2023 exige ao menos 12 testadores por 14 dias contínuos.
 
 Desktop e emissão fiscal ficam como frentes seguintes, com requisitos, integração e homologação próprios. Não serão tratados como recursos prontos pela conclusão do Android.
 
@@ -312,6 +346,10 @@ O [plano de produção](plano-implementacao-producao.md) mantém o detalhamento 
 
 Referências técnicas: [API](../apps/api/README.md), [implantação no EasyPanel](deploy-easypanel.md), [catálogo EAN](produto-catalogo-ean.md), [schema do servidor](../apps/api/src/db/schema.ts), [seleção atual do caixa](../apps/mobile/src/dados/caixa.ts) e [autorização atual do push](../apps/api/src/servicos/sync.ts).
 
+## Histórico incremental das rodadas
+
+Os registros abaixo preservam o estado de cada instante, inclusive preparações/falhas superadas depois. O estado atual e as pendências estão no quadro inicial e nos checklists R0–R7 acima.
+
 ### Correção da auditoria 0.1.8 — candidato 0.1.9
 
 03/11/2026, 12h30: usuário informou instalação e recebeu primeira rodada guiada de acesso, estabilidade visual, scanner/teclado e diagnóstico. Resultados físicos e confirmação da versão instalada ainda pendentes; nenhum PASS/aceite inferido. [CP 046](checkpoints-roadmap.md#cp-20261103-046-instalacao-relatada-e-reteste-guiado).
@@ -323,3 +361,59 @@ Referências técnicas: [API](../apps/api/README.md), [implantação no EasyPane
 - [x] Gerar e inspecionar APK interno 0.1.9/10 com diagnóstico, R8/shrink, mapping, assinatura, manifesto/permissões, bundle e 299 fontes sem divergência; hash e limites no [CP 044](checkpoints-roadmap.md#cp-20261103-044-apk-019-otimizado-gerado). Export de produção sem diagnóstico e conferência documental final concluídos no CP 045; nenhum checkbox físico/aceite encerrado.
 
 **Candidato em execução, 03/11:** 0.1.10/11 no commit e350da7; CI manual 41688629339 disparado e backup pré-atualização comprovado. API/APK novos em preparação; [CP 051](checkpoints-roadmap.md#cp-20261103-051-candidato-0110-e-ci-disparado).
+
+**API atualizada, 03/11:** CI 41688960912 aprovado no SHA 84dd0dc; somente API de homologação implantada e contrato de verificação antecipada validado por HTTPS. APK 0.1.10/11 em compilação; [CP 053](checkpoints-roadmap.md#cp-20261103-053-ci-aprovado-e-api-0110-atualizada).
+
+**Reteste guiado da 0.1.10, 03/11:** usuário relatou instalação e pediu acompanhamento de cadastro/login. Início pela identificação da tela e preservação de sessão/dados; resultados físicos ainda não recebidos. [CP 055](checkpoints-roadmap.md#cp-20261103-055-instalacao-0110-relatada-e-guia-de-acesso).
+
+**Estado inicial esclarecido, 03/11:** usuário limpou dados locais antes da orientação e está no login; primeiro reteste será entrada com armazenamento reiniciado, sem comprovar preservação da sessão na atualização. Resultado ainda pendente. [CP 056](checkpoints-roadmap.md#cp-20261103-056-limpeza-local-relatada-e-primeiro-login).
+
+**Primeiro resultado físico da 0.1.10, 03/11:** usuário confirmou OTP recebido e entrada direta na loja, sem erro/reenvio de código. PASS dirigido por relato após limpeza local; persistência ao reabrir, cadastro duplicado e demais cenários seguem pendentes. [CP 057](checkpoints-roadmap.md#cp-20261103-057-login-0110-aprovado-por-relato). Sem aceite geral do piloto.
+
+**Retomada da sessão, 03/11:** usuário confirmou reabertura direta da 0.1.10 sem OTP após fechar pelos recentes; PASS dirigido por relato, sem reinício/encerramento forçado comprovado. Cadastro ainda pendente; único celular disponível e identidade local impedem acesso normal ao cadastro após login. Conferência das pendências antes de definir preparação adicional. [CP 058](checkpoints-roadmap.md#cp-20261103-058-sessao-retomada-e-preparacao-do-cadastro).
+
+**Fila na captura física, 03/11:** tela enviada pelo usuário comprova 0 aguardando envio e 0 para revisão, com sincronização completa às 15h31m44. Próxima ação é preservar o diagnóstico do login antes de preparar cadastro no único celular; sem limpeza autorizada por essa evidência. [CP 059](checkpoints-roadmap.md#cp-20261103-059-fila-zerada-comprovada-na-tela).
+
+**Diagnóstico físico completo preservado, 03/11:** 456 eventos da 0.1.10 confirmam login aceito seguido de início (~402 ms), reabertura sem novo OTP e sync final ocioso/zero pendências/rejeições. Quatro avisos de interface fora da conclusão do login e uma falha de rede recuperada seguem registrados para investigação. Arquivo completo substitui a colagem truncada como evidência integral. Preparação de cadastro no único celular aguarda autorização para eventual reinício dos dados locais; nenhuma limpeza executada. [CP 060](checkpoints-roadmap.md#cp-20261103-060-diagnostico-completo-0110-preservado).
+
+**Preparação do cadastro autorizada, 03/11:** usuário autorizou reinício somente dos dados locais do PDV Homologação, após histórico preservado e fila zero. Orientação enviada para limpar pelo Android e testar e-mail existente na primeira etapa; execução/resultados ainda pendentes. Banco remoto/produção/backups preservados. [CP 061](checkpoints-roadmap.md#cp-20261103-061-reinicio-local-autorizado-para-cadastro).
+
+**Cadastro novo relatado, 03/11:** usuário concluiu onboarding com e-mail/CPF temporários na rodada da 0.1.10. Detalhes de OTP/ordem das telas e novo diagnóstico ainda pendentes; recusas de e-mail e documento duplicados não foram executadas/comprovadas. [CP 062](checkpoints-roadmap.md#cp-20261103-062-cadastro-novo-concluido-por-relato).
+
+**Esclarecimento do cadastro, 03/11:** usuário confirmou tentativa de criação bloqueada e sucesso com dados novos. Recusa executada por relato, atualizando CP 062; falta distinguir e-mail repetido, CPF/CNPJ repetido ou ambos. Fluxo testado confirmado verbalmente, sem aceite geral do piloto. [CP 063](checkpoints-roadmap.md#cp-20261103-063-bloqueio-de-cadastro-e-dados-novos-relatados).
+
+**Recusa identificada por relato, 03/11:** usuário confirmou bloqueio pelo e-mail e novo bloqueio na repetição. E-mail com recusa relatada; CPF duplicado continua pendente. Segunda mensagem precisa ser distinguida de limite de tentativas (hipótese dos fontes, sem status comprovado). [CP 064](checkpoints-roadmap.md#cp-20261103-064-recusa-por-email-e-segunda-tentativa).
+
+**Limite confirmado, 03/11:** segunda tentativa mostrou Muitas tentativas por relato do usuário, distinta da recusa pelo e-mail. Próximo cenário guiado: outro e-mail acessível ainda livre + documento da conta de teste existente, OTP antes da checagem de duplicidade; resultado pendente. Preparação local dentro da autorização CP 061 exige preservar diagnóstico atual e fila zerada. [CP 065](checkpoints-roadmap.md#cp-20261103-065-limite-confirmado-e-teste-de-cpf-duplicado).
+
+**Falha relatada no teste de documento, 03/11:** nova conta teria sido criada com e-mail novo e CPF repetido. Cenário FAIL por relato, causa em investigação; suspender avanço da rodada guiada para vendas até esclarecer. Fontes declaram checagem antecipada/final e unicidade, ainda sem prova da tentativa real ou do schema externo ativo. Solicitar diagnóstico novo e reproduzir mobile/API local. [CP 066](checkpoints-roadmap.md#cp-20261103-066-cpf-repetido-aceito-relatado-em-investigacao).
+
+**Investigação de CPF, 03/11:** reprodução integrada nova com Dados/BackendHttp/API/PGlite recusou o mesmo CPF normalizado com outro e-mail tanto na conferência antecipada quanto na criação final; duas suítes/sete casos e tipos aprovados. Isso não encerra a falha física: aguarda JSON desta tentativa e comprovação dos dados/schema externos antes de alterar runtime. [CP 067](checkpoints-roadmap.md#cp-20261103-067-reproducao-integrada-de-cpf-e-evidencia-real-pendente).
+
+**JSON da tentativa recebido, 03/11:** 65 eventos comprovam e-mail duplicado 409, repetição 429 e posterior emissão de OTP 200 para e-mail novo. Não há verificação de código, /loja ou criação /contas; sync final sem sessão. Aceitação de CPF duplicado não comprovada neste arquivo; cenário inconclusivo aguardando confirmação OTP na primeira tela. Relato original preservado sem atribuição de causa. [CP 068](checkpoints-roadmap.md#cp-20261103-068-json-mostra-emissao-de-codigo-sem-criacao).
+
+**Automação de acesso solicitada, 03/11:** suítes API/mobile iniciadas; ADB fora do sandbox retornou zero aparelhos. Validação automatizada isolada em andamento, sem operação de conta/e-mail remoto ou telefone. [CP 069](checkpoints-roadmap.md#cp-20261103-069-testes-automatizados-de-acesso-iniciados).
+
+**Automação concluída, 03/11:** 96 casos dirigidos de acesso PASS (49 API, 45 mobile, dois novos de formulário + Dados/BackendHttp/API/PGlite), tipos API/mobile aprovados. CPF repetido recusado após OTP e na criação final; cadastro com dados livres só cria conta após confirmar a loja. Sem alteração runtime/deploy ou teste físico: ADB não encontrou aparelho. [CP 070](checkpoints-roadmap.md#cp-20261103-070-96-casos-de-acesso-automatizados-aprovados).
+
+**Emulação Android solicitada, 03/11:** ambiente sem emulador/AVD/imagem; instalação do pacote oficial emulator em preparação, com verificação de aceleração pendente. Sem execução Android emulada concluída. [CP 071](checkpoints-roadmap.md#cp-20261103-071-preparacao-de-emulador-android).
+
+**Emulador preparado, 03/11:** emulator 37.2.13, imagem API 35 e AVD pdv-acesso-api35 instalados; WHPX aprovado, mas boot permanece offline após duas inicializações. Teste do APK ainda não começou. Investigação restrita ao AVD, sem alterar Windows/Samsung/produção. [CP 072](checkpoints-roadmap.md#cp-20261103-072-emulador-instalado-e-boot-em-diagnostico).
+
+**Android emulado iniciado, 03/11:** versão oficial anterior 36.2.12 concluiu boot do AVD API 35; ADB online, boot_completed=1, tradução arm64 disponível e APK exato 0.1.10 instalado com sucesso. Testes de tela ainda em andamento; nenhuma aprovação de cadastro/login ou aceite físico por essa instalação. [CP 073](checkpoints-roadmap.md#cp-20261103-073-android-emulado-iniciado-e-apk-instalado).
+
+**Compatibilidade do emulador, 03/11:** APK ARM encerrou no carregamento nativo do React Native, antes do cadastro. Variante release x86_64 em compilação com opção -Emulador e nome separado; APK do Samsung preservado. Nenhum cenário de acesso emulado aprovado ainda. [CP 074](checkpoints-roadmap.md#cp-20261103-074-variante-nativa-para-emulador-em-compilacao).
+
+**Release x86_64 aberto, 03/11:** variante emulador 0.1.10/11 compilada/verificada e tela de boas-vindas observada no Android API 35. Mesmos 300 fontes e bundle Hermes idêntico ao APK ARM entregue; cenários de cadastro/login ainda pendentes. [CP 075](checkpoints-roadmap.md#cp-20261103-075-release-x86-64-abriu-no-android).
+
+**Quatro cenários emulados PASS, 03/11:** campos obrigatórios, e-mail/CPF inválidos, emissão real de OTP sem avançar à loja e recusa de código inválido conferidos no AVD/API de homologação. Código verdadeiro ocultado pelo conector Gmail; aguardando usuário digitá-lo diretamente no emulador. Cadastro completo, duplicidades após OTP, login/retomada e aceite físico ainda pendentes. [CP 076](checkpoints-roadmap.md#cp-20261103-076-quatro-cenarios-nativos-e-otp-pendente).
+
+**Cadastro e retomada emulados PASS, 03/11:** OTP digitado diretamente pelo usuário abriu etapa da loja; conta sintética criada, onboarding concluído e dashboard Online retornou após abertura fria sem outro OTP. Duplicidades e novo login seguem no próximo lote; aceite físico aberto. [CP 077](checkpoints-roadmap.md#cp-20261103-077-cadastro-e-retomada-emulados-aprovados).
+
+**E-mail e limite emulados PASS, 03/11:** após reset exclusivo do app no AVD, e-mail da conta sintética recusado na primeira tela; repetição imediata limitada. Resumo reúne nove cenários PASS. Outro alias/mesmo CPF aguarda confirmação direta de OTP antes de avaliar duplicidade. Novo login e aceite físico pendentes. [CP 078](checkpoints-roadmap.md#cp-20261103-078-email-repetido-e-limite-emulados-aprovados).
+
+**CPF repetido emulado PASS, 03/11:** após OTP válido de outro e-mail digitado pelo usuário, mesma primeira etapa exibiu Já existe uma conta com este CPF/CNPJ; não avançou à loja. Fluxo relatado de documento ignorado não reproduzido nessa rodada Android/API real. Relato físico anterior preservado e aceite Samsung continua aberto. Próximo teste: Já tenho conta/login. [CP 079](checkpoints-roadmap.md#cp-20261103-079-cpf-repetido-bloqueado-no-android-emulado).
+
+**Rodada emulada de acesso concluída, 03/11:** 14 verificações funcionais PASS no Android API 35/API real, incluindo CPF repetido após OTP, Já tenho conta sem autenticar, login válido direto à loja e retomada sem código. Um achado de mensagem permanece: código inválido no login exibe texto de sessão inválida; recusa funcional aprovada, texto FAIL, correção ainda não implementada. Variante x86_64 com mesmo bundle da 0.1.10; Samsung/aceite e demais cenários continuam pendentes. Próximo ajuste: mensagem das rotas públicas de login. [CP 080](checkpoints-roadmap.md#cp-20261103-080-rodada-emulada-concluida-com-achado-de-mensagem).
+
+**Mensagem de login corrigida localmente, 03/11:** 401 das duas provas públicas de login agora orienta código inválido/expirado, mantendo corpos 401 ignorados e tratamento de sessões protegidas. Seis arquivos/77 casos únicos e tipos mobile PASS, incluindo API/PGlite/SQLite com código incorreto e expirado. Sem novo APK/CI/deploy ou reteste nativo dessa correção; 0.1.10 instalada mantém texto anterior. Próxima fase prática: novo APK/reteste e piloto funcional de produto, venda, caixa, sincronização/offline e fechamento; R6 aguarda piloto estável. [CP 081](checkpoints-roadmap.md#cp-20261103-081-mensagem-de-codigo-invalido-corrigida-localmente).

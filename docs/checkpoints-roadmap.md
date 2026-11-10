@@ -720,3 +720,577 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Data:** 03/11/2026, 14h56, America/Sao_Paulo.
 - **Resultado:** CI 41688629339 falhou no typecheck mobile TS2493: useSegments inferiu tupla de um elemento na instalação limpa. Hook agora declara a interface de segmentos como readonly string[], preservando a comparação de rota. Regressão dirigida da tela e tipos locais repetidos; logs pdv-0110-hook-{regressao,tipos}.log.
 - **Estado/próximo passo:** correção mínima para executar novo CI completo no novo SHA; backup do CP 051 preservado. Sem deploy/APK novo; não alegar CI aprovado enquanto o novo run não concluir.
+
+
+<a id="cp-20261103-053-ci-aprovado-e-api-0110-atualizada"></a>
+
+## CP 20261103 053 CI aprovado e API 0.1.10 atualizada
+
+- **Data:** 03/11/2026, 15h03, America/Sao_Paulo.
+- **Etapa/resultado:** R5; CI 41688960912 completed/success no SHA 84dd0dcd9825e7e1c3d04f7bfe08261a34739e79. Tipos, ferramentas, shared, API PostgreSQL 17, mobile, imagem/isolamento aprovados. Deploy de main pulado; produção não promovida. Evidências pdv-0110-ci-aprovado.{json,log}.
+- **Homologação:** somente aladdin/pdv-api-homologacao implantada após backup CP 051. Serviço reporta mesmo SHA; ambiente e fonte comparados com inspeção anterior e preservados, autoDeploy false. Sem alteração de banco/schema, credenciais, portas, volumes ou dados.
+- **HTTPS externo:** saúde 200 com referência de hora; cadastro configuração contrato 1/verificacaoEmail true/verificacaoAntecipada true; POST /auth/cadastro/verificar sem prova recusado com 400 cadastro_codigo_necessario. Smoke não enviou e-mail nem criou conta. Evidência builds/pdv-0110-http.json. OTP externo/Android físico continuam pendentes.
+- **Próximo passo:** compilar 0.1.10/11 com diagnóstico/R8, preservar mapping, conferir assinatura/manifesto/bundle/fontes/alinhamentos e entregar para reteste. Build iniciado, sem declarar conclusão neste checkpoint; dados/backups/APKs anteriores preservados.
+
+
+<a id="cp-20261103-054-apk-0110-entregue-para-reteste"></a>
+
+## CP 20261103 054 APK 0.1.10 entregue para reteste
+
+- **Data:** 03/11/2026, 15h13, America/Sao_Paulo.
+- **Etapa/resultado:** R5; sequência dos CPs 051–053. CI 41688960912 aprovado no commit 84dd0dcd9825e7e1c3d04f7bfe08261a34739e79: 602 casos API/PostgreSQL 17, 593 mobile, 172 shared, total 1.367, tipos, duas ferramentas e imagem/isolamento. Primeira execução falhou e foi corrigida conforme CP 052; não foi promovida a produção.
+- **API externa:** somente aladdin/pdv-api-homologacao atualizada no mesmo SHA após backup comprovado no CP 051. Ambiente/fonte comparados e preservados; autoDeploy false. Saúde/hora 200, contrato 1/verificacaoEmail e verificacaoAntecipada true, verificação sem prova recusada com 400 cadastro_codigo_necessario por HTTPS. Nenhum e-mail real/conta criada pelo smoke. Sem mudanças de schema, dados, credenciais, portas ou volumes; produção preservada.
+- **Artefato:** builds/pdv-homologacao-0.1.10.apk, versão 0.1.10/versionCode 11, pacote br.com.pdv.mobile.homologacao, 64,628,444 bytes; SHA256 4e32a8cd6f372b9bac7c622d30848c3773a8c4283bb8ac0dd598bb781be6ffdb. Certificado interno idêntico ao da 0.1.9, assinatura v2 aprovada; atualizar sem desinstalar nem limpar dados. APK 0.1.9 e anteriores preservados; hash 0.1.9 reconferido.
+- **Build/inspeção:** Gradle BUILD SUCCESSFUL em 8m38s, 656 tarefas (628 executadas/28 atualizadas); R8/minify/shrink ativos, mapping preservado com SHA256 53e375148581a15360d454c6b4f0d47751442c365217bc2db8f16120381e9cfa. Bundle exato 4.292.788 bytes, SHA256 bdbee1dcf3f924055f699a8908de519fcbb55915a19f30eb12b40da3854afd26, 1.892 módulos, gate conectado/diagnóstico PASS; novo hook e endpoint de verificação presentes. 300 fontes/configurações por SHA256, zero divergências; zipalign 16 KB e 29/29 libs ELF ARM64 alinhadas. Manifesto/pacote/versão conferidos; sem RECORD_AUDIO, armazenamento externo ou biometria. Assinatura interna não equivale a distribuição de produção.
+- **Evidências:** builds/pdv-homologacao-0.1.10-*; pdv-0110-conferencia-final.json, auditoria-estatica-0110-evidencias.json, pdv-0110-zipalign.log, pdv-0110-manifesto-binario.txt, pdv-0110-ci-aprovado.{json,log}, pdv-0110-ci-contagens.json e pdv-0110-http.json. README de entrega junto ao APK. Documentação/roadmap atualizados; nenhum commit criado apenas para fechamento documental. SQL de limpeza de outro trabalho preservado e não executado.
+- **Limites:** inspeção estática/CI/HTTPS não substituem Android físico, recebimento SMTP, scanner real com R8, teclado/TalkBack, SecureStore e arquivos recebidos. Novo OTP/cadastro e entrada corrigida exigem reteste no Samsung. Diagnóstico manual local exclusivo de homologação, sem envio automático ou dados pessoais; não comprova conformidade integral. Limpeza/recuperação/backup restaurado/F01–F19/aceite humano continuam abertos. Cópia externa e alertas permanecem no backlog autorizado.
+- **Conferência de fechamento:** seis documentos/128 links e âncoras, cercas/whitespace e git diff --check PASS; 300 fontes sem divergência e hash do APK reconferido. Resultado em builds/pdv-0110-documentos-verificacao.json, zero falhas. Somente documentos alterados após o commit de runtime aprovado; SQL de outro trabalho continua intocado.
+- **Próximo passo:** instalar este APK por atualização, testar e-mail existente e CPF/CNPJ após OTP ainda na primeira tela; entrar em conta existente e conferir avanço automático sem novo pedido de código. Exportar diagnóstico se falhar; então continuar ciclo financeiro/offline conforme roteiro. Nenhum checkbox físico/comercial encerrado.
+
+<a id="cp-20261103-055-instalacao-0110-relatada-e-guia-de-acesso"></a>
+
+## CP 20261103 055 Instalação 0.1.10 relatada e guia de acesso
+
+- **Data:** 03/11/2026, 15h23, America/Sao_Paulo.
+- **Etapa/estado:** R5, continuidade do CP 054. Usuário informou instalação da 0.1.10 e solicitou acompanhamento passo a passo de cadastro/login. Instalação relatada; ainda sem comprovação nova da versão exibida ou dos comportamentos físicos. Nenhum cenário aprovado por antecipação.
+- **Orientação inicial:** abrir PDV Homologação com internet e identificar tela atual (início autenticado, boas-vindas ou entrada), preservando sessão e dados. Não orientar logout/limpeza antes de conhecer pendências e estado do aparelho. Conduzir uma etapa por resposta: e-mail duplicado antes da loja, entrada existente com OTP e avanço automático; depois CPF duplicado com outro e-mail próprio/OTP e cadastro novo quando houver dados de teste apropriados. Não solicitar CPF, e-mail completo ou código no chat.
+- **Validação/arquivos:** roadmap e roteiro de reteste consultados; checkpoint e nota do roadmap atualizados. Sem alteração de runtime, novo build, deploy, envio de e-mail ou operação em banco nesta orientação. Evidências técnicas do CP 054 preservadas.
+- **Próximo passo:** receber a tela atual e conduzir o primeiro cenário com esperado/observado e diagnóstico em caso de falha. Só registrar PASS nos passos efetivamente observados; F01–F19 e aceite continuam pendentes.
+
+
+<a id="cp-20261103-056-limpeza-local-relatada-e-primeiro-login"></a>
+
+## CP 20261103 056 Limpeza local relatada e primeiro login
+
+- **Data:** 03/11/2026, 15h24, America/Sao_Paulo.
+- **Etapa/estado:** R5, atualização do CP 055. Usuário relatou que já limpou os dados do app antes da orientação e está no login. Não foi ação executada pelo agente nem limpeza do banco de homologação. O teste agora parte de armazenamento local reiniciado, sem equivalência a atualização com sessão preservada. Não presumir recuperação de dados nunca sincronizados nem inexistência de pendências anteriores.
+- **Orientação:** usar e-mail da conta existente, solicitar código uma vez e informar somente no app; tocar Entrar uma vez e observar avanço automático para a loja. Em escolha de loja ou oferta de substituir aparelho, relatar a tela antes de confirmar substituição. Em erro, registrar texto/horário e exportar diagnóstico; não insistir no reenvio. Cadastro duplicado será conduzido após confirmar entrada.
+- **Validação/limites:** apenas relato da limpeza e da tela atual; código recebido, autenticação, navegação e dados restaurados ainda não observados. Roadmap/roteiro consultados; registro documental e diff conferidos. Sem runtime/build/deploy, envio de mensagem/e-mail pelo agente ou operação em banco.
+- **Próximo passo:** receber resultado de chegada do código e navegação após login; nenhum PASS físico ou aceite antecipado.
+
+
+<a id="cp-20261103-057-login-0110-aprovado-por-relato"></a>
+
+## CP 20261103 057 Login 0.1.10 aprovado por relato
+
+- **Data:** 03/11/2026, 15h26, America/Sao_Paulo.
+- **Etapa/resultado:** R5, continuidade do CP 056. Usuário confirmou recebimento do código e entrada direta na loja, sem erro e sem nova solicitação de código. PASS do cenário dirigido de primeiro login após limpeza local, por relato de execução física; sem diagnóstico novo recebido ou observação direta do agente. Não equivale a aceite do piloto, atualização com sessão preservada ou validação completa de SMTP/autenticação.
+- **Próxima orientação:** fechar o app pelos recentes e reabrir sem sair da conta ou limpar dados; conferir retomada da loja e ausência de novo OTP. Verificar persistência antes de preparar cadastro duplicado. Fontes mostram que logout preserva identidade local e exige reautenticação; não orientar logout como garantia de voltar ao cadastro nem nova limpeza para contornar fluxo.
+- **Documentação/validação:** roteiro e roadmap atualizados com o resultado específico; demais casos de cadastro, reautenticação, troca de perfis e recuperação seguem pendentes. Diff documental conferido. Nenhuma alteração de runtime, build, deploy, sessão ou banco pelo agente.
+- **Próximo passo:** receber resultado da reabertura e conduzir cadastro em estado inicial apropriado, preservando evidência/filas. Nenhum F01–F19 ou aceite geral encerrado.
+
+
+<a id="cp-20261103-058-sessao-retomada-e-preparacao-do-cadastro"></a>
+
+## CP 20261103 058 Sessão retomada e preparação do cadastro
+
+- **Data:** 03/11/2026, 15h29, America/Sao_Paulo.
+- **Etapa/resultado:** R5, continuidade do CP 057. Usuário fechou pelos recentes e reabriu a 0.1.10; informou entrada direta na loja sem novo código. PASS dirigido da retomada da sessão por relato físico, sem inferir encerramento forçado/reinício do aparelho/atualização ou homologação integral do SecureStore.
+- **Limitação do roteiro:** fontes confirmam que identidade local faz o guarda redirecionar cadastro para loja ou reautenticação; logout preserva essa identidade e não libera cadastro. Usuário só dispõe deste celular. Não orientar tentativa de logout ou limpeza como se fossem caminho normal garantido; definir estado inicial de teste preservando evidências. Cadastro duplicado/novo continuam não executados.
+- **Orientação imediata:** conferir em Ajustes > Usuários neste aparelho as contagens de aguardando envio e para revisão; preservar sessão e dados, não tocar Sair. Receber contagens antes de definir preparação adicional para cadastro em instalação sem identidade. Não solicitar valores pessoais/OTP no chat.
+- **Arquivos/validação:** roadmap/roteiro e fontes de navegação/perfis consultados; checkpoint e notas documentais atualizados; diff conferido. Sem modificação runtime/build/deploy, exclusão local/remota ou envio de e-mail pelo agente.
+- **Próximo passo:** receber contagens e definir preparação adequada para cadastro com um único aparelho, mantendo a execução do cadastro e aceite pendentes.
+
+
+<a id="cp-20261103-059-fila-zerada-comprovada-na-tela"></a>
+
+## CP 20261103 059 Fila zerada comprovada na tela
+
+- **Data:** 03/11/2026, 15h33, America/Sao_Paulo.
+- **Etapa/evidência:** R5, continuidade do CP 058. Captura anexada pelo usuário mostra perfil em uso, 0 aguardando envio, 0 para revisão e última sincronização completa em 03/11/2026 às 15h31m44. Evidência visual dessas contagens naquele instante; não prova integridade de todos os registros nem preservação de preferências e outros dados exclusivamente locais. Não transcrever nome/e-mail exibidos na imagem para a documentação.
+- **Próximo passo guiado:** abrir Diagnóstico do teste ativo, Copiar histórico do teste e colar nesta conversa para preservar e conferir versão/eventos da rodada de login antes de definir preparação adicional do cadastro no único celular disponível. Nenhuma orientação de limpeza ou logout executada nesta etapa; contagem zero não foi tratada como autorização para apagar dados.
+- **Validação/arquivos:** roteiro e implementação da exportação consultados; checkpoint e roadmap atualizados, diff conferido. Nenhum runtime/build/deploy, escrita no banco ou envio de mensagem externa pelo agente. Cadastro continua não executado e sem aceite; login/reabertura mantêm evidência por relato dos CPs 057–058.
+
+
+<a id="cp-20261103-060-diagnostico-completo-0110-preservado"></a>
+
+## CP 20261103 060 Diagnóstico completo 0.1.10 preservado
+
+- **Data:** 03/11/2026, 15h38, America/Sao_Paulo.
+- **Etapa/evidência:** R5, continuidade do CP 059. Primeira colagem veio truncada em 65.536 caracteres, sem JSON completo; 408 eventos completos puderam ser lidos, sem inventar fechamento ou eventos restantes. Usuário então forneceu o arquivo exportado completo: 107.322 bytes, 456 eventos ordenados (limite 500), app 0.1.10/homologação, Samsung SM-S938B/Android 17, gerado às 15h36m42 local, persistenciaPendente false. Execuções anteriores persistidas aparecem no mesmo histórico, conforme contrato; não exigir ID único.
+- **Login/retomada:** emissão /auth/codigo 204 às 15h25m04; vínculos e login 200, login às 15h25m34.310 e navegação para início às 15h25m34.712 (~402 ms depois). Uma emissão e um login no arquivo; reabertura registrada às 15h28m01 no início sem novo OTP, consistente com relatos CPs 057–058. Último sync às 15h36m40 ocioso/zero pendências e zero rejeições. Evidência não certifica todos os dados do servidor nem outros fluxos.
+- **Achados adicionais:** uma falha de rede status 0 em /sync/pull às 15h30m34 após background, com recuperação posterior. Quatro avisos de interface tipo erro às 15h27m37/15h30m59/15h34m07/15h36m39, próximos de GET /assinatura 200 e atualização em segundo plano; texto não registrado por privacidade e causa ainda não comprovada. Não declarar a rodada inteira livre de falhas nem atribuir os avisos ao login, que já havia concluído. Sem eventos de erro JS neste arquivo.
+- **Preservação/validação:** JSON completo validado e copiado para builds/pdv-0110-reteste-samsung-completo-20261103.json, SHA256 8ff33b4a14e7591fcd4525d8879a7ce23536a6feef9e3cd75837c23183d19bf9; resumo derivado em pdv-0110-reteste-samsung-completo-resumo.json. Colagem incompleta preservada separadamente e rotulada, sem tratá-la como histórico integral. Artefatos locais ignorados pelo Git; sem registrar dados pessoais/códigos. Roadmap e checkpoint atualizados, diff conferido. Nenhum build/deploy/limpeza ou ação remota.
+- **Próximo passo:** para executar cadastro no único celular, obter autorização explícita antes de orientar reinício dos dados locais do PDV Homologação. Informar que sessão/preferências/arquivos locais são apagados, enquanto contas e dados sincronizados no servidor permanecem. Histórico já preservado e fila zero observada não substituem essa autorização. Depois conduzir primeiro e-mail duplicado antes da etapa da loja; cadastro e aceite ainda pendentes. Avisos de interface permanecem para investigação própria.
+
+
+<a id="cp-20261103-061-reinicio-local-autorizado-para-cadastro"></a>
+
+## CP 20261103 061 Reinício local autorizado para cadastro
+
+- **Data:** 03/11/2026, 15h41, America/Sao_Paulo.
+- **Autorização/escopo:** usuário autorizou explicitamente limpar os dados locais do PDV Homologação e pediu orientação para limpeza e teste de cadastro. Autorização restrita ao armazenamento local desse aplicativo no único celular; não inclui banco remoto, produção, outros aplicativos, backups ou exclusão do diagnóstico exportado em Downloads/cópia de evidência. Substitui a espera por autorização do CP 060.
+- **Preparação comprovada:** histórico completo preservado e fila final ociosa/zero pendências/rejeições no CP 060; captura anterior também mostra zero. Login/reabertura aprovados nos cenários dirigidos por relato/evidência. Limpeza remove sessão/preferências/histórico local, preservando conta e dados já sincronizados no servidor; sem promessa de recuperar dados exclusivos do aparelho.
+- **Orientação:** informações do aplicativo PDV Homologação > Armazenamento > Limpar dados > confirmação Android; abrir novamente e escolher Começar. Na primeira tela, preencher nome, e-mail da conta existente e CPF/CNPJ válido, apenas no app; tocar Continuar e enviar código uma vez. Esperado: mensagem de e-mail já cadastrado na primeira tela, antes de loja/OTP/criação. Parar e relatar a mensagem antes de entrar de novo, para permitir prosseguir ao teste de CPF com outro e-mail próprio.
+- **Estado/validação:** orientação documentada; execução da limpeza e resultado do cadastro ainda não relatados. Roadmap/roteiro/fontes e rótulos consultados; diff conferido. Nenhuma limpeza, alteração runtime/build/deploy ou operação remota executada pelo agente.
+- **Próximo passo:** receber resultado de e-mail duplicado e registrar somente observação efetiva. Depois conduzir CPF duplicado após OTP e cadastro novo conforme dados de teste disponíveis. Quatro avisos de interface do CP 060 seguem em aberto; nenhum aceite geral inferido.
+
+
+<a id="cp-20261103-062-cadastro-novo-concluido-por-relato"></a>
+
+## CP 20261103 062 Cadastro novo concluído por relato
+
+- **Data:** 03/11/2026, 15h44, America/Sao_Paulo.
+- **Etapa/resultado:** R5, retorno do CP 061. Usuário informou uso de e-mail e CPF temporários e conclusão bem-sucedida do onboarding. Registrar cadastro novo concluído por relato físico na rodada da 0.1.10, sem presumir que executou o teste de dados duplicados. Não registrar identificadores pessoais/temporários nem códigos. Limpeza autorizada anteriormente; sua execução não foi confirmada separadamente.
+- **Limites da evidência:** relato não detalha recebimento/confirmação do OTP antes da loja, ausência de segundo OTP, tela final ou integridade dos dados da conta nova. Novo diagnóstico ainda não recebido. E-mail duplicado e CPF/CNPJ duplicado permanecem pendentes; não converter sucesso de cadastro novo em aprovação dessas recusas ou aceite geral.
+- **Próximo passo guiado:** confirmar se o código foi recebido/validado ainda na primeira tela antes do nome da loja; exportar histórico como arquivo JSON e anexar, preservando sessão atual até guardar evidência. Não orientar nova limpeza antes dessa preservação. Depois retomar testes de duplicidade, usando dados de teste controlados sem expor credenciais no chat. Quatro avisos de interface da rodada anterior continuam em investigação.
+- **Arquivos/validação:** roadmap e roteiro atualizados; diff conferido. Sem alteração runtime/build/deploy ou ações em contas/e-mail/banco pelo agente.
+
+
+<a id="cp-20261103-063-bloqueio-de-cadastro-e-dados-novos-relatados"></a>
+
+## CP 20261103 063 Bloqueio de cadastro e dados novos relatados
+
+- **Data:** 03/11/2026, 15h47, America/Sao_Paulo.
+- **Etapa/resultado:** R5, esclarecimento do CP 062. Usuário afirmou que funcionou tudo, houve bloqueio ao tentar criar uma conta e conseguiu criar com dados novos. Atualiza o estado anterior: tentativa recusada também foi executada por relato; não continuar descrevendo toda recusa como não executada. Cadastro novo continua com sucesso geral relatado.
+- **Precisão pendente:** relato não separa se o bloqueio foi por e-mail repetido, CPF/CNPJ repetido ou ambos, nem fornece a mensagem/ordem individual de cada recusa. Manter essas duas evidências separadas até esclarecer; não presumir teste independente de ambos. Novo JSON desta rodada não recebido; não exigir repetição de exportação nesta resposta.
+- **Escopo de aprovação:** funcionamento do fluxo testado confirmado verbalmente; não equivale a aceite comercial geral, integridade financeira, todos os perfis/recuperação, tratamento dos quatro avisos de interface ou encerramento de F01–F19. Login e retomada da sessão já registrados nos CPs 057–060.
+- **Arquivos/validação:** roadmap e roteiro atualizados com a correção do relato; diff conferido. Nenhum runtime/build/deploy/limpeza/envio de e-mail ou operação de banco pelo agente.
+- **Próximo passo:** confirmar qual dado repetido causou bloqueio; registrar os casos correspondentes e depois prosseguir ao teste de produto/câmera e operação, mantendo os cenários ainda não observados abertos.
+
+
+<a id="cp-20261103-064-recusa-por-email-e-segunda-tentativa"></a>
+
+## CP 20261103 064 Recusa por e-mail e segunda tentativa
+
+- **Data:** 03/11/2026, 15h49, America/Sao_Paulo.
+- **Etapa/evidência:** R5, esclarecimento do CP 063. Usuário atribuiu a primeira recusa ao e-mail e informou novo bloqueio ao tentar novamente. Registrar recusa por e-mail no fluxo de cadastro por relato; CPF/CNPJ duplicado não comprovado. Cadastro com dados novos, login e retomada mantêm resultados anteriores.
+- **Distinção técnica:** /auth/cadastro/codigo verifica limites antes de consultar e-mail existente. Primeira requisição pode retornar 409 email_ja_cadastrado; repetição em menos de 60 s pode retornar 429 limite_autenticacao, sem eliminar a verificação de duplicidade. Essa sequência é hipótese compatível com os fontes; não atribuir status/motivo definitivo sem mensagem ou diagnóstico da rodada. Não chamar a segunda recusa automaticamente de defeito ou de teste de CPF.
+- **Próximo passo guiado:** pedir apenas o texto lembrado da segunda mensagem, distinguindo Este e-mail já tem acesso de Muitas tentativas; não induzir novas tentativas agora. CPF duplicado e ordem exata da recusa seguem pendentes.
+- **Arquivos/validação:** roadmap/roteiro e fontes de cadastro/limites/mensagens consultados; checkpoint e notas atualizados, diff conferido. Nenhuma modificação runtime/build/deploy ou ação no servidor pelo agente; sem aceite geral inferido.
+
+
+<a id="cp-20261103-065-limite-confirmado-e-teste-de-cpf-duplicado"></a>
+
+## CP 20261103 065 Limite confirmado e teste de CPF duplicado
+
+- **Data:** 03/11/2026, 15h55, America/Sao_Paulo.
+- **Etapa/evidência:** R5, esclarecimento do CP 064. Usuário confirmou mensagem Muitas tentativas, aguarde alguns minutos na segunda tentativa. Registrar limite de tentativas exibido por relato, distinto da recusa anterior atribuída ao e-mail. Sem novo JSON/status HTTP dessa rodada; não inventar código de status ou tempo exato.
+- **Próximo cenário:** CPF/CNPJ duplicado com outro e-mail acessível ainda não cadastrado e exatamente o documento da conta de teste criada com sucesso. Confirmar OTP na primeira tela; esperado conflito do documento antes da etapa da loja/criação. Teste ainda não executado/validado.
+- **Preparação:** se já estiver na primeira tela de cadastro, mantê-la e preencher os dados do cenário. Se estiver dentro da loja, preservar o diagnóstico atual por exportação e verificar zero pendências/rejeições antes de reiniciar somente dados locais do PDV Homologação, dentro da autorização vigente do CP 061. Não pedir nova autorização para o mesmo escopo já autorizado. Se houver pendências ou limite novamente, interromper tentativas e relatar. Não apagar arquivo exportado, dados remotos, produção, backups ou outros aplicativos.
+- **Validação/arquivos:** roadmap/roteiro e rótulos do formulário consultados; checkpoint e notas atualizados; diff conferido. Nenhuma limpeza/runtime/build/deploy/ação no servidor executada pelo agente. Cadastro novo/login/retomada mantêm as evidências anteriores, sem aceite geral inferido.
+- **Próximo passo:** receber mensagem e momento da recusa do documento; só então concluir o cenário correspondente e prosseguir ao produto/câmera/venda.
+
+
+<a id="cp-20261103-066-cpf-repetido-aceito-relatado-em-investigacao"></a>
+
+## CP 20261103 066 CPF repetido aceito relatado em investigação
+
+- **Data:** 03/11/2026, 15h59, America/Sao_Paulo.
+- **Etapa/incidente:** R5, retorno do CP 065. Usuário relatou criação de nova conta com e-mail novo e CPF repetido, sem recusa. Cenário de duplicidade de documento marcado FAIL por relato físico, causa em investigação; não avançar a rodada guiada para vendas enquanto esclarecer. Não presumir dois registros com CPF canônico idêntico no servidor antes de obter evidência.
+- **Inspeção:** fontes consultados têm comparação do documento na verificação antecipada e criação final; schema/migração 0000 declaram contas_documento_unique. Client envia documento normalizado e Dados o vincula à prova local. Inspeção externa do serviço confirmou SHA 84dd0dc/ref exclusiva/autoDeploy false. Nenhuma alteração de configuração ou banco realizada. Constraint declarada no código não é prova de constraint ativa no banco externo.
+- **Limites/próximo passo:** conector não expôs consulta SQL somente leitura na descoberta; não criar serviço, porta ou ferramenta administrativa para contornar. Acrescentar reprodução integrada mobile/API local, verificar comparação de documento normalizado e criação final; pedir JSON exportado desta nova rodada, preservando instalação, conta e arquivos. Diagnóstico antigo dos CPs 059–060 não representa esta tentativa; não solicitar CPF/OTP no chat nem modificar runtime sem causa reproduzida.
+- **Arquivos/estado:** checkpoint e roadmap atualizados, alterações anteriores preservadas. Sem limpeza, build, deploy, novo cadastro remoto ou envio de e-mail pelo agente. Evidências da reprodução ainda pendentes neste registro. Aceite do piloto permanece aberto; recusas de e-mail/cadastro novo/login anteriores mantêm o escopo de seus relatos.
+
+
+<a id="cp-20261103-067-reproducao-integrada-de-cpf-e-evidencia-real-pendente"></a>
+
+## CP 20261103 067 Reprodução integrada de CPF e evidência real pendente
+
+- **Data:** 03/11/2026, 16h01, America/Sao_Paulo.
+- **Etapa/resultado:** R5, investigação do CP 066. Novo teste integrado executa Dados + BackendHttp + API + PGlite com migrações e fila de e-mail de fixture cifrada: cria primeira conta com CPF válido normalizado de entrada com máscara, tenta outro e-mail com o mesmo CPF, recebe 409 documento_ja_cadastrado na conferência antecipada e também na criação final direta. Banco local mantém exatamente uma conta e uma sessão. Não há envio SMTP real ou operação em homologação nesse teste.
+- **Validação:** dois arquivos/sete casos PASS (integração nova + tela inicial) em builds/pdv-cpf-duplicado-integracao.log; tipos mobile PASS em pdv-cpf-duplicado-tipos.log. Novo arquivo apps/mobile/test/cpfDuplicadoIntegracao.test.ts ainda local, sem commit/CI/deploy. Código runtime e APK não alterados. Teste de UI existente usa mock de Dados e não foi apresentado como execução nativa completa.
+- **Interpretação:** falha relatada no aparelho permanece aberta; sucesso local não a invalida nem comprova schema/dados externos. Constraint declarada e comparação nos fontes não bastam para atribuir causa à tentativa real. Inspeção remota confirmou a versão de API entregue, sem SQL de leitura disponível no conector; não foram criados acessos administrativos, portas ou recursos.
+- **Próximo passo necessário:** receber arquivo JSON exportado desta tentativa, mantendo app/conta/dados. Conferir chamadas de verificação e criação e eventual 201; não usar o diagnóstico antigo de login como se fosse a rodada de cadastro. Não pedir CPF completo/OTP no chat, não apagar contas/dados e não produzir correção especulativa. Depois correlacionar a persistência real por método de leitura autorizado disponível e corrigir a causa comprovada.
+- **Documentação:** roadmap e roteiro atualizados; diff conferido. CPF duplicado continua FAIL por relato, aceite/ciclo financeiro não liberados por estes testes. Quatro avisos de interface anteriores mantêm investigação própria.
+
+
+<a id="cp-20261103-068-json-mostra-emissao-de-codigo-sem-criacao"></a>
+
+## CP 20261103 068 JSON mostra emissão de código sem criação
+
+- **Data:** 03/11/2026, 16h07, America/Sao_Paulo.
+- **Etapa/evidência:** R5, investigação do relato CPs 066–067. Novo JSON completo recebido: 15.150 bytes, 65 eventos ordenados (limite 500), app 0.1.10/homologação, Samsung SM-S938B/Android 17, gerado às 16h05m36 local, persistenciaPendente false. Preservado em builds/pdv-0110-cpf-relatado-diagnostico.json, SHA256 e620e36aeeb708cb23a24f114a23da6a24ea3852c71ec2ece645f03f90912a9e; resumo em pdv-0110-cpf-relatado-resumo.json.
+- **Sequência comprovada:** às 15h46m59, /auth/cadastro/codigo 409 email_ja_cadastrado; às 15h47m06, mesmo endpoint 429 limite_autenticacao. Nova abertura de /criar-conta às 15h55m56 e emissão 200 às 15h57m49. Só essas três requisições HTTP no arquivo: não há /auth/cadastro/verificar, POST /contas, rota /loja ou criação 201. Sync final às 16h05m25 sem_sessao, zero pendências/rejeições. Sem erro JS/aviso_interface nesta execução.
+- **Interpretação:** arquivo comprova recusa por e-mail e limite anteriormente relatados, mas não comprova criação de conta nem aceitação de CPF repetido. A emissão do OTP aceita e-mail novo sem criar conta; comparação do CPF ocorre após confirmação do código, antes da loja. Relato de CPF duplicado criado permanece histórico, com causa não comprovada; cenário atual inconclusivo até completar verificação. Não afirmar que nenhuma conta tenha sido criada em outra rodada/execução ausente deste arquivo, nem atribuir culpa ao usuário.
+- **Orientação:** voltar ao formulário, manter exatamente o CPF/CNPJ da conta existente e e-mail novo, preencher o código recebido e tocar Confirmar e continuar uma vez. Se o código expirar (10 min da emissão), solicitar outro e enviar uma vez antes de confirmar. Esperado conflito de CPF ainda na primeira tela; parar e informar mensagem/tela. Código nunca deve ser enviado no chat. Nenhuma nova limpeza solicitada.
+- **Validação/arquivos:** JSON e ordem temporal validados por script; fontes/roteiro consultados, roadmap e roteiro atualizados, diff conferido. Sem alteração runtime/build/deploy, credenciais ou dados remotos; nenhuma correção especulativa. Novo teste integrado do CP 067 preservado localmente.
+- **Próximo passo:** receber resultado da confirmação OTP e recusa/avanço, exportar novo JSON se chegar à loja ou criar conta com documento repetido. Cadastro físico duplicado permanece não aprovado, assim como aceite geral.
+
+
+<a id="cp-20261103-069-testes-automatizados-de-acesso-iniciados"></a>
+
+## CP 20261103 069 Testes automatizados de acesso iniciados
+
+- **Data:** 03/11/2026, 16h10, America/Sao_Paulo.
+- **Escopo:** usuário pediu execução dos testes pelo agente. Rodadas dirigidas de API e mobile iniciadas em ambientes isolados/fixtures; sem uso de e-mail temporário do usuário, OTP real, contas remotas, produção ou limpeza do telefone.
+- **Android:** consulta ADB inicialmente falhou no sandbox; repetida fora da restrição, retornou lista vazia. Nenhum Samsung conectado detectado; não afirmar automação física. Nenhum comando de instalação/input/limpeza foi emitido ao aparelho.
+- **Próximo passo:** concluir suítes dirigidas e reforçar cobertura do formulário com Dados/BackendHttp/API reais em fixture, incluindo CPF repetido após código. Registrar resultados, limites e pendências físicas antes de encerrar. Sem mudança runtime/deploy.
+
+
+<a id="cp-20261103-070-96-casos-de-acesso-automatizados-aprovados"></a>
+
+## CP 20261103 070 96 casos de acesso automatizados aprovados
+
+- **Data:** 03/11/2026, 16h11, America/Sao_Paulo.
+- **Etapa/resultado:** R5, execução solicitada no CP 069 concluída localmente: quatro arquivos/49 casos API, seis arquivos/45 casos mobile e mais dois casos novos de formulário integrado à API, total 96 casos PASS. Tipos API/mobile PASS. Não inclui novo CI remoto/PostgreSQL dedicado nem execução nativa do Samsung.
+- **Cobertura:** e-mail existente, limite de repetição, OTP inválido/expirado/uso único/cinco erros, cadastro novo/prova antes da sessão, conflito de CPF antecipado/final, corrida na criação, login/reautenticação/troca de perfil/recuperação e finalização após remontagem, conforme as suítes dirigidas executadas. Cadastro com CPF normalizado e outro e-mail recusado na conferência após OTP; banco de teste permaneceu com uma conta e uma sessão.
+- **Nova integração do formulário:** apps/mobile/test/cadastroFormularioApiIntegracao.test.ts usa telas criar-conta/loja e contexto reais, Dados/BackendHttp reais, API via app.inject e PGlite com migrações e entrega cifrada de fixture. OTP lido pelo próprio teste na fila de fixture; sem SMTP real. Primeiro caso insere conta original, preenche formulário com outro e-mail/CPF com máscara, confirma OTP e exige erro junto ao CPF, sem navegação ou sessão nova. Segundo caso exige zero contas antes do OTP e antes da confirmação da loja, e uma conta/sessão apenas após criar. Componentes nativos e navegação Expo são substituídos por renderizador/observações de teste; não apresentar como E2E Android.
+- **Correção de fixture:** primeira execução dos dois casos novos falhou porque a consulta de teste procurava e-mail diretamente na tabela cifrada de entregas, que não tem tal coluna. Fixture corrigida para buscar por codigos_login e vínculo codigoId; repetição dos dois casos PASS. Falha preservada em pdv-acesso-formulario-api-integrado.log; nenhum runtime foi alterado por ela.
+- **Evidências:** builds/pdv-acesso-automatizado-api.log (49), pdv-acesso-automatizado-mobile.log (45), pdv-acesso-formulario-api-integrado-final.log (2), pdv-acesso-automatizado-tipos.log. Resumo em pdv-acesso-automatizado-resumo.json. Novos testes deste lote e do CP 067 ainda locais; sem novo commit/deploy/APK, sem escrita em banco externo ou contas/e-mails do usuário. Diff conferido; alterações anteriores preservadas.
+- **Limites/próximo passo:** ADB fora do sandbox retornou zero aparelhos, conforme CP 069; sem automação física ou nova instalação/limpeza no telefone. Nos cenários locais executados, nenhuma conta duplicada foi criada e nenhuma correção runtime foi necessária. JSON real do CP 068 termina antes de confirmar OTP/criar conta; não comprova duplicidade. Para automação física, será necessária conexão ADB autorizada ou ambiente Android apropriado; não requisitar OTP no chat. Piloto financeiro, avisos de interface anteriores e aceite geral continuam abertos.
+
+
+<a id="cp-20261103-071-preparacao-de-emulador-android"></a>
+
+## CP 20261103 071 Preparação de emulador Android
+
+- **Data:** 03/11/2026, 16h15, America/Sao_Paulo.
+- **Escopo:** usuário solicitou teste emulando. Consultados roadmap/CP 070 e ambiente Android. SDK tinha ferramentas de build/ADB, mas não emulator.exe nem AVD/imagens instalados; testes anteriores por renderizador não são tratados como emulação Android.
+- **Ambiente:** checagem fora do sandbox mostrou Intel i5-11400F, aproximadamente 32 GB RAM/156 GB livres e HypervisorPresent true. Consulta de recurso opcional do Windows requer elevação administrativa e não foi alterada. Nenhum dado do Samsung/produção tocado.
+- **Avanço/próximo passo:** instalação do pacote oficial emulator solicitada ao SDK Manager existente; aguardar resultado e verificar aceleração antes de baixar imagem/gerar AVD pdv-. Aceitação de nova licença, alteração de recurso de segurança/Windows ou reinício do computador não foram autorizados por inferência. Sem APK instalado/Android emulado executando neste checkpoint. Logs em builds/pdv-emulador-*.
+
+
+<a id="cp-20261103-072-emulador-instalado-e-boot-em-diagnostico"></a>
+
+## CP 20261103 072 Emulador instalado e boot em diagnóstico
+
+- **Data:** 03/11/2026, 16h22, America/Sao_Paulo.
+- **Avanço:** pacote oficial Android Emulator 37.2.13 e imagem Google APIs Android 15/API 35 x86_64 instalados pelo SDK Manager existente, sem novo aceite de licença solicitado. AVD pdv-acesso-api35 criado em builds/pdv-avds com perfil Pixel 7. -accel-check retornou WHPX instalado/utilizável (exit 0). Nenhum recurso do Windows alterado, nenhuma conta Google adicionada.
+- **Boot:** duas inicializações (gráficos SwiftShader e auto) chegam a Windows Hypervisor Platform accelerator is operational, mas ADB permanece offline e ainda não há janela Android controlável. Primeira instância exclusiva interrompida após verificar PID e launcher; sem tocar outro processo/aparelho. Ainda não houve instalação do APK nem teste Android emulado.
+- **Limites/próximo passo:** investigar boot com alternativa de aceleração somente do processo do AVD; não desativar proteções do Windows ou reiniciar o computador por inferência. Logs pdv-emulador-runtime* e instalação em builds/. Samsung e dados de homologação/produção preservados. Android 15 não equivale ao Android 17 do Samsung.
+
+<a id="cp-20261103-073-android-emulado-iniciado-e-apk-instalado"></a>
+
+## CP 20261103 073 Android emulado iniciado e APK instalado
+
+- **Data:** 03/11/2026, 21h03, America/Sao_Paulo.
+- **Avanço:** tentativas adicionais da 37.2.13, incluindo sem aceleração/sem GPU e CLI oficial, não concluíram boot. AVD exclusivo pdv-acesso-api35-curto criado em C:/p/pdv-avd. Versão oficial anterior 36.2.12 extraída em builds/pdv-emulador-36.2.12 sem substituir o SDK; SHA256 do ZIP conferido com arquivo oficial: b0cf63f996d41eb75b0154938ff4a2e0140eab2625b9784cdc9d03ffbb1900df. Essa versão iniciou com WHPX/SwiftShader e Vulkan desativado somente no processo.
+- **Validado:** emulator-5586 device, sys.boot_completed=1 e ABI x86_64,arm64-v8a. Instalação do APK entregue pdv-homologacao-0.1.10.apk via ADB retornou Success. Nenhum dado de telefone físico limpo/alterado, nenhuma conta criada ou teste de cadastro/login concluído ainda.
+- **Interface/limites:** captura da janela Windows não prosseguiu por timeout de aprovação do Computer Use; não é evidência de tela do aplicativo. Ferramentas oficiais Android CLI de layout/input/screen disponíveis para teste nativo no AVD. Intervalo de espera não conta como execução contínua de teste. Logs de boot em builds/pdv-emulador-36.2.12-boot.log e tentativas anteriores preservados.
+- **Próximo passo:** iniciar o app no AVD, observar telas e executar cenários de acesso autorizados, distinguindo API real de fixtures e dados sintéticos. Android 15 emulado não equivale ao Samsung/Android 17; aceite físico continua pendente. Sem mudança de runtime, deploy ou proteções do Windows.
+
+<a id="cp-20261103-074-variante-nativa-para-emulador-em-compilacao"></a>
+
+## CP 20261103 074 Variante nativa para emulador em compilação
+
+- **Data:** 03/11/2026, 21h05, America/Sao_Paulo.
+- **Resultado do APK ARM:** atividade iniciou, porém processo encerrou antes da primeira tela com couldn't find DSO to load: libreactnative.so. Log em builds/pdv-emulador-crash-inicial.log; layout capturado era launcher Android, não tela do PDV. Tradução arm64 do AVD não foi suficiente para esse carregamento; não concluir falha do Samsung ou de cadastro a partir dessa incompatibilidade.
+- **Construído/em andamento:** scripts/build-android.ps1 recebeu opção -Emulador, selecionando x86_64 e sufixo -emulador em todos os artefatos. Padrão ARM preservado. Compilação release com R8/mesmos fontes e API HTTPS de homologação iniciada; prebuild PASS, Gradle em execução. APK entregue anteriormente preservado, sem mudança na lógica do produto ou deploy.
+- **Próximo passo/limites:** concluir build, verificar assinatura/metadados/bundle e ausência de divergência de fontes; instalar variante x86_64 no AVD e executar cenários. Nenhum cadastro/login emulado validado até aqui; nenhum e-mail/conta remoto utilizado.
+
+<a id="cp-20261103-075-release-x86-64-abriu-no-android"></a>
+
+## CP 20261103 075 Release x86_64 abriu no Android
+
+- **Data:** 03/11/2026, 21h13, America/Sao_Paulo.
+- **Construído/validado:** variante 0.1.10/11 x86_64, R8 e assinatura v2 com mesmo certificado interno; Gradle SUCCESS em 8m15s, 644 tarefas. APK builds/pdv-homologacao-0.1.10-emulador.apk, SHA256 8ad1dce84f1a949fa3331a1bc899c33dcae63976564bb2f3da5851e860c9f35f. Inspeção release PASS, 1.892 fontes no mapa. Inventários de 300 arquivos originais/emulador sem diferenças; bundle Hermes idêntico, SHA256 bdbee1dcf3f924055f699a8908de519fcbb55915a19f30eb12b40da3854afd26. APK ARM original reconferido/preservado.
+- **Android emulado:** instalação com ABI x86_64 retornou Success; atividade iniciou e layout nativo confirmou PDV Homologação/boas-vindas/Começar/Já tenho conta. Screenshot builds/pdv-emulador-boas-vindas.png. Ferramentas oficiais Android CLI layout/input/screen usadas, sem controle da janela Windows. Incompatibilidade ARM do CP 074 resolvida para o ambiente de testes, sem mudança na lógica do app.
+- **Reprodução:** opção -Emulador documentada no README; AST PowerShell PASS e build real aprovado. Scripts/evidências usam sufixos separados. Variante aponta API HTTPS real de homologação e não contém ferramenta de simulação de acesso. Nenhum OTP desativado ou usuário de produção alterado.
+- **Próximo passo/limites:** executar cenários nativos com fixture sintética e aliases de e-mail para códigos reais. Capturas textuais serão sanitizadas para não persistir OTP. Até este ponto apenas abertura validada; cadastro/login completos e aceite físico pendentes.
+
+<a id="cp-20261103-076-quatro-cenarios-nativos-e-otp-pendente"></a>
+
+## CP 20261103 076 Quatro cenários nativos e OTP pendente
+
+- **Data:** 03/11/2026, 21h18, America/Sao_Paulo.
+- **Validado no Android emulado/API real:** quatro cenários PASS: cadastro vazio exige nome/e-mail/documento; e-mail malformado e CPF com dígitos repetidos recusados no formulário; dados sintéticos válidos solicitam OTP e permanecem na primeira etapa; código inválido de seis dígitos é recusado sem abrir a loja. Asserções textuais conferidas e resumo em builds/pdv-emulador-acesso-resultados.json, com layouts sanitizados correspondentes. Abertura/compilação têm evidência separada CP 075.
+- **E-mail:** mensagem real entregue ao alias de teste do Gmail do usuário. Busca/leitura limitada a esse destinatário recém-usado; conector retorna explicitamente [one-time authentication code withheld], sem expor OTP ao agente. Não buscar o código por outro caminho nem alterar a autenticação para contornar essa proteção. Nenhum código verdadeiro registrado em arquivo/checkpoint/chat.
+- **Entrada necessária:** campo do código deixado vazio no AVD pdv-acesso-api35-curto/emulator-5586; solicitada ao usuário digitação direta do OTP e Confirmar e continuar, sem enviar código no chat. Android/AVD permanece aberto aguardando essa entrada. Não avançar por inferência ou contar envio de OTP como criação de conta.
+- **Pendências:** confirmação válida e criação da conta sintética, recusa de e-mail existente/limite, CPF repetido com outro e-mail após OTP, login e retomada. Sem sessão/conta nova comprovada na última observação; fluxo físico e aceite geral permanecem abertos. Não houve deploy, alteração do Samsung ou lógica do app.
+- **Ferramentas/checagens:** Android CLI oficial para interações nativas; wrapper local lê saída CP1252 em memória e sanitiza e-mails/CPF/códigos antes de gravar. Saídas iniciais com acentos corrompidos preservadas; decodificação corrigida para as observações posteriores, sem atribuir isso ao app. git diff --check PASS; apenas o AVD exclusivo atual permanece em execução. Script de build/README alterados e validados no CP 075, ainda sem commit/CI novo. Próximo passo depende da confirmação direta do usuário no AVD.
+
+<a id="cp-20261103-077-cadastro-e-retomada-emulados-aprovados"></a>
+
+## CP 20261103 077 Cadastro e retomada emulados aprovados
+
+- **Data:** 03/11/2026, 21h20, America/Sao_Paulo.
+- **Entrada recebida/validada:** usuário informou pronto após digitar OTP diretamente no AVD. Layout posterior confirmou etapa 2/Como se chama sua loja, sem solicitar outro código. Nenhum OTP lido/registrado pelo agente.
+- **Execução nativa/API real:** nome sintético de loja preenchido; Criar minha conta abriu pagamentos (homologação liberada), seguido de câmera/Agora não e dashboard Online, QA/PDV Emulador 20261103, zero vendas/valores. Nova conta sintética criada na homologação por essa ação; nenhuma venda, assinatura paga ou operação financeira executada. Após force-stop e abertura fria, mesma dashboard/loja retornou sem OTP. Layouts builds/pdv-emulador-apos-confirmacao-usuario-layout.json, conta-criada, camera-onboarding, dashboard-nova-conta e retomada-apos-cadastro preservados.
+- **Resultado/limites:** confirmação válida, criação/onboarding e retomada após cadastro PASS no AVD API 35, complementando quatro casos do CP 076. Não equivale a login com uma nova solicitação de código nem encerra CPF/e-mail repetidos ou relato físico.
+- **Próximo lote:** reset somente do pacote de teste no AVD identificado como emulador, após preservar evidências, para simular instalação nova e tentar e-mail existente/limite e outro e-mail com o mesmo CPF sintético. Conta remota de teste permanece; Samsung/produção e dados de outros apps preservados. Será necessária outra confirmação OTP direta do usuário para o CPF repetido e depois para login.
+
+<a id="cp-20261103-078-email-repetido-e-limite-emulados-aprovados"></a>
+
+## CP 20261103 078 E-mail repetido e limite emulados aprovados
+
+- **Data:** 03/11/2026, 21h22, America/Sao_Paulo.
+- **Executado:** screenshot/dashboard anterior preservado; ro.kernel.qemu=1 conferido antes de pm clear exclusivamente br.com.pdv.mobile.homologacao no emulator-5586. Conta remota sintética preservada. Boas-vindas reapareceu, simulando nova instalação, sem tocar telefone/produção.
+- **Resultado nativo/API real:** cadastro com e-mail da conta recém-criada recusado ainda na primeira tela: Este e-mail já tem acesso. Entre com seu código pessoal. Repetição imediata mostrou Muitas tentativas. Aguarde alguns minutos e tente novamente. Layouts builds/pdv-emulador-email-repetido-layout.json e limite-tentativas-email preservados/sanitizados. Asserções do lote anterior e deste elevam resumo a nove cenários emulados PASS.
+- **CPF repetido em andamento:** alterado somente e-mail para segundo alias livre da fixture, mantendo nome/CPF sintético da conta anterior. Código solicitado, primeira etapa preservada e campo de OTP visível. Usuário solicitado a digitar diretamente novo código do alias com cpf e confirmar. Emitir OTP não constitui aprovação do documento nem criação de outra conta.
+- **Pendências/próximo passo:** conferir resultado após OTP válido, esperado erro de documento antes da etapa da loja; depois testar Já tenho conta/login/retomada com novo código pessoal. Nenhum desses cenários posteriores concluído neste registro; nenhum código verdadeiro capturado ou bypass de autenticação.
+
+<a id="cp-20261103-079-cpf-repetido-bloqueado-no-android-emulado"></a>
+
+## CP 20261103 079 CPF repetido bloqueado no Android emulado
+
+- **Data:** 03/11/2026, 21h23, America/Sao_Paulo.
+- **Entrada/resultado:** usuário confirmou novo OTP diretamente no AVD. Observação posterior manteve o formulário inicial, com erro junto ao documento: Já existe uma conta com este CPF/CNPJ. Entre na conta ou procure o suporte. Nome e CPF foram mantidos da fixture recém-cadastrada; apenas e-mail trocado para alias distinto. Não abriu etapa da loja ou dashboard.
+- **Evidência:** builds/pdv-emulador-cpf-repetido-apos-otp-layout.json sanitizado. Cenário de duplicidade de documento após prova válida PASS em Android API 35/release x86_64/API real de homologação. Não criado outro cadastro pelo agente nesta tentativa; não afirmar contagem global de banco sem consulta própria. Não reproduziu o comportamento de CPF ignorado relatado anteriormente, cujo diagnóstico CP 068 terminava antes de verificar OTP.
+- **Limites/próximo passo:** relato histórico físico preservado, sem encerrar aceite Samsung nem inferir a causa daquele relato. Próximo lote testa Já tenho conta sem autenticar automaticamente, código inválido/válido no login e retomada. Código verdadeiro permanece fora dos registros.
+
+<a id="cp-20261103-080-rodada-emulada-concluida-com-achado-de-mensagem"></a>
+
+## CP 20261103 080 Rodada emulada concluída com achado de mensagem
+
+- **Data:** 03/11/2026, 21h25, America/Sao_Paulo.
+- **Escopo concluído:** teste dirigido de cadastro/login na variante release x86_64 0.1.10/11, Android API 35, API HTTPS real de homologação, com três confirmações OTP digitadas diretamente pelo usuário. Uma conta sintética criada; conta/loja permanecem para testes. Nenhuma operação financeira executada. Variante tem mesmos 300 fontes/bundle Hermes do APK ARM do Samsung (CP 075), mas é outro binário/ABI e não constitui aceite físico.
+- **Resultados:** 14 verificações funcionais PASS no resumo builds/pdv-emulador-acesso-resultados.json: obrigatoriedade; e-mail/CPF inválidos; emissão OTP sem avançar; OTP inválido no cadastro; OTP válido antes da loja; criação/onboarding; retomada após cadastro; e-mail repetido; limite imediato; CPF repetido após OTP de outro e-mail; Já tenho conta sem login automático; recusa de OTP inválido no login; login válido diretamente à dashboard; retomada após login. São verificações de fluxos no mesmo AVD, não 14 instalações independentes ou uma suíte financeira completa.
+- **Login final:** após recusa do CPF, Já tenho conta abriu Entrar na sua conta, sem autenticar. Código pessoal solicitado para a conta original; código inválido manteve login. Usuário digitou código verdadeiro; layout confirmou dashboard Online/mesma loja, sem pedir novo OTP. Force-stop e abertura fria retornaram à mesma dashboard. Evidências login-valido-apos-usuario, retomada-apos-login, ja-tenho-conta-sem-login-automatico e login-otp-invalido, além de screenshot builds/pdv-emulador-login-final.png.
+- **Achado FAIL de mensagem:** OTP inválido no login exibiu Sua sessão não é mais válida. Entre de novo., em vez de indicar código inválido/expirado. A recusa funcional PASS não aprova esse texto. Fonte confirma causa: API emitir 401/codigo_invalido em servicos/codigoLogin.ts, enquanto BackendHttp ignora corpo de todo 401 e converte status em nao_autorizado (linhas 49, 218, 272), usando mensagem de sessão de backend.ts. Não houve autenticação com código inválido na observação. Nenhuma correção runtime implementada nesta rodada; não afirmar que a mensagem esteja corrigida no APK entregue.
+- **Checagens/preservação:** AST do script e build release real PASS, assinatura/gate de bundle PASS; hashes original/emulador reconferidos. APK ARM original permanece 4e32a8cd6f372b9bac7c622d30848c3773a8c4283bb8ac0dd598bb781be6ffdb; x86_64 8ad1dce84f1a949fa3331a1bc899c33dcae63976564bb2f3da5851e860c9f35f. Sem novo CI, commit, deploy, mudança de proteções do Windows ou operação no Samsung/produção. Script de build/README e documentação locais alterados, trabalhos anteriores preservados. AVD permanece aberto na dashboard para inspeção; somente fixture sintética nesse app.
+- **Limites/próximo passo:** comportamento de CPF ignorado não reproduzido no cenário nativo/servidor real (CP 079); relato físico anterior mantido, sem conclusão retroativa. Corrigir mensagem nas rotas públicas de login preservando tratamento seguro de sessões protegidas, validar regressão e novo reteste antes de entregar APK posterior. Expiração longa, recuperação/troca de perfis, scanner, ciclo financeiro/offline e aceite físico continuam fora desta rodada. Roadmap/roteiro atualizados; não encerrar R5/R6 por esses resultados.
+
+<a id="cp-20261103-081-mensagem-de-codigo-invalido-corrigida-localmente"></a>
+
+## CP 20261103 081 Mensagem de código inválido corrigida localmente
+
+- **Data:** 03/11/2026, 21h31, America/Sao_Paulo.
+- **Solicitação/etapa:** usuário autorizou corrigir mensagem do CP 080 e pediu indicação da próxima fase. Correção de acesso R5 construída e validada localmente; piloto e aceite geral permanecem abertos.
+- **Construído:** apps/mobile/src/servicos/backendHttp.ts classifica 401 das provas públicas /auth/vinculos e /auth/login como codigo_invalido, exibindo a mensagem fixa existente Código inválido ou expirado. Confira o código ou solicite outro. Opção explícita somente nessas duas chamadas; nenhum corpo 401 lido nem mensagem livre do servidor exibida. Rotas protegidas mantêm invalidação da credencial correspondente e mensagem de sessão vencida. Outras rotas públicas, recuperação, limites 429 e rede preservam tratamento anterior. Sem mudança na API, prova de código, autorização ou schema.
+- **Testes de regressão:** backendAcesso.test.ts cobre as duas provas, ausência de Authorization/callback e corpo 401 que lançaria erro se lido, além de sessão protegida e outra rota pública. acessoApiIntegracao.test.ts usa BackendHttp/Dados/API/PGlite/SQLite reais em fixture local: código incorreto e expirado geram os dois 401 reais, mensagem correta e preservam sessão anterior. Sem SMTP/contas remotas ou códigos reais.
+- **Resultados:** primeiro lote: cinco arquivos/60 testes PASS (backendAcesso, acessoApiIntegracao, acessoMobile, backendRecuperacao, backendSync). Segundo: acessoApiIntegracao e recuperacaoTela, 21 PASS; quatro casos integrados repetidos. Total de seis arquivos/77 casos únicos aprovados. Tipos mobile e git diff --check PASS. Primeira checagem de tipos apontou chamada de método opcional na nova fixture; presença conhecida do BackendHttp explicitada no teste e nova checagem PASS, sem alteração runtime adicional. Logs em builds/pdv-codigo-login-correcao-{testes,integracao-tela,tipos,tipos-final}.log; resumo pdv-codigo-login-correcao-resumo.json.
+- **Estado da entrega/limites:** fontes locais corrigidos, sem novo commit, CI, APK ou deploy nesta rodada. APKs 0.1.10 já entregues/emulados continuam com o texto anterior; resultado Android do CP 080 continua histórico dessa versão. Não declarar novo PASS nativo da mensagem ou atualização instalada. Alterações de outros trabalhos preservadas.
+- **Próxima fase prática:** preparar novo APK rastreável com a correção e retestar mensagem; seguir piloto funcional no Samsung: cadastrar produto real e conferir leitura/nome/preço/estoque, abrir caixa, vender em dinheiro/Pix manual/cartão manual, sincronizar e conferir histórico/estoque/saldo, fechar/reabrir, vender offline em turno reservado, reconectar sem duplicar e fechar caixa conferindo diferença. Continuar depois cenários multioperador/isolamento, recuperação e restauração conforme matriz. R6 (pagamentos reais integrados) exige piloto estável/R3 homologada e ainda não está liberada. Backups externos/alertas mantidos no backlog autorizado.
+
+<a id="cp-20261103-082-roadmap-reconciliado-com-evidencias"></a>
+
+## CP 20261103 082 Roadmap reconciliado com evidências
+
+- **Data:** 03/11/2026, 21h40, America/Sao_Paulo.
+- **Solicitação/achado:** usuário apontou vários checkboxes desmarcados no roadmap. Revisão encontrou itens que juntavam entrega já comprovada e homologação ainda pendente, além de textos históricos apresentados como estado atual (API/APK só em R0, ausência de PostgreSQL independente, correções tratadas como snippets não aplicados). Resposta anterior sobre a próxima fase resumia o teste imediato, sem explicar todas as pendências de R5.
+- **Atualizado:** docs/roadmap-app-completo.md recebeu estado consolidado no início, regra explícita de marcação, quadro atual de acesso/R5, atualização do modelo de identidades/gerente e distinção do histórico incremental. Checkboxes compostos separados em implementação/implantação/artefato comprovados e validação externa/física restante. Não usar a nova quantidade de caixas como percentual de progresso: a granularidade mudou, sem construção de recursos neste lote.
+- **Concluído no checklist com evidência existente:** separação dos bancos e contas sem semente; OTP real/cadastro/login/duplicidades/limite/retomada no alcance dos CPs 057–080; migrações/API R1–R4, PostgreSQL 17 no CI e APK cumulativo entregues; reserva/movimentos/reenvio por HTTP externo; 18 tratamentos da auditoria com CI/APK; exclusão de simuladores do release; implementação/documentação de suporte/políticas; correção local da mensagem/77 testes; política vigente de acesso gratuito. Bases: CPs 025, 032–034, 045, 054, 057–058 e 075–081, matriz da auditoria e relatórios/artefatos correspondentes. Os registros antigos foram preservados e contextualizados.
+- **Mantido aberto:** isolamento completo de credenciais SMTP; expiração/reenvio/recuperação físicos; histórico/retorno/restauração do schema atual; concorrência e isolamento multiusuário completos; amostra de catálogo/4G; novo APK e reteste da mensagem; scanner, acessibilidade, SecureStore/exportação nativos; ciclo financeiro/offline e F01–F19, atendimento, dependências/operacional e aceite. R6, integração/distribuição de R7 e backlog de backup externo/alertas conservam escopo próprio. Um item de gratuidade já implementado em R7 foi marcado, sem ativar cobrança ou antecipar distribuição.
+- **Validações/limites:** conferidas evidências locais de HTTP externo, auditoria/APK, rodada emulada e correção local; revisados requisitos originais para manter suas partes pendentes nas divisões. Snapshot anterior do checklist em builds/pdv-roadmap-checklist-antes-revisao.json. Nenhum teste de produto, CI, deploy, APK ou operação de banco/aparelho executado nesta revisão documental; estados de validação herdados dos checkpoints citados. Alterações runtime/testes de outros lotes preservadas.
+- **Checagem final:** 80 referências de checkpoint conferidas, sem anchors ou destinos locais ausentes; git diff --check PASS. Resultado em builds/pdv-roadmap-reconciliacao.json. A primeira checagem de anchors considerava apenas IDs explícitos; ajustada para reconhecer também o título automático válido do CP 003, sem alterar seu histórico.
+- **Próximo passo:** incluir a correção local no próximo APK/retestar e executar o piloto funcional de produto, venda, caixa, sincronização/offline e fechamento. Depois completar multioperador, recuperação/restauração e operação/aceite da matriz. A fase atual é R5; a entrada em R6 continua condicionada ao piloto estável. Conferência final de links/checklists/diff registrada na evidência de revisão, sem inferir novos PASS físicos.
+
+<a id="cp-20261103-083-ciclo-emulado-produto-persistido-e-crash-nativo"></a>
+
+## CP 20261103 083 Ciclo emulado: produto persistido e crash nativo
+
+- **Data:** 03/11/2026, America/Sao_Paulo (rodada iniciada após CP 082).
+- **Escopo:** ciclo de venda/caixa/offline solicitado no Android Emulator; reutilizada sessão sintética dos CPs 077–080, AVD API 35/emulator-5586, qemu=1, release x86_64 0.1.10/11, hash do CP 075. API real de homologação; sem mudança em produção/Samsung ou limpeza de dados.
+- **Validado parcialmente:** catálogo inicialmente vazio; produto sintético Produto QA Ciclo, sem EAN, R$10 e estoque 20 un criado por interface nativa. Após reabrir, lista contém exatamente um produto com esses valores. Evidência builds/pdv-emulador-ciclo-lista-apos-retomada-layout.json. Nenhuma venda concluída neste lote.
+- **FAIL nativo:** após salvar/retornar à lista, aplicativo encerrou. Buffer crash registra em 04/11 01:08 UTC (03/11 22:08 em São Paulo) IllegalStateException/addViewAt, child already has a parent, ReactClippingViewManager/Fabric. Evidência builds/pdv-ciclo-crash-salvar-produto.log; falha histórica ARM anterior no buffer é distinta. Persistência aprovada não aprova navegação. Hipótese de clipping da FlatList durante transição vazio→primeiro item em investigação; ainda sem correção/reteste comprovados.
+- **Ferramenta construída:** scripts/pdv-emulador-ui.py usa layout/input oficiais Android CLI e ADB, rótulos exatos, guarda qemu e snapshots sanitizados; sem credenciais, acesso ao banco ou bypass de autenticação. Uso local iniciado, ainda sem roteiro financeiro completo.
+- **Próximo passo:** corrigir/retestar o crash em novo APK rastreável, incluindo correção CP 081; executar abertura, pagamentos manuais, movimentos, persistência/offline/reconexão e fechamento. Emulação não preenche matriz física nem aceite humano; demais pendências R0–R5 preservadas.
+
+<a id="cp-20261103-084-apk-0111-emulador-e-primeira-venda"></a>
+
+## CP 20261103 084 APK 0.1.11 emulador e primeira venda
+
+- **Data:** 03/11/2026, 22h16, America/Sao_Paulo.
+- **Construído:** ListaProdutos.tsx explicita removeClippedSubviews=false, evitando destacar filhos nativos durante atualização da lista/transição Android. Tratamento direcionado ao stack ReactClippingViewManager/Fabric do CP 083; eficácia nativa ainda pendente neste instante. app.json avança a 0.1.11/versionCode 12; correção de login CP 081 incluída, fontes anteriores preservados.
+- **Artefato:** builds/pdv-homologacao-0.1.11-emulador.apk, x86_64/release/R8, SHA256 e7fcd26bce85b31e8d1ab83efe77b28ba5679739fd7ce60487237a533baba6f7. Gradle SUCCESS em 5m21s, assinatura/host/contratos públicos/mapa de 1.892 fontes e gate release aprovados. Manifesto, mapping, inventário e logs com mesmo prefixo. Nenhum APK ARM novo, CI ou deploy; API permanece compatível em homologação.
+- **Validado no APK anterior 0.1.10:** reserva online de turno com R$100; unidade do produto de R$10 adicionada pela busca; recebido R$20/troco R$10; venda concluída e recibo com uma unidade/total R$10/recebido R$20/troco R$10. Layouts builds/pdv-ciclo-{abertura-0110,dinheiro-troco,venda-dinheiro-concluida,recibo-dinheiro-0110}-layout.json. Valores sintéticos, sem transação bancária. Abertura e primeira venda aconteceram antes da atualização; não atribuir à versão nova.
+- **Validação local:** tipos mobile PASS; sete arquivos/76 casos PASS. Cinco integrações HTTP localhost falharam no sandbox (sem vínculo/dados recebidos); repetição fora da restrição iniciada, resultado ainda pendente. Logs builds/pdv-ciclo-{tipos,regressoes,integracao-liberada}.log. Não tratar falhas iniciais como PASS ou corrigir autorização para acomodá-las.
+- **Ferramenta:** driver nativo ajustado para ações de acessibilidade; toques por coordenadas em busca eram interceptados pela área manuscrita do Gboard. Isso é interferência da automação/teclado, distinta do crash registrado. Bytecode Python e diff conferidos.
+- **Próximo passo:** instalar 0.1.11 com -r sem limpar dados; conferir sessão/produto/venda/turno, reproduzir lista vazia→item, completar Pix/cartão manuais/movimentos/offline/reinício/reenvio/fechamento e reconciliar com consulta online do servidor. Piloto físico e aceite mantidos pendentes.
+
+<a id="cp-20261103-085-atualizacao-e-correcao-nativa-validadas"></a>
+
+## CP 20261103 085 Atualização e correção nativa validadas
+
+- **Data:** 03/11/2026, 22h19, America/Sao_Paulo.
+- **Android/API real:** atualização adb install -r --abi x86_64 retornou Success; pacote instalado conferido 0.1.11/12, hash CP 084. Sessão retomada sem OTP; turno aberto/R$100, venda única/R$10 e produto/R$10/estoque19 preservados. Layouts builds/pdv-ciclo-atualizacao-0111-layout.json e regressão correspondente.
+- **Reteste do FAIL CP 083:** lista filtrada para QA Regressao mostrou Nenhum produto encontrado; cadastro nativo do produto com esse nome/R$1 e retorno ao mesmo filtro passaram, agora com primeiro resultado. Sem fechamento do app, screenshot/layout builds/pdv-ciclo-regressao-primeiro-item.*. Buffer crash consultado desde instalação não contém novo erro, em builds/pdv-ciclo-crash-apos-0111.log. Valida o cenário dirigido na variante corrigida; não comprova ausência de todo crash nem reteste Samsung. Produto auxiliar sem estoque, sem venda.
+- **Sync:** após atualização, indicação transitória offline observada; Sincronizar agora concluiu Dados confirmados no servidor, dois produtos/uma venda, zero aguardando e zero revisão. Evidência builds/pdv-ciclo-sync-apos-atualizacao-layout.json. Não houve limpeza de fila ou mudança de identidade.
+- **Regressões:** cinco casos de syncIntegracao.test.ts passaram com HTTP localhost liberado, completando 81 casos dirigidos em oito arquivos; tipos mobile PASS. Evidência builds/pdv-ciclo-integracao-liberada.log complementa os 76 PASS no sandbox do CP 084, sem apagar as cinco falhas iniciais.
+- **Próximo passo:** pagamentos Pix/cartão manuais e movimentos conhecidos; venda dividida, encerramento forçado, venda/fechamento offline, reinício e reconexão; conferir IDs/totais/estoque e relatório confirmado. Mensagem de login incluída, reteste nativo específico ainda pendente. Sem aceite físico/usuário ou avanço à R6.
+
+<a id="cp-20261103-086-pagamentos-manuais-e-movimentos-emulados"></a>
+
+## CP 20261103 086 Pagamentos manuais e movimentos emulados
+
+- **Data:** 03/11/2026, 22h29, America/Sao_Paulo.
+- **Android/API real:** na 0.1.11/12 x86_64 do CP 084, mais duas vendas sintéticas de uma unidade/R$10: Pix manual e cartão de crédito manual. Avisos de ausência de processamento/confirmacão bancária conferidos antes da conclusão; chave Pix de exemplo sem conta bancária usada somente para gerar QR de teste. Não houve transferência Pix/cartão real. Primeira venda em dinheiro permanece do CP 084.
+- **Totais observados:** três vendas/R$30; dinheiro10, Pix10, cartão10; troco inicial100 e esperado110. Entrada50 (origem Tesouraria QA/motivo Reforco QA) levou esperado a160; sangria8 (Cofre QA/Sangria QA), a152; retirada2 (Despesa QA/Retirada QA), a150. Uma ocorrência de cada movimento na tela. Layouts builds/pdv-ciclo-{venda-pix-concluida,cartao-manual-aviso,venda-cartao-concluida,gaveta-tres-vendas,apos-entrada,apos-sangria,movimentos-conferidos}-layout.json.
+- **Confirmação:** Sincronizar agora concluiu dois produtos/três vendas, zero aguardando/zero revisão. Evidência builds/pdv-ciclo-sync-antes-offline-layout.json. Horário de sincronização é exibido no fuso UTC do AVD; checkpoints e horário comercial usam São Paulo.
+- **Regressão completa:** 73 arquivos/600 casos mobile aprovados no conjunto. Primeira execução: 578 PASS e dois beforeAll/PGlite excederam 10s (22 não executados); repetição somente das duas suítes com maxWorkers=1 passou 22/22. Logs builds/pdv-ciclo-mobile-{completo,repeticao}.log; não soma duplicatas dos 81 testes dirigidos. Tipos já aprovados no CP 084. Sem alteração em API/runtime após o build.
+- **Limites de automação:** interrupções por seleção de aba/rótulo, controles fora da área visível e toques durante transição foram reobservadas antes de retomar; nenhuma repetição de recebimento assumida. Snapshots e ações posteriores distinguem PASS financeiro dos lotes de automação interrompidos, em builds/pdv-ciclo-execucoes.jsonl. A confirmação da retirada foi repetida apenas após observar formulário/valor2 e esperado152, sem evento salvo; saldo150 então conferido.
+- **Próximo passo:** desligar conectividade somente do AVD, testar parcela parcial/force-stop, duas vendas offline, reinício do Android, fechamento pendente e reconexão/reenvio; comparar estoque, referências e relatório do servidor. Multioperador/físico/aceite permanecem fora deste PASS dirigido.
+
+<a id="cp-20261103-087-parcela-sobrevive-a-force-stop-offline"></a>
+
+## CP 20261103 087 Parcela sobrevive a force-stop offline
+
+- **Data:** 03/11/2026, 22h33, America/Sao_Paulo.
+- **Conectividade comprovada:** somente emulator-5586/qemu1 colocado em modo avião; Wi-Fi desligado, Active default network: none. Prova builds/pdv-ciclo-rede-offline.json, snapshots com Airplane mode e Sem conexão com o servidor. Windows/API não foram desconectados; nenhuma simulação de backend ou troca de relógio.
+- **Parcela durável:** quarta venda de uma unidade/R$10 iniciada offline; divisão recebeu R$5 em dinheiro, mostrando Pago5/Falta5 e uma parcela. Force-stop do pacote e abertura fria sem rede preservaram sessão/turno. Dashboard ainda mostra três vendas/R$30 (venda parcial não concluída); Vender retoma diretamente a cobrança com Já recebido5 de10/Falta5, sem cobrar novamente a primeira parcela. Evidências builds/pdv-ciclo-{parcela-offline-salva,retomada-offline-carregada,parcela-retomada}-layout.json e pdv-emulador-ciclo-retomada-carrinho-parcial-layout.json.
+- **Limites:** snapshot imediato após launch capturou apenas barra do sistema durante bootstrap; observação posterior carregou normalmente. Roteiro foi ajustado para o destino real: Vender já encaminha à cobrança parcial, em vez de exibir outro botão Cobrar10. Não houve nova parcela por essas correções de automação. Conclusão dos R$5 restantes e quinta venda offline estão em execução, ainda não aprovadas neste checkpoint.
+- **Artefato adicional:** compilação ARM 0.1.11/12 com mesmos fontes iniciada para disponibilizar atualização interna após validação; em andamento, sem instalar no Samsung, CI ou deploy novo.
+- **Próximo passo:** concluir duas vendas offline, reiniciar Android mantendo rede desligada, fechar contado170/esperado175, conferir bloqueio de reserva pendente e reconectar/repetir sync sem duplicar. Valores futuros são expectativas do roteiro, não resultados observados. Matriz física/aceite preservados.
+
+<a id="cp-20261103-088-venda-dividida-offline-e-interrupcao-do-avd"></a>
+
+## CP 20261103 088 Venda dividida offline e interrupção do AVD
+
+- **Data:** 03/11/2026, 22h36, America/Sao_Paulo.
+- **PASS adicional:** depois do CP 087, cobrança retomada confirmou primeira parcela5; divisão mostrou Pago5/Falta5. Pix manual dos R$5 restantes concluiu a quarta venda/R$10, mostrando Dividido em2. Evidência builds/pdv-ciclo-dividida-offline-concluida-layout.json. Nenhuma conexão bancária; rede do AVD continuava indisponível.
+- **Interrupção externa ao app em investigação:** antes de concluir a quinta venda, Android CLI recebeu erro de transporte ADB closed e adb devices deixou de listar o AVD; consulta de processos não encontrou qemu/emulator. Não atribuir ao app nem à compilação concorrente sem prova. Não contar a quinta venda ou recuperação como PASS por esse erro.
+- **Retomada construída:** mesmo AVD pdv-acesso-api35-curto/C:/p/pdv-avd reaberto com binário oficial 36.2.12 já usado no CP 073, WHPX/SwiftShader/Vulkan desligado somente no processo. Sem wipe-data, sem snapshot anterior, sem desinstalação/limpeza/reset de sessão ou filas. Boot completo em andamento; ADB já identifica emulator-5586 offline (estado de transporte, distinto da falta de rede do Android). Logs builds/pdv-ciclo-avd-retomada{,-erros}.log.
+- **Pendências/próximo passo:** observar dados e rede após boot, conferir as quatro vendas/parcelas preservadas, completar a quinta/R$20 apenas se ausente, depois fechar/reconectar/reconciliar. Caso a quinta já exista, não repetir. APK ARM ainda compilando, físico/aceite continuam pendentes. O encerramento de processo do AVD não substitui o teste planejado de reboot limpo do Android.
+
+<a id="cp-20261103-089-cinco-vendas-preservadas-sem-rede"></a>
+
+## CP 20261103 089 Cinco vendas preservadas sem rede
+
+- **Data:** 03/11/2026, 22h40, America/Sao_Paulo.
+- **Recuperação do AVD:** boot completo em 94,8s; modo avião1 e nenhuma rede padrão preservados. Abertura durante boot retornou Activity does not exist antes da varredura de pacotes, sem reinstalação; pacote reapareceu ao concluir boot. Consulta de layout iniciada antes do boot ficou presa e foi encerrada somente no processo Android CLI correspondente; tela de bloqueio padrão do AVD dispensada. App abriu mesma sessão/loja/turno, quatro vendas/R$40: dinheiro15/Pix15/cartão10. Evidências builds/pdv-emulador-ciclo-boot-completo-observado-layout.json e pdv-ciclo-apos-reinicio-avd-offline-layout.json. Nenhuma consulta/transmissão de credenciais.
+- **Quinta venda:** checkout vazio observado antes de iniciar; quinta venda offline de duas unidades/R$20 em dinheiro concluída uma vez. Dashboard sem rede mostra cinco vendas/R$60, dinheiro35/Pix15/cartão10. Evidências builds/pdv-ciclo-{venda-offline-vinte-concluida,cinco-vendas-offline}-layout.json e screenshot da conclusão. Venda dividida anterior continua única. Zero confirmações novas do servidor foram inferidas durante modo avião.
+- **Próximo passo:** reboot normal do Android e nova conferência dos cinco registros ainda offline; fechamento contado170/esperado175, bloqueio de nova reserva pendente e reconexão. Comparar referências/estoque/relatório online e repetir sync. APK ARM em finalização/R8; causa do encerramento anterior do processo do AVD continua não comprovada, sem classificá-la como crash do app. Físico/aceite preservados.
+
+<a id="cp-20261103-090-reboot-offline-e-apk-arm-0111"></a>
+
+## CP 20261103 090 Reboot offline e APK ARM 0.1.11
+
+- **Data:** 03/11/2026, 22h42, America/Sao_Paulo.
+- **Reboot normal PASS:** adb reboot do AVD, boot_completed1 e abertura sem limpeza/OTP; modo avião1/nenhuma rede padrão mantidos. Cinco vendas/R$60 e meios35/15/10 preservados. Caixa mostra esperado175 = troco100 + dinheiro35 + entrada50 − sangria8 − retirada2. Histórico antes do envio contém referências 000001–000005, com dividida000004 e dinheiro20 na000005, uma ocorrência cada. Evidências builds/pdv-ciclo-{reboot-normal-offline,gaveta-offline-175,referencias-antes-sync}-layout.json.
+- **APK ARM construído:** builds/pdv-homologacao-0.1.11.apk, 0.1.11/12 ARM64/ARM32/R8, SHA256 2df561ee3c7c6717aab82304e1dc4ff2ab5b9858b47aeb7e551e23bf648fe0c3. Gradle SUCCESS8m1s; gate release/assinatura/manifesto/mapa aprovados. Mesmo certificado interno da0.1.10 (SHA256 fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c). Sem instalação no Samsung/produção, CI ou deploy novos.
+- **Comparação:** 300 arquivos nos inventários ARM/emulador sem divergência; bundle Hermes idêntico, SHA256 2b0ef95648b5699f3044fb5d9846abb69f57b468da966e3ac3b1d3817b2cad37. Resultado builds/pdv-ciclo-artefatos-comparados.json. Mesmos fontes/JS não tornam a execução x86_64 um teste das bibliotecas ARM ou scanner físico.
+- **Próximo passo:** fechar offline com contado170/troco preservado20 (recolhido150), conferir diferença−5 e alerta de confirmação pendente, reabrir app ainda offline e reconectar. Depois comparar referências, estoque14, caixa e relatório confirmados/repetir sync. Mensagem de login inválido no APK novo ainda precisa do reteste nativo específico. Nenhum aceite humano/físico inferido.
+
+<a id="cp-20261103-091-fechamento-offline-duravel-e-fila-preservada"></a>
+
+## CP 20261103 091 Fechamento offline durável e fila preservada
+
+- **Data:** 03/11/2026, 22h44, America/Sao_Paulo.
+- **Fechamento nativo PASS:** sem rede, contado170/esperado175 mostrou Falta5; troco preservado20 preenchido e confirmação explicou que o servidor precisa confirmar antes de outro turno. Fechamento salvo, caixa fechado, cinco vendas/R$60 e alerta Fechamento salvo neste aparelho e pendente de confirmação. Force-stop/abertura fria mantiveram fechamento, diferença e alerta sem novo OTP. Layouts builds/pdv-ciclo-fechamento-offline-{contagem,confirmacao,salvo,retomado}-layout.json.
+- **Fila preservada:** tela de sincronização ainda offline, dois produtos/cinco vendas, três aguardando confirmação e zero revisão, última confirmação anterior à desconexão (01:29:42 UTC no AVD). São duas vendas concluídas offline e fechamento ainda não confirmados; não houve limpeza/reclassificação da fila. Evidência builds/pdv-ciclo-fila-fechamento-offline-layout.json e screenshot.
+- **Limites:** aviso/instrução de impedimento de nova reserva conferidos; não foi efetuada nova abertura nem concorrência remota nesta etapa. Recolhido150/troco20 e aceite do fechamento ainda exigem conferência no painel confirmado após reconexão. Nenhuma afirmação de ACK do servidor para esses três registros neste checkpoint.
+- **Próximo passo:** reconectar somente o AVD, sincronizar e repetir sem duplicar; comparar referências000001–000005, estoque14, fechamento175/170/−5 e destinação150/20 no servidor. Depois retestar texto público de código inválido sem invalidar a sessão atual e consolidar documentação/artefatos. Emulação não conclui a matriz física.
+
+<a id="cp-20261103-092-reconexao-sem-duplicacao-e-caixa-confirmado"></a>
+
+## CP 20261103 092 Reconexão sem duplicação e caixa confirmado
+
+- **Data:** 03/11/2026, 22h50, America/Sao_Paulo.
+- **Rede/ACK:** modo avião desativado, Wi-Fi/dados restaurados somente no AVD; rede padrão100 confirmada. Envio e segunda sincronização forçada concluíram Dados confirmados no servidor, cinco vendas/dois produtos, zero aguardando e zero revisão. Evidências builds/pdv-ciclo-sync-{reconexao,repetida}-layout.json, asserções das linhas0/0 no registro de execução. Os três pendentes do CP091 foram confirmados, sem limpeza manual.
+- **Integridade:** referências000001–000005, meios, horários e valores idênticos antes/depois do envio repetido; cinco únicas, total60. Comparação programática PASS em builds/pdv-ciclo-referencias-comparadas.json. Produto principal passou de estoque20 a14 (seis unidades vendidas), uma baixa por quantidade, sem baixa adicional pelo reenvio. Evidência builds/pdv-ciclo-estoque-apos-sync-layout.json.
+- **Caixa remoto:** consulta Atualizar do servidor no painel real mostra turno01a1a41b-e7d2-7fc0-8fd6-c190998de9f2 (mesmo UUID vinculado à venda000005 antes do envio), Encerrado, esperado175/contado170/diferença−5. Seleção detalhada confirma entrada50/sangria8/retirada2 com três eventos distintos e autoria/responsável originais; recolhido150 e troco20. Evidências builds/pdv-ciclo-{painel-caixa-confirmado,turno-confirmado-movimentos,turno-confirmado-destinacao}-layout.json. Resumo local sem alerta de fechamento pendente, histórico preservado.
+- **Artefato instalado:** SHA256 do base.apk instalado no Android reconferido igual ao candidato emulado e7fcd26b…aba6f7, pacote/0.1.11/12/Android15/API35/x86_64/qemu1 em builds/pdv-ciclo-inventario-instalado.json. Não ler armazenamento privado/SecureStore nem extrair tokens.
+- **Próximo passo:** terminar conferência de totais do relatório HTTP já aberto (movimentos e diferença−5 observados), retestar texto de login inválido via e-mail sintético não cadastrado (sem gerar/ler OTP) mantendo sessão financeira, e consolidar roteiro/roadmap/entrega. Nenhum novo turno aberto, transferência/multioperador, falha de disco, restauração ou teste físico inferidos.
+
+<a id="cp-20261103-093-ciclo-emulado-concluido-e-entrega-0111"></a>
+
+## CP 20261103 093 Ciclo emulado concluído e entrega 0.1.11
+
+- **Data:** 03/11/2026, 22h58, America/Sao_Paulo.
+- **Resultado do objetivo solicitado:** ciclo dirigido de venda, caixa e offline concluído em Android Emulator/API real de homologação, um operador/loja sintéticos. Cinco vendas/R$60, dinheiro35/Pix manual15/cartão manual10; entrada50/sangria8/retirada2; parcela5 retomada após force-stop; duas vendas concluídas sem rede; reboot normal; fechamento offline175/170/−5 preservado após force-stop; reconexão e sync repetido0/0 sem duplicação. Produto20→14 unidades. Não houve pagamento bancário, acesso a SQLite privado/SecureStore, mudança de relógio, limpeza de filas, produção ou instalação no Samsung.
+- **Conferência independente:** painel HTTP confirma o UUID original do turno, três movimentos com autoria/eventos distintos, esperado175/contado170/diferença−5 e recolhido150/troco20. Relatório HTTP03/11 confirma vendas60/recebimentos60/entrada50/sangria8/retirada2/diferença−5. Referências comerciais000001–000005, meios/valores/horários e quantidade idênticos antes/depois da reconexão. Quatorze asserções programáticas sobre snapshots/API/artefatos PASS em builds/pdv-ciclo-resumo.json; não são catorze instalações ou todos os cenários físicos.
+- **Correções entregues:** ListaProdutos.tsx desativa removeClippedSubviews na FlatList, corrigindo o crash Fabric/addViewAt observado no CP083 e retestado no CP085; app.json avança0.1.11/12. Correção pública de login do CP081 incluída e retestada nativamente: endereço aleatório example.invalid não cadastrado (solicitação mascarada sem geração/envio de OTP) e código fictício recusados com Código inválido ou expirado. Confira o código ou solicite outro. Perfil anterior ativo/0 pendências preservado e dashboard online60/5 retomada. Evidências builds/pdv-ciclo-{login-codigo-invalido-corrigido,perfil-preservado-apos-401,dashboard-final}-layout.json. Não testa expiração longa/OTP válido de outro usuário nesta rodada.
+- **Artefatos verificados:** ARM64/ARM32 builds/pdv-homologacao-0.1.11.apk, SHA256 2df561ee3c7c6717aab82304e1dc4ff2ab5b9858b47aeb7e551e23bf648fe0c3; x86_64 builds/pdv-homologacao-0.1.11-emulador.apk, SHA256 e7fcd26bce85b31e8d1ab83efe77b28ba5679739fd7ce60487237a533baba6f7. Release/R8, mesmo certificado interno da0.1.10, 300 fontes idênticos entre APKs e checkout, bundle Hermes idêntico. SHA do APK efetivamente instalado reconferido. Gates de release/assinatura/manifesto/mapping PASS, builds5m21s/8m1s. ARM não executado em aparelho físico; assinatura não é de distribuição comercial.
+- **Regressões locais:**600 casos mobile únicos/73 arquivos PASS no conjunto;578 no lote completo e22 em repetição isolada das duas suítes com timeout inicial PGlite.81 dirigidos são subconjunto, não somados novamente; cinco integrações localhost passaram fora da restrição de rede do sandbox. Tipos mobile/AST Python/diff e inventário de fontes PASS. Logs detalhados e limitações no [relatório do ciclo](ciclo-venda-caixa-offline-emulador.md). Sem novo commit/CI/deploy; API84dd0dc preservada. Alterações anteriores de outros trabalhos mantidas.
+- **Persistência final:** depois do401 público, nova abertura fria manteve sessão online/cinco vendas60, caixa fechado/falta5 e Dados confirmados no servidor/0 aguardando/0 revisão. Layouts builds/pdv-ciclo-{resumo-final,sync-final}-layout.json e screenshot pdv-ciclo-resumo-final.png. Emulador permanece aberto, rede restaurada, fixture preservada; nenhuma pendência deixada artificialmente offline. Buffer crash final pós-reboot sem novo FATAL observado; reinício dos buffers não prova ausência geral de falhas.
+- **Documentação:** roadmap marca somente os dois itens emulados/artefato correspondentes; novo relatório, README e roteiro físico atualizados. Checagem final de 150 links locais/anchors PASS, diff sem erros e alterações runtime limitadas conferidas. Histórico CP083–092 preserva crash real, falhas de automação e interrupção do processo do AVD/recuperação sem limpeza; causa dessa interrupção continua não comprovada e distinta do crash corrigido. Dados de teste continuam na homologação, sem exclusão implícita.
+- **Limites/próximo passo:** atualizar Samsung para0.1.11 sem limpar dados, repetir ciclo físico/scanner e completar multioperador/concorrência/recuperação/restauração/operacional de F01–F19, registrando aceite humano separadamente. Não houve nova reserva concorrente, disco cheio, exportação aberta no destino ou extração de UUIDs internos de todas as vendas; referências visíveis e UUID do turno foram comparados. R5 física continua aberta, R6 não liberada; backup externo/alertas seguem backlog autorizado. Objetivo desta rodada emulada atendido, sem declarar conclusão de todo o roadmap.
+
+<a id="cp-20261104-094-inicio-do-reteste-guiado-no-samsung-0111"></a>
+
+## CP 20261104 094 Início do reteste guiado no Samsung 0.1.11
+
+- **Data:** 04/11/2026, America/Sao_Paulo.
+- **Solicitação:** usuário pediu acompanhamento passo a passo do ciclo de venda, caixa e offline na 0.1.11 do Samsung. Consultados roadmap, CP093, relatório emulado e roteiro físico antes da orientação. Resultado emulado permanece evidência separada.
+- **Orientação inicial:** atualizar somente PDV Homologação com o APK ARM do CP093, sem desinstalar/limpar dados; manter internet ligada, confirmar versão0.1.11 e identificar tela inicial ou login. Usar conta de teste; se houver pedido de OTP, digitar somente no celular, sem compartilhar código. Nenhuma operação financeira solicitada ainda.
+- **Estado físico:** instalação/versão, sessão, caixa e filas do Samsung ainda não confirmados nesta rodada. Nenhum PASS físico, aceite, mudança de banco, instalação remota ou execução no aparelho atribuídos ao pedido de iniciar o reteste.
+- **Próximo passo:** receber confirmação da versão/tela; conferir sincronização e caixa existentes antes de definir valores iniciais. Depois conduzir produto/scanner, abertura, pagamentos manuais, movimentos, persistência/offline/reconexão e fechamento, registrando resultados por etapa. Não apagar histórico ou filas para obter estado inicial vazio.
+
+<a id="cp-20261104-095-versao-0111-e-abertura-direta-relatadas-no-samsung"></a>
+
+## CP 20261104 095 Versão 0.1.11 e abertura direta relatadas no Samsung
+
+- **Data:** 04/11/2026, 00h30, America/Sao_Paulo.
+- **Evidência física por relato:** usuário confirmou que o app abriu diretamente no início e que a versão exibida é0.1.11. PASS dirigido desses dois pontos, complementando CP094; sem solicitação de novo OTP nesse caminho relatado. Não houve inspeção remota, captura ou conferência do hash do APK instalado nesta resposta.
+- **Limites:** não inferir preservação de todos os registros na atualização, cadastro/login novo, caixa fechado, fila vazia, ausência geral de falhas ou aceite físico do ciclo. Nenhuma operação financeira realizada/relatada nesta etapa.
+- **Próximo passo guiado:** com internet ligada, Caixa → Sincronização → Sincronizar agora; coletar estado final e contagens Aguardando confirmação/Preservados para revisão. Em Resumo, identificar caixa aberto/fechado, total e número de vendas de hoje e, se aberto, esperado na gaveta. Manter os dados/turno existentes até conferir o estado inicial; não abrir/fechar caixa ainda. Depois definir produto e valores do teste.
+
+<a id="cp-20261104-096-fila-zerada-e-caixa-fechado-relatados-no-samsung"></a>
+
+## CP 20261104 096 Fila zerada e caixa fechado relatados no Samsung
+
+- **Data:** 04/11/2026, 00h33, America/Sao_Paulo.
+- **Evidência física por relato:** usuário informou Aguardando confirmação0/Preservados para revisão0, caixa fechado e vendidoR$0,00 na0.1.11. Estado inicial financeiro registrado; nenhuma abertura/venda/fechamento novo relatado. Texto literal da mensagem de sincronização e quantidade de vendas do dia não informados; não inferir confirmação HTTP nova nem histórico vazio a partir de valor zero.
+- **Próximo passo guiado:** cadastrar produto novo e dedicado ao teste em Produtos → Novo produto: nome Teste Samsung04/11, sem código de barras, Unidade(un), preçoR$10,00 e estoque inicial20 se o campo estiver disponível. Salvar e conferir retorno à lista, preço/estoque e eventual fechamento/piscada do app. Não alterar estoque/preço de produto existente. Se estoque não estiver disponível, coletar essa informação antes de definir sua validação.
+- **Limites:** cadastro acima é manual; não comprova scanner físico ou catálogo. Produto ainda não criado/validado por relato nesta etapa; caixa permanece fechado. Resultado emulado do CP093 separado; sem limpeza, inspeção remota, mudança de banco/API ou aceite global. Após confirmar produto, orientar abertura online com troco conhecido e seguir vendas/movimentos/offline/fechamento.
+
+<a id="cp-20261104-097-produto-manual-salvo-no-samsung-sem-interrupcao"></a>
+
+## CP 20261104 097 Produto manual salvo no Samsung sem interrupção
+
+- **Data:** 04/11/2026, 00h35, America/Sao_Paulo.
+- **Evidência física por relato:** usuário confirmou salvamento do produto orientado no CP096, exibido na lista por R$10,00/estoque20 unidades, sem fechar nem piscar, e pediu abertura do caixa. PASS dirigido do cadastro manual/retorno à lista nesse caminho na0.1.11. Sem captura, hash instalado ou confirmação remota de estoque consultados nesta resposta; ausência nesse caminho não comprova estabilidade visual geral.
+- **Estado conhecido:** fila0/0, caixa fechado e vendidoR$0,00 eram o estado anterior do CP096; não inferir nova contagem da fila após criar produto. Nenhuma venda/abertura relatada ainda. Scanner/catálogo não executados pelo cadastro manual.
+- **Próximo passo guiado:** em PDV Homologação com internet ligada, Início → Abrir caixa (ou Caixa → Resumo → Abrir caixa); informar troco inicial de teste R$100,00, conferir o visor e tocar Abrir caixa uma vez, aguardando conclusão. Verificar estado aberto, troco100 e esperado100; vendido do dia deve permanecer0 na ausência de outras operações. Abertura e esses valores são expectativas ainda não confirmadas.
+- **Limites/continuação:** não concluir F01/F05 ou aceite físico amplo; sem operação remota, limpeza ou mudança de código/API. Após relato da abertura, orientar primeira venda de uma unidade/R$10 em dinheiro com recebido20/troco10, acompanhando o mesmo produto/turno.
+
+<a id="cp-20261104-098-caixa-aberto-com-troco100-relatado-no-samsung"></a>
+
+## CP 20261104 098 Caixa aberto com troco100 relatado no Samsung
+
+- **Data:** 04/11/2026, 00h49, America/Sao_Paulo.
+- **Evidência física por relato:** usuário confirmou caixa aberto, troco inicialR$100,00, esperado na gavetaR$100,00 e vendido hojeR$0,00, após orientação de abertura online do CP097. PASS dirigido da abertura/valores exibidos na0.1.11 do Samsung; sem inspeção HTTP, UUID do turno, captura ou nova leitura de filas nesta resposta.
+- **Próximo passo guiado:** primeira venda de teste no PDV Homologação: Vender → Buscar produto ou código → Teste Samsung04/11; selecionar uma unidade, conferir totalR$10,00; Cobrar → Dinheiro; informar recebidoR$20,00, conferir trocoR$10,00 e tocar Confirmar recebimento uma vez. Aguardar Venda concluída e relatar total/troco. Produto manual sem EAN, sem comprovação de scanner.
+- **Expectativas posteriores, ainda não validadas:** primeira vendaR$10 em dinheiro deve acrescentar10 à gaveta (esperado110), não os20 recebidos antes do troco; após sincronização, estoque do produto20→19. Confirmar conclusão antes de orientar nova venda e depois conferir fila/histórico/saldo/estoque.
+- **Limites:** nenhuma venda concluída relatada nesta etapa; não encerrar F05/F11 ou aceite geral. Sem alteração de código/API, limpeza ou operação direta no telefone. Manter o mesmo turno/produto de teste e histórico preservado.
+
+<a id="cp-20261104-099-primeira-venda-confirmada-no-reteste-samsung"></a>
+
+## CP 20261104 099 Primeira venda confirmada no reteste Samsung
+
+- **Data:** 04/11/2026, 00h52, America/Sao_Paulo.
+- **Evidência física por relato:** usuário respondeu perfeito à pergunta se a venda foi concluída porR$10,00 com trocoR$10,00, após orientação de uma unidade do Teste Samsung04/11, recebido20 em dinheiro. Registrada confirmação contextual desse caminho de venda/troco; sem screenshot, referência/UUID ou consulta independente ao servidor.
+- **Ainda não confirmado:** saldo pós-venda, baixa de estoque, unicidade no histórico e ACK/fila depois da venda. Caixa aberto100 e produto20 eram os estados anteriores; esperado110/estoque19 são expectativas, não resultados novos. Sem aprovação global do piloto ou dos cenários F05/F11.
+- **Próximo passo guiado:** sair da confirmação por Nova venda e Fechar(X) se necessário; Caixa → Sincronização → Sincronizar agora; conferir Dados confirmados no servidor/0 aguardando/0 revisão. Em Vendas, uma ocorrência da nova venda do produto por10; em Resumo, vendido10/esperado110; em Produtos, estoque19 após sync. Aguardar relato antes de outro recebimento ou movimento; não repetir a venda para tentar corrigir divergência.
+- **Limites:** teste físico acompanhado por relato, distinto do emulador/HTTP; nenhum acesso remoto, alteração de código/API, limpeza ou operação financeira adicional executados pelo agente.
+
+<a id="cp-20261104-100-primeira-venda-conferida-e-pix-manual-orientado"></a>
+
+## CP 20261104 100 Primeira venda conferida e Pix manual orientado
+
+- **Data:** 04/11/2026, America/Sao_Paulo.
+- **Evidência física por relato:** usuário confirmou sincronização0/0, uma única venda de R$10,00, esperado na gavetaR$110,00 e estoque19 unidades. PASS dirigido da conferência pós-primeira venda, complementando CP099. Sem consulta independente do agente ao servidor/UUID ou captura; não equivale a validação de todo o histórico/isolamento.
+- **Próximo passo guiado:** segunda venda de uma unidade do mesmo Teste Samsung04/11/R$10,00; Cobrar → Pix, conferir QR/valor e aviso de confirmação manual. Se pedir chave, usar e-mail fictício teste@example.invalid apenas na homologação e Salvar e gerar QR; se já houver chave, não substituir. Registro de teste sem transferência bancária; tocar Recebi o Pix uma vez e aguardar Venda concluída/Pix.
+- **Expectativas posteriores:** total vendido20, dinheiro10/Pix10, gaveta ainda110; estoque18 após sincronização e duas vendas únicas. Ainda não validados: Pix/QR/conclusão/estoque18/total20; aguardar relato antes da próxima operação. Não confundir confirmação manual do operador em teste com confirmação bancária do app.
+- **Limites:** scanner, cartão, movimentos, offline/reconexão e fechamento físicos continuam pendentes. Nenhuma alteração de código/API, limpeza, execução remota ou aceite amplo nesta entrega; roadmap/roteiro atualizados sem encerrar F05/F06 integralmente.
+
+<a id="cp-20261110-101-google-play-planos-e-integracoes-definidos"></a>
+
+## CP 20261110 101 Google Play, planos e integrações definidos
+
+- **Data:** 10/11/2026, America/Sao_Paulo.
+- **Decisão do usuário:** publicação na Google Play com planos pagos; R7 passa a ser obrigatória para a entrega. Integrações com Stone, InfinitePay e Mercado Pago desejadas, podendo ser simples, desde que automatizadas e com fluxo; o usuário propôs webhook aguardando transação de valor igual. Nenhum provedor foi escolhido, contratado ou testado.
+- **Google Play (documentação oficial, 10/11):** Play Billing exigido para assinatura de software em nuvem, produtividade empresarial e gestão financeira; bens físicos ficam fora. A mesma página admite app somente de consumo, sem compra nem link de pagamento dentro dele. Faturamento alternativo não confirmado para o Brasil. Taxa de 15% em assinaturas pela regra de demais mercados, a confirmar no Console. Target API 36 exigida; conta pessoal criada após 13/11/2023 exige 12 testadores por 14 dias. Exigência de forma de pagamento no teste grátis e dispensa de teste fechado para organização não confirmadas.
+- **Mercado Pago:** Pix por `POST /v1/orders` com `external_reference` obrigatório e idempotência, conferido na página oficial; OAuth por lojista, webhook assinado e Point por API relatados na documentação. Cartão por aproximação no celular para terceiros, aprovação prévia e estorno de Pix não confirmados.
+- **InfinitePay:** Checkout Integrado com `order_nsu`, webhook `paid` e `payment_check`, conferido na página oficial; cartão fica sempre ligado no link, sem opção somente Pix, e o Pix só aparece na tela do comprador. O PDV pode exibir o link como QR, hipótese de fluxo não testada. InfiniteTap por deeplink cobra no app da InfinitePay no mesmo aparelho e retorna somente ao aparelho. Sem sandbox, sem API de estorno; parceria para software house não confirmada.
+- **Stone:** SDK Android com pinpad Bluetooth D180C ou POS Smart, Connect com pedido enviado à maquininha e webhook relatados; programa de parceiros com aprovação comercial. Parte da documentação retornou 403 ou página vazia; OAuth por lojista, Pix com identificador e Tap to Pay não confirmados.
+- **Webhook por valor igual:** aviso de toda transação da conta, inclusive maquininha sem integração, não confirmado nos três provedores; os avisos documentados são ligados a cobranças criadas pela integração. Ausência na documentação pública não prova inexistência; depende de resposta dos provedores ou teste com conta real.
+- **Conferido no repositório:** `apps/api/src/billing.ts` aceita somente `disabled` e `mock`; `scripts/build-android.ps1` executa `assembleRelease`, sem AAB; APK 0.1.11 com compile 37, target 36 e sem permissões `BILLING` ou `NFC`.
+- **Evidência:** pesquisa documental por agentes e conferência direta das páginas de pagamentos da Play, Checkout InfinitePay e Pix Mercado Pago. Não houve chamada a API de provedor, compra, build, teste, implantação, alteração de runtime ou mudança em produção.
+- **Roadmap:** decisão e novos itens de R7 registrados, nenhum checkbox marcado. R6 continua condicionada a R3 homologada e piloto estável.
+- **Próximo passo:** usuário decidir entre compra por Play Billing e venda fora do app; consultar Mercado Pago, InfinitePay e Stone sobre avisos por conta e parceria; retomar o ciclo físico, que depende de segundo celular para o bloco multioperador.
+
+<a id="cp-20261110-102-assinatura-por-play-billing-decidida"></a>
+
+## CP 20261110 102 Assinatura por Play Billing decidida
+
+- **Data:** 10/11/2026, America/Sao_Paulo.
+- **Decisão do usuário:** a assinatura será vendida dentro do app por Google Play Billing, resolvendo a escolha aberta no CP 101 e mantendo a decisão de 24/10/2026. A venda fora do app com app somente de consumo fica descartada para o Android.
+- **Consequências para R7:** criar `GooglePlayBillingProvider`, validar e confirmar a compra no servidor, tratar notificações e retirar o formulário de cartão da assinatura no build da Play. Teste de 7 dias passa a ser oferta da Play; exigência de forma de pagamento nessa oferta segue não confirmada. Taxa de 15% a confirmar no Console.
+- **Validação:** decisão e documentação apenas. Sem implementação, build, teste, compra, configuração no Console, implantação ou alteração de runtime.
+- **Roadmap:** item de R7 reescrito como implementação e mantido aberto; nenhum checkbox marcado. Pelo roadmap, R7 depende de piloto estável.
+- **Limites:** papel do Asaas em site e Desktop continua a confirmar. Escolha da maquininha pelo lojista discutida, ainda não registrada como decisão.
+- **Próximo passo:** retomar o ciclo físico e o bloco multioperador do piloto; confirmar tipo e data da conta de desenvolvedor para saber se o teste fechado se aplica.
+
+<a id="cp-20261110-103-escolha-da-maquininha-pelo-lojista-decidida"></a>
+
+## CP 20261110 103 Escolha da maquininha pelo lojista decidida
+
+- **Data:** 10/11/2026, America/Sao_Paulo.
+- **Decisão do usuário:** o lojista escolhe e conecta o próprio provedor de pagamento. O produto mantém um único fluxo de venda, com um conector por provedor. Atualiza o limite registrado no CP 102.
+- **Alcance conhecido, somente documental (CP 101):** Mercado Pago com Pix e Point por API; InfinitePay com aproximação no celular por deeplink e link de pagamento, sem integração confirmada com maquininha física; Stone dependente de aprovação no programa de parceiros. Automação varia por provedor e não há paridade prometida. Marca não integrada, falha ou ausência de internet mantém a confirmação manual identificada.
+- **Validação:** decisão e documentação apenas. Sem contrato, credencial, chamada a provedor, implementação, teste ou implantação.
+- **Roadmap:** novo item aberto em R6; nenhum checkbox marcado. R6 continua condicionada a R3 homologada e piloto estável, começando por uma integração completa.
+- **Próximo passo:** consultar Mercado Pago, InfinitePay e Stone sobre aprovação para software house e avisos por conta; retomar o ciclo físico e o bloco multioperador do piloto.
+
+<a id="cp-20261110-104-prompts-por-sessao-ate-a-entrega"></a>
+
+## CP 20261110 104 Prompts por sessão até a entrega
+
+- **Data:** 10/11/2026, America/Sao_Paulo.
+- **Construído:** [docs/prompts-sessoes-entrega.md](prompts-sessoes-entrega.md), com 23 blocos sequenciais e dois opcionais, cobrindo os 40 passos combinados com o usuário, com tipo de execução, pré-requisitos e critério de pronto.
+- **Achado:** `scripts/limpar-homologacao-piloto.sql` exige o backup de 03/11, anterior aos testes no Samsung dos CPs 094–100; executá-lo apagaria também a conta em uso. O bloco 2 exige backup novo, atualização da guarda e confirmação do usuário. O script não foi alterado nem executado.
+- **Validação:** arquivos citados conferidos no repositório e cenários F01–F19 mapeados pelo roteiro físico. Nenhuma sessão foi iniciada e os prompts não foram executados.
+- **Roadmap:** apontamento acrescentado, nenhum checkbox marcado.
+- **Próximo passo:** usuário iniciar o bloco 1. Bloco 6 depende de segundo celular.

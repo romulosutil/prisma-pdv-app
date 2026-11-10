@@ -49,14 +49,18 @@ Em Ajustes → Assinatura, o "Relógio de teste" avança os dias para ver o fim 
 
 O perfil `homologacao` usa a API e o PostgreSQL isolados no EasyPanel, login por e-mail real e acesso sem cartão/cobrança. Instala como **PDV Homologação** (`br.com.pdv.mobile.homologacao`), separado da demo 0.1.4. Não leva produtos ou vendas fictícios. Pagamentos de vendas continuam sendo registros manuais.
 
-Entrega 03/11/2026: APK **0.1.9/versionCode 10**, pronto para reteste supervisionado, com diagnóstico local de homologação, R8/shrink, permissões revistas e tratamento dos 18 achados. CI `df41823`: 597 API/PostgreSQL 17, 578 mobile, 172 shared (1.347 casos), tipos/ferramentas/imagem aprovados. API compatível de cadastro verificado implantada somente em homologação; 299 fontes do APK sem divergência. Testes físicos, limpeza da base e aceite continuam pendentes. [Matriz e artefato](docs/correcoes-auditoria-0.1.9.md) · [reteste](docs/roteiro-piloto-android.md#reteste-das-correções-da-auditoria-na-019).
+Entrega local atual, 03/11/2026: **0.1.11/versionCode 12**, com correção de crash ao retornar do cadastro de produto e da mensagem pública de código inválido. APKs ARM e x86_64/R8 com mesmos 300 fontes/bundle; ciclo de venda, caixa, parcela durável, modo avião, reboot, fechamento e reconexão validado no Android Emulator/API real. Cinco vendas/R$ 60, estoque 20→14, fechamento 175/170/−5 e reenvio sem duplicação. Regressão mobile de 600 casos e tipos aprovados; sem novo CI/deploy. [Artefatos, evidências e limites físicos](docs/ciclo-venda-caixa-offline-emulador.md). Atualizar sem desinstalar/limpar dados; aceite físico continua pendente.
+
+Histórico da entrega 0.1.9, 03/11/2026: tratamento dos 18 achados, CI `df41823` com 597 API/PostgreSQL 17, 578 mobile e 172 shared. [Matriz e artefato histórico](docs/correcoes-auditoria-0.1.9.md) · [reteste](docs/roteiro-piloto-android.md#reteste-das-correções-da-auditoria-na-019).
 
 ```powershell
 ./scripts/build-android.ps1 -Perfil homologacao
-# Resultado: builds/pdv-homologacao-0.1.9.apk + SHA256, assinatura e metadados
+# Resultado: builds/pdv-homologacao-0.1.11.apk + SHA256, assinatura e metadados
 ```
 
 O script usa a cópia curta `C:/p` já preparada, configura o ambiente pelo `eas.json`, confere saúde/hora/suporte e contrato de cadastro verificado, compila, exige mapping R8 e verifica o bundle dentro do APK. Os diretórios `C:/p` e `C:/x`, o SDK e suas dependências devem estar preparados conforme as instruções Windows abaixo. Não inclua arquivos `.env` na cópia.
+
+Para testar em Android Emulator x86_64, acrescente `-Emulador`: `./scripts/build-android.ps1 -Perfil homologacao -Emulador`. Essa opção gera `pdv-homologacao-<versao>-emulador.apk` e evidências com o mesmo sufixo. O APK padrão continua usando ARM32/ARM64. A variante usa os mesmos fontes, API e verificações de release; sua execução no AVD deve ser registrada separadamente da validação em aparelho físico.
 
 | Perfil EAS | Backend | Ferramentas | Pacote Android |
 |---|---|---|---|

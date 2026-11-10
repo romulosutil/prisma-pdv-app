@@ -6,6 +6,7 @@ import { abrirPglite, type Conexao } from '../../api/src/db/conexao';
 import { aparelhos, sessoes } from '../../api/src/db/schema';
 import { criarApp } from '../../api/src/servidor';
 import { Dados } from '../src/dados/dados';
+import { mensagemDeErro } from '../src/servicos/backend';
 import { ArmazenamentoSessaoSegura, type CofreSessao } from '../src/dados/armazenamentoSessaoSegura';
 import { ArmazenamentoSqlite } from '../src/dados/sqlite/armazenamentoSqlite';
 import { totalDoCarrinho, valorRestante } from '../src/dados/carrinho';
@@ -59,6 +60,26 @@ function semToken(base: ArmazenamentoMemoria, token: string) {
 }
 
 describe('acesso com API local e SQLite', () => {
+  it('orienta código incorreto e expirado no login real sem perder a sessão anterior', async () => {
+    const { dados, email } = await montar();
+    const sessao = dados.conta.obter().sessao!;
+    const valido = await codigo(email);
+    const incorreto = String((Number(valido) + 1) % 1_000_000).padStart(6, '0');
+    for (const tentativa of [incorreto, valido]) {
+      if (tentativa === valido) relogio.avancarHoras(11 / 60);
+      respostas.length = 0;
+      for (const chamar of [
+        () => dados.backend.consultarVinculos!(email, tentativa),
+        () => dados.backend.entrar({ email, codigo: tentativa, aparelhoId: sessao.aparelhoId, aparelhoNome: 'Caixa' }),
+      ]) {
+        const erro = await chamar().catch(e => e);
+        expect(erro).toMatchObject({ codigo: 'codigo_invalido', status: 401 });
+        expect(mensagemDeErro(erro)).toBe('Código inválido ou expirado. Confira o código ou solicite outro.');
+        expect(dados.conta.obter().sessao).toEqual(sessao);
+      }
+      expect(respostas).toEqual([{ caminho: '/auth/vinculos', status: 401 }, { caminho: '/auth/login', status: 401 }]);
+    }
+  }, 20000);
   it('cria conta e entra três vezes usando o mesmo aparelho e perfil real', async () => {
     const { dados, base, email } = await montar();
     const inicial = dados.conta.obter().sessao!; semToken(base, inicial.token);

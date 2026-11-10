@@ -60,6 +60,8 @@ interface OpcoesChamada {
   corpo?: unknown;
   /** Rotas públicas (conta, login, planos) não enviam o token. */
   publica?: boolean;
+  /** Nas provas públicas de login, 401 indica código inválido/expirado sem ler o corpo. */
+  codigoLoginEm401?: boolean;
   /** 404 vira `null` em vez de erro. */
   nuloSe404?: boolean;
   token?: string;
@@ -103,7 +105,7 @@ export class BackendHttp implements Backend {
   trocarAparelhoCaixa(id: string, req: z.infer<typeof TrocarAparelhoCaixaReqSchema>, token?: string) { z.uuid().parse(id); return this.chamar('POST', `/caixas/${id}/aparelho`, CaixaSchema, { corpo: TrocarAparelhoCaixaReqSchema.parse(req), token }); }
 
   consultarVinculos(email: string, codigo: string) {
-    return this.chamar('POST', '/auth/vinculos', VinculosSchema, { corpo: { email, codigo }, publica: true });
+    return this.chamar('POST', '/auth/vinculos', VinculosSchema, { corpo: { email, codigo }, publica: true, codigoLoginEm401: true });
   }
   listarEquipe() { return this.chamar('GET', '/equipe', VinculosSchema, {}); }
   convidar(req: ConvidarReq) { return this.chamar('POST', '/equipe/convites', VinculoSchema, { corpo: req }); }
@@ -154,7 +156,7 @@ export class BackendHttp implements Backend {
   }
 
   entrar(req: LoginReq): Promise<Sessao> {
-    return this.chamar('POST', '/auth/login', LoginResSchema, { corpo: req, publica: true });
+    return this.chamar('POST', '/auth/login', LoginResSchema, { corpo: req, publica: true, codigoLoginEm401: true });
   }
 
   iniciarRecuperacao(req: IniciarRecuperacaoReq): Promise<RecuperacaoAparelho> {
@@ -232,7 +234,10 @@ export class BackendHttp implements Backend {
     }
 
     const json: unknown = texto ? safeJson(texto) : undefined;
-    const erroResposta = resposta.ok ? null : erroDaResposta(resposta.status, json);
+    const erroResposta = resposta.ok ? null
+      : resposta.status === 401 && opcoes.publica && opcoes.codigoLoginEm401
+        ? new ErroBackend('codigo_invalido', '', 401)
+        : erroDaResposta(resposta.status, json);
     registrarHttp(metodo, caminho, inicio, resposta.status, resposta.ok ? 'pronto' : 'falha', erroResposta?.codigo);
     if (resposta.status === 401 && token && !opcoes.publica) {
       try { await this.aoSessaoInvalida?.(token); } catch { /* Preserva o erro de autenticação. */ }

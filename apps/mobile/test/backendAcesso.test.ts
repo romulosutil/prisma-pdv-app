@@ -84,13 +84,44 @@ describe('acesso HTTP', () => {
     expect(erro.message).not.toContain('segredo');
   });
 
+  it.each(['vinculos', 'login'] as const)('orienta código inválido/expirado em %s sem ler corpo 401 nem invalidar sessão', async tipo => {
+    const lerCorpo = vi.fn(() => { throw new Error('corpo privado não deve ser lido'); });
+    const buscar = vi.fn().mockResolvedValue({ status: 401, ok: false, text: lerCorpo });
+    vi.stubGlobal('fetch', buscar);
+    const invalidar = vi.fn();
+    const backend = new BackendHttp('https://api.example', () => 'sessao-anterior', invalidar);
+    const erro = await (tipo === 'vinculos'
+      ? backend.consultarVinculos(perfil.email, '123456')
+      : backend.entrar({ email: perfil.email, codigo: '123456', aparelhoId: id, aparelhoNome: 'Caixa' })).catch(e => e);
+    expect(erro).toMatchObject({ codigo: 'codigo_invalido', status: 401 });
+    expect(mensagemDeErro(erro)).toBe('Código inválido ou expirado. Confira o código ou solicite outro.');
+    expect(lerCorpo).not.toHaveBeenCalled();
+    expect(invalidar).not.toHaveBeenCalled();
+    expect(buscar.mock.calls[0]?.[1].headers.Authorization).toBeUndefined();
+  });
+
+  it('mantém mensagem de sessão para 401 protegido e não interpreta toda rota pública como prova de login', async () => {
+    const lerCorpo = vi.fn(() => { throw new Error('corpo privado não deve ser lido'); });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 401, ok: false, text: lerCorpo }));
+    const invalidar = vi.fn();
+    const backend = new BackendHttp('https://api.example', () => 'sessao-anterior', invalidar);
+    const protegido = await backend.obterPerfil().catch(e => e);
+    expect(protegido).toMatchObject({ codigo: 'nao_autorizado', status: 401 });
+    expect(mensagemDeErro(protegido)).toBe('Sua sessão não é mais válida. Entre de novo.');
+    expect(invalidar).toHaveBeenCalledExactlyOnceWith('sessao-anterior');
+    invalidar.mockClear();
+    await expect(backend.pedirCodigo(perfil.email)).rejects.toMatchObject({ codigo: 'nao_autorizado', status: 401 });
+    expect(invalidar).not.toHaveBeenCalled();
+    expect(lerCorpo).not.toHaveBeenCalled();
+  });
+
   it('não invalida em 403, 401 público ou falha de rede', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(resposta(403)).mockResolvedValueOnce(resposta(401)).mockRejectedValueOnce(new Error('offline'));
     vi.stubGlobal('fetch', fetchMock);
     const callback = vi.fn();
     const backend = new BackendHttp('', () => 'token', callback);
     await expect(backend.listarAparelhos()).rejects.toMatchObject({ codigo: 'nao_autorizado' });
-    await expect(backend.entrar({ email: 'a@example.com', codigo: '123456', aparelhoId: id, aparelhoNome: 'Caixa' })).rejects.toMatchObject({ codigo: 'nao_autorizado' });
+    await expect(backend.entrar({ email: 'a@example.com', codigo: '123456', aparelhoId: id, aparelhoNome: 'Caixa' })).rejects.toMatchObject({ codigo: 'codigo_invalido' });
     await expect(backend.obterPerfil()).rejects.toMatchObject({ codigo: 'rede' });
     expect(callback).not.toHaveBeenCalled();
     expect(fetchMock.mock.calls[1]?.[1].headers.Authorization).toBeUndefined();

@@ -117,6 +117,9 @@ export function ListaProdutos() {
     <TelaBase bordas={['top']} rodape={<Botao rotulo="Cadastrar bipando" icone="cadastrarBipando" onPress={() => router.push('/produtos/scanner')} />}>
       <FlatList
         data={visiveis}
+        // Keep native children attached while the first save replaces the empty
+        // state during the Android screen transition (Fabric addViewAt crash).
+        removeClippedSubviews={false}
         keyExtractor={(p) => p.id}
         ListHeaderComponent={<>{topoRolavel}{cabecalho}</>}
         ListEmptyComponent={vazio}

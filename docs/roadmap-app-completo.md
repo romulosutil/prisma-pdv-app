@@ -12,7 +12,7 @@ O primeiro marco é um PDV conectado, com login real, vários operadores, vendas
 
 **Decisão do usuário em 10/11/2026:** o app será publicado na Google Play com planos pagos, vendidos dentro do app por Play Billing; R7 deixa de ser condicional. Integrações com Stone, InfinitePay e Mercado Pago são desejadas, em fluxo simples e automatizado que dispense o operador de confirmar o pagamento. Pesquisa documental registrada, sem contratação, implementação ou teste com provedor; nenhum checkbox encerrado. [CP 101](checkpoints-roadmap.md#cp-20261110-101-google-play-planos-e-integracoes-definidos). Execução por sessões: [blocos de prompts](prompts-sessoes-entrega.md), [CP 104](checkpoints-roadmap.md#cp-20261110-104-prompts-por-sessao-ate-a-entrega).
 
-**Rastreabilidade da 0.1.11 em 10/11/2026:** fontes commitados em `ed4833e` e o APK ARM de 03/11 conferido contra eles, sem nova versão. O CI 42748951965 não iniciou por cobrança da conta no GitHub, então a 0.1.11 **não tem CI aprovado**; há testes locais em clone limpo, sem API/PostgreSQL 17 e imagem. Nenhum checkbox marcado. [CP 105](checkpoints-roadmap.md#cp-20261110-105-versao-0111-rastreavel-e-ci-nao-iniciado).
+**Rastreabilidade da 0.1.11 em 10/11/2026:** fontes commitados em `ed4833e` e o APK ARM de 03/11 conferido contra eles, sem nova versão. CI 42793943319 aprovado em `4eb9ec6`, que difere de `ed4833e` só em documentação: 602 API/PostgreSQL 17, 600 mobile, 172 shared, tipos, ferramentas e imagem. Físico e aceite continuam pendentes; nenhum checkbox marcado. [CP 105](checkpoints-roadmap.md#cp-20261110-105-versao-0111-rastreavel-e-ci-nao-iniciado) · [CP 106](checkpoints-roadmap.md#cp-20261110-106-ci-da-0111-aprovado).
 
 <a id="revisao-de-prontidao-para-r6"></a>
 
@@ -35,7 +35,7 @@ O candidato anterior com CI e instalação física relatada é **0.1.10/versionC
 | R2 | CI PostgreSQL/HTTP externo; ciclo de um operador, movimentos e fechamento175/170/−5 emulados/API real | Ciclo financeiro com dois operadores em dois celulares e preservação do histórico físico |
 | R3 | Filas/CI/reenvio HTTP; modo avião real, parcela/force-stop, reboot, fechamento e reconexão sem duplicação no emulador | Queda/reinício/reconexão/recuperação físicos e tratamento operacional dos conflitos; exportar uma pendência não a resolve |
 | R4 | Gestão implantada, CI aprovado; estoque/relatório e EAN real conferidos por HTTP | Ciclo físico de gestão/fiado/filiais; amostra de 100 produtos e p95 em 4G continuam abertos |
-| R5 | API 84dd0dc/CI histórico de 1.367 casos; APKs 0.1.11/R8 locais, 600 mobile/tipos, ciclo financeiro/offline e mensagem de login emulados | Limpeza solicitada, estabilidade visual/scanner no Samsung, restauração atual, F01–F19, atendimento e aceite humano |
+| R5 | API 84dd0dc; APKs 0.1.11/R8 conferidos contra os fontes com CI de 1.374 casos em 4eb9ec6 (CP 106); ciclo financeiro/offline e mensagem de login emulados | Limpeza solicitada, estabilidade visual/scanner no Samsung, restauração atual, F01–F19, atendimento e aceite humano |
 | R6/R7 | Integrações planejadas | R6 aguarda piloto estável; R7 depende também da decisão de cobrança/distribuição |
 
 **Compatibilidade atual:** homologação no SHA 84dd0dcd9825e7e1c3d04f7bfe08261a34739e79, autoDeploy false e configuração preservada; saúde/contrato/verificação sem prova conferidos por HTTPS. [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste). Produção preservada.

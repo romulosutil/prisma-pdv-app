@@ -1309,3 +1309,15 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Valem para os testes físicos:** fontes `ed4833e` e APK ARM `builds/pdv-homologacao-0.1.11.apk`, SHA256 `2df561ee3c7c6717aab82304e1dc4ff2ab5b9858b47aeb7e551e23bf648fe0c3`, atualizando sem desinstalar. API de homologação segue em 84dd0dc, sem mudança de API nestes commits. O APK `-emulador` serve somente ao AVD.
 - **Limites:** o hash do APK instalado no Samsung não foi conferido (a versão 0.1.11 é por relato no CP 095). Nenhum teste físico, aceite ou checkbox de roadmap concluído nesta sessão.
 - **Próximo passo:** usuário regularizar a cobrança do GitHub Actions; depois disparar o CI na ponta da branch, cuja diferença para ed4833e é só documentação, e registrar o resultado. Com ele aprovado, seguir para o bloco 2.
+
+<a id="cp-20261110-106-ci-da-0111-aprovado"></a>
+
+## CP 20261110 106 CI da 0.1.11 aprovado
+
+- **Data:** 10/11/2026, 06h54, America/Sao_Paulo.
+- **Etapa:** R5, conclusão do bloco 1. Continua o [CP 105](#cp-20261110-105-versao-0111-rastreavel-e-ci-nao-iniciado), cujo CI não iniciou. Usuário informou a regularização da cobrança do GitHub Actions.
+- **CI:** run [42793943319](https://github.com/romulosutil/prisma-pdv-app/actions/runs/42793943319), `workflow_dispatch`, `completed/success` no SHA `4eb9ec6f3ec07947f8f245c960871ea3eef134f3`. Tipos, 2 ferramentas, 172 shared, 602 API/PostgreSQL 17, 600 mobile (1.374 casos em vitest), imagem e isolamento aprovados. Deploy de main pulado; produção não promovida.
+- **Equivalência com o APK:** 4eb9ec6 difere de ed4833e somente em `docs/checkpoints-roadmap.md` e `docs/roadmap-app-completo.md`. A conferência do CP 105 entre APK e fontes continua válida.
+- **Valem para os testes físicos:** fontes ed4833e, com CI aprovado em 4eb9ec6, e APK ARM `builds/pdv-homologacao-0.1.11.apk`, SHA256 `2df561ee3c7c6717aab82304e1dc4ff2ab5b9858b47aeb7e551e23bf648fe0c3`. API de homologação segue em 84dd0dc, sem mudança de API desde então.
+- **Limites:** CI não comprova Android físico nem aceite. O hash instalado no Samsung segue não conferido. Nenhum checkbox de roadmap marcado, sem deploy ou alteração de dados.
+- **Próximo passo:** bloco 2, limpar a homologação, que exige acesso SQL administrativo e confirmação do usuário. Se a limpeza não for feita, o bloco 4 retoma da venda em Pix manual do CP 100.

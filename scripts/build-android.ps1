@@ -1,5 +1,6 @@
 param(
-  [ValidateSet('demo', 'homologacao', 'producao')][string]$Perfil = 'homologacao'
+  [ValidateSet('demo', 'homologacao', 'producao')][string]$Perfil = 'homologacao',
+  [switch]$Emulador
 )
 $ErrorActionPreference = 'Stop'
 if ($Perfil -eq 'producao') { throw 'Distribuição de produção exige assinatura própria. Use o perfil EAS producao; este script local gera somente APK interno assinado para testes.' }
@@ -60,6 +61,11 @@ foreach ($pastaPdv in @('apps/mobile/app', 'apps/mobile/src', 'apps/mobile/asset
 $configPdv = Get-Content -LiteralPath "$repoPdv/apps/mobile/app.json" -Raw | ConvertFrom-Json
 $versaoPdv = $configPdv.expo.version
 $baseNomePdv = "pdv-$Perfil-$versaoPdv"
+$arquiteturasPdv = 'arm64-v8a,armeabi-v7a'
+if ($Emulador) {
+  $baseNomePdv += '-emulador'
+  $arquiteturasPdv = 'x86_64'
+}
 $fontesPdv | ConvertTo-Json -Depth 3 | Set-Content "$destinoPdv/$baseNomePdv-fontes.json"
 Push-Location "$copiaPdv/apps/mobile"
 try {
@@ -75,7 +81,7 @@ try {
   Set-Content -LiteralPath android/app/build.gradle -Value $appGradlePdv -NoNewline
   Push-Location android
   try {
-    & ./gradlew.bat assembleRelease '-PreactNativeArchitectures=arm64-v8a,armeabi-v7a' *>&1 | Tee-Object "$destinoPdv/$baseNomePdv-build.log"
+    & ./gradlew.bat assembleRelease "-PreactNativeArchitectures=$arquiteturasPdv" *>&1 | Tee-Object "$destinoPdv/$baseNomePdv-build.log"
     if ($LASTEXITCODE -ne 0) { throw 'Gradle falhou.' }
     $mappingPdv = 'app/build/outputs/mapping/release/mapping.txt'
     if (!(Test-Path -LiteralPath $mappingPdv)) { throw 'Mapping R8 ausente; o candidato deve exercitar ofuscação.' }
@@ -118,5 +124,5 @@ try {
 } finally { $zipPdv.Dispose() }
 Write-Output "APK verificado: $apkPdv"
 Write-Output "SHA256: $hashPdv"
-[ordered]@{ versao = $versaoPdv; versionCode = $configPdv.expo.android.versionCode; perfil = $Perfil; sha256 = $hashPdv; api = $env:EXPO_PUBLIC_API_URL; rotaSuportePresente = $apiCompativelPdv; assinatura = 'teste local; não é assinatura de distribuição'; androidFisico = 'pendente'; aceiteHumano = 'pendente' } | ConvertTo-Json | Set-Content "$destinoPdv/$baseNomePdv-manifesto.json"
+[ordered]@{ versao = $versaoPdv; versionCode = $configPdv.expo.android.versionCode; perfil = $Perfil; arquiteturas = $arquiteturasPdv; emulador = [bool]$Emulador; sha256 = $hashPdv; api = $env:EXPO_PUBLIC_API_URL; rotaSuportePresente = $apiCompativelPdv; assinatura = 'teste local; não é assinatura de distribuição'; androidFisico = 'pendente'; aceiteHumano = 'pendente' } | ConvertTo-Json | Set-Content "$destinoPdv/$baseNomePdv-manifesto.json"
 if ($Perfil -ne 'demo' -and !$apiCompativelPdv) { Write-Warning 'APK preparado, mas a API ainda não expõe o suporte R5. Não iniciar operação comercial antes do deploy e da homologação completa.' }

@@ -1294,3 +1294,18 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Validação:** arquivos citados conferidos no repositório e cenários F01–F19 mapeados pelo roteiro físico. Nenhuma sessão foi iniciada e os prompts não foram executados.
 - **Roadmap:** apontamento acrescentado, nenhum checkbox marcado.
 - **Próximo passo:** usuário iniciar o bloco 1. Bloco 6 depende de segundo celular.
+
+<a id="cp-20261110-105-versao-0111-rastreavel-e-ci-nao-iniciado"></a>
+
+## CP 20261110 105 Versão 0.1.11 rastreável e CI não iniciado por cobrança
+
+- **Data:** 10/11/2026, 00h25, America/Sao_Paulo.
+- **Etapa:** R5, bloco 1 de [prompts por sessão](prompts-sessoes-entrega.md). Sem PR, deploy ou alteração de produção/homologação.
+- **Commits na branch `codex/pdv-homologacao-real`, enviados:** 44443d2 (lista de produtos), 0d95607 (mensagem de login), 46f7149 (testes de cadastro/CPF), e63cf92 (0.1.11/12), 1a5c34c (variante de emulador e driver), 06579d2 (SQL de limpeza), ed4833e (docs até o CP 104). SHA de referência dos fontes: `ed4833e54062906709da2a28674fee5ff6262d07`. Este checkpoint vem em commit posterior somente de documentação.
+- **Revisão:** sem segredos nos arquivos alterados; `builds/` ignorado e sem arquivo versionado. O SQL de limpeza entrou no repositório pela primeira vez (ficara fora no CP 051), não foi executado nem alterado; a guarda continua a ser atualizada no bloco 2.
+- **CI: não validou a 0.1.11.** Run [42748951965](https://github.com/romulosutil/prisma-pdv-app/actions/runs/42748951965), `workflow_dispatch` em ed4833e, como no CP 051: `failure` em cerca de 5 s, com o job "Types, tests and container" sem iniciar. Anotação do GitHub: pagamentos recentes da conta falharam ou o limite de gastos precisa ser aumentado. Não é reprovação de código. Deploy pulado.
+- **Testes locais, evidência distinta do CI:** no checkout, tipos mobile e 600 casos/73 arquivos PASS. Em clone limpo de ed4833e com Node 24 e `npm ci`, removido ao final: tipos de todos os workspaces, 2 ferramentas, 172 shared e 600 mobile com um worker PASS (`builds/pdv-0111-ci-local.log`). **Não executados:** API com PostgreSQL 17 e imagem Docker, por falta de Docker/PostgreSQL local. `apps/api`, `packages` e manifestos npm não mudaram desde 84dd0dc, aprovado no CI 41688960912.
+- **APK:** o `builds/pdv-homologacao-0.1.11.apk` de 03/11 corresponde aos fontes commitados, sem nova versão. 300/300 fontes registrados no build iguais byte a byte ao checkout limpo em ed4833e, sem arquivo novo ou ausente. Bundle extraído do APK com SHA256 `2b0ef95648b5699f3044fb5d9846abb69f57b468da966e3ac3b1d3817b2cad37`, igual à verificação do build; 258/258 módulos próprios do source map iguais aos blobs de ed4833e, e o único item restante é o módulo virtual de rotas do Metro. As duas correções constam no mapa. Manifesto: 0.1.11/12.
+- **Valem para os testes físicos:** fontes `ed4833e` e APK ARM `builds/pdv-homologacao-0.1.11.apk`, SHA256 `2df561ee3c7c6717aab82304e1dc4ff2ab5b9858b47aeb7e551e23bf648fe0c3`, atualizando sem desinstalar. API de homologação segue em 84dd0dc, sem mudança de API nestes commits. O APK `-emulador` serve somente ao AVD.
+- **Limites:** o hash do APK instalado no Samsung não foi conferido (a versão 0.1.11 é por relato no CP 095). Nenhum teste físico, aceite ou checkbox de roadmap concluído nesta sessão.
+- **Próximo passo:** usuário regularizar a cobrança do GitHub Actions; depois disparar o CI na ponta da branch, cuja diferença para ed4833e é só documentação, e registrar o resultado. Com ele aprovado, seguir para o bloco 2.

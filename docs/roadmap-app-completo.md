@@ -12,6 +12,8 @@ O primeiro marco é um PDV conectado, com login real, vários operadores, vendas
 
 **Decisão do usuário em 10/11/2026:** o app será publicado na Google Play com planos pagos, vendidos dentro do app por Play Billing; R7 deixa de ser condicional. Integrações com Stone, InfinitePay e Mercado Pago são desejadas, em fluxo simples e automatizado que dispense o operador de confirmar o pagamento. Pesquisa documental registrada, sem contratação, implementação ou teste com provedor; nenhum checkbox encerrado. [CP 101](checkpoints-roadmap.md#cp-20261110-101-google-play-planos-e-integracoes-definidos). Execução por sessões: [blocos de prompts](prompts-sessoes-entrega.md), [CP 104](checkpoints-roadmap.md#cp-20261110-104-prompts-por-sessao-ate-a-entrega).
 
+**Rastreabilidade da 0.1.11 em 10/11/2026:** fontes commitados em `ed4833e` e o APK ARM de 03/11 conferido contra eles, sem nova versão. O CI 42748951965 não iniciou por cobrança da conta no GitHub, então a 0.1.11 **não tem CI aprovado**; há testes locais em clone limpo, sem API/PostgreSQL 17 e imagem. Nenhum checkbox marcado. [CP 105](checkpoints-roadmap.md#cp-20261110-105-versao-0111-rastreavel-e-ci-nao-iniciado).
+
 <a id="revisao-de-prontidao-para-r6"></a>
 
 ## Situação real e pendências antes da R6

@@ -1321,3 +1321,21 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Valem para os testes físicos:** fontes ed4833e, com CI aprovado em 4eb9ec6, e APK ARM `builds/pdv-homologacao-0.1.11.apk`, SHA256 `2df561ee3c7c6717aab82304e1dc4ff2ab5b9858b47aeb7e551e23bf648fe0c3`. API de homologação segue em 84dd0dc, sem mudança de API desde então.
 - **Limites:** CI não comprova Android físico nem aceite. O hash instalado no Samsung segue não conferido. Nenhum checkbox de roadmap marcado, sem deploy ou alteração de dados.
 - **Próximo passo:** bloco 2, limpar a homologação, que exige acesso SQL administrativo e confirmação do usuário. Se a limpeza não for feita, o bloco 4 retoma da venda em Pix manual do CP 100.
+
+<a id="cp-20261110-107-base-de-homologacao-limpa"></a>
+
+## CP 20261110 107 Base de homologação limpa
+
+- **Data:** 10/11/2026, 07h07, America/Sao_Paulo.
+- **Etapa:** R5, bloco 2 de [prompts por sessão](prompts-sessoes-entrega.md). Resolve a limpeza pendente desde o [CP 039](#cp-20261103-039-entrega-018-validada-localmente-e-limpeza-pendente). Limpeza confirmada pelo usuário nesta sessão, depois de ver contagens, perda e efeito no aparelho. Produção não foi aberta nem alterada.
+- **Acesso verificado:** console Bash do serviço `aladdin/pdv-postgres-homologacao` no painel EasyPanel e `psql` com o usuário configurado no contêiner, sem exibir credenciais. Conexão retornou banco e usuário `pdv_homologacao`, PostgreSQL 17.11, sem réplica, com a sessão em somente leitura nas consultas prévias.
+- **Antes da limpeza:** 29 tabelas em `public` mais migrações. 12 contas, 12 usuários, 12 lojas, 12 operadores, 17 aparelhos, 17 sessões, 9 produtos, 6 caixas (4 abertos), 8 vendas (R$ 84,00), 8 itens, 9 pagamentos, 6 movimentos de caixa, 13 de estoque, 12 assinaturas, 12 eventos de cobrança, 15 códigos, 15 entregas, 22 limites de autenticação, 40 mudanças, 25 mutações, 1 EAN e 2 confirmações; zero em auditoria de caixa, clientes, fiado, faturas, recuperações, suporte e testes usados. Contagem repetida antes do TRUNCATE, sem diferença.
+- **Backup:** `pdv-pre-limpeza-bloco2-20261110`, arquivo `aladdin/pdv-postgres-homologacao/2026-11-10T10:02:41.046Z.sql.gz`, 30,4 kB, sucesso às 10h02min42s UTC pelo log do painel. **Não restaurado.** Os sete backups anteriores continuam listados.
+- **Configuração alterada:** a retenção do agendamento de backup da homologação passou de 7 para 10, autorizada pelo usuário, para que o backup novo não eliminasse o arquivo mais antigo. Valor conferido ao reabrir.
+- **Guarda:** `scripts/limpar-homologacao-piloto.sql` passou a exigir o backup novo e manteve a recusa a outro banco. Sem a confirmação, recusou com saída 3; em `template1`, recusou por destino, também com saída 3. O SQL executado foi o do script, sem os comentários e sem o acento em uma mensagem de erro; o arquivo temporário foi removido do contêiner.
+- **Execução:** transação concluída com COMMIT e saída 0.
+- **Depois da limpeza:** 29 tabelas de `public` com zero linhas e `drizzle.__drizzle_migrations` com 13. API `/saude` 200 com `{"status":"ok"}` por HTTPS. Evidência externa por console e HTTP.
+- **Observação:** o log de backups não mostra execução automática entre 03/11 e 10/11, com o agendamento diário ativo às 02h15 UTC. Não foi determinado se o agendamento falha ou se o log omite essas execuções. Continua aberto o item de execução e retenção efetivas.
+- **Limites:** o celular não foi tocado e não houve teste físico. A conta com 1 venda de R$ 10,00 e último acesso em 04/11 foi identificada como a do Samsung e a conta com 5 vendas como a do emulador por compatibilidade com os CPs, sem conferência direta. Script e documentos sem commit, pois o bloco não autoriza.
+- **Roadmap:** pendência de limpeza removida do resumo de R5; nenhum checkbox marcado.
+- **Próximo passo:** antes de usar o app, limpar os dados do PDV Homologação no Samsung, pois a conta local não existe mais no servidor. O bloco 4 começa por cadastro e produto novos, e os resultados físicos dos CPs 094–100 precisam ser refeitos na base nova.

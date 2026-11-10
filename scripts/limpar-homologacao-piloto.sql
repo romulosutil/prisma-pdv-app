@@ -1,13 +1,13 @@
--- Operação DESTRUTIVA autorizada para o PDV de homologação pelo usuário em 03/11/2026.
--- Ainda NÃO executada. Não usar em produção. Preserva schema, migrações e backups.
+-- Operação DESTRUTIVA do PDV de homologação. Exige confirmação do usuário na própria sessão.
+-- Não usar em produção. Preserva schema, migrações e backups.
 -- Destino conferido: aladdin/pdv-postgres-homologacao, database pdv_homologacao.
--- Antes de executar, conferir o arquivo/resultado do backup pdv-pre-reset-debug-018-20261103.
+-- Antes de executar, conferir o arquivo/resultado do backup pdv-pre-limpeza-bloco2-20261110.
 -- Somente após essa conferência, na MESMA conexão administrativa:
--- SET pdv.backup_confirmado = 'pdv-pre-reset-debug-018-20261103';
+-- SET pdv.backup_confirmado = 'pdv-pre-limpeza-bloco2-20261110';
 -- Pausar testes/escritas da homologação durante a operação. Não altera dados no celular.
 
 BEGIN;
-SET LOCAL application_name = 'pdv-limpeza-homologacao-018';
+SET LOCAL application_name = 'pdv-limpeza-homologacao-bloco2';
 SET LOCAL lock_timeout = '10s';
 SET LOCAL statement_timeout = '30s';
 DO $$
@@ -15,7 +15,7 @@ BEGIN
   IF current_database() <> 'pdv_homologacao' THEN
     RAISE EXCEPTION 'Destino recusado: somente pdv_homologacao.';
   END IF;
-  IF current_setting('pdv.backup_confirmado', true) IS DISTINCT FROM 'pdv-pre-reset-debug-018-20261103' THEN
+  IF current_setting('pdv.backup_confirmado', true) IS DISTINCT FROM 'pdv-pre-limpeza-bloco2-20261110' THEN
     RAISE EXCEPTION 'Confirme primeiro o backup anterior à limpeza.';
   END IF;
 END $$;

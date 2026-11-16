@@ -1862,3 +1862,8 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Limites:** a causa de (b) é hipótese (a correção removeu a reexecução de `iniciar`, e o sintoma sumiu em 1 rodada de 3 mudanças); sem teste automatizado do remonte. Não testei mudança de tamanho de tela nem de fonte ao vivo. A permissão de câmera ficou concedida, como antes. "Ligar lanterna" ainda aparece com a câmera desligada (não corrigido, baixo risco).
 - **Estado do aparelho:** densidade 600 e tamanho 1440x3120 restaurados (`wm reset`), fonte 1.0, tela sem forçar ligada; app encerrado. Nenhum dado de teste novo.
 - **Pendências:** commit, push e CI da 0.1.13 aguardam autorização do usuário. Próximo: bloco 6 (dois aparelhos, ou aparelho e emulador).
+
+### Atualização do CP 146 (16/11/2026): rastreabilidade da 0.1.13
+
+- **Validado externamente:** commit `290286c` enviado à branch `codex/pdv-homologacao-real`. CI [43872916974](https://github.com/romulosutil/prisma-pdv-app/actions/runs/43872916974), `workflow_dispatch` nesse commit: `success` (tipos, testes shared/API com PostgreSQL/mobile, imagem e isolamento); o job de deploy foi **pulado**. Sem PR, deploy ou alteração de produção.
+- **Pendência:** o APK 0.1.13 instalado foi gerado antes do commit a partir dos mesmos fontes; não foi gerado um novo build depois do CI.

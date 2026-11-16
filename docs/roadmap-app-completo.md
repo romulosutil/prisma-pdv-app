@@ -188,7 +188,7 @@ Os itens de implementação abaixo foram validados localmente nos CPs 004 a 008.
 
 - [x] Implantar migrações/API R1 em homologação e executar regressão em PostgreSQL 17 independente no CI; contratos de equipe/lojas conferidos por HTTP externo. [CP 033](checkpoints-roadmap.md#cp-20261103-033-fluxo-financeiro-externo-aprovado) · [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
 - [x] Gerar e entregar APK conectado cumulativo com R1–R5, atualmente 0.1.10/11. [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
-- [ ] Homologar dono + dois usuários com OTP externo próprio em Android físico, incluindo SecureStore, alternância, suspensão e isolamento; registrar o aceite humano separadamente. Login de um dono no emulador não conclui esse cenário.
+- [x] Homologar dono + dois usuários com OTP externo próprio em Android físico, incluindo SecureStore, alternância, suspensão e isolamento; registrar o aceite humano separadamente. Login de um dono no emulador não conclui esse cenário. **Validado em 16/11/2026** no Samsung SM-S938B por ADB, 0.1.13, com OTP real enviado a caixas temporárias autorizadas pelo usuário; os três perfis ficaram no mesmo aparelho ([CP 147](checkpoints-roadmap.md#cp-20261116-147-bloco-6-dono-e-dois-operadores-em-um-android-fisico-com-segundo-aparelho-por-http)). **Aceite humano pendente.**
 
 ## R2 Implementar caixa por usuário
 
@@ -210,7 +210,7 @@ Os itens de implementação abaixo tiveram validação local com PGlite, SQLite 
 - [x] Comprovar reserva concorrente com uma vencedora, replay e movimentos idempotentes no PostgreSQL externo por HTTP. [CP 033](checkpoints-roadmap.md#cp-20261103-033-fluxo-financeiro-externo-aprovado).
 - [ ] Concluir comprovação do histórico legado e retorno à versão anterior compatível em PostgreSQL independente; restauração/retorno do schema atual continuam pendentes (F15/F19).
 - [x] Gerar APK conectado cumulativo com R2, incluída na 0.1.10 entregue. [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
-- [ ] Homologar dono + dois operadores em Android físico, incluindo modo avião, SecureStore, transferências, troca de aparelho e contagem; registrar o aceite humano separadamente.
+- [ ] Homologar dono + dois operadores em Android físico, incluindo modo avião, SecureStore, transferências, troca de aparelho e contagem; registrar o aceite humano separadamente. **Parcial em 16/11/2026 ([CP 147](checkpoints-roadmap.md#cp-20261116-147-bloco-6-dono-e-dois-operadores-em-um-android-fisico-com-segundo-aparelho-por-http)):** contagem, transferência e alternância no Samsung; a troca de aparelho usou um 2º aparelho **simulado por HTTP**, e o modo avião só cobriu a abertura recusada. Faltam dois celulares reais.
 
 Retomar o turno em outro aparelho pressupõe sincronizar e interromper o anterior, com confirmação explícita. Conflitos entre intervenção remota e fechamento offline ficam preservados como pendência, bloqueando nova reserva; R3 abaixo acrescenta indicação explícita, exportação e encaminhamento à conferência auditada, além da recuperação por perfil. O [relatório](r2-caixa-por-usuario.md#limitações-e-próximos-ambientes) detalha os limites de R2. O bundle exportado não equivale a APK instalado.
 
@@ -230,7 +230,7 @@ Os itens de implementação foram validados inicialmente com SQLite, HTTP local/
 - [x] Restaurar apenas dados confirmados no servidor; identificar separadamente o que ficou pendente no aparelho perdido. Exibir o estado de backup/sincronização de cada perfil. No substituto, quantidade e conteúdo nunca enviados são desconhecidos; a interface não promete sua recuperação. O indicador é de sincronização; backup externo segue no backlog.
 
 - [x] Implantar migrações/API R1–R3 e executar regressão em PostgreSQL 17 independente no CI; reenvio de venda/estoque sem duplicação conferido no servidor externo por HTTP. [CPs 033/054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
-- [ ] Completar homologação conectada da concorrência/recuperação com usuários e aparelhos autorizados distintos, além das fixtures automatizadas e do smoke HTTP.
+- [ ] Completar homologação conectada da concorrência/recuperação com usuários e aparelhos autorizados distintos, além das fixtures automatizadas e do smoke HTTP. **Parcial em 16/11/2026 ([CP 147](checkpoints-roadmap.md#cp-20261116-147-bloco-6-dono-e-dois-operadores-em-um-android-fisico-com-segundo-aparelho-por-http)):** reservas concorrentes recusadas e troca/retomada entre o Samsung e um aparelho HTTP; falta a disputa entre dois aparelhos reais.
 - [x] Gerar APK conectado cumulativo com R3, incluída na 0.1.10 entregue. [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
 - [ ] Executar o roteiro físico de queda/reinício/disco cheio/alternância/SecureStore/relógio/recuperação; registrar resultados físicos e aceite humano separadamente.
 
@@ -277,8 +277,8 @@ Entregas locais adicionais, sem equivalência a homologação física/externa:
 
 - [ ] Testar o APK exato em aparelhos reais: instalação, atualização da 0.1.4, câmera/scanner, permissões, SecureStore, exportação e acessibilidade. Avanço em 15/11/2026 ([CP 145](checkpoints-roadmap.md#cp-20261115-145-bloco-5-encerrado-com-exportacao-matriz-de-correcoes-e-acessibilidade-no-backlog)): 0.1.12 instalada e atualizada, verificada no Samsung por ADB (F01, F02, scanner real, exportação CSV); atualização da 0.1.4 não aplicável; **acessibilidade e TalkBack no backlog por decisão do usuário**; SecureStore físico e expiração da exportação sem prova.
 - [ ] Simular encerramento forçado durante parcela e conclusão, disco cheio, rede intermitente, reinício do aparelho e atualização com pendências.
-- [ ] Fazer um ciclo completo com dono e dois operadores: abertura, venda, entrada, sangria, retirada, fechamento, conferência e consolidado.
-- [ ] Confirmar que entrada/sangria/retirada de Ana não mudam o caixa de Bruno; tentativas diretas pela API também devem ser recusadas quando indevidas.
+- [x] Fazer um ciclo completo com dono e dois operadores: abertura, venda, entrada, sangria, retirada, fechamento, conferência e consolidado. **Validado em 16/11/2026** no Samsung por ADB (F05–F07) e conferido na API e no relatório do dono ([CP 147](checkpoints-roadmap.md#cp-20261116-147-bloco-6-dono-e-dois-operadores-em-um-android-fisico-com-segundo-aparelho-por-http)). Aceite humano pendente.
+- [x] Confirmar que entrada/sangria/retirada de Ana não mudam o caixa de Bruno; tentativas diretas pela API também devem ser recusadas quando indevidas. **Validado em 16/11/2026**: tela do Bruno sem dados da Ana e `scripts/homologar-equipe.mts` 38/38 ([CP 147](checkpoints-roadmap.md#cp-20261116-147-bloco-6-dono-e-dois-operadores-em-um-android-fisico-com-segundo-aparelho-por-http)).
 - [ ] Restaurar um backup do servidor e recuperar uma conta em aparelho substituto, conferindo IDs, quantidades, valores e pendências.
 - [x] Concluir regressão da API em banco de teste dedicado e sem competição com o build; executar tipos, testes mobile/shared, testes PostgreSQL/SQLite e checks do CI.
   - Correção `a987c31`, CI 41574379311 aprovado: API 592/PostgreSQL 17 dedicado, mobile 556/SQLite e shared 172; tipos, ferramentas e imagem/isolamento aprovados. Essa validação não conclui Android físico. CI anterior e reabertura para a correção estão nos CPs 029–032. Inspeção anterior de alcance dos advisories não encontrou biblioteca com aviso direto no JS embarcado/API; saneamento das ferramentas e análise nativa permanecem pendentes.

@@ -1867,3 +1867,115 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 
 - **Validado externamente:** commit `290286c` enviado à branch `codex/pdv-homologacao-real`. CI [43872916974](https://github.com/romulosutil/prisma-pdv-app/actions/runs/43872916974), `workflow_dispatch` nesse commit: `success` (tipos, testes shared/API com PostgreSQL/mobile, imagem e isolamento); o job de deploy foi **pulado**. Sem PR, deploy ou alteração de produção.
 - **Pendência:** o APK 0.1.13 instalado foi gerado antes do commit a partir dos mesmos fontes; não foi gerado um novo build depois do CI.
+
+<a id="cp-20261116-147-bloco-6-dono-e-dois-operadores-em-um-android-fisico-com-segundo-aparelho-por-http"></a>
+
+## CP 20261116 147 Bloco 6: dono e dois operadores em um Android físico, com segundo aparelho por HTTP
+
+- **Data:** 16/11/2026, 12h10, America/Sao_Paulo. **Etapa:** R5, bloco 6 (F04–F08, F13), com reflexos em R1, R2 e R3. Continua o [CP 146](#cp-20261116-146-0113-corrige-selo-da-camera-e-reabertura-dos-dados-verificada-no-samsung).
+- **Aparelho e artefato:** Samsung SM-S938B, Android 17 (SDK 37), físico, com `br.com.pdv.mobile.homologacao` 0.1.13 (versionCode 14). O `base.apk` instalado tem SHA256 `0bd5620c…554b`, igual a `builds/pdv-homologacao-0.1.13.apk`. A API de homologação foi usada sem alterações; produção não foi tocada.
+- **Segundo aparelho, limite da evidência:**
+  - Com aprovação do usuário (regra 15), tentei o emulador `pdv-acesso-api35-curto` cinco vezes. Com WHPX, a CPU virtual travou ("hanging thread QEMU2 CPU0") ou o boot passou de 10 minutos, com e sem Vulkan, com 1 a 4 núcleos e com GPU por software. Sem aceleração, o x86_64 encerrou sozinho.
+  - O usuário decidiu seguir com **Bruno como terceiro perfil no mesmo Samsung**. F13 e a troca de aparelho usaram um **2º aparelho simulado por HTTP** (um `aparelhoId` próprio, aberto pelo script).
+  - Não há evidência com dois aparelhos reais neste CP.
+- **Contas de teste, com autorização do usuário:**
+  - O usuário não tinha acesso a e-mails e pediu e-mail e CPF temporários. Criei quatro caixas mail.tm descartáveis: dono, Ana, Bruno e empresa B.
+  - Cada código de acesso foi lido da caixa temporária por um auxiliar fora do repositório e digitado direto no app ou no prompt do script, sem aparecer na conversa nem nos arquivos. Isso substitui a regra 5 ("o usuário digita"), por decisão do usuário.
+  - A conta "Loja Bloco 6 A" foi criada por HTTP, com cadastro e prova de e-mail e CPF sintético válido.
+  - Ana e Bruno foram convidados como **operadores** com a permissão adicional **"Fazer sangria no próprio caixa"**. Sem ela, o operador padrão não registra sangria nem retirada, exigidas por F05.
+- **F04, PASS (Android físico conduzido pelo agente):**
+  - O dono convidou Ana e Bruno pela tela Equipe da loja ("Convite criado por sete dias", "Convite pendente").
+  - Cada pessoa entrou com o próprio OTP por "Entrar com outro usuário ou loja" → "Aceitar convite e entrar".
+  - **Usuários neste aparelho** chegou a 4 perfis: a conta antiga do CP 143, o dono, Ana e Bruno. Cada perfil mostrava "0 aguardando envio · 0 para revisão".
+  - **Alternância:** "Retomar <nome>" funcionou entre os três perfis da loja. Durante uma sincronização, a troca foi barrada com "Aguarde a confirmação em andamento antes de alternar o usuário."
+  - **Suspensão:** o dono usou "Suspender Ana" ("Acesso interrompido. O histórico continua preservado."). "Retomar Ana" foi recusado com "Sua sessão não é mais válida. Entre de novo.", e o dono continuou em uso.
+  - Depois que o dono usou "Retomar Ana" na equipe, o perfil exigiu "Este perfil precisa de um novo código pessoal". Com o código novo, Ana entrou direto.
+  - **Reinício** (force-stop e launch): reabriu o perfil ativo (Ana).
+  - **Logout:** "Sair deste perfil" (Bruno) levou a "Entre novamente". Após o reinício, o app continuou em "Entre novamente" e os outros três perfis seguiram pausados e guardados.
+  - A pausa é automática na alternância; não há botão próprio.
+- **F05, PASS (Android físico por ADB + API):**
+  - **Ana:** abertura de R$ 100 às 10:53, venda #000001 de R$ 200 em dinheiro, entrada de R$ 50, sangria de R$ 80 e retirada de R$ 20. O esperado na gaveta foi 300 → 350 → 270 → **250**.
+  - **Bruno:** abertura de R$ 60 e venda #000001 de R$ 40 (numeração local por perfil), esperado **R$ 100**.
+  - Antes de abrir, o Bruno via "0 reais em 0 vendas", "0 produtos · 0 vendas" e nenhuma venda da Ana.
+- **F06, PASS (Android físico por ADB + API):**
+  - Ana fez a venda #000002, de R$ 10 em Pix manual: chave aleatória sintética, guardada só no aparelho, e "Recebi o Pix".
+  - Ana fez a venda #000003, de R$ 20 no cartão de crédito manual ("Aprovado na maquininha").
+  - A tela mostrou "Vendido hoje: 230 reais, em 3 vendas", com a gaveta ainda em 250.
+  - Não houve recebimento real fora do app (valores de teste), e nenhuma confirmação integrada foi simulada.
+- **F07, PASS (Android físico por ADB + API):**
+  - **Ana:** contado 245, com R$ 50 de troco na gaveta. Resultado: "Falta R$ 5,00", recolhido 195 e troco preservado 50.
+  - **Bruno:** contado 100, com R$ 60 de troco. Resultado: "Bateu certinho", recolhido 40 e troco 60.
+  - Cada fechamento foi sincronizado e confirmado.
+  - O dono registrou a conferência dos dois em "Caixas da loja e conferência". O autor gravado foi o dono, `01a1e499…`, diferente da Ana, `01a1e49b…`. A troca de aparelho e as movimentações preservam a autoria da Ana.
+  - Caixas da loja: Ana 250/245/−5 e Bruno 100/100/0, portanto **esperado 350 e contado 345**.
+  - Relatório do dono (hoje, loja atual), com 15 totais: vendas 270, recebimentos 270, entradas 50, sangrias 80, retiradas 20 e diferenças −5. As linhas aparecem por operador e por turno.
+- **F08, PASS:**
+  - **UI:** em "Meus turnos", o Bruno vê só o próprio turno `01a1e4c1-f10c-7a3c-8e73-86fa706612e7` (a Ana e seu id não aparecem). O relatório do Bruno diz "Seu relatório inclui somente seus registros." e lista só as linhas dele.
+  - **HTTP:** `scripts/homologar-equipe.mts` (novo, ver Construído) teve **38/38 PASS** (`builds/b6-f08-equipe.json`).
+    - Ana, como operadora, lista e baixa só o que é dela (pull, relatórios e filtros).
+    - Relatório de outro operador e de todas as lojas: 403 `permissao_negada`.
+    - Movimento, conferência e troca de aparelho no turno aberto do Bruno: 403 `proibido`.
+    - `sync/push` do fechamento do turno alheio foi rejeitado por autorização, e o turno ficou idêntico.
+    - Uma **empresa B** nova, também com cadastro por OTP, não vê turnos, pull, lojas, equipe, aparelhos nem relatórios de A. Suas escritas no turno de A deram 404 ou `loja_invalida`.
+- **Troca de aparelho, PASS com 2º aparelho HTTP (`builds/b6-f13-troca.json`, 34/34):**
+  - O turno aberto da Ana `01a1e4a2-2807-76ab-9d73-8d64ee45470f` foi movido por `POST /caixas/:id/aparelho` para o aparelho HTTP. A auditoria registrou `troca_aparelho`.
+  - O Samsung (aparelho antigo) passou a mostrar "Caixa fechado" e o card "Caixas de aparelhos anteriores: 1 turno(s) seus estão vinculados a outro aparelho".
+  - A retomada pela UI seguiu: Meus turnos → "Motivo da troca de aparelho" → "Retomar turno neste aparelho" → folha "Transferir o turno para este aparelho?" → "Confirmei a sincronização anterior", com o resultado "Operação confirmada no servidor.".
+  - O turno voltou ao Samsung **aberto, com o mesmo id, esperado R$ 250 e sem duplicata**. Revogar o aparelho HTTP não afetou o turno.
+- **F13, PARCIAL (2º aparelho por HTTP):**
+  - A partir do aparelho HTTP, reservar o turno aberto da Ana deu **403 `proibido`**, não o 409 previsto no código (`caixa.ts:56` nega antes do 409 da linha 57).
+  - Reservar um turno novo deu **409 `conflito`** ("Seu turno anterior ainda está aberto…").
+  - Duas rodadas concorrentes (`Promise.all`) foram todas recusadas. Ficou um turno aberto, com o titular inalterado e nenhum turno criado por acidente.
+  - **Transferência entre operadores (UI, mesmo aparelho):** com turnos novos (Ana R$ 20, Bruno R$ 10), o Bruno autorizou o recebimento de R$ 10 com origem no turno `01a1e4de-0782-7caf-8242-19a6df5ad0cb`, e a Ana confirmou o envio dentro dos 5 minutos.
+    - Resultado: "Transferência enviada · R$ 10,00" e "Transferência recebida". Os esperados foram 10 e 20, e os fechamentos 10/10 e 20/20 bateram.
+  - **Modo avião (só no Samsung):** "Abrir caixa" do Bruno com R$ 10 não abriu turno. Após reconectar, nenhum turno foi criado sozinho.
+  - **Não executado:** disputa entre dois aparelhos reais e modo avião nos dois.
+- **Achado (não corrigido):** a tentativa de abertura offline deixou uma **abertura pendente local** com troco de R$ 10, sem nenhum aviso na tela.
+  - Nenhuma mensagem de erro ficou visível nas capturas (uma 4 s e outra 20 s depois do toque).
+  - Depois da reconexão, o Resumo mostrava "Caixa fechado", sem "Repetir operação online pendente".
+  - A abertura seguinte com R$ 0 foi recusada com "Repita o troco da abertura pendente para confirmar o resultado no servidor." Reabrindo com R$ 10, o servidor recebeu o **mesmo id** gerado offline (`01a1e4d6-2bb5-7c4a-ba75-733c9b61315e`, anterior ao turno da Ana `01a1e4de…`), sem duplicata.
+  - Não há risco financeiro. O problema é de clareza: o operador não sabe que há uma abertura pendente nem com qual troco.
+- **Conciliação de IDs e centavos (tela × API × relatório):** `builds/b6-conciliacao.json`, `--somente-leitura`, 7/7 PASS.
+
+  | Turno | Operador | Abertura | Esperado | Contado | Diferença | Vendas |
+  |---|---|---|---|---|---|---|
+  | `01a1e4a2-2807-76ab-9d73-8d64ee45470f` | Ana | 10000 | 25000 | 24500 | −500 | 23000 (dinheiro 20000, Pix 1000, crédito 2000) |
+  | `01a1e4c1-f10c-7a3c-8e73-86fa706612e7` | Bruno | 6000 | 10000 | 10000 | 0 | 4000 (dinheiro) |
+  | `01a1e4de-0782-7caf-8242-19a6df5ad0cb` | Ana | 2000 | 1000 | 1000 | 0 | — |
+  | `01a1e4d6-2bb5-7c4a-ba75-733c9b61315e` | Bruno | 1000 | 2000 | 2000 | 0 | — |
+
+  Os dois últimos turnos são da rodada de transferência (1000 enviados da Ana para o Bruno).
+
+  - Totais do relatório da API: venda 27000, entradas 5000, sangria 8000, retirada 2000, transferências 1000/1000 e diferença −500.
+  - Os ids de turno exibidos nas telas ("Turno: …", "Caixa …") e nas linhas do relatório do app são os mesmos.
+  - As vendas usam número local na tela (#000001…) e UUID no servidor (`01a1e4a3…`, `01a1e4b3…`, `01a1e4b5…`, `01a1e4c2…`). A tela não mostra o UUID da venda.
+- **Construído (sem commit):**
+  - `scripts/homologar-equipe.mts`: F08 por HTTP (operador contra turno alheio e empresa B), `--f13`, `--troca-aparelho` e `--somente-leitura`.
+    - Pede o código com `AGUARDANDO_CODIGO <rótulo>` no stdin e respeita 61 s entre pedidos do mesmo e-mail.
+    - O relatório fica sem e-mails nem tokens; os operadores aparecem por hash.
+    - Revoga os aparelhos HTTP do dono e do operador ao final.
+  - **Validado localmente** (PGlite em modo de desenvolvimento) e **externamente** nas três execuções acima.
+  - Os auxiliares de caixa temporária e de toque ficaram fora do repositório.
+- **Evidências:**
+  - `builds/b6-f08-equipe.json`, `builds/b6-f13-troca.json`, `builds/b6-conciliacao.json`.
+  - `builds/pdv-ui-b6-*` (layouts sanitizados e duas capturas de tela).
+  - `builds/pdv-ui-execucoes.jsonl`.
+- **Privacidade:** uma chamada telefônica e notificações de outros apps apareceram durante o teste.
+  - Apaguei as capturas que mostravam a chamada e não interagi com ela; o usuário tratou a chamada.
+  - O driver confere o app em primeiro plano antes de tocar, mas uma chamada pode surgir entre a conferência e o toque. Passei a checar se há chamada antes de cada lote. Sugestão: ativar "Não perturbe" nas próximas sessões.
+- **Estado do aparelho:**
+  - Modo avião, Wi-Fi e dados voltaram ao original (0/1/1, anotado antes de alterar).
+  - Perfil em uso: dono. Ana e a conta antiga estão pausadas; Bruno saiu.
+  - Todos os turnos estão fechados e não há pendências.
+  - A chave Pix sintética ficou salva no perfil da Ana neste aparelho.
+- **Dados na homologação:** a conta "Loja Bloco 6 A" (com 4 turnos, 4 vendas e as conferências) e a conta da empresa B criada pelo script. As duas são descartáveis e permanecem para auditoria.
+- **Roadmap:**
+  - Marcados `[x]`: R1 "dono + dois usuários com OTP… em Android físico" e R5 "ciclo completo com dono e dois operadores" e "entrada/sangria/retirada de Ana não mudam o caixa de Bruno…". O aceite humano continua pendente.
+  - Parciais, com nota: R2 "dono + dois operadores… troca de aparelho" e R3 "concorrência… com aparelhos distintos".
+  - Roteiro: F04–F08 PASS e F13 PARCIAL.
+- **Pendências:**
+  - F13 e a troca de aparelho com **dois aparelhos reais**, e o modo avião nos dois.
+  - Decidir se o aviso da abertura pendente entra na próxima versão.
+  - Commit de `scripts/homologar-equipe.mts` e destes documentos, sujeito à autorização do usuário.
+  - Aceite humano dos cenários.
+- **Próximo passo:** com um segundo Android físico conectado, repetir F13 (reserva disputada, modo avião nos dois, troca de aparelho real); depois seguir para o bloco 7.

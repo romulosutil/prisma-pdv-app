@@ -16,7 +16,7 @@ Versão de 15/11/2026. Substitui a versão de 10/11/2026 (no histórico do git) 
 | 2. Limpar a homologação | Concluído | CP 107 |
 | 3. Separar o e-mail | Encerrado sem mudança, por decisão do usuário; item de R0 segue aberto | CPs 108 e 109 |
 | 4. Ciclo e acesso no aparelho | Encerrado com limites; nenhum item marcado | CP 138 |
-| 5. APK e auditoria no aparelho | **Em andamento**: APK 0.1.12 conferido, F03 não aplicável | CPs 139 e 140 |
+| 5. APK e auditoria no aparelho | Concluído com limites: F01 e F02 PASS, F17 parcial, F18 no backlog por decisão, crash do primeiro produto não reproduzido | CPs 139–145 |
 
 ## Próximos blocos
 

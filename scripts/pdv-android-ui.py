@@ -160,7 +160,13 @@ def nodes(value):
 
 
 def layout():
-    return json.loads(cli('layout', '--device', DEVICE, '--pretty'))
+    try:
+        return json.loads(cli('layout', '--device', DEVICE, '--pretty'))
+    except RuntimeError as exc:
+        # Telas com camera/animacao continua nunca ficam ociosas; le mesmo assim.
+        if 'idle' not in str(exc):
+            raise
+        return json.loads(cli('layout', '--device', DEVICE, '--pretty', '--no-idle'))
 
 
 def sanitize(text):
@@ -189,12 +195,10 @@ def tap(label, sistema=False):
     # Prefer the tab view over a shortcut button with the same label.
     candidates.sort(key=lambda n: n.get('class') != 'android.view.View')
     target = candidates[0]
-    field = 'desc' if target.get('content-desc') == label else 'text'
-    selector = field + '=' + label.split(',')[0] + ',class=' + target['class']
-    if 'CLICKABLE' in target.get('interactions', []):
-        selector += ',clickable=true'
-    options = ['--match=first'] if sum(n.get('class') == target['class'] for n in candidates) > 1 else []
-    cli('input', '--device', DEVICE, 'tap', *options, selector)
+    # Toque por coordenada (centro do elemento): independe do seletor do `android input`,
+    # que falha com rotulos acentuados/virgulas e em telas sem ociosidade (camera).
+    x, y = map(int, re.findall(r'\d+', target['center']))
+    adb('shell', 'input', 'tap', x, y)
     # Accessibility exposes the destination during the native stack animation;
     # allow it to settle before another tap (do not retry a payment blindly).
     time.sleep(1)

@@ -1,0 +1,81 @@
+{
+  "nome": "fechar-caixa",
+  "descricao": "Fecha o caixa contando exatamente o esperado (Bateu certinho). contado_centavos deve ser igual ao esperado.",
+  "parametros": {
+    "esperado_antes_fechar": 15000,
+    "contado_centavos": "esperado_antes_fechar"
+  },
+  "passos": [
+    {
+      "nome": "Ir para a aba Caixa",
+      "acao": [
+        "tap",
+        "Caixa"
+      ]
+    },
+    {
+      "nome": "Abrir Fechar caixa",
+      "acao": [
+        "tap_ultimo",
+        "Fechar caixa"
+      ]
+    },
+    {
+      "nome": "Conferir o esperado na gaveta",
+      "acao": [
+        "assert",
+        "Esperado na gaveta: {esperado_antes_fechar:falado}"
+      ]
+    },
+    {
+      "nome": "Digitar o valor contado",
+      "acao": [
+        "money",
+        "{contado_centavos}"
+      ]
+    },
+    {
+      "nome": "Conferir o valor contado",
+      "acao": [
+        "assert",
+        "Valor contado: {contado_centavos:falado}",
+        "Bateu certinho"
+      ]
+    },
+    {
+      "nome": "Fechar",
+      "acao": [
+        "tap_ultimo",
+        "Fechar caixa"
+      ]
+    },
+    {
+      "nome": "Conferir o dialogo de confirmacao",
+      "acao": [
+        "assert",
+        "Fechar o caixa?"
+      ]
+    },
+    {
+      "nome": "Confirmar o fechamento",
+      "acao": [
+        "tap_ultimo",
+        "Fechar caixa"
+      ]
+    },
+    {
+      "nome": "Conferir caixa fechado",
+      "acao": [
+        "assert",
+        "Caixa fechado"
+      ]
+    },
+    {
+      "nome": "Registrar tela",
+      "acao": [
+        "snapshot",
+        "reg-fechar-caixa"
+      ]
+    }
+  ]
+}

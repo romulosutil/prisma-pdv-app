@@ -1,0 +1,238 @@
+"""Testes offline (sem aparelho, sem adb) do driver scripts/pdv-android-ui.py e dos fluxos versionados.
+
+Executar: python -m unittest discover -s scripts/test -p "test_*.py"
+"""
+import contextlib
+import importlib.util
+import io
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+SCRIPTS = Path(__file__).resolve().parent.parent
+FLUXOS = SCRIPTS / 'fluxos'
+spec = importlib.util.spec_from_file_location('pdv_android_ui', SCRIPTS / 'pdv-android-ui.py')
+d = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(d)
+
+NORMAL = {'airplane': False, 'wifi': True, 'dados': True}
+
+
+class AirplaneTest(unittest.TestCase):
+    def test_parse_estado(self):
+        self.assertEqual(d.parse_estado_rede('0\n', '1\n', '1\n'), NORMAL)
+        self.assertEqual(d.parse_estado_rede('1', '0', 'null'), {'airplane': True, 'wifi': False, 'dados': False})
+
+    def test_on_desliga_aviao_wifi_e_dados(self):
+        self.assertEqual(d.planejar_airplane('on', NORMAL), [
+            ['cmd', 'connectivity', 'airplane-mode', 'enable'], ['svc', 'wifi', 'disable'], ['svc', 'data', 'disable']])
+
+    def test_off_restaura_tudo_ligado(self):
+        self.assertEqual(d.planejar_airplane('off', NORMAL), [
+            ['cmd', 'connectivity', 'airplane-mode', 'disable'], ['svc', 'wifi', 'enable'], ['svc', 'data', 'enable']])
+
+    def test_off_nao_liga_wifi_que_estava_desligado(self):
+        cmds = d.planejar_airplane('off', {'airplane': False, 'wifi': False, 'dados': True})
+        self.assertNotIn(['svc', 'wifi', 'enable'], cmds)
+        self.assertIn(['svc', 'data', 'enable'], cmds)
+
+    def test_off_nao_liga_dados_que_estavam_desligados(self):
+        cmds = d.planejar_airplane('off', {'airplane': False, 'wifi': True, 'dados': False})
+        self.assertIn(['svc', 'wifi', 'enable'], cmds)
+        self.assertNotIn(['svc', 'data', 'enable'], cmds)
+
+    def test_off_mantem_aviao_se_ja_estava_ligado(self):
+        cmds = d.planejar_airplane('off', {'airplane': True, 'wifi': False, 'dados': False})
+        self.assertEqual(cmds, [])
+
+    def test_off_sem_original_so_desliga_aviao(self):
+        self.assertEqual(d.planejar_airplane('off', None), [['cmd', 'connectivity', 'airplane-mode', 'disable']])
+
+    def test_acao_invalida(self):
+        with self.assertRaises(ValueError):
+            d.planejar_airplane('talvez', NORMAL)
+
+    def test_original_nao_e_sobrescrito_por_estado_ja_alterado(self):
+        alterado = {'airplane': True, 'wifi': False, 'dados': False}
+        self.assertEqual(d.escolher_original(NORMAL, alterado), NORMAL)
+
+    def test_estado_salvo_obsoleto_e_ignorado(self):
+        self.assertEqual(d.escolher_original({'airplane': False, 'wifi': False, 'dados': True}, NORMAL), NORMAL)
+
+    def test_sem_salvo_vale_o_lido(self):
+        self.assertEqual(d.escolher_original(None, {'airplane': False, 'wifi': False, 'dados': True}),
+                         {'airplane': False, 'wifi': False, 'dados': True})
+
+    def test_online_esperado_apos_off(self):
+        self.assertTrue(d.esperado_online_apos_off(NORMAL))
+        self.assertTrue(d.esperado_online_apos_off({'airplane': False, 'wifi': False, 'dados': True}))
+        self.assertFalse(d.esperado_online_apos_off({'airplane': False, 'wifi': False, 'dados': False}))
+        self.assertFalse(d.esperado_online_apos_off({'airplane': True, 'wifi': True, 'dados': True}))
+        self.assertIsNone(d.esperado_online_apos_off(None))
+
+    def test_dumpsys_e_offline(self):
+        self.assertTrue(d.rede_ativa_no_dumpsys('Active default network: 100\n'))
+        self.assertFalse(d.rede_ativa_no_dumpsys('Active default network: none\n'))
+        self.assertIsNone(d.rede_ativa_no_dumpsys('sem a linha'))
+        self.assertTrue(d.avaliar_offline(False, False))
+        self.assertTrue(d.avaliar_offline(False, None))
+        self.assertFalse(d.avaliar_offline(True, False))
+        self.assertFalse(d.avaliar_offline(False, True))
+
+
+class ExpressoesTest(unittest.TestCase):
+    def test_falar_reais(self):
+        self.assertEqual(d.falar_reais(16000), '160 reais')
+        self.assertEqual(d.falar_reais(100), '1 real')
+        self.assertEqual(d.falar_reais(0), '0 reais')
+        self.assertEqual(d.falar_reais(1050), '10 reais e 50 centavos')
+        self.assertEqual(d.falar_reais(1), '1 centavo')
+
+    def test_expressao(self):
+        self.assertEqual(d.avaliar_expressao('a + b - 5', {'a': 10, 'b': 2}), 7)
+        with self.assertRaises(ValueError):
+            d.avaliar_expressao('__import__("os")', {})
+        with self.assertRaises(ValueError):
+            d.avaliar_expressao('x', {})
+
+    def test_substituir(self):
+        self.assertEqual(d.substituir('Troco: {t:falado} / {t}', {'t': 10000}), 'Troco: 100 reais / 10000')
+        with self.assertRaises(ValueError):
+            d.substituir('{nao}', {})
+
+    def test_escolher_alvo(self):
+        nos = [{'content-desc': 'Cobrar R$ 50,00', 'interactions': ['CLICKABLE'], 'center': '[10,100]', 'class': 'x'},
+               {'content-desc': 'Cobrar', 'interactions': ['CLICKABLE'], 'center': '[10,900]', 'class': 'x'},
+               {'text': 'Cobrar', 'center': '[10,50]', 'class': 'x'}]
+        self.assertEqual(d.escolher_alvo(nos, 'Cobrar')['center'], '[10,900]')
+        self.assertEqual(d.escolher_alvo(nos, 'Cobrar', 'inicia')['center'], '[10,100]')
+        self.assertEqual(d.escolher_alvo(nos, 'Cobrar', 'ultimo')['center'], '[10,900]')
+        self.assertIsNone(d.escolher_alvo(nos, 'Outro'))
+
+
+class FluxosTest(unittest.TestCase):
+    ESPERADOS = ['abrir-caixa', 'vender', 'entrada', 'sangria', 'retirada', 'venda-offline', 'fechar-caixa', 'regressao']
+
+    def test_todos_os_fluxos_existem_e_sao_validos(self):
+        for nome in self.ESPERADOS:
+            caminho = FLUXOS / (nome + '.json')
+            self.assertTrue(caminho.is_file(), nome)
+            with self.subTest(fluxo=nome):
+                self.assertEqual(d.validar_fluxo(json.loads(caminho.read_text(encoding='utf-8')), caminho), [])
+
+    def test_nenhum_arquivo_fora_da_lista(self):
+        encontrados = sorted(p.stem for p in FLUXOS.glob('*.json'))
+        self.assertEqual(encontrados, sorted(self.ESPERADOS))
+
+    def test_cada_fluxo_expande_sem_placeholder_restante(self):
+        for nome in self.ESPERADOS:
+            with self.subTest(fluxo=nome):
+                itens = d.expandir_fluxo(FLUXOS / (nome + '.json'))
+                self.assertTrue(itens)
+                for item in itens:
+                    self.assertIn(item['acao'][0], d.ACOES)
+                    self.assertFalse(any('{' in v for v in item['acao'][1:]), item)
+
+    def test_regressao_ordem_e_esperados_encadeados(self):
+        itens = d.expandir_fluxo(FLUXOS / 'regressao.json')
+        ordem = []
+        for item in itens:
+            nome = item['fluxo'].split(' > ')[0]
+            if not ordem or ordem[-1] != nome:
+                ordem.append(nome)
+        self.assertEqual(ordem, ['abrir-caixa', 'vender', 'entrada', 'sangria', 'retirada', 'venda-offline', 'fechar-caixa'])
+        textos = [t for i in itens for t in i['acao'][1:]]
+        # troco 100 + venda 50 = 150; +20 = 170; -15 = 155; -5 = 150; +30 offline = 180
+        for esperado in ('Esperado na gaveta: 150 reais', 'Esperado na gaveta: 170 reais', 'Esperado na gaveta: 155 reais',
+                         'Esperado na gaveta: 180 reais', 'Dinheiro vendido: 80 reais', 'Valor contado: 180 reais'):
+            self.assertIn(esperado, textos)
+
+    def test_venda_offline_tem_airplane_on_antes_e_off_depois_da_venda(self):
+        itens = d.expandir_fluxo(FLUXOS / 'venda-offline.json')
+        acoes = [i['acao'] for i in itens]
+        on, off = acoes.index(['airplane', 'on']), acoes.index(['airplane', 'off'])
+        venda = next(n for n, i in enumerate(itens) if i['passo'].startswith('Vender offline'))
+        self.assertLess(on, venda)
+        self.assertGreater(off, venda)
+        self.assertIn('stop', [a[0] for a in acoes[on:off]])
+        self.assertIn(['assert', 'Dados confirmados no servidor'], acoes[off:])
+
+    def test_override_de_parametro(self):
+        itens = d.expandir_fluxo(FLUXOS / 'vender.json', {'venda_centavos': 7000, 'dinheiro_vendido_vender': 7000})
+        self.assertIn(['money', '7000'], [i['acao'] for i in itens])
+
+    def test_rejeita_acao_desconhecida_arity_e_segredo(self):
+        self.assertTrue(d.validar_acao(['voar']))
+        self.assertTrue(d.validar_acao(['tap']))
+        self.assertTrue(d.validar_acao(['airplane', 'talvez']))
+        self.assertTrue(d.validar_acao(['text', 'Email', 'alguem@exemplo.com']))
+        self.assertTrue(d.validar_acao(['text', 'Codigo', '123456']))
+        self.assertEqual(d.validar_acao(['assert', 'a', 'b']), [])
+
+    def test_rejeita_parametro_indefinido_e_esquema_ruim(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            caminho = Path(tmp) / 'x.json'
+            dados = {'nome': 'x', 'parametros': {}, 'passos': [{'nome': 'p', 'acao': ['assert', '{falta}']}]}
+            self.assertTrue(any('falta' in e for e in d.validar_fluxo(dados, caminho)))
+            self.assertTrue(d.validar_fluxo({'nome': 'x', 'passos': []}, caminho))
+            self.assertTrue(d.validar_fluxo({'passos': [{'nome': 'p', 'acao': ['back']}]}, caminho))
+            self.assertTrue(d.validar_fluxo({'nome': 'x', 'passos': [{'nome': 'p', 'incluir': 'nao-existe.json'}]}, caminho))
+
+    def test_fluxos_sem_credenciais(self):
+        for p in FLUXOS.glob('*.json'):
+            texto = p.read_text(encoding='utf-8')
+            self.assertNotRegex(texto, r'[\w.+-]+@[\w-]+\.[\w.]+', p.name)
+            self.assertNotRegex(texto, r'\b\d{6}\b', p.name)
+
+
+class RegressaoDryRunTest(unittest.TestCase):
+    def rodar(self, argv):
+        saida, erro = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(saida), contextlib.redirect_stderr(erro):
+            codigo = d.entry(argv)
+        return codigo, saida.getvalue(), erro.getvalue()
+
+    def test_dry_run_regressao(self):
+        codigo, saida, _ = self.rodar(['--simular', 'fluxo', str(FLUXOS / 'regressao.json')])
+        self.assertEqual(codigo, 0)
+        self.assertIn('Simulacao OK', saida)
+        self.assertIn('adb shell cmd connectivity airplane-mode enable', saida)
+        self.assertIn('adb shell svc wifi disable', saida)
+        self.assertIn('adb shell svc data disable', saida)
+        self.assertIn('adb shell svc wifi enable', saida)
+        self.assertIn('adb shell am force-stop br.com.pdv.mobile.homologacao', saida)
+        for nome in ('abrir-caixa', 'vender', 'entrada', 'sangria', 'retirada', 'venda-offline', 'fechar-caixa'):
+            self.assertIn('== ' + nome, saida)
+
+    def test_dry_run_com_parametro(self):
+        codigo, saida, _ = self.rodar(['--dry-run', 'fluxo', str(FLUXOS / 'vender.json'), '--param', 'venda_centavos=7000'])
+        self.assertEqual(codigo, 0)
+        self.assertIn('"money", "7000"', saida)
+
+    def test_dry_run_fluxo_invalido_falha(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ruim = Path(tmp) / 'ruim.json'
+            ruim.write_text(json.dumps({'nome': 'ruim', 'passos': [{'nome': 'p', 'acao': ['voar']}]}), encoding='utf-8')
+            codigo, _, erro = self.rodar(['--simular', 'fluxo', str(ruim)])
+        self.assertEqual(codigo, 2)
+        self.assertIn('acao desconhecida', erro)
+
+    def test_simular_exige_fluxo(self):
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+            d.parse_args(['--simular', 'acoes.json'])
+
+    def test_param_invalido(self):
+        with self.assertRaises(ValueError):
+            d.parse_params(['x=abc'])
+        self.assertEqual(d.parse_params(['a=1', 'b=-2']), {'a': 1, 'b': -2})
+
+    def test_wrapper_regressao_aponta_para_regressao_json(self):
+        spec2 = importlib.util.spec_from_file_location('regressao_aparelho', SCRIPTS / 'regressao-aparelho.py')
+        wrapper = importlib.util.module_from_spec(spec2)
+        spec2.loader.exec_module(wrapper)
+        self.assertTrue((wrapper.AQUI / 'fluxos' / 'regressao.json').is_file())
+
+
+if __name__ == '__main__':
+    unittest.main()

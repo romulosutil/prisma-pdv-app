@@ -1,0 +1,31 @@
+{
+  "nome": "regressao",
+  "tipo": "regressao",
+  "descricao": "Regressao completa no aparelho: abrir caixa, vender, entrada, sangria, retirada, venda offline e fechar caixa. Para no primeiro erro e sempre restaura aviao, Wi-Fi e dados.",
+  "parametros": {
+    "troco_centavos": 10000,
+    "venda_centavos": 5000,
+    "entrada_centavos": 2000,
+    "sangria_centavos": 1500,
+    "retirada_centavos": 500,
+    "venda_offline_centavos": 3000
+  },
+  "derivados": {
+    "dinheiro_vendido_vender": "venda_centavos",
+    "esperado_antes_entrada": "troco_centavos + venda_centavos",
+    "esperado_antes_sangria": "esperado_antes_entrada + entrada_centavos",
+    "esperado_antes_retirada": "esperado_antes_sangria - sangria_centavos",
+    "dinheiro_vendido_offline": "venda_centavos + venda_offline_centavos",
+    "esperado_antes_fechar": "esperado_antes_retirada - retirada_centavos + venda_offline_centavos",
+    "contado_centavos": "esperado_antes_fechar"
+  },
+  "fluxos": [
+    "abrir-caixa.json",
+    "vender.json",
+    "entrada.json",
+    "sangria.json",
+    "retirada.json",
+    "venda-offline.json",
+    "fechar-caixa.json"
+  ]
+}

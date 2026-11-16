@@ -45,12 +45,17 @@ jobs:
       - run: npm run typecheck
       - name: Operational verification tools
         run: node --test scripts/test/*.test.mjs
+      - name: Android driver and flows (offline)
+        run: python3 -B -m unittest discover -s scripts/test -p "test_*.py"
       - name: Shared tests
         run: npm run test -w @pdv/shared -- --maxWorkers=1
       - name: API tests with isolated PostgreSQL
         run: npm run test -w @pdv/api -- --maxWorkers=1
         env:
           PDV_TEST_POSTGRES_URL: postgres://postgres:postgres@127.0.0.1:5432/pdv_test
+      - name: HTTP homologation scenarios against local API
+        run: node scripts/homologar-local.mjs
+        timeout-minutes: 10
       - name: Mobile tests
         run: npm run test -w @pdv/mobile -- --maxWorkers=1
       - name: Build API image

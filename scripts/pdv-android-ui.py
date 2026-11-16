@@ -1,18 +1,54 @@
 """Android UI driver for any device (physical or emulator). Homologation app only.
 
 No credentials, database access or auth bypass. Pass a JSON array of actions:
-tap/tap_sistema/text/money/scroll/assert/assert_ausente/row/snapshot/screenshot/
-stop/launch/key/back/airplane/wait. Snapshots are sanitized and saved under builds.
+tap/tap_inicia/tap_ultimo/tap_sistema/text/money/scroll/assert/assert_ausente/row/
+snapshot/screenshot/stop/launch/key/back/airplane/wait. Snapshots are sanitized and
+saved under builds.
 
 Uso:
   python scripts/pdv-android-ui.py --listar
   python scripts/pdv-android-ui.py acoes.json [--dispositivo SERIAL] [--fisico]
+  python scripts/pdv-android-ui.py --fisico fluxo scripts/fluxos/vender.json [--param venda_centavos=7000]
+  python scripts/pdv-android-ui.py --fisico fluxo scripts/fluxos/regressao.json     (regressao completa)
+  python scripts/pdv-android-ui.py --simular fluxo scripts/fluxos/regressao.json    (valida e imprime os comandos ADB, sem aparelho)
+  python scripts/regressao-aparelho.py --fisico                                     (atalho da regressao)
+
+Acoes (argumentos entre colchetes sao opcionais):
+  tap R           toca o elemento cujo rotulo e exatamente R (content-desc clicavel ou texto)
+  tap_inicia P    idem, mas o rotulo apenas comeca com P (ex.: "Cobrar R$ 50,00" -> "Cobrar")
+  tap_ultimo R    idem a tap, mas escolhe o elemento mais abaixo na tela (botao com o mesmo
+                  rotulo do titulo, ou botao do dialogo de confirmacao)
+  tap_sistema R   idem a tap, sem exigir o app em primeiro plano (permissoes, chooser)
+  text D V        digita V no campo EditText com descricao D
+  money C         digita C (centavos, inteiro) no teclado numerico do app
+  assert T...     espera ate 12 s que todos os textos T apareçam na tela; falha se faltar
+  assert_ausente T...  falha se algum texto T estiver na tela
+  row D V         confere o texto V dentro da linha de descricao D
+  snapshot N      salva layout sanitizado em builds/pdv-ui-N-layout.json e imprime os textos
+  screenshot N    salva builds/pdv-ui-N.png
+  stop/launch     force-stop / abre o app de homologacao
+  key K / back    keyevent do Android / voltar
+  scroll up|down  rola a primeira lista rolavel
+  wait S          espera S segundos (maximo 30)
+  airplane on|off
+      on:  guarda o estado original (modo aviao, Wi-Fi, dados moveis) em
+           builds/pdv-airplane-estado.json, liga o aviao e desliga Wi-Fi e dados, e confirma
+           que ficou offline (ping ao host da API e rede ativa em dumpsys connectivity);
+           falha se o aparelho continuar conectado.
+      off: restaura exatamente o estado original (nao liga o que estava desligado) e
+           confirma o retorno da conectividade. Host do ping: variavel PDV_API_HOST.
+
+Fluxos (scripts/fluxos/*.json, ver README.md ali): sequencias de acoes com nome, parametros
+({nome} ou {nome:falado} nas strings) e verificacoes. `fluxo` para no primeiro erro e sempre
+restaura aviao/Wi-Fi/dados ao final. Execucoes de fluxo gravam relatorio PASS/FAIL por passo
+em builds/regressao-<nome>-<data>.json (fabricante/modelo/Android, sem numero de serie).
 
 Sem --fisico, apenas emuladores sao aceitos. Toda acao que toca/digita/rola exige
 o app de homologacao em primeiro plano (tap_sistema e a excecao, para dialogos
 do sistema como permissoes e chooser de compartilhamento).
 """
 import argparse
+import ast
 import hashlib
 import json
 import os
@@ -29,7 +65,8 @@ ANDROID = SDK / 'cmdline-tools/latest/bin/android.exe'
 ADB = SDK / 'platform-tools/adb.exe'
 PACKAGE = 'br.com.pdv.mobile.homologacao'
 DEVICE = None  # serial resolvido em runtime
-sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 
 def run(args):
@@ -177,24 +214,35 @@ def sanitize(text):
     return re.sub(r'(?<!Venda )(?<!#)\b\d{6}\b', '[codigo redigido]', text)
 
 
-def tap(label, sistema=False):
+def escolher_alvo(all_nodes, label, modo='exato'):
+    """Funcao pura: escolhe o elemento a tocar. modo: exato | inicia | ultimo."""
+    if modo == 'inicia':
+        casa = lambda v: isinstance(v, str) and v.startswith(label)
+    else:
+        casa = lambda v: v == label
+    candidates = [n for n in all_nodes if casa(n.get('content-desc')) and 'CLICKABLE' in n.get('interactions', [])]
+    if not candidates:
+        candidates = [n for n in all_nodes if casa(n.get('text'))]
+    if not candidates:
+        return None
+    if modo == 'ultimo':
+        return max(candidates, key=lambda n: int(re.findall(r'\d+', n['center'])[1]))
+    # Prefer the tab view over a shortcut button with the same label.
+    candidates.sort(key=lambda n: n.get('class') != 'android.view.View')
+    return candidates[0]
+
+
+def tap(label, sistema=False, modo='exato'):
     if not sistema:
         guard()
     deadline = time.monotonic() + 12
     while True:
-        data = layout()
-        all_nodes = list(nodes(data))
-        candidates = [n for n in all_nodes if n.get('content-desc') == label and 'CLICKABLE' in n.get('interactions', [])]
-        if not candidates:
-            candidates = [n for n in all_nodes if n.get('text') == label]
-        if candidates:
+        target = escolher_alvo(list(nodes(layout())), label, modo)
+        if target:
             break
         if time.monotonic() >= deadline:
             raise RuntimeError('UI label absent: ' + label)
         time.sleep(.5)
-    # Prefer the tab view over a shortcut button with the same label.
-    candidates.sort(key=lambda n: n.get('class') != 'android.view.View')
-    target = candidates[0]
     # Toque por coordenada (centro do elemento): independe do seletor do `android input`,
     # que falha com rotulos acentuados/virgulas e em telas sem ociosidade (camera).
     x, y = map(int, re.findall(r'\d+', target['center']))
@@ -223,97 +271,618 @@ def snapshot(name):
     print(sanitize('\n'.join(str(v) for v in values if v)), flush=True)
 
 
+
+
+# ---------------------------------------------------------------------------
+# Modo aviao + Wi-Fi + dados moveis (funcoes puras testaveis + efeitos no aparelho)
+# ---------------------------------------------------------------------------
+ESTADO_REDE_ARQUIVO = ROOT / 'builds' / 'pdv-airplane-estado.json'
+HOST_API_PADRAO = 'aladdin-pdv-api-homologacao.jicnzg.easypanel.host'
+
+
+def parse_estado_rede(airplane_raw, wifi_raw, dados_raw):
+    """Funcao pura: converte a saida de `settings get global ...` em {airplane, wifi, dados} booleanos."""
+    def ligado(v):
+        return str(v).strip() in ('1', '2')
+    return {'airplane': ligado(airplane_raw), 'wifi': ligado(wifi_raw), 'dados': ligado(dados_raw)}
+
+
+def escolher_original(salvo, lido):
+    """Funcao pura: qual e o estado ORIGINAL a restaurar.
+
+    Se ja ha um estado salvo (um `airplane on` anterior nao foi revertido) e o aparelho ainda
+    parece alterado, o salvo vale (nao sobrescrever o original com o estado ja alterado).
+    Se o aparelho esta com tudo normal, o salvo e obsoleto e vale o lido."""
+    if salvo and (lido['airplane'] or not lido['wifi'] or not lido['dados']):
+        return dict(salvo)
+    return dict(lido)
+
+
+def planejar_airplane(acao, original):
+    """Funcao pura: lista de comandos (argumentos apos `adb shell`) para `airplane on|off`.
+
+    on:  liga o aviao e desliga Wi-Fi e dados (o Samsung/Android 17 mantem os dois ligados em aviao).
+    off: restaura exatamente `original`; nao liga o que estava desligado. Sem original conhecido,
+         apenas desliga o aviao (nao adivinha Wi-Fi/dados)."""
+    if acao == 'on':
+        return [['cmd', 'connectivity', 'airplane-mode', 'enable'], ['svc', 'wifi', 'disable'], ['svc', 'data', 'disable']]
+    if acao != 'off':
+        raise ValueError('airplane espera "on" ou "off"')
+    if not original:
+        return [['cmd', 'connectivity', 'airplane-mode', 'disable']]
+    comandos = []
+    if not original.get('airplane'):
+        comandos.append(['cmd', 'connectivity', 'airplane-mode', 'disable'])
+    if original.get('wifi'):
+        comandos.append(['svc', 'wifi', 'enable'])
+    if original.get('dados'):
+        comandos.append(['svc', 'data', 'enable'])
+    return comandos
+
+
+def esperado_online_apos_off(original):
+    """Funcao pura: True se, restaurado `original`, o aparelho deve voltar a ter rede; None se nao da para afirmar."""
+    if not original:
+        return None
+    if original.get('airplane'):
+        return False
+    return bool(original.get('wifi') or original.get('dados'))
+
+
+def rede_ativa_no_dumpsys(texto):
+    """Funcao pura: True/False se `dumpsys connectivity` indica rede padrao ativa; None se nao deu para ler."""
+    m = re.search(r'Active default network:\s*(\S+)', texto or '')
+    if not m:
+        return None
+    return m.group(1).strip().lower() not in ('none', 'null', '-1')
+
+
+def avaliar_offline(ping_ok, rede_ativa):
+    """Funcao pura: True se ha evidencia de offline (ping falhou e nenhuma rede ativa conhecida)."""
+    return (not ping_ok) and rede_ativa is not True
+
+
+def adb_rc(*args):
+    p = subprocess.run([str(ADB), '-s', DEVICE, *[str(a) for a in args]], capture_output=True)
+    return p.returncode, p.stdout.decode('cp1252', errors='replace')
+
+
+def ler_estado_rede():
+    def cfg(chave):
+        return adb('shell', 'settings', 'get', 'global', chave).strip()
+    return parse_estado_rede(cfg('airplane_mode_on'), cfg('wifi_on'), cfg('mobile_data'))
+
+
+def carregar_estados_salvos():
+    try:
+        return json.loads(ESTADO_REDE_ARQUIVO.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return {}
+
+
+def gravar_estados_salvos(estados):
+    ESTADO_REDE_ARQUIVO.parent.mkdir(exist_ok=True)
+    ESTADO_REDE_ARQUIVO.write_text(json.dumps(estados, indent=2), encoding='utf-8')
+
+
+def chave_dispositivo():
+    return hashlib.sha256(DEVICE.encode()).hexdigest()[:16]
+
+
+def sondar_conectividade():
+    """Evidencia de conectividade do aparelho: ping ao host da API e rede padrao ativa."""
+    host = os.environ.get('PDV_API_HOST', HOST_API_PADRAO)
+    rc, _ = adb_rc('shell', 'ping', '-c', '1', '-W', '3', host)
+    try:
+        rede = rede_ativa_no_dumpsys(adb('shell', 'dumpsys', 'connectivity'))
+    except RuntimeError:
+        rede = None
+    return {'host': host, 'ping_ok': rc == 0, 'rede_ativa': rede}
+
+
+def esperar_conectividade(online, tentativas=8):
+    ultima = None
+    for _ in range(tentativas):
+        ultima = sondar_conectividade()
+        if online and ultima['ping_ok']:
+            return ultima
+        if not online and avaliar_offline(ultima['ping_ok'], ultima['rede_ativa']):
+            return ultima
+        time.sleep(2)
+    raise RuntimeError(('Aparelho continua OFFLINE apos restaurar: ' if online else 'Aparelho continua CONECTADO apos airplane on: ') + json.dumps(ultima))
+
+
 def airplane(state):
     if state not in ('on', 'off'):
         raise ValueError('airplane espera "on" ou "off"')
-    try:
-        adb('shell', 'cmd', 'connectivity', 'airplane-mode', 'enable' if state == 'on' else 'disable')
-    except RuntimeError as exc:
-        raise RuntimeError('Aparelho nao suporta "cmd connectivity airplane-mode" (comum em Android < 11 ou sem permissao): ' + str(exc).strip())
+    salvos = carregar_estados_salvos()
+    chave = chave_dispositivo()
+    if state == 'on':
+        original = escolher_original(salvos.get(chave), ler_estado_rede())
+        salvos[chave] = original  # grava ANTES de alterar, para o finally conseguir restaurar
+        gravar_estados_salvos(salvos)
+        print('Estado original (aviao/wifi/dados): ' + json.dumps(original), flush=True)
+    else:
+        original = salvos.get(chave)
+        if not original:
+            print('AVISO: estado original desconhecido; so o modo aviao sera desligado (Wi-Fi/dados intocados).', flush=True)
+    for comando in planejar_airplane(state, original):
+        try:
+            adb('shell', *comando)
+        except RuntimeError as exc:
+            raise RuntimeError('Falha em "' + ' '.join(comando) + '" (Android sem suporte ou sem permissao): ' + str(exc).strip())
     time.sleep(2)
+    if state == 'on':
+        evidencia = esperar_conectividade(online=False)
+    else:
+        esperado = esperado_online_apos_off(original)
+        evidencia = esperar_conectividade(online=True) if esperado else sondar_conectividade()
+        salvos = carregar_estados_salvos()
+        salvos.pop(chave, None)
+        gravar_estados_salvos(salvos)
+    print('airplane ' + state + ': conectividade ' + json.dumps(evidencia), flush=True)
+    return evidencia
+
+
+def restaurar_conectividade():
+    """Usado no finally dos fluxos: se houver estado salvo, executa `airplane off`; nunca levanta."""
+    try:
+        if chave_dispositivo() in carregar_estados_salvos():
+            airplane('off')
+            return {'restaurado': True}
+    except Exception as exc:  # noqa: BLE001 - restauracao e melhor esforco; o erro vai para o relatorio
+        return {'restaurado': False, 'erro': str(exc).strip()[:300]}
+    return {'restaurado': False}
+
+
+# ---------------------------------------------------------------------------
+# Acoes
+# ---------------------------------------------------------------------------
+# nome -> (minimo de argumentos, maximo ou None). Usado na validacao dos fluxos.
+ACOES = {
+    'tap': (1, 1), 'tap_inicia': (1, 1), 'tap_ultimo': (1, 1), 'tap_sistema': (1, 1),
+    'text': (2, 2), 'money': (1, 1), 'snapshot': (1, 1), 'screenshot': (1, 1),
+    'assert': (1, None), 'assert_ausente': (1, None), 'row': (2, 2),
+    'key': (1, 1), 'back': (0, 0), 'airplane': (1, 1), 'wait': (1, 1), 'scroll': (1, 1),
+    'stop': (0, 0), 'launch': (0, 0),
+}
+
+
+def executar_acao(a):
+    if a[0] == 'tap':
+        tap(a[1])
+    elif a[0] == 'tap_inicia':
+        tap(a[1], modo='inicia')
+    elif a[0] == 'tap_ultimo':
+        tap(a[1], modo='ultimo')
+    elif a[0] == 'tap_sistema':
+        tap(a[1], sistema=True)
+    elif a[0] == 'text':
+        guard()
+        cli('input', '--device', DEVICE, 'text', a[2], 'desc=' + a[1] + ',class=EditText')
+    elif a[0] == 'money':
+        money(a[1])
+    elif a[0] == 'snapshot':
+        snapshot(a[1])
+    elif a[0] == 'assert':
+        deadline = time.monotonic() + 12
+        while True:
+            raw = json.dumps(layout(), ensure_ascii=False)
+            missing = [expected for expected in a[1:] if expected not in raw]
+            if not missing:
+                break
+            if time.monotonic() >= deadline:
+                raise AssertionError('UI text absent: ' + ', '.join(missing))
+            time.sleep(.5)
+        print('PASS: ' + ' / '.join(a[1:]), flush=True)
+    elif a[0] == 'assert_ausente':
+        raw = json.dumps(layout(), ensure_ascii=False)
+        present = [t for t in a[1:] if t in raw]
+        if present:
+            raise AssertionError('UI text present: ' + ', '.join(present))
+        print('PASS ausente: ' + ' / '.join(a[1:]), flush=True)
+    elif a[0] == 'row':
+        row = next(n for n in nodes(layout()) if n.get('content-desc') == a[1])
+        if a[2] not in [n.get('text') for n in nodes(row)]:
+            raise AssertionError('UI row differs: ' + a[1] + ' expected ' + a[2])
+        print('PASS: ' + a[1] + ' = ' + a[2], flush=True)
+    elif a[0] == 'key':
+        guard()
+        adb('shell', 'input', 'keyevent', a[1])
+    elif a[0] == 'back':
+        guard()
+        adb('shell', 'input', 'keyevent', 4)
+    elif a[0] == 'airplane':
+        airplane(a[1])
+    elif a[0] == 'wait':
+        time.sleep(min(float(a[1]), 30))
+    elif a[0] == 'scroll':
+        guard()
+        scroll = next(n for n in nodes(layout()) if 'SCROLLABLE' in n.get('interactions', []) and n.get('class') in ('android.widget.ScrollView', 'androidx.recyclerview.widget.RecyclerView'))
+        x1, y1, x2, y2 = map(int, re.findall(r'\d+', scroll['bounds']))
+        x = (x1 + x2) // 2
+        start, end = int(y1 + (y2-y1)*.8), int(y1 + (y2-y1)*.25)
+        if a[1] == 'up':
+            start, end = end, start
+        adb('shell', 'input', 'swipe', x, start, x, end, 400)
+    elif a[0] == 'screenshot':
+        p = subprocess.run([str(ADB), '-s', DEVICE, 'exec-out', 'screencap', '-p'], capture_output=True, check=True)
+        (ROOT / 'builds' / ('pdv-ui-' + a[1] + '.png')).write_bytes(p.stdout)
+    elif a[0] == 'stop':
+        adb('shell', 'am', 'force-stop', PACKAGE)
+    elif a[0] == 'launch':
+        adb('shell', 'am', 'start', '-n', PACKAGE + '/.MainActivity')
+        time.sleep(3)
+    else:
+        raise ValueError(a[0])
 
 
 def main(actions):
     for a in actions:
-        if a[0] == 'tap':
-            tap(a[1])
-        elif a[0] == 'tap_sistema':
-            tap(a[1], sistema=True)
-        elif a[0] == 'text':
-            guard()
-            cli('input', '--device', DEVICE, 'text', a[2], 'desc=' + a[1] + ',class=EditText')
-        elif a[0] == 'money':
-            money(a[1])
-        elif a[0] == 'snapshot':
-            snapshot(a[1])
-        elif a[0] == 'assert':
-            deadline = time.monotonic() + 12
-            while True:
-                raw = json.dumps(layout(), ensure_ascii=False)
-                missing = [expected for expected in a[1:] if expected not in raw]
-                if not missing:
-                    break
-                if time.monotonic() >= deadline:
-                    raise AssertionError('UI text absent: ' + ', '.join(missing))
-                time.sleep(.5)
-            print('PASS: ' + ' / '.join(a[1:]), flush=True)
-        elif a[0] == 'assert_ausente':
-            raw = json.dumps(layout(), ensure_ascii=False)
-            present = [t for t in a[1:] if t in raw]
-            if present:
-                raise AssertionError('UI text present: ' + ', '.join(present))
-            print('PASS ausente: ' + ' / '.join(a[1:]), flush=True)
-        elif a[0] == 'row':
-            row = next(n for n in nodes(layout()) if n.get('content-desc') == a[1])
-            if a[2] not in [n.get('text') for n in nodes(row)]:
-                raise AssertionError('UI row differs: ' + a[1] + ' expected ' + a[2])
-            print('PASS: ' + a[1] + ' = ' + a[2], flush=True)
-        elif a[0] == 'key':
-            guard()
-            adb('shell', 'input', 'keyevent', a[1])
-        elif a[0] == 'back':
-            guard()
-            adb('shell', 'input', 'keyevent', 4)
-        elif a[0] == 'airplane':
-            airplane(a[1])
-        elif a[0] == 'wait':
-            time.sleep(min(float(a[1]), 30))
-        elif a[0] == 'scroll':
-            guard()
-            scroll = next(n for n in nodes(layout()) if 'SCROLLABLE' in n.get('interactions', []) and n.get('class') in ('android.widget.ScrollView', 'androidx.recyclerview.widget.RecyclerView'))
-            x1, y1, x2, y2 = map(int, re.findall(r'\d+', scroll['bounds']))
-            x = (x1 + x2) // 2
-            start, end = int(y1 + (y2-y1)*.8), int(y1 + (y2-y1)*.25)
-            if a[1] == 'up':
-                start, end = end, start
-            adb('shell', 'input', 'swipe', x, start, x, end, 400)
-        elif a[0] == 'screenshot':
-            p = subprocess.run([str(ADB), '-s', DEVICE, 'exec-out', 'screencap', '-p'], capture_output=True, check=True)
-            (ROOT / 'builds' / ('pdv-ui-' + a[1] + '.png')).write_bytes(p.stdout)
-        elif a[0] == 'stop':
-            adb('shell', 'am', 'force-stop', PACKAGE)
-        elif a[0] == 'launch':
-            adb('shell', 'am', 'start', '-n', PACKAGE + '/.MainActivity')
-            time.sleep(3)
+        executar_acao(a)
+
+
+def comandos_da_acao(a):
+    """Funcao pura: descricao dos comandos ADB que a acao executaria (usada por --simular)."""
+    n = a[0]
+    q = lambda v: '"' + str(v) + '"'
+    if n in ('tap', 'tap_inicia', 'tap_ultimo', 'tap_sistema'):
+        modo = {'tap': 'exato', 'tap_inicia': 'comeca com', 'tap_ultimo': 'o mais abaixo', 'tap_sistema': 'exato, sem exigir o app'}[n]
+        return ['android layout --device SERIAL --pretty  # localizar ' + q(a[1]) + ' (' + modo + ')', 'adb shell input tap <x> <y>  # centro do elemento']
+    if n == 'text':
+        return ['android input --device SERIAL text ' + q(a[2]) + ' desc=' + a[1] + ',class=EditText']
+    if n == 'money':
+        return ['android layout --device SERIAL --pretty  # teclado numerico'] + ['adb shell input tap <x> <y>  # tecla ' + d for d in str(a[1])]
+    if n in ('assert', 'assert_ausente'):
+        return ['android layout --device SERIAL --pretty  # ' + ('esperar ate 12 s' if n == 'assert' else 'conferir ausencia') + ': ' + ' / '.join(q(t) for t in a[1:])]
+    if n == 'row':
+        return ['android layout --device SERIAL --pretty  # linha ' + q(a[1]) + ' contem ' + q(a[2])]
+    if n == 'snapshot':
+        return ['android layout --device SERIAL --pretty  # grava builds/pdv-ui-' + a[1] + '-layout.json']
+    if n == 'screenshot':
+        return ['adb exec-out screencap -p  # grava builds/pdv-ui-' + a[1] + '.png']
+    if n == 'key':
+        return ['adb shell input keyevent ' + a[1]]
+    if n == 'back':
+        return ['adb shell input keyevent 4']
+    if n == 'wait':
+        return ['sleep ' + str(min(float(a[1]), 30)) + ' s']
+    if n == 'scroll':
+        return ['adb shell input swipe <x> <y1> <x> <y2> 400  # ' + a[1]]
+    if n == 'stop':
+        return ['adb shell am force-stop ' + PACKAGE]
+    if n == 'launch':
+        return ['adb shell am start -n ' + PACKAGE + '/.MainActivity']
+    if n == 'airplane':
+        original = {'airplane': False, 'wifi': True, 'dados': True}  # suposicao do dry-run
+        cmds = ['adb shell ' + ' '.join(c) for c in planejar_airplane(a[1], original)]
+        extra = ['adb shell ping -c 1 -W 3 ' + HOST_API_PADRAO + '  # evidencia de ' + ('offline' if a[1] == 'on' else 'online'), 'adb shell dumpsys connectivity']
+        return (['adb shell settings get global airplane_mode_on|wifi_on|mobile_data  # guarda o original'] if a[1] == 'on' else []) + cmds + extra
+    raise ValueError(n)
+
+
+# ---------------------------------------------------------------------------
+# Fluxos versionados (scripts/fluxos/*.json)
+# ---------------------------------------------------------------------------
+PLACEHOLDER = re.compile(r'\{([A-Za-z_]\w*)(?::(falado|centavos))?\}')
+MAX_PROFUNDIDADE = 3
+PADROES_SEGREDO = [re.compile(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}'), re.compile(r'\b\d{6}\b'),
+                   re.compile(r'(?i)\b(token|senha|password|bearer)\b\s*[:=]')]
+
+
+def falar_reais(centavos):
+    """Funcao pura: igual a falarDinheiro do app ("1 real", "160 reais", "10 reais e 50 centavos")."""
+    c = int(centavos)
+    abs_c = abs(c)
+    reais, cent = divmod(abs_c, 100)
+    partes = []
+    if reais > 0 or cent == 0:
+        partes.append('1 real' if reais == 1 else str(reais) + ' reais')
+    if cent > 0:
+        partes.append('1 centavo' if cent == 1 else str(cent) + ' centavos')
+    return ('menos ' if c < 0 else '') + ' e '.join(partes)
+
+
+def avaliar_expressao(expr, scope):
+    """Funcao pura: avalia soma/subtracao/multiplicacao/divisao inteira de nomes e inteiros."""
+    if isinstance(expr, bool):
+        raise ValueError('expressao invalida: ' + repr(expr))
+    if isinstance(expr, int):
+        return expr
+
+    def ev(node):
+        if isinstance(node, ast.Constant) and isinstance(node.value, int) and not isinstance(node.value, bool):
+            return node.value
+        if isinstance(node, ast.Name):
+            if node.id not in scope:
+                raise ValueError('parametro desconhecido: ' + node.id)
+            return scope[node.id]
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.USub, ast.UAdd)):
+            v = ev(node.operand)
+            return -v if isinstance(node.op, ast.USub) else v
+        if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Add, ast.Sub, ast.Mult, ast.FloorDiv)):
+            a, b = ev(node.left), ev(node.right)
+            return a + b if isinstance(node.op, ast.Add) else a - b if isinstance(node.op, ast.Sub) else a * b if isinstance(node.op, ast.Mult) else a // b
+        raise ValueError('expressao nao permitida: ' + str(expr))
+    try:
+        return ev(ast.parse(str(expr), mode='eval').body)
+    except SyntaxError as exc:
+        raise ValueError('expressao invalida: ' + str(expr)) from exc
+
+
+def substituir(texto, scope):
+    """Funcao pura: troca {nome}, {nome:falado} (ex.: "160 reais") e {nome:centavos} pelos valores."""
+    def troca(m):
+        nome, fmt = m.group(1), m.group(2)
+        if nome not in scope:
+            raise ValueError('parametro desconhecido: {' + nome + '}')
+        return falar_reais(scope[nome]) if fmt == 'falado' else str(scope[nome])
+    return PLACEHOLDER.sub(troca, texto)
+
+
+def montar_escopo(dados, overrides):
+    """Funcao pura: parametros (padrao < overrides) e derivados (expressoes; override vence)."""
+    scope = {}
+    for nome, valor in (dados.get('parametros') or {}).items():
+        scope[nome] = overrides[nome] if nome in overrides else avaliar_expressao(valor, scope)
+    for nome, valor in overrides.items():
+        scope.setdefault(nome, valor)
+    for nome, expr in (dados.get('derivados') or {}).items():
+        if nome not in overrides:
+            scope[nome] = avaliar_expressao(expr, scope)
+    return scope
+
+
+def carregar_json(caminho):
+    return json.loads(Path(caminho).read_text(encoding='utf-8-sig'))
+
+
+def validar_acao(a):
+    """Funcao pura: lista de erros de uma acao [nome, args...] (sem resolver parametros)."""
+    if not isinstance(a, list) or not a or not isinstance(a[0], str):
+        return ['acao deve ser uma lista [nome, ...]']
+    if a[0] not in ACOES:
+        return ['acao desconhecida: ' + a[0]]
+    lo, hi = ACOES[a[0]]
+    n = len(a) - 1
+    erros = []
+    if n < lo or (hi is not None and n > hi):
+        erros.append(a[0] + ': esperava ' + (str(lo) if lo == hi else str(lo) + '+') + ' argumento(s), recebeu ' + str(n))
+    if not all(isinstance(v, str) for v in a[1:]):
+        erros.append(a[0] + ': argumentos devem ser strings')
+    elif a[0] == 'airplane' and a[1:] not in (['on'], ['off']):
+        erros.append('airplane espera "on" ou "off"')
+    elif a[0] == 'scroll' and a[1:] not in (['up'], ['down']):
+        erros.append('scroll espera "up" ou "down"')
+    elif a[0] == 'wait' and not re.fullmatch(r'\d+(\.\d+)?', a[1] if len(a) > 1 else ''):
+        erros.append('wait espera segundos numericos')
+    for v in a[1:]:
+        if isinstance(v, str):
+            for padrao in PADROES_SEGREDO:
+                if padrao.search(PLACEHOLDER.sub('', v)):
+                    erros.append('possivel credencial/e-mail/codigo em "' + v + '"')
+    return erros
+
+
+def validar_fluxo(dados, caminho, _profundidade=0):
+    """Funcao pura (le apenas arquivos incluidos): lista de erros do esquema de um fluxo ou regressao."""
+    base = Path(caminho).parent
+    erros = []
+    if not isinstance(dados, dict):
+        return ['raiz deve ser um objeto']
+    if not isinstance(dados.get('nome'), str) or not dados['nome']:
+        erros.append('"nome" obrigatorio')
+    for campo in ('parametros', 'derivados'):
+        if campo in dados and not isinstance(dados[campo], dict):
+            erros.append('"' + campo + '" deve ser objeto')
+            return erros
+    for nome, valor in (dados.get('parametros') or {}).items():
+        if isinstance(valor, bool) or not isinstance(valor, (int, str)):
+            erros.append('parametro ' + nome + ': use inteiro ou expressao')
+    try:
+        # Resolve com todos os nomes de "com"/regressao ausentes: o escopo vazio exige defaults completos.
+        scope = montar_escopo(dados, {})
+    except ValueError as exc:
+        return erros + ['parametros/derivados: ' + str(exc)]
+    if dados.get('tipo') == 'regressao':
+        fluxos = dados.get('fluxos')
+        if not isinstance(fluxos, list) or not fluxos:
+            return erros + ['"fluxos" deve ser lista nao vazia']
+        for nome in fluxos:
+            alvo = base / str(nome)
+            if not alvo.is_file():
+                erros.append('fluxo inexistente: ' + str(nome))
+                continue
+            try:
+                sub = carregar_json(alvo)
+            except ValueError as exc:
+                erros.append(str(nome) + ': JSON invalido (' + str(exc) + ')')
+                continue
+            if sub.get('tipo') == 'regressao':
+                erros.append(str(nome) + ': regressao nao pode incluir regressao')
+                continue
+            erros += [str(nome) + ': ' + e for e in validar_fluxo(sub, alvo, _profundidade)]
+            try:
+                montar_escopo(sub, scope)
+            except ValueError as exc:
+                erros.append(str(nome) + ' (no escopo da regressao): ' + str(exc))
+        return erros
+    passos = dados.get('passos')
+    if not isinstance(passos, list) or not passos:
+        return erros + ['"passos" deve ser lista nao vazia']
+    for i, passo in enumerate(passos, 1):
+        rot = 'passo ' + str(i)
+        if not isinstance(passo, dict) or not isinstance(passo.get('nome'), str) or not passo['nome']:
+            erros.append(rot + ': objeto com "nome" obrigatorio')
+            continue
+        rot += ' (' + passo['nome'] + ')'
+        if ('acao' in passo) == ('incluir' in passo):
+            erros.append(rot + ': informe exatamente um entre "acao" e "incluir"')
+        elif 'acao' in passo:
+            erros += [rot + ': ' + e for e in validar_acao(passo['acao'])]
+            for v in passo['acao'][1:] if isinstance(passo['acao'], list) else []:
+                if isinstance(v, str):
+                    for m in PLACEHOLDER.finditer(v):
+                        if m.group(1) not in scope:
+                            erros.append(rot + ': parametro nao definido {' + m.group(1) + '}')
         else:
-            raise ValueError(a[0])
+            if _profundidade >= MAX_PROFUNDIDADE:
+                erros.append(rot + ': inclusoes muito profundas')
+                continue
+            alvo = base / str(passo['incluir'])
+            if not alvo.is_file():
+                erros.append(rot + ': arquivo incluido inexistente: ' + str(passo['incluir']))
+                continue
+            sub = carregar_json(alvo)
+            erros += [rot + ' > ' + e for e in validar_fluxo(sub, alvo, _profundidade + 1)]
+            overrides = {}
+            for k, expr in (passo.get('com') or {}).items():
+                try:
+                    overrides[k] = avaliar_expressao(expr, scope)
+                except ValueError as exc:
+                    erros.append(rot + ': "com" ' + k + ': ' + str(exc))
+            try:
+                montar_escopo(sub, overrides)
+            except ValueError as exc:
+                erros.append(rot + ': ' + str(exc))
+    return erros
+
+
+def expandir_fluxo(caminho, overrides=None, _profundidade=0):
+    """Funcao pura (le arquivos): lista de {fluxo, passo, acao} com parametros ja substituidos.
+
+    Para uma regressao, concatena os fluxos em ordem; parametros/derivados da regressao
+    sobrepoem os padroes de cada fluxo."""
+    dados = carregar_json(caminho)
+    base = Path(caminho).parent
+    overrides = dict(overrides or {})
+    if dados.get('tipo') == 'regressao':
+        scope = montar_escopo(dados, overrides)
+        itens = []
+        for nome in dados['fluxos']:
+            itens += expandir_fluxo(base / nome, scope, _profundidade)
+        return itens
+    scope = montar_escopo(dados, overrides)
+    itens = []
+    for passo in dados['passos']:
+        if 'incluir' in passo:
+            filhos = {k: avaliar_expressao(v, scope) for k, v in (passo.get('com') or {}).items()}
+            for item in expandir_fluxo(base / passo['incluir'], filhos, _profundidade + 1):
+                itens.append({'fluxo': dados['nome'] + ' > ' + item['fluxo'], 'passo': passo['nome'] + ' > ' + item['passo'], 'acao': item['acao']})
+        else:
+            acao = [passo['acao'][0]] + [substituir(v, scope) for v in passo['acao'][1:]]
+            itens.append({'fluxo': dados['nome'], 'passo': passo['nome'], 'acao': acao})
+    return itens
+
+
+def parse_params(pares):
+    """Funcao pura: ['nome=valor', ...] -> {nome: int}."""
+    resultado = {}
+    for par in pares or []:
+        nome, sep, valor = par.partition('=')
+        if not sep or not re.fullmatch(r'[A-Za-z_]\w*', nome) or not re.fullmatch(r'-?\d+', valor):
+            raise ValueError('--param espera nome=inteiro, recebeu: ' + par)
+        resultado[nome] = int(valor)
+    return resultado
+
+
+def simular_fluxo(caminho, overrides=None, saida=print):
+    """Valida o fluxo e imprime os comandos ADB sem executar nada. Retorna a quantidade de passos."""
+    dados = carregar_json(caminho)
+    erros = validar_fluxo(dados, caminho)
+    if erros:
+        raise ValueError('Fluxo invalido (' + str(caminho) + '):\n  ' + '\n  '.join(erros))
+    itens = expandir_fluxo(caminho, overrides)
+    atual = None
+    for i, item in enumerate(itens, 1):
+        if item['fluxo'] != atual:
+            atual = item['fluxo']
+            saida('== ' + atual)
+        saida('[' + str(i) + '] ' + item['passo'] + '  ' + json.dumps(item['acao'], ensure_ascii=False))
+        for comando in comandos_da_acao(item['acao']):
+            saida('      ' + comando)
+    saida('Simulacao OK: ' + str(len(itens)) + ' passos, nenhum comando executado.')
+    return len(itens)
+
+
+def info_aparelho():
+    """Fabricante/modelo/Android, sem numero de serie."""
+    return {'fabricante': getprop(DEVICE, 'ro.product.manufacturer'), 'modelo': getprop(DEVICE, 'ro.product.model'),
+            'android': getprop(DEVICE, 'ro.build.version.release'), 'sdk': getprop(DEVICE, 'ro.build.version.sdk'),
+            'fisico': not is_emulator(DEVICE)}
+
+
+def executar_fluxo(caminho, overrides=None):
+    """Executa o fluxo/regressao no aparelho. Para no primeiro erro; sempre restaura rede; grava relatorio."""
+    dados = carregar_json(caminho)
+    erros = validar_fluxo(dados, caminho)
+    if erros:
+        raise ValueError('Fluxo invalido (' + str(caminho) + '):\n  ' + '\n  '.join(erros))
+    itens = expandir_fluxo(caminho, overrides)
+    relatorio = {'fluxo': dados['nome'], 'arquivo': str(Path(caminho).name), 'inicio': datetime.now(timezone.utc).isoformat(),
+                 'aparelho': info_aparelho(), 'parametros': overrides or {}, 'passos': [], 'resultado': 'FAIL'}
+    falhou = False
+    try:
+        for i, item in enumerate(itens, 1):
+            t0 = time.monotonic()
+            registro = {'n': i, 'fluxo': item['fluxo'], 'passo': item['passo'], 'acao': item['acao'], 'resultado': 'PASS'}
+            print('[' + str(i) + '/' + str(len(itens)) + '] ' + item['fluxo'] + ' :: ' + item['passo'], flush=True)
+            try:
+                executar_acao(item['acao'])
+            except Exception as exc:  # noqa: BLE001 - qualquer erro reprova o passo e interrompe o fluxo
+                registro['resultado'] = 'FAIL'
+                registro['erro'] = (type(exc).__name__ + ': ' + str(exc).strip())[:500]
+                falhou = True
+            registro['duracao_s'] = round(time.monotonic() - t0, 2)
+            relatorio['passos'].append(registro)
+            if falhou:
+                print('FAIL: ' + registro['erro'], file=sys.stderr, flush=True)
+                break
+        else:
+            relatorio['resultado'] = 'PASS'
+        if falhou:
+            relatorio['nao_executados'] = len(itens) - len(relatorio['passos'])
+    finally:
+        relatorio['conectividade_final'] = restaurar_conectividade()
+        relatorio['fim'] = datetime.now(timezone.utc).isoformat()
+        (ROOT / 'builds').mkdir(exist_ok=True)
+        saida = ROOT / 'builds' / ('regressao-' + re.sub(r'[^\w-]', '_', dados['nome']) + '-' + datetime.now().strftime('%Y%m%d-%H%M%S') + '.json')
+        saida.write_text(sanitize(json.dumps(relatorio, ensure_ascii=False, indent=2)), encoding='utf-8')
+        print('Relatorio: ' + str(saida) + '  resultado: ' + relatorio['resultado'], flush=True)
+    return relatorio['resultado'] == 'PASS'
 
 
 def parse_args(argv=None):
     ap = argparse.ArgumentParser(description='Driver de UI Android (somente app de homologacao ' + PACKAGE + ').')
-    ap.add_argument('acoes', nargs='?', help='caminho do JSON de acoes (opcional com --listar)')
+    ap.add_argument('acoes', nargs='?', help='caminho do JSON de acoes, ou a palavra "fluxo" seguida do JSON do fluxo (opcional com --listar)')
+    ap.add_argument('arquivo', nargs='?', help='com "fluxo": caminho do fluxo ou da regressao')
     ap.add_argument('--dispositivo', metavar='SERIAL', help='serial do aparelho; se omitido, usa o unico aparelho conectado')
     ap.add_argument('--fisico', action='store_true', help='permite aparelho fisico (sem isso, so emulador)')
     ap.add_argument('--listar', action='store_true', help='lista aparelhos conectados e sai')
+    ap.add_argument('--param', action='append', default=[], metavar='NOME=VALOR', help='sobrepoe parametro inteiro do fluxo (repetivel)')
+    ap.add_argument('--simular', '--dry-run', dest='simular', action='store_true', help='com "fluxo": valida e imprime os comandos ADB sem executar (nao usa aparelho)')
     args = ap.parse_args(argv)
     if not args.listar and not args.acoes:
-        ap.error('informe o JSON de acoes ou use --listar')
+        ap.error('informe o JSON de acoes, "fluxo ARQUIVO" ou use --listar')
+    if args.acoes == 'fluxo' and not args.arquivo:
+        ap.error('"fluxo" exige o caminho do arquivo')
+    if args.acoes != 'fluxo' and args.arquivo:
+        ap.error('argumento extra: ' + args.arquivo)
+    if args.simular and args.acoes != 'fluxo':
+        ap.error('--simular so vale com "fluxo ARQUIVO"')
     return args
 
 
 def entry(argv=None):
     global DEVICE
     args = parse_args(argv)
+    if args.simular:
+        try:
+            simular_fluxo(Path(args.arquivo), parse_params(args.param))
+        except (ValueError, OSError) as exc:
+            print('ERRO: ' + str(exc).strip(), file=sys.stderr)
+            return 2
+        return 0
     try:
         require_tools()
         if args.listar:
@@ -327,6 +896,12 @@ def entry(argv=None):
     except RuntimeError as exc:
         print('ERRO: ' + str(exc).strip(), file=sys.stderr)
         return 2
+    if args.acoes == 'fluxo':
+        try:
+            return 0 if executar_fluxo(Path(args.arquivo), parse_params(args.param)) else 1
+        except (ValueError, OSError) as exc:
+            print('ERRO: ' + str(exc).strip(), file=sys.stderr)
+            return 2
     actions = json.loads(Path(args.acoes).read_text(encoding='utf-8-sig'))
     execution = {'inicio': datetime.now(timezone.utc).isoformat(), 'dispositivo': hashlib.sha256(DEVICE.encode()).hexdigest(), 'modelo': model,
                  'fisico': not emulator, 'acoes': actions, 'resultado': 'FAIL'}

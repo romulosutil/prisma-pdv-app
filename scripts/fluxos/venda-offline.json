@@ -1,0 +1,109 @@
+{
+  "nome": "venda-offline",
+  "descricao": "Modo aviao (Wi-Fi e dados desligados e confirmados offline), venda em dinheiro, reinicio do app, restauracao da rede e conferencia do envio. Caixa aberto.",
+  "parametros": {
+    "venda_offline_centavos": 3000,
+    "dinheiro_vendido_offline": 8000
+  },
+  "passos": [
+    {
+      "nome": "Ficar offline (aviao, Wi-Fi e dados)",
+      "acao": [
+        "airplane",
+        "on"
+      ]
+    },
+    {
+      "nome": "Vender offline",
+      "incluir": "vender.json",
+      "com": {
+        "venda_centavos": "venda_offline_centavos",
+        "dinheiro_vendido_vender": "dinheiro_vendido_offline"
+      }
+    },
+    {
+      "nome": "Encerrar o app",
+      "acao": [
+        "stop"
+      ]
+    },
+    {
+      "nome": "Reabrir o app ainda offline",
+      "acao": [
+        "launch"
+      ]
+    },
+    {
+      "nome": "Ir para a aba Caixa",
+      "acao": [
+        "tap",
+        "Caixa"
+      ]
+    },
+    {
+      "nome": "Venda sobreviveu ao reinicio",
+      "acao": [
+        "assert",
+        "Dinheiro vendido: {dinheiro_vendido_offline:falado}"
+      ]
+    },
+    {
+      "nome": "Restaurar a rede original",
+      "acao": [
+        "airplane",
+        "off"
+      ]
+    },
+    {
+      "nome": "Aguardar a rede",
+      "acao": [
+        "wait",
+        "5"
+      ]
+    },
+    {
+      "nome": "Abrir Sincronizacao",
+      "acao": [
+        "tap",
+        "Sincronização"
+      ]
+    },
+    {
+      "nome": "Sincronizar",
+      "acao": [
+        "tap",
+        "Sincronizar agora"
+      ]
+    },
+    {
+      "nome": "Conferir envio confirmado",
+      "acao": [
+        "assert",
+        "Dados confirmados no servidor"
+      ]
+    },
+    {
+      "nome": "Nada pendente nem em revisao",
+      "acao": [
+        "assert_ausente",
+        "Há registros aguardando envio",
+        "Há registros para revisão",
+        "Sem conexão com o servidor"
+      ]
+    },
+    {
+      "nome": "Registrar tela",
+      "acao": [
+        "snapshot",
+        "reg-venda-offline-sync"
+      ]
+    },
+    {
+      "nome": "Voltar ao resumo do caixa",
+      "acao": [
+        "tap",
+        "Resumo"
+      ]
+    }
+  ]
+}

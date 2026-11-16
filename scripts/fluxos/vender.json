@@ -1,0 +1,125 @@
+{
+  "nome": "vender",
+  "descricao": "Venda avulsa em dinheiro, valor exato, e confere o dinheiro vendido no caixa. Caixa deve estar aberto.",
+  "parametros": {
+    "venda_centavos": 5000,
+    "dinheiro_vendido_vender": "venda_centavos"
+  },
+  "passos": [
+    {
+      "nome": "Ir para a aba Vender",
+      "acao": [
+        "tap",
+        "Vender"
+      ]
+    },
+    {
+      "nome": "Abrir Valor avulso",
+      "acao": [
+        "tap",
+        "Avulso"
+      ]
+    },
+    {
+      "nome": "Conferir a folha",
+      "acao": [
+        "assert",
+        "Valor avulso"
+      ]
+    },
+    {
+      "nome": "Digitar o valor da venda",
+      "acao": [
+        "money",
+        "{venda_centavos}"
+      ]
+    },
+    {
+      "nome": "Adicionar ao carrinho",
+      "acao": [
+        "tap_inicia",
+        "Adicionar"
+      ]
+    },
+    {
+      "nome": "Conferir o carrinho",
+      "acao": [
+        "assert",
+        "{venda_centavos:falado}",
+        "1 item"
+      ]
+    },
+    {
+      "nome": "Cobrar",
+      "acao": [
+        "tap_inicia",
+        "Cobrar"
+      ]
+    },
+    {
+      "nome": "Escolher Dinheiro",
+      "acao": [
+        "tap_inicia",
+        "Dinheiro"
+      ]
+    },
+    {
+      "nome": "Conferir a tela de dinheiro",
+      "acao": [
+        "assert",
+        "Valor recebido"
+      ]
+    },
+    {
+      "nome": "Receber o valor exato",
+      "acao": [
+        "tap",
+        "Valor exato"
+      ]
+    },
+    {
+      "nome": "Confirmar o recebimento",
+      "acao": [
+        "tap",
+        "Confirmar recebimento"
+      ]
+    },
+    {
+      "nome": "Conferir a venda concluida",
+      "acao": [
+        "assert",
+        "Venda concluída",
+        "Situação: Pago",
+        "Forma de pagamento: Dinheiro"
+      ]
+    },
+    {
+      "nome": "Registrar recibo",
+      "acao": [
+        "snapshot",
+        "reg-venda-concluida"
+      ]
+    },
+    {
+      "nome": "Nova venda",
+      "acao": [
+        "tap",
+        "Nova venda"
+      ]
+    },
+    {
+      "nome": "Voltar ao caixa",
+      "acao": [
+        "tap",
+        "Caixa"
+      ]
+    },
+    {
+      "nome": "Conferir dinheiro vendido",
+      "acao": [
+        "assert",
+        "Dinheiro vendido: {dinheiro_vendido_vender:falado}"
+      ]
+    }
+  ]
+}

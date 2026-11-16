@@ -1,0 +1,79 @@
+{
+  "nome": "abrir-caixa",
+  "descricao": "Abre o caixa com o troco inicial informado. Parte do caixa fechado.",
+  "parametros": {
+    "troco_centavos": 10000
+  },
+  "passos": [
+    {
+      "nome": "Garantir o app aberto",
+      "acao": [
+        "launch"
+      ]
+    },
+    {
+      "nome": "Ir para a aba Caixa",
+      "acao": [
+        "tap",
+        "Caixa"
+      ]
+    },
+    {
+      "nome": "Conferir caixa fechado",
+      "acao": [
+        "assert",
+        "Caixa fechado"
+      ]
+    },
+    {
+      "nome": "Abrir a tela Abrir caixa",
+      "acao": [
+        "tap",
+        "Abrir caixa"
+      ]
+    },
+    {
+      "nome": "Conferir a tela",
+      "acao": [
+        "assert",
+        "Quanto de dinheiro você deixa na gaveta"
+      ]
+    },
+    {
+      "nome": "Digitar o troco",
+      "acao": [
+        "money",
+        "{troco_centavos}"
+      ]
+    },
+    {
+      "nome": "Conferir o troco digitado",
+      "acao": [
+        "assert",
+        "Troco inicial: {troco_centavos:falado}"
+      ]
+    },
+    {
+      "nome": "Confirmar a abertura",
+      "acao": [
+        "tap_ultimo",
+        "Abrir caixa"
+      ]
+    },
+    {
+      "nome": "Conferir caixa aberto e troco",
+      "acao": [
+        "assert",
+        "Caixa aberto",
+        "Troco inicial: {troco_centavos:falado}"
+      ]
+    },
+    {
+      "nome": "Registrar tela",
+      "acao": [
+        "snapshot",
+        "reg-abrir-caixa"
+      ]
+    }
+  ]
+}

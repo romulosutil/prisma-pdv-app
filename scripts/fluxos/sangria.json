@@ -1,0 +1,82 @@
+{
+  "nome": "sangria",
+  "descricao": "Sangria da gaveta para cofre ou deposito (categoria e motivo padrao do app).",
+  "parametros": {
+    "sangria_centavos": 1500,
+    "esperado_antes_sangria": 15000
+  },
+  "passos": [
+    {
+      "nome": "Ir para a aba Caixa",
+      "acao": [
+        "tap",
+        "Caixa"
+      ]
+    },
+    {
+      "nome": "Conferir o resumo do caixa",
+      "acao": [
+        "assert",
+        "Conferir gaveta"
+      ]
+    },
+    {
+      "nome": "Abrir Sangria",
+      "acao": [
+        "tap",
+        "Sangria"
+      ]
+    },
+    {
+      "nome": "Conferir a tela e o esperado na gaveta",
+      "acao": [
+        "assert",
+        "Valor retirado",
+        "Esperado na gaveta: {esperado_antes_sangria:falado}"
+      ]
+    },
+    {
+      "nome": "Digitar o valor",
+      "acao": [
+        "money",
+        "{sangria_centavos}"
+      ]
+    },
+    {
+      "nome": "Conferir o valor digitado",
+      "acao": [
+        "assert",
+        "Valor retirado: {sangria_centavos:falado}"
+      ]
+    },
+    {
+      "nome": "Registrar",
+      "acao": [
+        "tap_ultimo",
+        "Registrar sangria"
+      ]
+    },
+    {
+      "nome": "Conferir volta ao caixa",
+      "acao": [
+        "assert",
+        "Conferir gaveta"
+      ]
+    },
+    {
+      "nome": "Conferir que nao houve erro",
+      "acao": [
+        "assert_ausente",
+        "Digite um valor maior que zero",
+        "A retirada é maior que o dinheiro esperado"
+      ]
+    },
+    {
+      "nome": "Registrar tela",
+      "acao": [
+        "snapshot",
+        "reg-sangria"
+      ]
+    }
+  ]
+}

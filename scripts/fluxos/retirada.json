@@ -1,0 +1,82 @@
+{
+  "nome": "retirada",
+  "descricao": "Retirada de dinheiro por despesa (categoria padrao do app).",
+  "parametros": {
+    "retirada_centavos": 500,
+    "esperado_antes_retirada": 15000
+  },
+  "passos": [
+    {
+      "nome": "Ir para a aba Caixa",
+      "acao": [
+        "tap",
+        "Caixa"
+      ]
+    },
+    {
+      "nome": "Conferir o resumo do caixa",
+      "acao": [
+        "assert",
+        "Conferir gaveta"
+      ]
+    },
+    {
+      "nome": "Abrir Retirada",
+      "acao": [
+        "tap",
+        "Retirada"
+      ]
+    },
+    {
+      "nome": "Conferir a tela e o esperado na gaveta",
+      "acao": [
+        "assert",
+        "Valor retirado",
+        "Esperado na gaveta: {esperado_antes_retirada:falado}"
+      ]
+    },
+    {
+      "nome": "Digitar o valor",
+      "acao": [
+        "money",
+        "{retirada_centavos}"
+      ]
+    },
+    {
+      "nome": "Conferir o valor digitado",
+      "acao": [
+        "assert",
+        "Valor retirado: {retirada_centavos:falado}"
+      ]
+    },
+    {
+      "nome": "Registrar",
+      "acao": [
+        "tap_ultimo",
+        "Registrar retirada"
+      ]
+    },
+    {
+      "nome": "Conferir volta ao caixa",
+      "acao": [
+        "assert",
+        "Conferir gaveta"
+      ]
+    },
+    {
+      "nome": "Conferir que nao houve erro",
+      "acao": [
+        "assert_ausente",
+        "Digite um valor maior que zero",
+        "A retirada é maior que o dinheiro esperado"
+      ]
+    },
+    {
+      "nome": "Registrar tela",
+      "acao": [
+        "snapshot",
+        "reg-retirada"
+      ]
+    }
+  ]
+}

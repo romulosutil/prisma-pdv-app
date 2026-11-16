@@ -1,0 +1,82 @@
+{
+  "nome": "entrada",
+  "descricao": "Entrada (suprimento) de dinheiro na gaveta. Caixa aberto; esperado_antes_entrada = esperado na gaveta antes.",
+  "parametros": {
+    "entrada_centavos": 2000,
+    "esperado_antes_entrada": 15000
+  },
+  "passos": [
+    {
+      "nome": "Ir para a aba Caixa",
+      "acao": [
+        "tap",
+        "Caixa"
+      ]
+    },
+    {
+      "nome": "Conferir o resumo do caixa",
+      "acao": [
+        "assert",
+        "Conferir gaveta"
+      ]
+    },
+    {
+      "nome": "Abrir Entrada",
+      "acao": [
+        "tap",
+        "Entrada"
+      ]
+    },
+    {
+      "nome": "Conferir a tela e o esperado na gaveta",
+      "acao": [
+        "assert",
+        "Valor colocado",
+        "Esperado na gaveta: {esperado_antes_entrada:falado}"
+      ]
+    },
+    {
+      "nome": "Digitar o valor",
+      "acao": [
+        "money",
+        "{entrada_centavos}"
+      ]
+    },
+    {
+      "nome": "Conferir o valor digitado",
+      "acao": [
+        "assert",
+        "Valor colocado: {entrada_centavos:falado}"
+      ]
+    },
+    {
+      "nome": "Registrar",
+      "acao": [
+        "tap_ultimo",
+        "Registrar suprimento"
+      ]
+    },
+    {
+      "nome": "Conferir volta ao caixa",
+      "acao": [
+        "assert",
+        "Conferir gaveta"
+      ]
+    },
+    {
+      "nome": "Conferir que nao houve erro",
+      "acao": [
+        "assert_ausente",
+        "Digite um valor maior que zero",
+        "A retirada é maior que o dinheiro esperado"
+      ]
+    },
+    {
+      "nome": "Registrar tela",
+      "acao": [
+        "snapshot",
+        "reg-entrada"
+      ]
+    }
+  ]
+}

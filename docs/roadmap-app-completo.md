@@ -252,9 +252,9 @@ Itens de implementação foram validados localmente nos CPs 016–020. A ausênc
 - [x] Atualizar oferta, limites e descrições de plano conforme a disponibilidade real; retirar promessas de recursos ainda não entregues.
 
 - [x] Implantar migrações/API R1–R4 em homologação com backup preservado, regressão em PostgreSQL 17 no CI e smoke externo de estoque/relatório/exportação. [CPs 033/054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
-- [ ] Completar homologação conectada da concorrência de estoque negativo/reenvio, recebimentos contra o mesmo saldo e isolamento/consolidado de filiais, além das fixtures do CI.
+- [x] Completar homologação conectada da concorrência de estoque negativo/reenvio, recebimentos contra o mesmo saldo e isolamento/consolidado de filiais, além das fixtures do CI. Validado em 16/11/2026 na homologação por HTTP (`scripts/homologar-gestao.mts`) e conferido com a tela do Samsung; ressalva: 2º aparelho simulado por HTTP e 3 SKIP. [CP 148](checkpoints-roadmap.md#cp-20261116-148-bloco-7-gestao-f14-no-samsung-e-na-api-com-segundo-aparelho-por-http).
 - [x] Gerar APK conectado cumulativo com R4, incluída na 0.1.10 entregue. [CP 054](checkpoints-roadmap.md#cp-20261103-054-apk-0110-entregue-para-reteste).
-- [ ] Executar o ciclo físico com dono, gerente e dois operadores: estoque, fiado parcial/estorno/cancelamento, turno receptor, CSV/compartilhamento, alternância de lojas, queda/reinício e SecureStore; registrar o aceite humano separadamente.
+- [x] Executar o ciclo físico com dono, gerente e dois operadores: estoque, fiado parcial/estorno/cancelamento, turno receptor, CSV/compartilhamento, alternância de lojas, queda/reinício e SecureStore; registrar o aceite humano separadamente. Executado em 16/11/2026 no Samsung (um aparelho; reinício e modo avião exercitados; SecureStore já coberto em CP 145–147). **Aceite humano pendente**; achados de UX não corrigidos. [CP 148](checkpoints-roadmap.md#cp-20261116-148-bloco-7-gestao-f14-no-samsung-e-na-api-com-segundo-aparelho-por-http).
 
 ## R5 Homologar o piloto Android e a operação
 

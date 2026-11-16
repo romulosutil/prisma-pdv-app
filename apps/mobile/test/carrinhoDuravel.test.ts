@@ -124,8 +124,12 @@ describe('CarrinhoDuravel com SQLite local', () => {
       expect((raw.prepare('SELECT COUNT(*) AS n FROM outbox').get() as { n: number }).n).toBe(1);
       raw.close(); raw = new DatabaseSync(caminho);
       carrinho = criar(servico()); await carrinho.carregar();
-      expect(carrinho.obter().concluidaId).toBe(venda.id);
-      await expect(carrinho.adicionarParcela(parcela)).rejects.toThrow();
+      // UX1 (CP 148): após reiniciar, a venda concluída não reabre como carrinho; a venda e o outbox ficam intactos.
+      expect(carrinho.obter().concluidaId).toBeNull(); expect(carrinho.obter().itens).toEqual([]);
+      expect((raw.prepare('SELECT COUNT(*) AS n FROM outbox').get() as { n: number }).n).toBe(1);
+      expect((raw.prepare('SELECT COUNT(*) AS n FROM vendas').get() as { n: number }).n).toBe(1);
+      expect((raw.prepare('SELECT COUNT(*) AS n FROM rascunhos').get() as { n: number }).n).toBe(0);
+      await carrinho.adicionarAvulso(500, 'Nova venda'); expect(carrinho.obter().itens).toHaveLength(1);
     } finally { raw.close(); rmSync(dir, { recursive: true, force: true }); }
   });
 });

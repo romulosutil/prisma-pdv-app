@@ -94,8 +94,9 @@ describe('fase 1: fronteiras manuais', () => {
       const carrinho = new CarrinhoDuravel();
       carrinho.configurar(checkout, { novoId: () => id(5), agora: () => base.criadaEm, caixaId: () => null });
       await carrinho.carregar();
-      expect(await carrinho.concluir()).toEqual(venda);
-      expect(snapshot(raw)).toEqual(antes);
+      // UX1 (CP 148): o rascunho concluído é descartado ao reabrir; venda, itens, pagamentos e outbox ficam intactos.
+      expect(carrinho.obter().concluidaId).toBeNull(); expect(carrinho.obter().itens).toEqual([]);
+      expect(snapshot(raw)).toEqual({ ...antes, rascunhos: [] });
       const repo = new VendasRepo(amb, { sessao: () => sessao });
       await repo.substituirTodas({ vendas: [venda], numeroBase: 0 });
       expect(await repo.registrar({ itens: [], pagamentos: [parcela] }, venda.id)).toEqual(venda);

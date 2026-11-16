@@ -28,8 +28,17 @@ export function Fiado() {
   const total = itens.reduce((s, i) => s + multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos), 0);
   const titulo = estado.titulos.find(t => t.vendaId === vendaId);
   const nomeCliente = (id: string) => estado.clientes.find(c => c.id === id)?.nome ?? 'Cliente';
+  // Valida antes de abrir a folha: o erro precisa aparecer na tela, não atrás da confirmação.
+  const abrirConfirmacao = (c: NonNullable<typeof confirmacao>) => g.executar(async () => {
+    if (c.tipo === 'venda') {
+      if (!clienteId || !itens.length || entrada >= total) throw new Error('Selecione cliente, itens e um saldo a receber.');
+      dataDigitada(vencimento);
+    } else if (c.tipo !== 'cancelar' && !motivo.trim()) throw new Error('Informe o motivo ou a observação antes de confirmar.');
+    setConfirmacao(c);
+  });
   const registrar = () => g.executar(async () => {
     if (!confirmacao) return;
+    try {
     if (confirmacao.tipo === 'venda') {
       if (!clienteId || !itens.length || entrada >= total) throw new Error('Selecione cliente, itens e um saldo a receber.');
       await dados.registrarFiado({ itens, pagamentos: entrada ? [{ meio, valorCentavos: entrada }] : [], fiado: { clienteId, vencimento: dataDigitada(vencimento), valorCentavos: total - entrada } });
@@ -45,6 +54,7 @@ export function Fiado() {
       await dados.sincronizacao.sincronizar({ forcar: true });
     }
     setConfirmacao(null); await atualizar();
+    } catch (e) { setConfirmacao(null); throw e; }
   }, 'Registro salvo. Confira o saldo confirmado e as pendências de sincronização.');
   return <TelaGestao titulo="Clientes e fiado" estado={g} atualizar={atualizar}>
     <Texto>Vender fiado registra a venda e o saldo a receber. Dinheiro só entra no turno quando é recebido. Pix e cartão são registros manuais de valores já confirmados fora do app.</Texto>
@@ -62,11 +72,11 @@ export function Fiado() {
     <ListaPaginada itens={itens} renderizar={(i, n) => <Texto key={n}>{`${i.quantidadeMilesimos / 1000} × ${i.descricao}: ${formatarBRL(multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos))}`}</Texto>} />
     {itens.length ? <Botao rotulo="Limpar itens desta venda" variante="terciario" tamanho="M" onPress={() => setItens([])} /> : null}
     <Texto>{`Total: ${formatarBRL(total)} · Saldo a receber: ${formatarBRL(Math.max(0, total - entrada))}`}</Texto>
-    <Campo rotulo="Vencimento (DD/MM/AAAA)" value={vencimento} onChangeText={setVencimento} placeholder="30/11/2026" />
+    <Campo rotulo="Vencimento (DD/MM/AAAA)" value={vencimento} onChangeText={setVencimento} placeholder="dd/mm/aaaa" />
     <CampoPreco rotulo="Entrada recebida agora (opcional)" valorCentavos={entrada} onChange={setEntrada} />
     <Texto estilo="label">Meio da entrada ou do recebimento abaixo</Texto>
     {MEIOS.map(m => <Botao key={m.valor} rotulo={`${meio === m.valor ? 'Selecionado: ' : ''}${m.rotulo}`} variante="terciario" tamanho="M" onPress={() => setMeio(m.valor)} />)}
-    <Botao rotulo="Registrar venda fiada" carregando={g.ocupado} desabilitado={!itens.length || !clienteId || entrada >= total} onPress={() => setConfirmacao({ tipo: 'venda' })} />
+    <Botao rotulo="Registrar venda fiada" carregando={g.ocupado} desabilitado={!itens.length || !clienteId || entrada >= total} onPress={() => void abrirConfirmacao({ tipo: 'venda' })} />
     <Texto estilo="tituloM">Saldos e vencimentos</Texto>
     <Texto>{`Saldo confirmado: ${formatarBRL(estado.titulos.reduce((s,t) => s + t.saldoCentavos, 0))}`}</Texto>
     <ListaPaginada itens={vendas.filter(v => v.fiado && !estado.titulos.some(t => t.vendaId === v.id))} renderizar={v => <Texto key={v.id}>Venda fiada local aguardando confirmação: {formatarBRL(v.fiado!.valorCentavos)}. Consulte a sincronização antes de receber.</Texto>} />
@@ -78,12 +88,12 @@ export function Fiado() {
       <CampoPreco rotulo="Valor recebido agora" valorCentavos={valor} onChange={setValor} />
       <Campo rotulo="Motivo ou observação do recebimento/correção" value={motivo} onChangeText={setMotivo} />
       <Texto>{meio === 'dinheiro' ? caixa ? 'O dinheiro será registrado no seu turno aberto.' : 'Abra seu turno antes de receber dinheiro.' : 'Confirme o crédito no banco ou maquininha antes de registrar.'}</Texto>
-      <Botao rotulo="Registrar recebimento parcial ou total" carregando={g.ocupado} desabilitado={titulo.cancelado || !valor || valor > titulo.saldoCentavos || (meio === 'dinheiro' && !caixa)} onPress={() => setConfirmacao({ tipo: 'receber' })} />
-      {!titulo.cancelado && !titulo.recebidoCentavos && dados.pode('cancelar_venda') ? <Botao rotulo="Cancelar venda e saldo a receber" variante="perigo" onPress={() => setConfirmacao({ tipo: 'cancelar' })} /> : null}
+      <Botao rotulo="Registrar recebimento parcial ou total" carregando={g.ocupado} desabilitado={titulo.cancelado || !valor || valor > titulo.saldoCentavos || (meio === 'dinheiro' && !caixa)} onPress={() => void abrirConfirmacao({ tipo: 'receber' })} />
+      {!titulo.cancelado && !titulo.recebidoCentavos && dados.pode('cancelar_venda') ? <Botao rotulo="Cancelar venda e saldo a receber" variante="perigo" onPress={() => void abrirConfirmacao({ tipo: 'cancelar' })} /> : null}
       <Texto estilo="tituloM">Histórico deste fiado</Texto>
       <ListaPaginada itens={estado.eventos.filter(e => e.vendaId === titulo.vendaId)} renderizar={e => <View key={e.id} style={{ gap: 6 }}>
         <Texto>{`${e.tipo} · ${formatarBRL(e.valorCentavos)} · ${e.meio} · ${e.motivo} · ${e.criadoEm}`}</Texto>
-        {e.tipo === 'recebimento' && !estado.eventos.some(x => x.originalId === e.id) && dados.pode('cancelar_venda') ? <Botao rotulo={`Registrar devolução de ${formatarBRL(e.valorCentavos)}`} variante="perigo" tamanho="M" onPress={() => setConfirmacao({ tipo: 'estornar', id: e.id })} /> : null}
+        {e.tipo === 'recebimento' && !estado.eventos.some(x => x.originalId === e.id) && dados.pode('cancelar_venda') ? <Botao rotulo={`Registrar devolução de ${formatarBRL(e.valorCentavos)}`} variante="perigo" tamanho="M" onPress={() => void abrirConfirmacao({ tipo: 'estornar', id: e.id })} /> : null}
       </View>} />
     </> : null}
     <Confirmacao visivel={!!confirmacao} onFechar={() => setConfirmacao(null)} titulo={confirmacao?.tipo === 'venda' ? 'Confirmar venda fiada' : confirmacao?.tipo === 'receber' ? 'Confirmar recebimento' : 'Confirmar correção'}

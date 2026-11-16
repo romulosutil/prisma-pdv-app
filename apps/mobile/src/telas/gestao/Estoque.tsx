@@ -21,6 +21,7 @@ export function Estoque() {
   }, [dados, token, mesmoPerfil]);
   useEffect(() => { void g.executar(atualizar); }, [atualizar]);
   const salvar = () => g.executar(async () => {
+    if (!motivo.trim()) throw new Error('Informe o motivo do movimento.');
     await dados.operacaoGestaoOnline('estoque', { produtoId, tipo, quantidadeMilesimos: Math.round(Number(quantidade.replace(',', '.')) * 1000), motivo, ...(tipo === 'devolucao' ? { itemVendaId } : {}) });
     setQuantidade(''); setMotivo(''); await atualizar();
   }, 'Movimento registrado.');

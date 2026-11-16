@@ -36,6 +36,14 @@ export class CarrinhoDuravel extends Observavel<EstadoCarrinho> {
     return this.enfileirar(async () => {
       if (!this.persistencia) throw new Error('Persistência do checkout não configurada.');
       const salvo = await this.persistencia.carregar();
+      // Venda concluída já está gravada (venda/outbox no mesmo commit, validada em carregar): reabrir não pode
+      // reapresentá-la como carrinho. Descarta só o rascunho concluído; se falhar, preserva o estado e propaga.
+      if (salvo?.estado.concluidaId) {
+        await this.persistencia.salvar(null);
+        this.registro = null;
+        this.definir(vazio());
+        return;
+      }
       this.registro = salvo;
       this.definir(salvo?.estado ?? vazio());
     });

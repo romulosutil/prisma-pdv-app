@@ -2012,3 +2012,69 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Roadmap e roteiro:** F14 **PASS** (com os limites acima); os dois itens abertos de R4 marcados `[x]` com ressalva; o **aceite humano continua pendente**.
 - **Pendências:** commit de `scripts/homologar-gestao.mts` e destes documentos (precisa de autorização); disputa entre dois Androids reais; corrigir os achados de UX da folha de confirmação e do carrinho reaberto; aceite humano.
 - **Próximo passo:** decidir os achados de UX para a próxima versão e seguir para o próximo bloco do roteiro (F15, restauração de backup).
+
+<a id="cp-20261116-149-prompts-simplificados-para-o-mvp-com-testes-automatizados"></a>
+
+## CP 20261116 149 Prompts simplificados para o MVP, com testes automatizados
+
+- **Data:** 16/11/2026, 16h41, America/Sao_Paulo.
+- **Etapa:** planejamento do caminho até o piloto, depois do [CP 148](#cp-20261116-148-bloco-7-gestao-f14-no-samsung-e-na-api-com-segundo-aparelho-por-http). Pedido do usuário: simplificar para um MVP e construir testes automatizados para tudo o que for identificado.
+- **Construído:** [prompts-sessoes-entrega.md](prompts-sessoes-entrega.md) reescrito.
+  - Os blocos 8 a 23 viraram **M1–M5 até o piloto**: testes automatizados e correções; falhas e restauração; pronto para o lojista; piloto no ar pelo teste interno da Play, sem cobrança; piloto e aceite.
+  - Depois do piloto ficam **P1–P5**: cobrança na Play; publicação aberta; Mercado Pago; InfinitePay e Stone; encerramento.
+  - As regras comuns caíram de 16 para 9. Entraram a regra "teste automatizado primeiro", com os níveis unitário, integração da API, script HTTP e fluxo do driver em `scripts/fluxos/`; o escopo MVP, que só corrige o que bloqueia o piloto; e a autorização de commit e push na branch atual ao fim de cada sessão.
+  - Cada sessão traz o modelo recomendado.
+- **Roadmap:** o backlog ganhou os itens cortados do MVP: F18 e layout, catálogo por EAN, F10 e relógio, F13 com dois Androids reais, e-mail por ambiente e execução real do F19. Nenhum checkbox foi marcado.
+- **Limites:** somente documentação. Sem código, testes, commit, deploy ou ação em aparelho. A passagem do piloto para o teste interno da Play depende de o usuário criar o app no Console (M4).
+- **Próximo passo:** sessão M1, em Opus 5.5: matriz de testes automatizados, testes que faltam no CI, fluxos do driver versionados e correção do modo avião do driver.
+
+<a id="cp-20261116-150-m1-testes-automatizados-do-piloto-no-ci-e-0114-sem-aparelho"></a>
+
+## CP 20261116 150 M1: testes automatizados do piloto no CI e 0.1.14 sem aparelho
+
+- **Data e etapa:** 16/11/2026, 21h25 (America/Sao_Paulo). Sessão M1 de [prompts-sessoes-entrega.md](prompts-sessoes-entrega.md). Segue o [CP 149](#cp-20261116-149-prompts-simplificados-para-o-mvp-com-testes-automatizados). Opus 5.5 orquestrou e revisou; a escrita foi feita por subagentes Sonnet 5.5.
+- **Matriz:** [testes-automatizados-mvp.md](testes-automatizados-mvp.md). Tem 104 itens, levantados dos CPs 115, 129, 133, 138 e 142–148 e de F01–F17: **69 cobertos** (cada um com `arquivo::teste`), 13 automatizáveis ainda sem teste, 13 somente humanos, 8 no backlog e 1 que não se aplica.
+- **Testes novos (validados localmente e no CI):**
+  - API com PGlite local e PostgreSQL 17 no CI:
+    - `pilotoCaixaValores` (F05–F07, 9 testes): esperado 250/100, total comercial 230, diferenças −5/0, fechamentos inconsistentes recusados;
+    - `pilotoIsolamento` (F08, 9 testes): operador contra operador, empresa B contra A, sem token;
+    - `pilotoTurnoDisputado` (F13, 10 testes): uma reserva em 4 concorrentes, consentimento, troca atômica, retorno, revogação;
+    - `pilotoReenvio` (F09/F11, 14 testes): resposta perdida, reenvio, mesmo ID com conteúdo diferente, lote fora de ordem, autoria;
+    - `pilotoGestaoConcorrente` (F14, 14 testes): baixa única, fiado, receptor, 12 recebimentos concorrentes sem saldo negativo, estornos em corrida, idempotência.
+  - Mobile com SQLite:
+    - `pilotoDurabilidade` (F09/F11, 6 testes);
+    - `pilotoAtualizacao` (F12, 3 testes): migração com pendências de 3 perfis, sem envio com identidade de outro perfil;
+    - `pilotoUxCp148` (10 testes).
+  - CI, passo novo `HTTP homologation scenarios against local API`: `scripts/homologar-local.mjs` sobe uma API descartável (PGlite em memória, relógio de desenvolvimento) e roda `homologar-equipe.mts` (F08, `--f13`, `--troca-aparelho`) e `homologar-gestao.mts` (F14, 5 seções). No CI: F08 37 PASS/1 SKIP, F13 25/1, troca 23/1 e F14 162/4 SKIP, com 0 FAIL e 0 INCONCLUSIVO. Os SKIP são rotas /dev, limite de 3 lojas e relatório de outra loja pelo dono.
+  - CI, passo novo `Android driver and flows (offline)`: 32 testes Python.
+- **Fluxos do driver (construídos, validados só em `--simular`):**
+  - `scripts/fluxos/`: abrir-caixa, vender, entrada, sangria, retirada, venda-offline, fechar-caixa e regressao, com README.
+  - O comando `python scripts/regressao-aparelho.py --fisico` para no primeiro erro, sempre restaura a rede e grava o relatório em `builds/` sem número de série.
+  - O driver ganhou `fluxo`, `--param`, `--simular`, `tap_inicia` e `tap_ultimo`.
+  - **airplane (CP 145, item d):** `on` guarda o estado original e desliga modo avião, Wi-Fi e dados, e confere o offline por ping e `dumpsys connectivity`. `off` restaura exatamente o estado original.
+- **Correções do CP 148 (runtime, 0.1.14/versionCode 15):**
+  - Ao reabrir, o rascunho de venda já concluída é descartado e "Vender" começa vazio. O carrinho em andamento continua restaurado, e a venda e a fila não mudam.
+  - O fiado valida antes de abrir a folha de confirmação e fecha a folha se houver erro.
+  - O ajuste de estoque exige motivo, com mensagem em português.
+  - O placeholder do vencimento passou a ser "dd/mm/aaaa".
+  - Dois testes antigos que fixavam o comportamento anterior foram ajustados: `carrinhoDuravel.test.ts` e `fase1Dominio.test.ts`.
+- **Commits e CI (validado externamente):**
+  - Commits na branch `codex/pdv-homologacao-real`:
+    - `d63a163`: correção do mobile e versão;
+    - `728ebf4`: testes, CI, driver, fluxos e matriz;
+    - `8a95a79`: ajuste de teste.
+  - CI [43957549066](https://github.com/romulosutil/prisma-pdv-app/actions/runs/43957549066) em `728ebf4`: **FAIL**, preservado. No PostgreSQL, o teste "estorno repetido em corrida" supunha um vencedor fixo entre três IDs. A API gravou **um** estorno só, e o defeito era do teste, não financeiro. A asserção passou a aceitar qualquer vencedor único, e a exigência de um efeito só e da gaveta devolvida uma vez foi mantida.
+  - CI [43959234268](https://github.com/romulosutil/prisma-pdv-app/actions/runs/43959234268), `workflow_dispatch` em `8a95a79`: **success**. Passaram tipos, ferramentas, driver offline, shared 172, API/PostgreSQL 17, cenários HTTP locais, mobile, imagem e isolamento. Deploy pulado.
+- **Validação local:** typecheck dos três workspaces; API 599 em PGlite, em série (no CI com PostgreSQL são 658 casos, porque entram os testes exclusivos de PostgreSQL); o arquivo ajustado foi reexecutado com 14/14; mobile 620; shared 172; HTTP local 0 FAIL. Rodar em paralelo com outros processos causou 12 falhas por contenção no PGlite. Elas não se repetiram em série (`--maxWorkers=1`, como no CI).
+- **Artefato:** `builds/pdv-homologacao-0.1.14.apk`, SHA256 `a677d562…fab15`. A verificação estática do build passou, com o host de homologação. **Não instalado:** nenhum aparelho estava conectado ao ADB durante a sessão.
+- **Limites:**
+  - Regressão no aparelho e efeito real do airplane no Samsung **não executados**. Os rótulos dos fluxos vêm do código e de capturas antigas e ainda não foram vistos ao vivo.
+  - A simulação de encerramento forçado no mobile reabre o SQLite do Node; ela não prova `expo-sqlite` nem a morte do processo Android (fica para M2).
+  - F13 continua sem dois Androids reais.
+  - A concorrência real entre conexões só ocorre no PostgreSQL do CI, não no PGlite local.
+- **Backlog gerado:**
+  - Depois de reiniciar com uma venda recém-concluída, o carrinho abre vazio sem avisar qual foi a última venda. Mostrar "Última venda concluída" fica no backlog.
+  - Criar a 3ª loja no passo HTTP do CI, para cobrir o limite de lojas e a escrita da filial.
+  - Lacunas automatizáveis fora do M1, listadas na matriz: manifesto sem permissões (F01-g), lanterna sem câmera, fluxo do primeiro produto (CP 115), abertura offline recusada sem aviso (F11-g), mensagens de sangria e máscara do troco.
+- **Pendências:** conectar o Android, instalar a 0.1.14 e rodar `python scripts/regressao-aparelho.py --fisico` (requer caixa fechado e sessão ativa), registrando o resultado. Aceite humano continua pendente.
+- **Próximo passo:** regressão da 0.1.14 no aparelho assim que ele for conectado. Depois, sessão M2 (falhas e restauração).

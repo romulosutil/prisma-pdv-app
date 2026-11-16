@@ -276,7 +276,8 @@ Entregas locais adicionais, sem equivalência a homologação física/externa:
 - [x] Concluir ciclo dirigido de um operador no Android Emulator/API real: cinco vendas/R$ 60, movimentos, parcela durável, modo avião, reboot, fechamento 175/170/−5, reconexão/reenvio sem duplicação, estoque 14 e painel/relatório confirmados. Não encerra os cenários físicos/multioperador abaixo. [Relatório e limites](ciclo-venda-caixa-offline-emulador.md) · [CP 093](checkpoints-roadmap.md#cp-20261103-093-ciclo-emulado-concluido-e-entrega-0111).
 
 - [ ] Testar o APK exato em aparelhos reais: instalação, atualização da 0.1.4, câmera/scanner, permissões, SecureStore, exportação e acessibilidade. Avanço em 15/11/2026 ([CP 145](checkpoints-roadmap.md#cp-20261115-145-bloco-5-encerrado-com-exportacao-matriz-de-correcoes-e-acessibilidade-no-backlog)): 0.1.12 instalada e atualizada, verificada no Samsung por ADB (F01, F02, scanner real, exportação CSV); atualização da 0.1.4 não aplicável; **acessibilidade e TalkBack no backlog por decisão do usuário**; SecureStore físico e expiração da exportação sem prova.
-- [ ] Simular encerramento forçado durante parcela e conclusão, disco cheio, rede intermitente, reinício do aparelho e atualização com pendências.
+- [ ] Simular encerramento forçado durante parcela e conclusão, disco cheio, rede intermitente, reinício do aparelho e atualização com pendências. Avanço em 16/11/2026 ([CP 150](checkpoints-roadmap.md#cp-20261116-150-m1-testes-automatizados-do-piloto-no-ci-e-0114-sem-aparelho)): coberto por teste automatizado no CI (`pilotoDurabilidade`, `pilotoAtualizacao`, `pilotoReenvio`). A prova no Android físico fica para M2 e o disco cheio, para o backlog.
+- [ ] Regressão automatizada do piloto (sessão M1). **Construído e aprovado no CI** em 16/11/2026 ([CP 150](checkpoints-roadmap.md#cp-20261116-150-m1-testes-automatizados-do-piloto-no-ci-e-0114-sem-aparelho), run 43959234268): [matriz](testes-automatizados-mvp.md), testes F05–F14 na API e no mobile, cenários HTTP de equipe e gestão contra a API local, fluxos do driver em `scripts/fluxos/` e airplane com Wi-Fi e dados. Correções de UX do CP 148 na 0.1.14. **Pendente:** instalar a 0.1.14 e rodar `scripts/regressao-aparelho.py` no aparelho (nenhum Android estava conectado).
 - [x] Fazer um ciclo completo com dono e dois operadores: abertura, venda, entrada, sangria, retirada, fechamento, conferência e consolidado. **Validado em 16/11/2026** no Samsung por ADB (F05–F07) e conferido na API e no relatório do dono ([CP 147](checkpoints-roadmap.md#cp-20261116-147-bloco-6-dono-e-dois-operadores-em-um-android-fisico-com-segundo-aparelho-por-http)). Aceite humano pendente.
 - [x] Confirmar que entrada/sangria/retirada de Ana não mudam o caixa de Bruno; tentativas diretas pela API também devem ser recusadas quando indevidas. **Validado em 16/11/2026**: tela do Bruno sem dados da Ana e `scripts/homologar-equipe.mts` 38/38 ([CP 147](checkpoints-roadmap.md#cp-20261116-147-bloco-6-dono-e-dois-operadores-em-um-android-fisico-com-segundo-aparelho-por-http)).
 - [ ] Restaurar um backup do servidor e recuperar uma conta em aparelho substituto, conferindo IDs, quantidades, valores e pendências.
@@ -328,6 +329,18 @@ Priorizar esta frente após validar o MVP, conforme decisão do usuário em 01/1
 - [ ] Configurar alertas de falha/atraso de backup e testar sua entrega ao destinatário autorizado.
 - [ ] Configurar alertas de indisponibilidade/recuperação das APIs e testar a detecção e a entrega, incluindo falha da VPS quando houver monitor externo.
 - [ ] Definir destino e destinatário no momento da retomada. A inspeção desta rodada encontrou apenas Local Disk e nenhum canal de notificações; nenhum serviço, destino externo ou canal foi criado.
+
+Corte do MVP decidido pelo usuário em 16/11/2026 ([CP 149](checkpoints-roadmap.md#cp-20261116-149-prompts-simplificados-para-o-mvp-com-testes-automatizados)). Estes itens também saem do caminho até o piloto, sem apagar as evidências já registradas. O caminho até o piloto está em [prompts por sessão](prompts-sessoes-entrega.md) (M1–M5).
+
+- [ ] Acessibilidade e layout em fonte grande e tela pequena (F18; defeitos de layout dos CPs 144 e 145; TalkBack não testado).
+- [ ] Cobertura do catálogo por EAN em amostra de 100 produtos (antigo bloco 12).
+- [ ] Disco cheio (F10) e mudança de relógio com pendências.
+- [ ] F13 com dois Androids físicos (hoje: um Android e um segundo aparelho simulado por HTTP, CPs 147 e 148).
+- [ ] Credencial e cota de e-mail separadas por ambiente (antigo bloco 3, CP 109).
+- [ ] Execução real do retorno da API para a versão anterior (F19); no MVP, só o procedimento documentado.
+- [ ] Avisar "Última venda concluída" quando o app reabre logo após uma conclusão (o carrinho agora abre vazio, CP 150).
+- [ ] Criar a 3ª loja no cenário HTTP do CI (limite de lojas e escrita da filial ainda em SKIP, CP 150).
+- [ ] Lacunas automatizáveis fora do M1 listadas na [matriz](testes-automatizados-mvp.md): manifesto sem permissões, lanterna sem câmera, fluxo do primeiro produto (CP 115), abertura offline recusada sem aviso, mensagem da sangria e máscara do troco.
 
 Nomes dos futuros serviços do PDV começam com `pdv-`. Backups locais, teste de restauração e healthchecks já realizados permanecem registrados nos relatórios de R0.
 

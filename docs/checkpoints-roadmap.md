@@ -1339,3 +1339,447 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Limites:** o celular não foi tocado e não houve teste físico. A conta com 1 venda de R$ 10,00 e último acesso em 04/11 foi identificada como a do Samsung e a conta com 5 vendas como a do emulador por compatibilidade com os CPs, sem conferência direta. Script e documentos sem commit, pois o bloco não autoriza.
 - **Roadmap:** pendência de limpeza removida do resumo de R5; nenhum checkbox marcado.
 - **Próximo passo:** antes de usar o app, limpar os dados do PDV Homologação no Samsung, pois a conta local não existe mais no servidor. O bloco 4 começa por cadastro e produto novos, e os resultados físicos dos CPs 094–100 precisam ser refeitos na base nova.
+
+<a id="cp-20261110-108-inventario-e-proposta-de-isolamento-do-email"></a>
+
+## CP 20261110 108 Inventário e proposta de isolamento do e-mail
+
+- **Data:** 10/11/2026, 07h14, America/Sao_Paulo.
+- **Etapa:** R0, bloco 3 de [prompts por sessão](prompts-sessoes-entrega.md), avanço parcial. Sem alteração de ambiente, deploy, commit ou código. Aguarda decisão do usuário.
+- **Leitura da configuração:** `lerConfiguracaoEntregaCodigo` em `apps/api/src/email/configuracaoEntrega.ts` e `lerConfiguracaoSmtp` em `apps/api/src/email/smtp.ts`, chamadas por `apps/api/src/iniciarApi.ts`. O domínio de `SMTP_FROM` entra em cada entrega da fila, e `validarPendenciasEntrega` recusa a inicialização se houver entrega não expirada de outro domínio.
+- **Por ambiente, conforme documentos e código. O painel não foi aberto, para não expor valores:**
+  - Desenvolvimento: modo `desenvolvimento` por padrão, sem envio, e recusa variáveis `SMTP_`. Nenhum arquivo `.env*` existe no checkout. O launcher `apps/api/src/homologacaoEmail.ts` exige o remetente `acesso@prumo.services`, portanto depende do domínio de produção se for usado.
+  - Homologação (`pdv-api-homologacao`): chave de cifra própria, mas mesmo remetente e mesma credencial Resend do serviço original, segundo `docs/r0-api-apk-conectado.md`.
+  - Produção (`pdv-api`): `acesso@prumo.services`, com a credencial transferida do arquivo local em 30/10, segundo `docs/deploy-easypanel.md`.
+- **Achado:** na documentação do Resend consultada hoje, cota e limite de requisições são por time, não por chave. Chave nova no mesmo time isola a credencial, mas não a cota. Plano gratuito: 100 e-mails/dia, 3.000/mês e 3 domínios.
+- **Não confirmado:** a documentação não diz se um subdomínio pode ser verificado em outro time enquanto o domínio pai está em um time diferente, nem se o segundo time fica no plano gratuito.
+- **Proposta enviada ao usuário:** time Resend separado `pdv-homologacao`, chave `pdv-api-homologacao`, remetente `acesso@homologacao.prumo.services`. Produção mantém o remetente e ganha chave nova `pdv-api-producao` restrita ao domínio, com a chave antiga revogada só depois da troca. Desenvolvimento segue sem credencial.
+- **Verificações:** `apps/api`, `packages` e Dockerfile sem diferença entre 84dd0dc e 06a2278, então um novo deploy da branch recompila a mesma API. Por DNS público (1.1.1.1), `homologacao.prumo.services`, `send.homologacao` e `resend._domainkey.homologacao` estão sem registro.
+- **Limites:** nenhum envio feito e nenhuma credencial criada. Item de R0 continua aberto, sem checkbox marcado.
+- **Próximo passo:** usuário decidir a proposta e criar time, domínio e chave. Depois, inserir as variáveis no painel, conferir que a fila está sem entregas ativas, implantar só a homologação e comprovar o envio real por HTTPS.
+
+<a id="cp-20261110-109-resend-mantido-sem-mudanca"></a>
+
+## CP 20261110 109 Resend mantido sem mudança
+
+- **Data:** 10/11/2026, 07h18, America/Sao_Paulo.
+- **Etapa:** R0, encerramento do bloco 3 de [prompts por sessão](prompts-sessoes-entrega.md). Continua o [CP 108](#cp-20261110-108-inventario-e-proposta-de-isolamento-do-email), cuja proposta não foi adotada.
+- **Decisão do usuário nesta sessão:** não mexer no Resend para fazer a separação e seguir sem colocar o assunto em pauta. Não há time, domínio, chave ou remetente novos, nem ajuste no launcher local.
+- **Executado:** somente registro em documentos. Nenhum ambiente, deploy, código, commit, envio de e-mail ou passo de produção.
+- **Estado que permanece:** homologação e produção compartilham credencial, remetente e cota do Resend, conforme documentado no CP 108. Os critérios de pronto do bloco 3 não foram cumpridos, por decisão do usuário.
+- **Roadmap:** item de isolamento de credenciais de R0 segue sem `[x]`, com a decisão anotada.
+- **Próximo passo:** bloco 4, ciclo e acesso no Samsung, começando por cadastro e produto novos.
+
+<a id="cp-20261110-110-bloco-4-iniciado-em-base-limpa"></a>
+
+## CP 20261110 110 Bloco 4 iniciado em base limpa
+
+- **Data:** 10/11/2026, 07h39, America/Sao_Paulo.
+- **Etapa:** R0/R5, início do bloco 4 de [prompts por sessão](prompts-sessoes-entrega.md). Como a base foi limpa no [CP 107](#cp-20261110-107-base-de-homologacao-limpa), o ciclo começa por cadastro e produto novos, sem retomar a venda em Pix do [CP 100](#cp-20261104-100-primeira-venda-conferida-e-pix-manual-orientado).
+- **Conferido localmente:** `builds/pdv-homologacao-0.1.11.apk` com SHA256 `2df561ee3c7c6717aab82304e1dc4ff2ab5b9858b47aeb7e551e23bf648fe0c3`, igual ao definido no [CP 106](#cp-20261110-106-ci-da-0111-aprovado). Evidência HTTP: `/saude` da homologação 200 com `{"status":"ok"}`. Nenhum aparelho listado pelo ADB, portanto o hash instalado no Samsung segue não conferido.
+- **Orientado ao usuário, ainda sem relato:** conferir a versão nas informações do app, limpar os dados do PDV Homologação no Android e reabrir o app. Alvo: somente os dados locais da conta apagada no servidor.
+- **Limites:** nenhum teste físico executado nesta entrega, nenhum checkbox marcado, sem alteração de código, API ou dados do servidor.
+- **Próximo passo:** receber o relato da limpeza local e seguir para o cadastro novo.
+
+<a id="cp-20261110-111-dados-locais-limpos-e-cadastro-orientado"></a>
+
+## CP 20261110 111 Dados locais limpos e cadastro orientado
+
+- **Data:** 10/11/2026, 08h21, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4. Continua o [CP 110](#cp-20261110-110-bloco-4-iniciado-em-base-limpa).
+- **Evidência física por relato:** depois da limpeza orientada, o app abriu na tela com "Começar" e "Já tenho conta", sem entrar na conta antiga. PASS dirigido apenas desse estado inicial. A versão exibida no Android não foi informada no relato e segue a confirmar.
+- **Orientado, ainda sem relato:** cadastro novo com e-mail próprio e CPF/CNPJ válido, com o código digitado somente no aparelho.
+- **Limites:** sem conferência independente, nenhum cenário de R0 concluído, nenhum checkbox marcado. Sem alteração de código, API ou dados do servidor.
+- **Próximo passo:** receber o relato da confirmação do código e concluir a criação da loja.
+
+<a id="cp-20261110-112-email-confirmado-e-achado-na-tela-da-loja"></a>
+
+## CP 20261110 112 E-mail confirmado e achado na tela da loja
+
+- **Data:** 10/11/2026, 08h26, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4. Continua o [CP 111](#cp-20261110-111-dados-locais-limpos-e-cadastro-orientado).
+- **Evidência física por relato:** e-mail real recebido, código digitado no aparelho e abertura da tela "Como se chama sua loja?". Usuário informou que a versão do app é a certa, sem citar o número; a versão orientada era 0.1.11. Usuário relatou o toque em Criar minha conta, cujo resultado ainda não foi informado.
+- **Achado de usabilidade, relatado pelo usuário:** a tela da loja, já depois do e-mail confirmado, mostra "Seu e-mail foi confirmado na etapa anterior..." e o botão "Já tenho conta", que não faz sentido nesse ponto do cadastro novo. No código, `apps/mobile/app/(onboarding)/loja.tsx:86` chama `cancelarCadastro` e vai para o login, descartando o cadastro em andamento. Não bloqueia o fluxo. Não corrigido nesta rodada, porque mudança de runtime exige nova versão rastreável e invalidaria o APK em teste.
+- **Limites:** sem conferência independente no servidor. Nenhum checkbox marcado, sem alteração de código, API ou dados do servidor.
+- **Próximo passo:** receber qual tela abriu depois de Criar minha conta e seguir para produto novo.
+
+<a id="cp-20261110-113-cadastro-novo-concluido-no-samsung"></a>
+
+## CP 20261110 113 Cadastro novo concluído no Samsung
+
+- **Data:** 10/11/2026, 08h28, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4. Continua o [CP 112](#cp-20261110-112-email-confirmado-e-achado-na-tela-da-loja).
+- **Evidência física por relato:** depois de Criar minha conta, pagamentos e permissão da câmera, o usuário confirmou a abertura do início da loja conforme o resultado orientado: com Abrir caixa e Vender, sem cartão, sem outro código e sem dados antigos. PASS dirigido do cadastro novo na base limpa.
+- **Limites:** sem conferência independente no servidor, pois a leitura da conta exige sessão do usuário. Permissão de câmera foi só concedida; negar e conceder depois fica no bloco 5 (F01). Nenhum checkbox marcado.
+- **Próximo passo:** cadastrar produto manual novo, abrir o caixa e seguir para as vendas.
+
+<a id="cp-20261110-114-produto-manual-salvo-na-segunda-tentativa"></a>
+
+## CP 20261110 114 Produto manual salvo na segunda tentativa
+
+- **Data:** 10/11/2026, 08h32, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4. Continua o [CP 113](#cp-20261110-113-cadastro-novo-concluido-no-samsung).
+- **Evidência física por relato:** na primeira tentativa de salvar o produto manual, o usuário tem "quase certeza" de que a tela foi minimizada. Ele excluiu o produto e o cadastrou de novo; a segunda tentativa funcionou e o app está na tela esperada, com o produto criado. Valores, estoque e contagem na lista não foram relatados.
+- **Classificação:** anomalia **não reproduzida e não explicada**. Pode ser o app indo ao fundo ou um encerramento, o que o relato não distingue. Não registrar PASS integral do cadastro de produto nem FAIL comprovado. O defeito corrigido na 0.1.11 era um encerramento ao salvar o primeiro produto e voltar à lista (CP 083), então o caso precisa de repetição e de evidência.
+- **Evidência pendente:** nenhum aparelho está listado pelo ADB, então os logs do Android não puderam ser lidos pelo agente. A alternativa sem acesso ao armazenamento privado é o histórico do teste exportado pelo próprio app, que o roteiro descreve sem dados pessoais. Não foi exportado até agora. A exclusão e o novo cadastro deixam rastro no servidor, que não foi conferido.
+- **Limites:** sem conferência independente, nenhum checkbox marcado, sem alteração de código, API ou dados do servidor.
+- **Próximo passo:** abrir o caixa. Se o produto voltar a sair da tela em outra operação, exportar o histórico logo após a falha.
+
+<a id="cp-20261110-115-crash-nativo-ao-salvar-o-primeiro-produto-no-samsung"></a>
+
+## CP 20261110 115 Crash nativo ao salvar o primeiro produto no Samsung
+
+- **Data:** 10/11/2026, 08h34, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4. **Corrige a classificação do [CP 114](#cp-20261110-114-produto-manual-salvo-na-segunda-tentativa):** a anomalia relatada deixou de ser inexplicada.
+- **Aparelho e APK (ADB, depois de o usuário ligar a depuração):** Samsung SM-S938B, Android 17, serial só como hash (`17c81f8d683a`, SHA256 truncado). Pacote `br.com.pdv.mobile.homologacao` 0.1.11/versionCode 12. `base.apk` instalado puxado pelo ADB: SHA256 `2df561ee3c7c6717aab82304e1dc4ff2ab5b9858b47aeb7e551e23bf648fe0c3`, **igual** ao APK ARM do [CP 106](#cp-20261110-106-ci-da-0111-aprovado). Resolve o limite "hash instalado não conferido" dos CPs 105 e 106. Última atualização do pacote registrada às 08h21 (limpeza de dados); sem acesso ao armazenamento privado.
+- **Evidência técnica do Android (não é relato):** `dumpsys activity exit-info` registra para o processo 12487 `APP CRASH(EXCEPTION)` às 08h30m40s. O buffer de crash do logcat traz `FATAL EXCEPTION: main`, `IllegalStateException: addViewAt: failed to insert view [2228] into parent [2232] at index 0`, causada por "The specified child already has a parent" em `ReactClippingViewManager.addView`. É a mesma assinatura do [CP 083](#cp-20261103-083-ciclo-emulado-produto-persistido-e-crash-nativo), cuja correção (`removeClippedSubviews={false}` em `ListaProdutos.tsx`) passou no emulador no [CP 085](#cp-20261103-085-atualizacao-e-correcao-nativa-validadas). A hora coincide com a primeira tentativa de salvar o primeiro produto, relatada pelo usuário como "tela minimizada". Excerto sanitizado, sem texto livre, dados do usuário ou stack de JavaScript.
+- **Resultado:** **FAIL de cadastro do primeiro produto na 0.1.11 em Android físico**, uma ocorrência. A correção do CP 083 não cobre este caso no Samsung, ainda que tenha passado no AVD. A segunda tentativa funcionou, mas não se sabe se o produto da primeira tentativa chegou a ser gravado antes do crash (o usuário o excluiu e recadastrou). Critério de F01–F18 e de R0 afetados: não marcar nenhum PASS do fluxo de produto.
+- **Outras saídas do processo no histórico do Android (contexto, não são defeitos):** encerramento por limpeza de dados às 08h21 (esperado), mortes do sistema por memória em 03, 04 e 08/11, remoção da tarefa e `SIGNALED` em 06/11. Não analisadas aqui.
+- **Em investigação:** trabalhador somente leitura mapeando as telas e listas envolvidas e a menor correção. Sem edição de código. Corrigir exige nova versão rastreável, e commit exige autorização que este bloco não dá.
+- **Limites:** nenhuma outra operação financeira foi afetada, pois o caixa ainda não foi aberto. Sem conferência no servidor. Nenhum checkbox marcado.
+- **Próximo passo:** continuar o ciclo na 0.1.11 com o aparelho ligado ao ADB, conferindo o buffer de crash depois de cada etapa, enquanto a causa é investigada. A decisão sobre gerar a 0.1.12 e repetir os cenários afetados fica com o usuário.
+
+<a id="cp-20261110-116-caixa-aberto-relatado-no-samsung-sem-nova-queda"></a>
+
+## CP 20261110 116 Caixa aberto relatado no Samsung, sem nova queda
+
+- **Data:** 10/11/2026, 08h36, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4. Continua o [CP 115](#cp-20261110-115-crash-nativo-ao-salvar-o-primeiro-produto-no-samsung).
+- **Evidência física por relato:** usuário respondeu "Funciona" à abertura do caixa com troco de teste 100. A resposta não trouxe os valores da tela (troco, esperado, vendido hoje), nem o preço e o estoque do produto. Registrado como abertura concluída por relato, sem conferir números.
+- **Evidência técnica do Android:** `exit-info` e buffer de crash consultados às 08h36 pelo ADB. O único `FATAL EXCEPTION` do pacote hoje continua sendo o das 08h30m40s do CP 115. Nenhuma queda na abertura do caixa.
+- **Limites:** sem conferência no servidor. Nenhum checkbox marcado.
+- **Próximo passo:** venda em Pix manual de uma unidade, esperando vendido 10, gaveta 100 e estoque 19 após a sincronização.
+
+<a id="cp-20261110-117-hipoteses-para-o-crash-do-primeiro-produto"></a>
+
+## CP 20261110 117 Hipóteses para o crash do primeiro produto
+
+- **Data:** 10/11/2026, 08h39, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4. Continua o [CP 115](#cp-20261110-115-crash-nativo-ao-salvar-o-primeiro-produto-no-samsung).
+- **Método:** leitura do código por trabalhador, sem edição, sem rede e sem reprodução. Nada abaixo está confirmado em execução. A causa **não foi comprovada**.
+- **Fatos lidos no código:** ao salvar, `FormularioProduto.tsx` mostra o aviso, volta e libera o botão em poucos quadros, enquanto a lista passa de vazia para um item. `useVoltar.ts` faz `router.replace` e `router.back()` em sequência quando a pilha tem uma rota só. Nenhum `initialRouteName` em `app/`. `removeClippedSubviews={false}` existe só em `ListaProdutos`; `ListaVendas.tsx` e `TelaBusca.tsx` usam FlatList sem o prop. Reteste do emulador no CP 085 usou lista **filtrada** com catálogo já não vazio, enquanto o Samsung teve catálogo realmente vazio, conta nova e câmera recém-autorizada. Em 04/11 o mesmo Samsung salvou o primeiro produto na 0.1.11 sem queda (CP 097), logo o defeito é intermitente.
+- **Hipóteses, em ordem, todas inferência:** (1) corrida de montagem do Fabric na transição de saída, com mudança do botão, aviso e lista no mesmo ciclo; (2) lista montada de novo durante a saída, por `useVoltar` e pilha sem `index`; (3) o reteste do emulador mediu outro cenário; (4) outras FlatList expostas; (5) remontagem da pilha por troca de escopo, baixa.
+- **Menor correção sugerida, não aplicada:** `return` após o `replace` em `useVoltar.ts`; `initialRouteName: 'index'` no layout de produtos; adiar aviso e `setSalvando(false)` até depois da volta; `removeClippedSubviews={false}` nas outras duas listas. Exige nova versão, validação no Samsung com catálogo vazio e repetição dos cenários afetados.
+- **Reprodução proposta no emulador, não executada:** conta nova sem produtos, três rotas de cadastro, 20 a 30 repetições com animações ligadas, lendo `adb logcat -b crash`.
+- **Limites:** nenhum código, commit, build ou dado alterado. Nenhum checkbox marcado.
+- **Próximo passo:** usuário decidir se corrige agora (0.1.12) ou termina o ciclo na 0.1.11 e corrige depois.
+
+<a id="cp-20261110-118-pix-manual-relatado-e-dois-achados-de-fluxo"></a>
+
+## CP 20261110 118 Pix manual relatado e dois achados de fluxo
+
+- **Data:** 10/11/2026, 08h42, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 1. Continua o [CP 117](#cp-20261110-117-hipoteses-para-o-crash-do-primeiro-produto).
+- **Evidência física por relato:** venda em Pix manual de teste, sem transferência bancária, concluída com tela de confirmação; usuário avalia que "parece funcionar". Não foram informados vendido hoje, gaveta, estoque nem contagem de sincronização. Registrado como conclusão por relato, sem valores conferidos. **Sem queda:** `exit-info` e buffer de crash às 08h41 só trazem a queda das 08h30m40s do CP 115.
+- **Achado 1, saída da tela de sucesso (confirmado no código):** em `TelaSucesso.tsx` o único botão de saída é "Nova venda" e o botão voltar do Android executa a mesma ação. "Ver recibo" só expande o recibo. Não há atalho para o caixa ou o início, e `GuardaCobranca.tsx` mantém a cobrança fechada até "Nova venda". O usuário só vê o caixa depois de abrir uma nova venda e sair dela. Falha de usabilidade, sem perda de dado. Não corrigido.
+- **Achado 2, chave Pix (decisão de produto do usuário, não implementada):** a chave é pedida na primeira cobrança em Pix, no meio da venda, e fica só no aparelho (`PixEstatico`, `chavePix.ts`). A tela de pagamentos do cadastro (`pagamentos.tsx`) apenas lista "Pix · Pela sua chave, com confirmação manual" como sempre ativo, sem coletar a chave. O usuário quer que a chave, ou a escolha de onde o lojista recebe, venha no cadastro, ao menos como confirmação manual, e que o ideal seja integração com o destino do dinheiro, citando Mercado Pago, InfinitePay, Nubank, Stone e PicPay. Alinha-se à escolha de provedor pelo lojista do [CP 103](#cp-20261110-103-escolha-da-maquininha-pelo-lojista-decidida). Mercado Pago, InfinitePay e Stone têm levantamento documental no [CP 101](#cp-20261110-101-google-play-planos-e-integracoes-definidos); Nubank e PicPay **não foram pesquisados** e não há afirmação sobre integração com eles. Fica registrado para R6 e para o desenho do cadastro, sem alterar código.
+- **Teste:** a chave fictícia foi digitada apenas na homologação, por exigência do fluxo atual.
+- **Limites:** sem conferência no servidor. Nenhum checkbox marcado, sem alteração de código, API ou dados.
+- **Próximo passo:** conferir os valores do caixa, sincronizar e fazer a venda em cartão manual.
+
+<a id="cp-20261110-119-pix-manual-com-fila-zerada-e-estoque-19"></a>
+
+## CP 20261110 119 Pix manual com fila zerada e estoque 19
+
+- **Data:** 10/11/2026, 08h45, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 1. Continua o [CP 118](#cp-20261110-118-pix-manual-relatado-e-dois-achados-de-fluxo).
+- **Evidência física por relato:** sincronização com 0 aguardando e 0 para revisão, e estoque do produto em 19 unidades depois da venda em Pix manual de uma unidade. Bate com a baixa esperada de 20 para 19. Vendido hoje, esperado na gaveta e quantidade de vendas **não foram conferidos**: o usuário não os encontrou na tela do caixa.
+- **Onde ficam esses valores (código lido):** "Vendido hoje" e a quantidade de vendas estão no início (`app/(tabs)/index.tsx:71-75`). Na aba Caixa o total grande vem sem esse rótulo, com "N venda(s) hoje" embaixo, e o "Esperado na gaveta" fica no cartão "Conferir gaveta", abaixo da lista de meios (`ResumoCaixa.tsx:83-120`), exigindo rolagem. Achado menor de usabilidade: o total da aba Caixa não diz "Vendido hoje".
+- **Limites:** sem conferência no servidor. Nenhum checkbox marcado, sem alteração de código ou dados. Pix manual segue como PASS por relato, parcial.
+- **Próximo passo:** conferir vendido 10, uma venda e gaveta 100 nas duas telas e seguir para o cartão manual.
+
+<a id="cp-20261110-120-pix-manual-conferido-no-samsung"></a>
+
+## CP 20261110 120 Pix manual conferido no Samsung
+
+- **Data:** 10/11/2026, 08h47, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 1. Continua o [CP 119](#cp-20261110-119-pix-manual-com-fila-zerada-e-estoque-19).
+- **Evidência física por relato:** venda em Pix manual de uma unidade a R$ 10,00 conferida: vendido hoje R$ 10,00, 1 venda, esperado na gaveta R$ 100,00 (Pix não entra no dinheiro), aba Caixa conferida, fila 0/0 e estoque 19. **PASS por relato do ponto "venda em Pix manual"**, com o limite de que a chave Pix foi fictícia e o recebimento é só um registro de teste. O fluxo do primeiro produto continua com o FAIL do CP 115.
+- **Evidência técnica:** sem queda nova no buffer de crash às 08h47.
+- **Limites:** sem conferência no servidor (exige sessão do usuário) e sem UUID da venda. Nenhum checkbox marcado.
+- **Próximo passo:** venda em cartão manual de uma unidade, esperando vendido 20, cartão 10, gaveta 100 e estoque 18.
+
+<a id="cp-20261110-121-cartao-manual-relatado-no-samsung"></a>
+
+## CP 20261110 121 Cartão manual relatado no Samsung
+
+- **Data:** 10/11/2026, 08h48, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 1. Continua o [CP 120](#cp-20261110-120-pix-manual-conferido-no-samsung).
+- **Evidência física por relato:** usuário respondeu "Perfeito, tudo funciona" à venda de uma unidade em cartão de crédito manual, sem discriminar os valores. Os números esperados (vendido 20, 2 vendas, cartão 10, gaveta 100, estoque 18) e o texto do aviso de confirmação manual **não foram relatados um a um**. Registrado como **PASS por relato genérico**, de força menor que o do Pix no CP 120.
+- **Evidência técnica:** sem queda nova no buffer de crash às 08h48.
+- **Limites:** sem conferência no servidor. Nenhum checkbox marcado.
+- **Próximo passo:** pagamento dividido de uma unidade, dinheiro 5 e Pix manual 5, esperando vendido 30, 3 vendas, gaveta 105 e estoque 17.
+
+<a id="cp-20261110-122-pagamento-dividido-relatado-no-samsung"></a>
+
+## CP 20261110 122 Pagamento dividido relatado no Samsung
+
+- **Data:** 10/11/2026, 08h58, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 1. Continua o [CP 121](#cp-20261110-121-cartao-manual-relatado-no-samsung).
+- **Evidência física por relato:** usuário respondeu "Tudo correto" à venda dividida em dinheiro 5 e Pix manual 5 e à conferência dos valores previstos: vendido 30, 3 vendas, gaveta 105 e estoque 17. Os números não foram discriminados, então é **PASS por relato genérico**. Com os CPs 120 e 121 fecha o ponto 1 do bloco 4 (Pix manual, cartão manual e dividido) no nível de relato, sem conferência no servidor.
+- **Evidência técnica:** sem queda nova no buffer de crash às 08h58. Único `FATAL EXCEPTION` do pacote hoje segue o das 08h30m40s do CP 115.
+- **Limites:** sem conferência no servidor nem UUID das vendas. A conferência independente exige sessão do usuário. O defeito do primeiro produto (CP 115) continua aberto. Nenhum checkbox marcado.
+- **Próximo passo:** suprimento 50, sangria 8 e retirada 2, esperando gaveta 145 ao final.
+
+<a id="cp-20261110-123-entrada-de-50-relatada-e-achados-de-redacao-e-descoberta"></a>
+
+## CP 20261110 123 Entrada de 50 relatada e achados de redação e descoberta
+
+- **Data:** 10/11/2026, 09h07, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 2. Continua o [CP 122](#cp-20261110-122-pagamento-dividido-relatado-no-samsung).
+- **Correção de orientação:** o botão na aba Caixa se chama **Entrada** (`ROTULOS_MOVIMENTO` em `packages/shared/src/caixa.ts:4`), não "Suprimento" como orientado antes. A confirmação, segundo o usuário, diz "Registrar suprimento", e o resumo da gaveta usa "Suprimentos". Os três nomes para a mesma coisa são o achado 1.
+- **Evidência física por relato:** entrada de R$ 50 registrada, "entrou caixa", "tudo correto". Valor do esperado na gaveta (previsto 155) não foi discriminado. **PASS por relato do ponto "entrada"**, com força menor que a de uma conferência numérica.
+- **Achados de usabilidade do usuário, nenhum corrigido:**
+  1. **Redação inconsistente.** "Entrada", "Suprimento", "Suprimentos" e "Registrar suprimento" designam o mesmo movimento. Usuário pediu revisão geral da escrita da interface (UX writing).
+  2. **Campo Categoria.** Em `MovimentoDeCaixa.tsx:50,120` é texto livre já preenchido com valores técnicos (`reforco_troco`, `cofre_deposito`, `despesa`). Usuário sugere escondê-lo. A regra de domínio exige categoria preenchida no modo conectado (`dados/caixa.ts:139`), então esconder é viável **desde que o padrão seja mantido**.
+  3. **Descoberta.** Os botões Entrada, Sangria e Retirada ficam abaixo do cartão Conferir gaveta e de Fechar caixa (`ResumoCaixa.tsx:123-146`), fora da primeira tela. O usuário só os encontrou após orientação e teme que o operador não perceba que precisa rolar.
+- **Lista acumulada de usabilidade para a próxima versão:** estes três, mais o botão "Já tenho conta" na loja ([CP 112](#cp-20261110-112-email-confirmado-e-achado-na-tela-da-loja)), a saída da tela de sucesso e a chave Pix no cadastro ([CP 118](#cp-20261110-118-pix-manual-relatado-e-dois-achados-de-fluxo)) e o rótulo "Vendido hoje" da aba Caixa ([CP 119](#cp-20261110-119-pix-manual-com-fila-zerada-e-estoque-19)).
+- **Evidência técnica:** sem queda nova no buffer de crash às 09h07.
+- **Limites:** sem conferência no servidor. Nenhum checkbox marcado, sem alteração de código ou dados.
+- **Próximo passo:** sangria de R$ 8, esperando gaveta 147.
+
+<a id="cp-20261110-124-erro-na-sangria-e-dois-registros"></a>
+
+## CP 20261110 124 Erro na sangria e dois registros
+
+- **Data:** 10/11/2026, 09h13, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 2. Continua o [CP 123](#cp-20261110-123-entrada-de-50-relatada-e-achados-de-redacao-e-descoberta).
+- **Evidência física por relato:** ao registrar a sangria de R$ 8, o app mostrou um erro, mas a sangria constava registrada. O usuário repetiu a operação e a segunda funcionou "corretamente". Agora a aba Caixa mostra **duas sangrias e esperado na gaveta R$ 139,00**, e não as 147,00 previstas para uma só. O texto do erro **não foi guardado**, e o horário de cada sangria não foi informado. O usuário prefere que o texto saia do histórico do teste exportado no final.
+- **Classificação:** **achado aberto, causa não determinada.** Hipótese, sem prova: o erro foi exibido depois de a gravação local já ter ocorrido, e o operador repetiu a operação por não saber que ela tinha entrado. Se confirmada, é um aviso de falha para uma operação que gravou, e leva a lançamento financeiro duplicado pelo operador. Não há prova de duplicação feita pelo sistema. Duas hipóteses a separar com o histórico: erro de validação que não gravou, ou erro depois da gravação. O relato diz que a primeira constava registrada.
+- **Regra de conduta:** a segunda sangria não será apagada, corrigida nem compensada. O estado real do caixa passa a ser esperado R$ 139,00, e os cenários seguintes usam esse valor. Sem repetir operação financeira para contornar divergência.
+- **Evidência técnica:** sem queda nova no buffer de crash às 09h13. Erro de mensagem não é queda e não aparece no log do sistema.
+- **Evidência a obter:** exportar o histórico do teste (Diagnóstico do teste ativo, Exportar histórico) ao final, com limite de 500 eventos, e comparar horários e status HTTP/sync das duas sangrias. Conferir também no relatório do servidor se constam uma ou duas sangrias, e se houve reenvio da primeira.
+- **Limites:** sem conferência no servidor. Nenhum checkbox marcado, sem alteração de código ou dados.
+- **Próximo passo:** retirada de R$ 2, esperando gaveta 137, sem repetir nada em caso de erro.
+
+<a id="cp-20261110-125-retirada-relatada-e-ponto-2-concluido-por-relato"></a>
+
+## CP 20261110 125 Retirada relatada e ponto 2 concluído por relato
+
+- **Data:** 10/11/2026, 09h15, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 2. Continua o [CP 124](#cp-20261110-124-erro-na-sangria-e-dois-registros).
+- **Evidência física por relato:** retirada de R$ 2 registrada ("Perfeito funcionou"), sem relato de erro. O esperado na gaveta (previsto 137) e a quantidade de linhas de retirada não foram discriminados, então é **PASS por relato genérico**.
+- **Estado esperado do caixa para a próxima etapa:** troco 100, dinheiro vendido 5, entrada 50, sangrias 16 (duas), retirada 2, **esperado 137,00**. Vendido 30,00, 3 vendas, estoque 17. Divergência da sangria duplicada segue aberta no CP 124.
+- **Ponto 2 do bloco 4 (entrada, sangria, retirada):** executado. Entrada e retirada passaram por relato; a sangria passou com o achado do CP 124. Sem conferência no servidor.
+- **Evidência técnica:** sem queda nova no buffer de crash às 09h15.
+- **Limites:** nenhum checkbox marcado, sem alteração de código ou dados.
+- **Próximo passo:** sincronizar até 0/0, confirmar esperado 137, e iniciar o ponto 3 (modo avião, venda offline, reinício e reconexão).
+
+<a id="cp-20261110-126-venda-offline-relatada-e-encerramento-forcado"></a>
+
+## CP 20261110 126 Venda offline relatada e encerramento forçado
+
+- **Data:** 10/11/2026, 09h25, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 3. Continua o [CP 125](#cp-20261110-125-retirada-relatada-e-ponto-2-concluido-por-relato).
+- **Evidência física por relato:** antes de cortar a rede, o usuário disse "Perfeito, tudo funcionando" para a sincronização (previsto 0/0 e esperado 137), sem discriminar os números: **PASS por relato genérico** do estado inicial. Depois, com o modo avião ligado, uma venda em dinheiro de uma unidade a R$ 10 ficou "Funciona". Previstos vendido 40, 4 vendas, gaveta 147 e aviso "Offline"; **não discriminados**.
+- **Evidência técnica (ADB, cabo USB):** `airplane_mode_on=1` lido no Android antes do encerramento. O pacote foi encerrado com `am force-stop` às 09h24m22s do computador; o registro de saída do Android aponta o encerramento às 09h25m02s do aparelho (diferença de relógio e do tempo do comando não analisada). Nenhum processo do pacote ativo em seguida. Equivale ao Forçar parada, sem acesso ao armazenamento privado.
+- **Limites:** sem conferência no servidor, que não pode ser alcançado pelo aparelho nesta etapa por desenho. Nenhum checkbox marcado.
+- **Próximo passo:** reabrir o app ainda sem rede e conferir que a venda offline, o caixa e a fila foram preservados.
+
+<a id="cp-20261110-127-reabertura-offline-relatada"></a>
+
+## CP 20261110 127 Reabertura offline relatada
+
+- **Data:** 10/11/2026, 09h29, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 3. Continua o [CP 126](#cp-20261110-126-venda-offline-relatada-e-encerramento-forcado).
+- **Evidência física por relato:** depois do encerramento forçado e ainda em modo avião, o usuário reabriu o app e respondeu "Perfeito" à conferência de Início, Caixa e contagens de sincronização (previsto: sem pedir login, vendido 40, 4 vendas, gaveta 147, ao menos 1 aguardando e 0 para revisão). **PASS por relato genérico**: números e a contagem de pendências não foram discriminados.
+- **Evidência técnica:** `airplane_mode_on=1` ainda ativo às 09h29 e sem queda nova no buffer de crash.
+- **Limites:** sem conferência no servidor. Nenhum checkbox marcado.
+- **Próximo passo:** reconectar, sincronizar e conferir 0/0 sem duplicação: 4 vendas, vendido 40, gaveta 147, estoque 16.
+
+<a id="cp-20261110-128-reconexao-offline-relatada-e-historico-a-preservar"></a>
+
+## CP 20261110 128 Reconexão offline relatada e histórico a preservar
+
+- **Data:** 10/11/2026, 09h31, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 3. Continua o [CP 127](#cp-20261110-127-reabertura-offline-relatada).
+- **Evidência física por relato:** com a rede de volta e duas sincronizações forçadas, o usuário respondeu "Funcionando". Previstos 0/0 nas duas, vendido 40, 4 vendas, gaveta 147 e estoque 16, **sem discriminar os números**. Registrado como **PASS por relato genérico**, de força menor: a ausência de duplicação não foi comprovada por contagem.
+- **Evidência técnica:** `airplane_mode_on=0` às 09h31 e sem queda nova no buffer de crash.
+- **Ponto 3 do bloco 4 (modo avião, venda offline, reinício e reconexão):** executado, com um fator limitante: a venda foi uma só, em dinheiro. Não houve venda dividida offline, nem parcela interrompida, nem fechamento offline como no ciclo emulado do CP 093.
+- **Risco para a evidência:** o histórico do teste guarda só os 500 eventos mais recentes e já houve muitas sincronizações desde a sangria do CP 124. O texto do erro daquela sangria pode ser sobrescrito.
+- **Limites:** sem conferência no servidor. Nenhum checkbox marcado.
+- **Próximo passo:** exportar o histórico agora, antes do fechamento do caixa, e depois fechar o caixa com diferença.
+
+<a id="cp-20261110-129-historico-do-teste-lido-e-sangria-reclassificada"></a>
+
+## CP 20261110 129 Histórico do teste lido e sangria reclassificada
+
+- **Data:** 10/11/2026, 09h37, America/Sao_Paulo. Horários abaixo são os do aparelho, que ficam cerca de 40 s adiante do relógio do computador (comparação do `exit-info` com o horário do comando, CP 126).
+- **Etapa:** R0/R5, bloco 4. **Corrige a hipótese do [CP 124](#cp-20261110-124-erro-na-sangria-e-dois-registros)** e fecha o risco do [CP 128](#cp-20261110-128-reconexao-offline-relatada-e-historico-a-preservar).
+- **Evidência:** o usuário exportou o histórico do teste às 09h34 (`pdv-diagnostico-homologacao.json`), versão 0.1.11, Samsung SM-S938B, formato 1. Cópia local em `builds/pdv-bloco4-diagnostico-0934.json` (ignorada pelo git), SHA256 `2252c441c4d27081d83eab15c50c1755a84b15a0da224233f5a826e21a3a403d`. Tem 500 eventos de 09h11m42s a 09h34m15s, de quatro execuções do app. Só traz tipo, rota, ação genérica, endpoint, status, tempo e contagens, sem texto de erro, valores ou IDs. **Não cobre** o produto, a abertura do caixa, as vendas online, a entrada e o início da sangria, que ficaram antes da janela de 500 eventos.
+- **Sangria, o que o histórico mostra:** (1) às 09h12m12s há uma ação seguida, 4 ms depois, de um aviso de falha **sem navegação e sem requisição**, o que é típico de recusa imediata no próprio app; (2) às 09h12m17s, outra ação seguida 105 ms depois da volta para o Caixa, o mesmo desenho de uma gravação concluída; (3) às 09h13m12s o formulário de movimento foi aberto de novo e às 09h13m28s houve nova gravação concluída, também com volta ao Caixa; (4) às 09h15m18s, o formulário da retirada, e às 09h15m49s outra gravação concluída. Três gravações concluídas depois do aviso, iguais aos três movimentos conferidos no caixa (duas sangrias e uma retirada).
+- **Reclassificação:** a hipótese do CP 124 (erro depois de gravar) **não é sustentada**. O aviso das 09h12m12s parece uma recusa que **não gravou**, e a primeira sangria gravou 5 s depois. A segunda sangria foi uma **nova entrada completa**, aberta e confirmada 55 s depois, e não uma duplicação feita pelo sistema. Isso é inferência do padrão de eventos, não prova: o histórico não guarda o texto do aviso nem a causa. Hipótese plausível, não confirmada: campo obrigatório vazio (o app só exige destino e motivo na confirmação).
+- **Pendente:** o usuário confirmar se a segunda sangria foi intencional. Se o objetivo era repetir por achar que a primeira falhou, a lição é de usabilidade: a tela não deixou claro que a primeira entrou. Esperado na gaveta segue R$ 139,00 até a próxima etapa, depois R$ 147,00 com a venda offline.
+- **Dois outros avisos de falha sem texto**, às 09h17m53s e 09h23m33s, sem relato do usuário e sem causa. O de 09h17 vem junto de uma troca rápida entre segundo plano e ativo do app. Registrados como não explicados.
+- **Ponto 3 (offline e reconexão), o que o histórico acrescenta:** a rede falhou para o app (`status 0`, etapa rede) a partir de 09h23m48s. A sincronização mostrou **1 pendente e 0 rejeitadas** durante todo o período offline, até **um único** envio (`POST /sync/push`, 200) às 09h31m50s, que zerou a fila. Uma segunda sincronização manual às 09h31m57s não enviou nada. Isso sustenta, **sem duplicação**, uma venda pendente enviada uma vez. O histórico não mostra os totais de vendas.
+- **Vendas e reinício:** o app teve início de execução às 09h29m59s e às 09h31m49s, ou seja, dois reinícios depois do encerramento forçado, o segundo sem relato do usuário. As duas aberturas preservaram a pendência. Não analisada a causa do segundo reinício, possivelmente encerramento pelo Android em segundo plano.
+- **Sem registro de queda nativa:** esse histórico é de JavaScript e não captura crashes nativos. A conferência do buffer de crash do Android segue sendo a fonte.
+- **Limites:** sem conferência no servidor. Nenhum checkbox marcado, sem alteração de código ou dados.
+- **Próximo passo:** fechamento do caixa com diferença, esperando R$ 147,00.
+
+<a id="cp-20261110-130-fechamento-relatado-e-reinicios-explicados"></a>
+
+## CP 20261110 130 Fechamento relatado e reinícios explicados
+
+- **Data:** 10/11/2026, 09h42, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, pontos 3 e 4. Continua o [CP 129](#cp-20261110-129-historico-do-teste-lido-e-sangria-reclassificada).
+- **Resposta do usuário sobre a sangria:** a segunda sangria foi **de propósito**. A primeira deu erro no primeiro toque e funcionou depois, sem que ele lembre a mensagem. Isso confirma a leitura do CP 129: a recusa do primeiro toque não gravou, e **não houve duplicação feita pelo sistema nem engano do operador**. O achado de usabilidade permanece: o texto do erro não foi guardado nem lembrado, e o histórico só marca "falha". A divergência do CP 124 (139 e não 147) fica **resolvida como duas sangrias intencionais**.
+- **Reinícios explicados (`exit-info`, evidência do Android):** o processo terminou por `REMOVE TASK` às 09h23m54s e às 09h31m36s (o usuário removeu o app dos recentes) e por `FORCE STOP` às 09h25m02s (encerramento forçado pelo cabo do CP 126). Os dois inícios de execução do histórico às 09h29m59s e 09h31m49s correspondem a aberturas feitas pelo usuário. Não foi encerramento do sistema. Corrige a dúvida do CP 129.
+- **Evidência física por relato:** o usuário informou fechamento do caixa com "Tudo funcionando" e convidou a conferência pelo cabo. **Valores não discriminados**: esperado (previsto 147), texto de resultado, diferença (prevista −5), troco e recolhimento, e contagens de sincronização. **PASS por relato genérico**, sem números.
+- **Conferência pelo cabo, limitada:** o PDV consta como app em primeiro plano, mas a imagem da tela mostrou apenas a tela apagada do Samsung com o aviso de carregamento ("Carregamento lento: 72%"). Não foi possível ler nenhuma tela do app. Imagem guardada fora do repositório, sem dados do app. Sem queda nativa nova às 09h41 (buffer de crash).
+- **Achado de usabilidade relatado:** o campo "Troco que permanece na gaveta" está **sem máscara de valor**, ao contrário de "Valor contado". Não corrigido. Entra na lista acumulada do [CP 123](#cp-20261110-123-entrada-de-50-relatada-e-achados-de-redacao-e-descoberta).
+- **Pendente do ponto 4:** a conferência do fechamento no servidor, sem a qual o ponto não está comprovado fora do aparelho. O app tem a tela "Caixas da loja e conferência" (ou "Meus turnos e transferências"), que consulta o servidor.
+- **Limites:** sem conferência independente no servidor. Nenhum checkbox marcado, sem alteração de código ou dados.
+- **Próximo passo:** o usuário ler, no app, o turno confirmado pelo servidor e a diferença do fechamento.
+
+<a id="cp-20261110-131-fechamento-com-diferenca-conferido-na-tela-do-servidor"></a>
+
+## CP 20261110 131 Fechamento com diferença conferido na tela do servidor
+
+- **Data:** 10/11/2026, 09h51, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 4. Continua o [CP 130](#cp-20261110-130-fechamento-relatado-e-reinicios-explicados).
+- **Evidência física, captura de tela enviada pelo usuário** (aba Caixa, tela "Caixas da loja", com o aviso "Valores confirmados no servidor"). Mais forte que relato, mas continua sendo leitura feita na tela do app, e não consulta do agente à API. O nome do operador na captura não é registrado aqui.
+- **Valores lidos, turno "Encerrado":** esperado **R$ 147,00**, contado **R$ 142,00**, diferença **−R$ 5,00**, **recolhido R$ 122,00** e **troco preservado R$ 20,00**. Idêntico ao previsto. Turno `01a1c53e-bf5e-771e-9ca4-b2386305c7b2`.
+- **Movimentos do turno, quatro linhas:** Entrada R$ 50,00 (reforco_troco, "Teste de entrada"); Sangria R$ 8,00 (cofre_deposito, destino "Cofre, teste", motivo "Teste de sangria"); Sangria R$ 8,00 (cofre_deposito, destino "Teste", motivo começando em "San"); Retirada R$ 2,00 (despesa, "Teste, retirada"). Autor e responsável são o mesmo operador em todas. Uma só entrada, **duas** sangrias e uma retirada, sem linha repetida.
+- **Conferência cruzada dos IDs com o histórico do teste:** os eventos são UUID v7, que carregam o horário de criação. Decodificados no horário de Brasília (relógio do app): turno 08h36m26s, entrada 09h06m31s, **sangria 09h12m17,786s**, **sangria 09h13m28,423s** e **retirada 09h15m49,099s**. O histórico do [CP 129](#cp-20261110-129-historico-do-teste-lido-e-sangria-reclassificada) marca as gravações concluídas às 09h12m17,769s, 09h13m28,403s e 09h15m49,095s, com diferença de 4 a 20 ms. Os dois registros independentes concordam. **Nenhum movimento foi criado às 09h12m12s**, hora do aviso de falha, o que **comprova que a recusa do primeiro toque não gravou** e fecha a dúvida do CP 124.
+- **Resultado:** **ponto 4 do bloco 4, fechamento com diferença e conferência no servidor, aprovado** no nível de captura de tela do usuário. Fechamento online, sem a variante offline do ciclo emulado (CP 091). Não usei conferência por API, que exige sessão do usuário.
+- **Achados de usabilidade da tela:** os identificadores completos de turno e de eventos ocupam muito espaço e não ajudam o lojista; o botão "Registrar conferência" fica em destaque no fim da tela do turno, ao lado de campos de operação sensíveis. Registrado, sem correção.
+- **Sem queda nativa nova** no buffer de crash às 09h51. Nenhum checkbox marcado, sem alteração de código ou dados.
+- **Próximo passo:** ponto 5, leitura real de código de barras com a câmera, cadastrando um produto físico.
+
+<a id="cp-20261110-132-leitura-de-codigo-de-barras-relatada-e-principio-de-teclado"></a>
+
+## CP 20261110 132 Leitura de código de barras relatada e princípio de teclado
+
+- **Data:** 10/11/2026, 09h55, America/Sao_Paulo.
+- **Etapa:** R0/R5, bloco 4, ponto 5. Continua o [CP 131](#cp-20261110-131-fechamento-com-diferenca-conferido-na-tela-do-servidor).
+- **Evidência física por relato:** cadastro de um produto físico por leitura da câmera, "Funciona tudo". **Não discriminados:** o código lido, a quantidade de leituras ou apitos, se o catálogo sugeriu nome e se conferia com a embalagem, e o produto na lista. **PASS por relato genérico** da leitura real com a câmera, com a lacuna de que a conferência de duplicação de leitura (F01) e da sugestão de nome não foi detalhada. Não conta como F01 completo, que ainda exige a negação e a concessão de câmera, a lanterna e a digitação manual.
+- **Evidência técnica:** nenhuma saída do processo depois das 09h31 no `exit-info` e nenhuma queda nativa nova no buffer de crash às 09h55. O caminho "Cadastrar bipando", salvar e voltar à lista, que a investigação do [CP 117](#cp-20261110-117-hipoteses-para-o-crash-do-primeiro-produto) apontou como o mais exposto (pilha sem a lista por baixo), **não reproduziu o crash** nesta ocorrência. Com o catálogo já não vazio, isso não descarta a hipótese.
+- **Princípio de produto registrado pelo usuário:** subir um **teclado numérico em um bottom sheet** é o comportamento excelente do app e **deve se repetir sempre que houver uma ação de teclado**. Hoje há componentes dedicados (`TecladoNumerico.tsx`, `EntradaDeValor.tsx`, `CampoDinheiro.tsx` em `apps/mobile/src/componentes/`), usados no caixa, no pagamento em dinheiro e na venda de avulso e de peso. Já relatado fora do padrão: o campo "Troco que permanece na gaveta" no fechamento, sem máscara ([CP 130](#cp-20261110-130-fechamento-relatado-e-reinicios-explicados)); no código, o formulário de movimentos online em `TurnosCaixa.tsx` usa campos de texto comuns para valor, categoria e destino. Inventário completo dos campos de teclado **não feito**. Entra na lista de usabilidade da próxima versão.
+- **Limites:** sem conferência no servidor. Nenhum checkbox marcado, sem alteração de código ou dados.
+- **Próximo passo:** ponto 6, login: código expirado, reenvio, limite e recuperação. Exige sair do perfil e usar a caixa de entrada do e-mail do teste.
+
+<a id="cp-20261110-133-saida-do-perfil-e-codigo-enviado-no-samsung"></a>
+
+## CP 20261110 133 Saída do perfil e código enviado no Samsung
+
+- **Data:** 10/11/2026, 10h02, America/Sao_Paulo.
+- **Etapa:** R0, bloco 4, ponto 6 (login). Continua o [CP 132](#cp-20261110-132-leitura-de-codigo-de-barras-relatada-e-principio-de-teclado).
+- **Evidência física por relato:** depois de "Sair deste perfil", o usuário relatou ter ficado "travado" na tela "Entre novamente". Em seguida informou que tocou em **Enviar código** e que o **e-mail chegou**, sem outro toque. Estado esperado do app nesse ponto, pelo código de `entrar.tsx`: título "Entre novamente", aviso "Seu acesso precisa ser confirmado...", e-mail do perfil já preenchido, campo "Código" e botão secundário "Alterar e-mail ou pedir novo código" acima do botão principal "Entrar" no rodapé.
+- **Achado de usabilidade, causa não estabelecida:** a sensação de travamento antes do envio sugere que o botão principal "Enviar código", fixo no rodapé, ou o próprio fluxo de reautenticação não ficou evidente. Depois do envio, o usuário apontou como botão disponível o secundário "Alterar e-mail ou pedir novo código", e não o "Entrar". Não confirmado se a tela estava de fato bloqueada. Sem queda: buffer de crash e `exit-info` sem entrada nova às 10h02.
+- **Correção de orientação:** afirmei antes que o e-mail não vinha preenchido. Está preenchido (`useState(perfil?.email ?? '')`).
+- **Pendente:** a **hora de chegada do e-mail**, necessária para contar os 10 minutos de validade. Não informada. O teste de reenvio em menos de 60 s também não se aplica mais a este código, pois o intervalo já passou.
+- **Limites:** o código não foi digitado nem registrado. Sem conferência no servidor. Nenhum checkbox marcado, sem alteração de código ou dados.
+- **Próximo passo:** deixar o código vencer, 10 minutos contados da hora do e-mail, e digitá-lo para ver a mensagem de código expirado.
+
+<a id="cp-20261110-134-codigo-expirado-recusado-no-samsung"></a>
+
+## CP 20261110 134 Código expirado recusado no Samsung
+
+- **Data:** 10/11/2026, 10h16, America/Sao_Paulo.
+- **Etapa:** R0, bloco 4, ponto 6. Continua o [CP 133](#cp-20261110-133-saida-do-perfil-e-codigo-enviado-no-samsung).
+- **Evidência física por relato:** o e-mail com o código chegou às 10h01. O usuário esperou até depois das 10h13 (instrução dada, a hora exata do toque não foi informada), digitou o código e tocou em Entrar. O app exibiu **"Código inválido ou expirado. Confira o código ou solicite outro."** **PASS por relato, com a mensagem literal informada**, de código fora da validade de 10 minutos. Não informado se a tela manteve os dados do aparelho e a lista de usuários. Confirma no Android físico a correção da mensagem feita no CP 081, antes validada só no emulador (CP 085).
+- **Limites do resultado:** o teste prova a recusa de um código vencido, mas não distingue por conta própria vencimento de código já substituído, pois o app devolve a mesma mensagem nos dois casos (comportamento do contrato da API). Neste teste nenhum novo código foi pedido antes da digitação. Sem conferência no servidor. Nenhum checkbox marcado.
+- **Evidência técnica:** sem queda nativa nova às 10h15.
+- **Próximo passo:** pedir um novo código (reenvio), entrar com ele e conferir a preservação dos dados.
+
+<a id="cp-20261110-135-reenvio-de-codigo-e-reentrada-no-samsung"></a>
+
+## CP 20261110 135 Reenvio de código e reentrada no Samsung
+
+- **Data:** 10/11/2026, 15h12, America/Sao_Paulo (o relato chegou horas depois do CP 134; a hora do envio não foi informada).
+- **Etapa:** R0, bloco 4, ponto 6. Continua o [CP 134](#cp-20261110-134-codigo-expirado-recusado-no-samsung).
+- **Evidência física por relato:** o usuário pediu um novo código pela opção "Alterar e-mail ou pedir novo código", digitou o código novo no aparelho e entrou. Relato: "Funcionou perfeitamente, sem erros ou atrasos". **PASS por relato genérico**: sem hora de envio, sem mensagem de tela e sem os números pedidos.
+- **Não informado:** (a) o app entrou direto sem pedir loja; (b) o turno fechado de hoje (esperado 147,00, contado 142,00, diferença −5,00), a fila 0/0 e os dois produtos continuavam presentes. Não foram inferidos. A preservação dos dados após o reenvio fica sem prova individual; o ponto 7 volta a conferir esses mesmos dados.
+- **Limites:** o código não foi digitado no chat nem registrado. Sem conferência no servidor. Não foi testada a invalidação do código anterior (nenhum código anterior ainda válido na hora do reenvio). Nenhum checkbox marcado; sem alteração de código ou dados.
+- **Próximo passo:** limite de envios por e-mail (4º envio na janela de 15 minutos deve ser recusado), depois restauração em nova instalação (ponto 7).
+
+<a id="cp-20261110-136-limites-de-codigo-dispensados-no-samsung"></a>
+
+## CP 20261110 136 Limites de código dispensados no Samsung
+
+- **Data:** 10/11/2026, 15h15, America/Sao_Paulo.
+- **Etapa:** R0, bloco 4, ponto 6. Continua o [CP 135](#cp-20261110-135-reenvio-de-codigo-e-reentrada-no-samsung).
+- **Decisão do usuário:** os passos de limite de envios (4º envio na janela de 15 minutos), invalidação do código anterior e bloqueio por 5 erros foram dispensados, com o relato "não é necessário, toda essa jornada de códigos funciona perfeitamente". Relato geral, sem números, horas ou mensagens.
+- **Resultado por item:** código expirado = **PASS por relato com mensagem literal** (CP 134). Reenvio = **PASS por relato genérico** (CP 135). Limite de envios, código substituído e bloqueio por 5 erros = **não executados no aparelho** (dispensados pelo usuário; o relato geral não os prova). Recuperação por código (substituição de aparelho em `limite_aparelhos`) = **não executada, não aplicável agora**: com a cobrança desativada o plano é pro, com 10 aparelhos, e o limite não é atingido sem 10 aparelhos.
+- **Limites:** o comportamento desses limites segue provado só por testes automatizados e pelo emulador (CPs anteriores), não no Android físico. Nenhum checkbox marcado. Sem alteração de código.
+- **Próximo passo:** ponto 7, restauração da conta em nova instalação autorizada, com os valores de referência anotados antes de limpar os dados.
+
+<a id="cp-20261110-137-restauracao-apos-limpeza-de-dados-no-samsung"></a>
+
+## CP 20261110 137 Restauração após limpeza de dados no Samsung
+
+- **Data:** 10/11/2026, 15h35, America/Sao_Paulo (relógio do aparelho: 12h31 a 12h33).
+- **Etapa:** R0, bloco 4, ponto 7. Continua o [CP 136](#cp-20261110-136-limites-de-codigo-dispensados-no-samsung).
+- **O que foi feito:** com autorização do usuário ("Opção B"), `adb shell pm clear` no pacote de homologação 0.1.11 (versionCode 12) às 15h26, com o app reaberto em seguida. O usuário fez o login normal por e-mail e código, digitado só no aparelho. **Não foi uma reinstalação do APK**: o pacote e o APK permaneceram; só os dados do app foram apagados (inclui o identificador do aparelho e a sessão).
+- **Evidência por captura de tela feita via ADB** (`screencap`, sem acessar armazenamento privado), com navegação por `input tap` e `swipe` nas abas, sem tocar em botões de ação, e **conferida contra valores já registrados nos CPs anteriores, não contra números de antes da limpeza (não informados)**:
+  - **Início:** "Online"; Vendido hoje R$ 40,00 em **4 vendas** (Dinheiro 15,00, Pix 15,00, Cartão 10,00); sem caixa aberto ("Abrir caixa"). Últimas vendas #000004 Dinheiro 09:24, #000003 Dinheiro 08:57 e #000002 Cartão 08:48, todas R$ 10,00 e Pago.
+  - **Produtos:** 2 produtos, "Creme de leite teste" (código de barras, estoque 5, R$ 1,00) e "Teste Samsung 10/11" (sem código, estoque 16, R$ 10,00).
+  - **Caixas da loja** ("Valores confirmados no servidor"): turno **encerrado** com Esperado R$ 147,00, Contado R$ 142,00 e Diferença −R$ 5,00, iguais aos do [CP 131](#cp-20261110-131-fechamento-com-diferenca-conferido-na-tela-do-servidor); **Entrada** R$ 50,00, **2 Sangrias** de R$ 8,00 e **Retirada** R$ 2,00; Recolhido R$ 122,00 e Troco preservado R$ 20,00. Aritmética conferida: 100 de abertura + 15 em dinheiro + 50 − 16 − 2 = 147.
+  - **Ajustes:** conta ativa, plano Pro com acesso liberado, Pix, Cartão e Dinheiro ativos.
+- **Evidência técnica:** o app seguiu em execução, sem queda nativa nova; o buffer de crash só tem a queda das 08h30 de antes.
+- **Resultado:** **PASS por captura de tela e ADB** para a restauração dos dados confirmados após limpeza de dados: produtos, 4 vendas pagas, caixa fechado com diferença, movimentos e totais voltaram do servidor.
+- **Limites:** (a) não houve desinstalação nem instalação do APK; (b) não foram informados os números de antes da limpeza, então o estoque e os totais foram conferidos só por consistência interna; (c) não se viu a tela de Sincronização (fila 0/0) após o login nem se o app pediu escolha de loja; (d) sem conferência independente pela API ou pelo servidor (a tela diz que os valores do caixa são confirmados no servidor); (e) pendências exclusivas do aparelho antigo não foram testadas (não havia nenhuma); (f) as vendas #000002 a #000004 foram vistas, a #000001 não apareceu na captura; (g) a captura de Ajustes mostrou dado pessoal, não gravado aqui. Nenhum checkbox marcado.
+- **Próximo passo:** decisão do usuário entre fechar o bloco 4 com estes limites, repetir com desinstalação e instalação do APK, e gerar a 0.1.12 para o crash do primeiro produto (CP 115 e CP 117).
+
+<a id="cp-20261110-138-bloco-4-encerrado-no-samsung"></a>
+
+## CP 20261110 138 Bloco 4 encerrado no Samsung
+
+- **Data:** 10/11/2026, 15h37, America/Sao_Paulo.
+- **Etapa:** R0, bloco 4 (ciclo completo de um operador no Samsung, APK 0.1.11, versionCode 12, API de homologação). Encerrado por decisão do usuário ("Fechar assim"), com os limites abaixo. Continua o [CP 137](#cp-20261110-137-restauracao-apos-limpeza-de-dados-no-samsung).
+- **Resultado por ponto** (evidência: R = relato do usuário, C = captura de tela, A = ADB, H = histórico de diagnóstico exportado pelo app):
+  1. Pix manual, cartão manual e pagamento dividido: **aprovado** (R; Pix também por C, CP 120; totais por forma de pagamento confirmados por C no CP 137). CPs 118 a 122.
+  2. Entrada, sangria e retirada: **aprovado** (R; movimentos e valores confirmados por C no CP 137). Duas sangrias de R$ 8,00 foram intencionais; o erro no primeiro toque da primeira sangria não gravou nada (H, CP 129). CPs 123 a 125.
+  3. Modo avião, venda offline, reinício e reconexão: **aprovado por relato**, com **prova parcial de não duplicação** (um único envio conferido pelo histórico, CPs 126 a 129). Os totais finais por C no CP 137 (4 vendas, R$ 40,00) são consistentes com ausência de duplicação.
+  4. Fechamento com diferença e conferência no servidor: **aprovado** (C, tela "Caixas da loja", esperado 147,00, contado 142,00, diferença −5,00; CPs 130, 131 e 137).
+  5. Leitura de código de barras com a câmera: **aprovado por relato** (CP 132). Não confirmados F01 completo (câmera negada e concedida, lanterna, digitação manual) nem os detalhes do leitor.
+  6. Login: **código expirado aprovado** por relato com a mensagem literal (CP 134); **reenvio aprovado por relato genérico** (CP 135); **limite de envios, código substituído e bloqueio por 5 erros não executados**, dispensados pelo usuário; **recuperação por código não executada, não aplicável** com o plano Pro (CP 136).
+  7. Restauração da conta: **aprovada por C e A após limpeza de dados** do app, **sem reinstalação do APK** e sem conferência independente por API (CP 137).
+- **Defeitos e dúvidas abertos:** (a) **queda nativa ao salvar o primeiro produto** (CP 115, hipóteses no CP 117), não corrigida; (b) dois avisos de falha sem texto no histórico às 09h17 e 09h23 (CP 129), sem causa; (c) sensação de travamento na tela "Entre novamente" (CP 133), causa não estabelecida; (d) lista de usabilidade acumulada nos CPs 112, 118, 119, 123, 130, 131, 132 e 133.
+- **Roadmap:** parágrafo de avanço parcial de R0 atualizado. **Nenhum item físico de R0 foi marcado `[x]`**: faltam a reinstalação do APK, a conferência independente pela API, o limite de envios no aparelho e a correção do defeito (a).
+- **Limites gerais:** a maior parte da evidência é relato do usuário; a conferência pela API de homologação não foi possível, pois o agente não tem a sessão do usuário nem deve receber o código de acesso; nenhum commit ou push foi feito; produção intocada; backups locais preservados; dados pessoais e códigos de acesso não foram gravados.
+- **Próximo passo:** decidir se gera a 0.1.12 com a correção do crash do primeiro produto (CP 117) e repete o ciclo físico com desinstalação e instalação do APK; priorizar a lista de usabilidade.
+
+<a id="cp-20261110-139-0112-gerada-com-correcao-defensiva-do-crash"></a>
+
+## CP 20261110 139 0.1.12 gerada com correção defensiva do crash
+
+- **Data:** 10/11/2026, 15h51, America/Sao_Paulo.
+- **Etapa:** R0/R5, depois do bloco 4. Segue o [CP 138](#cp-20261110-138-bloco-4-encerrado-no-samsung); trata o defeito aberto do [CP 115](#cp-20261110-115-crash-nativo-ao-salvar-o-primeiro-produto-no-samsung) e as hipóteses do [CP 117](#cp-20261110-117-hipoteses-para-o-crash-do-primeiro-produto). Autorizado pelo usuário ("Sim, gerar 0.1.12").
+- **Construído (não commitado, branch `codex/pdv-homologacao-real`):** `apps/mobile/app.json` 0.1.11/12 para **0.1.12/13**; `removeClippedSubviews={false}` nas FlatList de `ListaVendas.tsx` e `TelaBusca.tsx` (`ListaProdutos` já tinha); `useVoltar.ts` passou a separar o `replace` do `back()` em quadros diferentes com `requestAnimationFrame`, **mantendo o destino do botão voltar**. Não aplicados por mudarem o destino do voltar: `return` após o `replace` e `initialRouteName` (CP 117), nem alteração em `FormularioProduto.tsx`.
+- **Validação local:** `npm run typecheck -w @pdv/mobile` aprovado; `npm run test -w @pdv/mobile -- --maxWorkers=1` aprovado, 73 arquivos e 600 testes. Não há script de lint no projeto. Não há teste novo: nenhum teste cobre `useVoltar` ou essas listas, e o crash não foi reproduzido.
+- **APK:** `./scripts/build-android.ps1 -Perfil homologacao`, Gradle BUILD SUCCESSFUL em 8m28s, ARM64 e ARM32, 1892 fontes, API de homologação consultada antes do build. `builds/pdv-homologacao-0.1.12.apk`, 4,29 MB de bundle, **SHA256 `0c9a9377ca7826f97ffcb1ac8917f17d48cd58bd77fb78d4c0db9060b49d1372`**. Assinatura de teste local, a mesma da 0.1.11 (certificado SHA-256 `fac61745…3b9c`), então `adb install -r` atualiza sem limpar dados. Manifesto: `androidFisico` e `aceiteHumano` pendentes. `builds/` é ignorado pelo git.
+- **Limites:** a causa do crash **não foi comprovada nem reproduzida**; a correção é defensiva e pode não resolver, pois as duas listas não estão no caminho do cadastro e o ajuste de `useVoltar` é hipótese. Sem teste em Android físico nem no emulador, sem CI desta versão, sem conferência do hash no aparelho. Nenhum checkbox marcado.
+- **Próximo passo:** instalar a 0.1.12 no Samsung por atualização (`adb install -r`, com autorização do usuário), conferir o SHA256 instalado e repetir o cadastro do primeiro produto em conta nova (catálogo vazio), lendo o buffer de crash. Depois decidir sobre o CI e sobre repetir os cenários do bloco 4.
+
+<a id="cp-20261110-140-bloco-5-iniciado-apk-0112-conferido-e-f03-nao-aplicavel"></a>
+
+## CP 20261110 140 Bloco 5 iniciado, APK 0.1.12 conferido e F03 não aplicável
+
+- **Data:** 10/11/2026, 12h55, America/Sao_Paulo (máquina em UTC−3, 15h55 UTC).
+- **Etapa:** R5, bloco 5 (APK e auditoria no aparelho). Continua o [CP 139](#cp-20261110-139-0112-gerada-com-correcao-defensiva-do-crash).
+- **Decisões do usuário nesta sessão:** os testes físicos valem para a **0.1.12**; **ninguém usa a 0.1.4**.
+- **F03: NÃO APLICÁVEL**, por declaração do usuário de que ninguém usa a 0.1.4. Não houve teste de migração. No Samsung, o pacote demo `br.com.pdv.mobile` está na versão 0.1.2 (versionCode 3) e foi preservado.
+- **APK conferido (validado localmente):** `builds/pdv-homologacao-0.1.12.apk`, 64.628.700 bytes, pacote `br.com.pdv.mobile.homologacao`, 0.1.12/13. **SHA256 recalculado `0c9a9377ca7826f97ffcb1ac8917f17d48cd58bd77fb78d4c0db9060b49d1372`**, igual ao `.sha256` e ao manifesto. Certificado SHA-256 `fac61745…3b9c`, igual ao da 0.1.11. Manifesto do APK sem armazenamento amplo, biometria nem `RECORD_AUDIO`. Inventário de 300 fontes recalculado contra o checkout: **zero divergências**. Essa conferência é anterior à instalação; o hash no aparelho ainda precisa ser lido depois dela.
+- **Estado inicial do aparelho (ADB, 12h47):** SM-S938B, Android 17, homologação 0.1.11/12, `base.apk` com SHA256 `2df561ee…e0c3`, igual ao `builds/pdv-homologacao-0.1.11.apk`. Câmera não concedida. O ADB perdeu o aparelho às 12h53, e a leitura de buffer de crash e do modo avião ficou sem resultado.
+- **Ordem definida:** F02 (atualizar 0.1.11 para 0.1.12) vem **antes** de F01, porque a instalação limpa apaga os dados locais que F02 precisa preservar. O texto de F02 cita 0.1.5/0.1.6 para 0.1.7, versões históricas; aqui o par é 0.1.11 para 0.1.12, a versão anterior efetivamente instalada.
+- **Correção de registro:** os horários dos CPs 137 e 139 estão em UTC, embora rotulados como America/Sao_Paulo. O APK foi concluído às 12h51 locais, e não às 15h51. A sequência entre os CPs não muda.
+- **Limites:** 0.1.12 sem commit e sem CI (CP 139), o que fica como limite de rastreabilidade das evidências deste bloco. F01, F02, F18 e as verificações físicas da auditoria continuam pendentes. Nenhum checkbox marcado, sem alteração de código.
+- **Próximo passo:** reconectar o Samsung e registrar o estado na 0.1.11 antes de atualizar, com dados sincronizados e uma venda pendente.
+
+<a id="cp-20261115-141-prompts-revisados-para-conducao-pelo-agente-em-qualquer-android"></a>
+
+## CP 20261115 141 Prompts revisados para condução pelo agente em qualquer Android
+
+- **Data:** 15/11/2026, 22h04, America/Sao_Paulo.
+- **Etapa:** R0/R5, preparação da retomada do bloco 5. Continua o [CP 140](#cp-20261110-140-bloco-5-iniciado-apk-0112-conferido-e-f03-nao-aplicavel). Pedido do usuário: tirar dele os testes que o agente pode executar e não depender de um modelo de aparelho.
+- **Construído (não commitado, branch `codex/pdv-homologacao-real`):**
+  - [prompts-sessoes-entrega.md](prompts-sessoes-entrega.md) reescrito: situação dos blocos 1–5, numeração mantida, novo tipo "Agente + aparelho", coluna com o que fica com o usuário, regras do aparelho (11–16: qualquer Android, agente conduz por ADB, só o pacote de homologação, configuração restaurada, emulador como substituto só com aprovação, retomada após queda do ADB). Regra 5 passou a aceitar o código digitado pelo usuário no prompt dos scripts `homologar-*.mts`, nunca na conversa. Bloco 5 retomado com commit e CI da 0.1.12, F02 antes de F01 e reteste do crash do primeiro produto (CP 115).
+  - `scripts/pdv-android-ui.py`: driver de UI para qualquer Android, com `--dispositivo`, `--fisico` (opt-in para aparelho real), `--listar`, guarda de primeiro plano genérica no lugar da checagem de launcher, ações `back`, `airplane`, `tap_sistema` e `assert_ausente`, artefatos `builds/pdv-ui-*` e serial gravado só como hash no log.
+  - `scripts/pdv-emulador-ui.py` virou shim legado que chama o novo driver no `emulator-5586`, sem `--fisico`.
+- **Complemento no mesmo dia, a pedido do usuário:** modelo recomendado por bloco na tabela e no início de cada bloco. Opus 5.5 orquestra os blocos 6, 8, 9, 13–15 e 18–23. Sonnet 5.5 fica com os blocos 5, 7, 10–12, 16 e 17 e com o opcional de backup, e Haiku 5.5 com o opcional de contato. Fallback para Sonnet só nos blocos 6, 8, 13, 15 e 23.
+- **Validação local:** `py_compile` dos dois scripts aprovado; `--help` aprovado; `--listar` sem aparelho conectado imprime mensagem clara. **Nenhuma ação de UI foi executada**, nem em emulador nem em aparelho físico. Limites conhecidos: o formato de `dumpsys window` e o suporte a `cmd connectivity airplane-mode` (Android 11+) variam por fabricante; `money` depende dos rótulos em português.
+- **Aparelho:** `adb devices` vazio às 22h04; a conexão do aparelho ainda não foi feita.
+- **Roadmap:** sem alteração; nenhum checkbox marcado. Sem commit, push, deploy ou mudança em produção.
+- **Próximo passo:** conectar um Android com depuração USB ou Wi-Fi autorizada e abrir uma sessão nova com o prompt do bloco 5 (retomada).

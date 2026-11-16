@@ -98,6 +98,9 @@ export function TelaBusca() {
     <TelaBase>
       <FlatList
         data={resultados}
+        // Same defensive setting as ListaProdutos: results change on every keystroke, so keep
+        // native children attached on Android (Fabric addViewAt crash).
+        removeClippedSubviews={false}
         keyExtractor={(produto) => produto.id}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

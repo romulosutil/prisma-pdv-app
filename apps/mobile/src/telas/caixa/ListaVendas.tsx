@@ -164,6 +164,9 @@ export function ListaVendas() {
       </View>
       <FlatList
         data={linhas}
+        // Same defensive setting as ListaProdutos: keep native children attached while the
+        // list swaps between empty state and rows during Android transitions (Fabric addViewAt).
+        removeClippedSubviews={false}
         keyExtractor={(l) => l.chave}
         ListHeaderComponent={cabecalho}
         ListEmptyComponent={vazio}

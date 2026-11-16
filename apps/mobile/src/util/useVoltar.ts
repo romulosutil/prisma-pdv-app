@@ -14,7 +14,14 @@ export function useVoltar(alternativa: Href): () => void {
       router.replace(alternativa);
       return;
     }
-    if ((navigation.getState()?.routes.length ?? 0) <= 1) router.replace(alternativa);
+    if ((navigation.getState()?.routes.length ?? 0) <= 1) {
+      router.replace(alternativa);
+      // Separa o `replace` do `back` em ciclos de quadro diferentes: no Android (Fabric) as duas
+      // trocas de pilha no mesmo ciclo coincidiam com a queda `addViewAt` do CP 115. Hipótese, o
+      // destino continua o mesmo.
+      requestAnimationFrame(() => router.back());
+      return;
+    }
     router.back();
   }, [router, navigation, alternativa]);
 }

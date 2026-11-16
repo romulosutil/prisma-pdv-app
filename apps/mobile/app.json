@@ -3,7 +3,7 @@
     "name": "PDV",
     "slug": "pdv-mobile",
     "scheme": "pdv",
-    "version": "0.1.12",
+    "version": "0.1.13",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "br.com.pdv.mobile",
-      "versionCode": 13,
+      "versionCode": 14,
       "adaptiveIcon": {
         "backgroundColor": "#FFC933",
         "foregroundImage": "./assets/android-icon-foreground.png",

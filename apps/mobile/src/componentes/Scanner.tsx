@@ -85,6 +85,9 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
 
   const cameraNoAparelho = Platform.OS !== 'web';
   const cameraLiberada = cameraNoAparelho && permissao?.granted === true && erroDaCamera === null;
+  // Sem permissão (ou com erro de câmera) o leitor não lê nada: o selo não pode dizer "Leitor ativo".
+  // Enquanto a permissão ainda é consultada (`null`) mantém o título normal, para não piscar.
+  const semCamera = !cameraLiberada && !(cameraNoAparelho && permissao === null);
 
   useEffect(
     () => () => {
@@ -208,7 +211,7 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
         </View>
       ) : null}
 
-      {!cameraLiberada && !(cameraNoAparelho && permissao === null) ? (
+      {semCamera ? (
         <SemCamera
           cameraNoAparelho={cameraNoAparelho}
           erro={erroDaCamera !== null}
@@ -225,15 +228,21 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
           <View
             accessible
             accessibilityRole="text"
-            accessibilityLabel={pausado ? 'Leitor em pausa' : `${titulo}. Aponte para um código por vez e confira o produto lido. A moldura é uma orientação visual.`}
+            accessibilityLabel={
+              pausado
+                ? 'Leitor em pausa'
+                : semCamera
+                  ? 'Câmera desligada. Digite o código para continuar.'
+                  : `${titulo}. Aponte para um código por vez e confira o produto lido. A moldura é uma orientação visual.`
+            }
             style={estilos.chipEstado}
           >
-            <View style={[estilos.ponto, { backgroundColor: pausado ? CINZA_PAUSA : VERDE_ATIVO }]} />
+            <View style={[estilos.ponto, { backgroundColor: pausado || semCamera ? CINZA_PAUSA : VERDE_ATIVO }]} />
             <Texto cor={cores.bg} style={textoBotao.S}>
-              {pausado ? 'Leitor em pausa' : titulo}
+              {pausado ? 'Leitor em pausa' : semCamera ? 'Câmera desligada' : titulo}
             </Texto>
           </View>
-          {lanterna && cameraNoAparelho ? (
+          {lanterna && cameraLiberada ? (
             <View style={estilos.chipLanterna}>
               <Icone nome="lanterna" tamanho={14} cor={cores.manga} espessura={2.5} />
               <Texto cor={cores.manga} style={legendaForte}>

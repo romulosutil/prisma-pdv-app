@@ -45,3 +45,13 @@ it('permissão com rejeição informa erro e digitação abre formulário em she
   await act(async () => botao('Digitar código').props.onPress());
   expect(r.root.findAll(n => n.type === 'input' as any)).toHaveLength(1); expect(cameras()).toHaveLength(0);
 });
+it('sem permissão de câmera o selo não diz "Leitor ativo"; com permissão diz', async () => {
+  const textos = () => r.root.findAll(n => n.type === 'texto' as any).map(n => [n.props.children].flat().join(''));
+  m.permissao = false;
+  await act(async () => { r = create(React.createElement(Scanner, { onLer: vi.fn() })); });
+  expect(textos()).toContain('Câmera desligada'); expect(textos()).not.toContain('Leitor ativo');
+  await act(async () => r.unmount());
+  m.permissao = true;
+  await act(async () => { r = create(React.createElement(Scanner, { onLer: vi.fn() })); });
+  expect(textos()).toContain('Leitor ativo'); expect(textos()).not.toContain('Câmera desligada');
+});

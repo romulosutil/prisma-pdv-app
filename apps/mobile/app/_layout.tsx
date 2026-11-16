@@ -32,6 +32,24 @@ const captura: typeof import('@/diagnostico/captura') | null =
 captura?.instalarDiagnostico(dados);
 const useDiagnosticoDeNavegacao: () => void = captura?.useDiagnosticoDeNavegacao ?? (() => undefined);
 
+// A abertura dos dados vale por processo. Uma mudança de configuração do Android (densidade, tamanho de tela)
+// recria a Activity e remonta `LayoutRaiz` com `dados` já iniciado e sincronizando; repetir `dados.iniciar()`
+// nesse momento mostrava "Não foi possível abrir seus dados" (CP 144). A tentativa em andamento ou concluída é
+// reaproveitada, e só uma falha libera nova tentativa ("Tentar novamente").
+let aberturaDosDados: Promise<void> | null = null;
+function abrirDados(): Promise<void> {
+  if (!aberturaDosDados) {
+    aberturaDosDados = (async () => {
+      await dados.iniciar();
+      if (Platform.OS !== 'web') {
+        try { const { limparExportacoesExpiradas } = await import('@/util/exportacoes'); limparExportacoesExpiradas(); }
+        catch { /* A limpeza temporária não deve impedir abrir os dados comerciais. */ }
+      }
+    })().catch((e) => { aberturaDosDados = null; throw e; });
+  }
+  return aberturaDosDados;
+}
+
 export default function LayoutRaiz() {
   const [fontesProntas, erroDeFonte] = useFonts(FONTES_PARA_CARREGAR);
   const [dadosProntos, setDadosProntos] = useState(false);
@@ -41,11 +59,7 @@ export default function LayoutRaiz() {
   const carregarDados = useCallback(async () => {
     setCarregandoDados(true);
     try {
-      await dados.iniciar();
-      if (Platform.OS !== 'web') {
-        try { const { limparExportacoesExpiradas } = await import('@/util/exportacoes'); limparExportacoesExpiradas(); }
-        catch { /* A limpeza temporária não deve impedir abrir os dados comerciais. */ }
-      }
+      await abrirDados();
       registrarPiloto('app', { etapa: 'pronto' });
       setErroDeDados(false);
       setDadosProntos(true);

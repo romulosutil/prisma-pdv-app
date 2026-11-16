@@ -298,9 +298,16 @@ describe('F14: recebimentos concorrentes contra o mesmo saldo', () => {
     const r = await receber(s, v.id, 300, cx);
     const estornos = [gerarId(), gerarId(), gerarId()].map(id => ({ id, recebimentoId: r.corpo.id, caixaId: cx, motivo: 'Devolvido' }));
     const rs = await Promise.all([...estornos.map(e => post(s, '/fiado/estornos', e)), post(s, '/fiado/estornos', estornos[0])]);
-    expect(rs.filter(x => x.status === 200)).toHaveLength(2);
-    expect(rs.filter(x => x.status === 409)).toHaveLength(2);
-    expect((await amb.db.select().from(eventosFiado)).filter(e => e.tipo === 'estorno')).toHaveLength(1);
+    // Em corrida real (PostgreSQL) qualquer um dos três IDs pode vencer; só o vencedor (e sua repetição idempotente) recebe 200.
+    expect(rs.filter(x => x.status !== 200 && x.status !== 409)).toEqual([]);
+    const enviados = [...estornos, estornos[0]!];
+    const vencedores = new Set(rs.flatMap((x, i) => (x.status === 200 ? [enviados[i]!.id] : [])));
+    expect(vencedores.size).toBe(1);
+    const vencedor = [...vencedores][0]!;
+    rs.forEach((x, i) => expect(x.status).toBe(enviados[i]!.id === vencedor ? 200 : 409));
+    const gravados = (await amb.db.select().from(eventosFiado)).filter(e => e.tipo === 'estorno');
+    expect(gravados).toHaveLength(1);
+    expect(gravados[0]!.id).toBe(vencedor);
     expect(await liquidoRecebido(v.id)).toBe(0);
     expect(await gaveta(s, cx)).toBe(1200);
   });

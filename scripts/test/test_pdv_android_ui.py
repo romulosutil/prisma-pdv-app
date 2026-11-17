@@ -231,6 +231,19 @@ class FluxosSuporteTest(unittest.TestCase):
         self.assertIn(['assert', 'Protocolo:', 'Aguardando análise da equipe.'], acoes)
         self.assertLess(acoes.index(digitado), acoes.index(['tap', 'Enviar solicitação de suporte']))
 
+    def test_suporte_envio_volta_para_ajustes_para_o_proximo_fluxo_comecar_na_aba(self):
+        acoes = self.acoes('suporte-envio')
+        protocolo = acoes.index(['assert', 'Protocolo:', 'Aguardando análise da equipe.'])
+        self.assertIn(['back'], acoes)
+        self.assertGreater(acoes.index(['back']), protocolo)
+        self.assertEqual(acoes[-1], ['assert_ausente', 'Enviar solicitação de suporte'])
+
+    def test_exportar_json_nao_grava_textos_do_seletor_do_sistema(self):
+        acoes = self.acoes('exportar-json')
+        self.assertNotIn(['snapshot', 'exportar-json-seletor'], acoes)
+        self.assertIn(['snapshot_sistema', 'exportar-json-seletor'], acoes)
+        self.assertEqual(d.validar_acao(['snapshot_sistema', 'x']), [])
+
     def test_exportar_json_fecha_o_seletor_do_sistema_antes_de_conferir_o_aviso(self):
         acoes = self.acoes('exportar-json')
         exportar = acoes.index(['tap', 'Exportar dados confirmados desta loja'])

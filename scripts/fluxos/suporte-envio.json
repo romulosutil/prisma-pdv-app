@@ -87,6 +87,26 @@
         "snapshot",
         "suporte-envio"
       ]
+    },
+    {
+      "nome": "Voltar para Ajustes",
+      "acao": [
+        "back"
+      ]
+    },
+    {
+      "nome": "Conferir que saiu da tela de suporte",
+      "acao": [
+        "assert",
+        "Suporte e privacidade"
+      ]
+    },
+    {
+      "nome": "Conferir ausencia da aba de envio",
+      "acao": [
+        "assert_ausente",
+        "Enviar solicitação de suporte"
+      ]
     }
   ]
 }

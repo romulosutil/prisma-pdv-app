@@ -36,15 +36,16 @@ Fora da `regressao.json` (nao fazem parte da regressao do caixa). Pre-condicao: 
   "Incluir resumo tecnico sem credenciais" (padrao 0), envia e confere "Protocolo:" e "Aguardando analise da equipe.".
   **Cria um protocolo real** na conta logada (precisa de nenhuma solicitacao pendente e menos de 10 abertas).
 - `exportar-json`: toca em "Exportar dados confirmados desta loja", grava o layout do seletor do sistema
-  (`builds/pdv-ui-exportar-json-seletor-layout.json`), fecha o seletor com `back_sistema` (nenhum destino escolhido)
+  (`builds/pdv-ui-exportar-json-seletor-layout.json`, so a contagem de nos), fecha o seletor com `back_sistema` (nenhum destino escolhido)
   e confere o aviso "Arquivo entregue ao compartilhamento". O fluxo nao le o arquivo no destino (isso e `adb pull`/humano).
 - Acao nova `back_sistema`: keyevent 4 sem exigir o app em primeiro plano (o `back` comum falha com o seletor aberto);
   depois do toque confere que o app voltou ao primeiro plano.
+- Acao nova `snapshot_sistema N`: como `snapshot`, mas grava so a contagem de nos (nunca textos) em `builds/pdv-ui-N-layout.json`; usada no seletor de compartilhamento do sistema, que lista contatos do usuario (CP 155).
 - Passo opcional: `"se": "<expressao>"` no passo; ele so entra quando a expressao vale diferente de 0 (use um parametro, ex.
   `incluir_resumo`).
 - Execucao offline registrada em 17/11/2026 (sem aparelho): `--simular fluxo` dos tres arquivos termina em "Simulacao OK"
   (suporte 14 passos, suporte-envio 10 passos com `incluir_resumo=0` e 11 com `=1`, exportar-json 11 passos) e
-  `python -m unittest discover -s scripts/test -p "test_*.py"` passa (53 testes). Execucao no aparelho: PENDENTE.
+  `python -m unittest discover -s scripts/test -p "test_*.py"` passa (53 testes). Execucao no aparelho em 17/11/2026 (Samsung SM-S938B, APK 0.1.17): os tres fluxos PASS (CP 155). `suporte-envio` agora termina voltando para Ajustes (antes deixava o app em "Suporte e privacidade" e `exportar-json` falhava no primeiro passo).
 
 ## Formato (JSON)
 

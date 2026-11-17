@@ -25,6 +25,8 @@ Acoes (argumentos entre colchetes sao opcionais):
   assert_ausente T...  falha se algum texto T estiver na tela
   row D V         confere o texto V dentro da linha de descricao D
   snapshot N      salva layout sanitizado em builds/pdv-ui-N-layout.json e imprime os textos
+  snapshot_sistema N  como snapshot, mas grava so a contagem de nos (nunca textos): para telas do sistema
+                  (seletor de compartilhamento) que listam contatos do usuario
   screenshot N    salva builds/pdv-ui-N.png
   stop/launch     force-stop / abre o app de homologacao
   key K / back    keyevent do Android / voltar
@@ -339,6 +341,16 @@ def money(value):
         time.sleep(.15)
 
 
+def snapshot_sistema(name):
+    """Registra uma tela do sistema sem gravar nem imprimir textos (o seletor de compartilhamento mostra contatos)."""
+    total = len(list(nodes(layout())))
+    path = ROOT / 'builds' / ('pdv-ui-' + name + '-layout.json')
+    path.write_text(json.dumps({'nome': name, 'total_nos': total,
+                                'aviso': 'conteudo da tela do sistema nao gravado: pode listar contatos do usuario'},
+                               ensure_ascii=False, indent=2), encoding='utf-8')
+    print('tela do sistema registrada: ' + str(total) + ' nos, textos nao gravados', flush=True)
+
+
 def snapshot(name):
     data = layout()
     path = ROOT / 'builds' / ('pdv-ui-' + name + '-layout.json')
@@ -518,7 +530,7 @@ def restaurar_conectividade():
 # nome -> (minimo de argumentos, maximo ou None). Usado na validacao dos fluxos.
 ACOES = {
     'tap': (1, 1), 'tap_inicia': (1, 1), 'tap_ultimo': (1, 1), 'tap_sistema': (1, 1),
-    'text': (2, 2), 'money': (1, 1), 'snapshot': (1, 1), 'screenshot': (1, 1),
+    'text': (2, 2), 'money': (1, 1), 'snapshot': (1, 1), 'snapshot_sistema': (1, 1), 'screenshot': (1, 1),
     'assert': (1, None), 'assert_ausente': (1, None), 'row': (2, 2),
     'key': (1, 1), 'back': (0, 0), 'back_sistema': (0, 0), 'airplane': (1, 1), 'wait': (1, 1), 'scroll': (1, 1),
     'stop': (0, 0), 'launch': (0, 0),
@@ -540,6 +552,8 @@ def executar_acao(a):
         money(a[1])
     elif a[0] == 'snapshot':
         snapshot(a[1])
+    elif a[0] == 'snapshot_sistema':
+        snapshot_sistema(a[1])
     elif a[0] == 'assert':
         # Espera ate 6 s parado; depois rola a lista (para baixo e de volta ao topo) somando o que
         # ja apareceu: cada texto precisa estar na tela em alguma posicao da rolagem.
@@ -625,6 +639,8 @@ def comandos_da_acao(a):
         return ['android layout --device SERIAL --pretty  # linha ' + q(a[1]) + ' contem ' + q(a[2])]
     if n == 'snapshot':
         return ['android layout --device SERIAL --pretty  # grava builds/pdv-ui-' + a[1] + '-layout.json']
+    if n == 'snapshot_sistema':
+        return ['android layout --device SERIAL --pretty  # grava so a contagem de nos em builds/pdv-ui-' + a[1] + '-layout.json']
     if n == 'screenshot':
         return ['adb exec-out screencap -p  # grava builds/pdv-ui-' + a[1] + '.png']
     if n == 'key':

@@ -39,9 +39,9 @@
       ]
     },
     {
-      "nome": "Registrar o seletor do sistema",
+      "nome": "Registrar o seletor do sistema (so a contagem, sem textos)",
       "acao": [
-        "snapshot",
+        "snapshot_sistema",
         "exportar-json-seletor"
       ]
     },

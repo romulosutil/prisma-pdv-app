@@ -52,6 +52,7 @@ export const totalDosItens = (itens: readonly ItemNovaVenda[]): Centavos => soma
 
 /** Vendas imutáveis: só o cancelamento muda o `status`. */
 export class VendasRepo extends Persistido<EstadoVendas> {
+  private ocultos: Venda[] = [];
   constructor(
     private readonly amb: Ambiente,
     private readonly contexto: ContextoVendas,
@@ -60,8 +61,19 @@ export class VendasRepo extends Persistido<EstadoVendas> {
   }
 
   protected validarCarregado(valor: EstadoVendas): EstadoVendas {
-    return this.contexto.conferirOutros?.() === false ? { ...valor, vendas: valor.vendas.filter(v => v.operadorId === this.contexto.sessao().operadorId) } : valor;
+    if (this.contexto.conferirOutros?.() === false) {
+      this.ocultos = valor.vendas.filter(v => v.operadorId !== this.contexto.sessao().operadorId);
+      return { ...valor, vendas: valor.vendas.filter(v => !this.ocultos.includes(v)) };
+    }
+    this.ocultos = [];
+    return valor;
   }
+
+  protected override paraGravar(novo: EstadoVendas): EstadoVendas {
+    return { ...novo, vendas: [...novo.vendas, ...this.ocultos.filter(o => !novo.vendas.some(n => n.id === o.id))] };
+  }
+
+  override limparMemoria(): void { this.ocultos = []; super.limparMemoria(); }
 
   /** Da mais recente para a mais antiga. */
   listar(): Venda[] {
@@ -148,6 +160,7 @@ export class VendasRepo extends Persistido<EstadoVendas> {
   }
 
   async substituirTodas(estado: EstadoVendas): Promise<void> {
+    this.ocultos = [];
     await this.modificar(() => estado);
   }
 }

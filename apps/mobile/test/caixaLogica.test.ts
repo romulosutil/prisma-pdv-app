@@ -1,8 +1,11 @@
 import type { Venda } from '@pdv/shared';
 import { describe, expect, it } from 'vitest';
+import { ErroDeDominio } from '../src/dados/erros';
+import { ErroBackend } from '../src/servicos/backend';
 import {
   agruparPorDia,
   compararGaveta,
+  mensagemDaFalhaAoFechar,
   filtrarPorMeio,
   formatarQuantidade,
   intervaloDoPeriodo,
@@ -158,5 +161,17 @@ describe('CSV de vendas', () => {
   it('nomeia o arquivo com a data de Brasília', () => {
     expect(nomeDoArquivoDeVendas(AGORA)).toBe('vendas-2026-10-24.csv');
     expect(nomeDoArquivoDeVendas(new Date('2026-10-25T01:00:00.000Z'))).toBe('vendas-2026-10-24.csv');
+  });
+});
+
+describe('mensagemDaFalhaAoFechar (CP 152: fechamento offline falhava com "Tente de novo" sem motivo)', () => {
+  it('mostra o motivo das travas do SQLite e do perfil, não o texto genérico', () => {
+    expect(mensagemDaFalhaAoFechar(new Error('Vendas do caixa mudaram. Atualize os dados antes de fechar.'))).toBe('Vendas do caixa mudaram. Atualize os dados antes de fechar.');
+    expect(mensagemDaFalhaAoFechar(new ErroBackend('conflito', 'Confirme a operação online pendente na tela de turnos antes de movimentar o caixa.'))).toBe('Confirme a operação online pendente na tela de turnos antes de movimentar o caixa.');
+    expect(mensagemDaFalhaAoFechar(new ErroDeDominio('checkout_pendente', 'Conclua a venda em andamento antes de fechar o caixa.'))).toBe('Conclua a venda em andamento antes de fechar o caixa.');
+  });
+  it('usa o texto genérico só quando não há mensagem', () => {
+    expect(mensagemDaFalhaAoFechar(new Error(''))).toBe('Não foi possível fechar o caixa. Tente de novo.');
+    expect(mensagemDaFalhaAoFechar('x')).toBe('Não foi possível fechar o caixa. Tente de novo.');
   });
 });

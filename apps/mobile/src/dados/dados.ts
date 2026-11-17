@@ -345,6 +345,8 @@ export class Dados {
     const identidade = this.conta.obter().identidade;
     if (identidade && this.backend.modo === 'http') {
       await this.acessoOffline.carregar(identidade);
+      // Os filtros de vendas/caixas dependem da permissão, que só vale com o acesso offline carregado acima (CP 152).
+      await Promise.all([this.vendas.carregar(), this.caixa.carregar()]);
       try { await this.revalidarPerfilAtual(); } catch (e) { if (!(e instanceof ErroBackend)) throw e; }
     }
     await this.assinatura.sincronizar();

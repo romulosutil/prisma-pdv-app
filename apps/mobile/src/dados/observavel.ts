@@ -54,6 +54,8 @@ export class Persistido<T> extends Observavel<T> {
   }
 
   protected validarCarregado(valor: T): T { return valor; }
+  /** Itens ocultados da memória por filtro de permissão ainda precisam ser gravados (CP 152). */
+  protected paraGravar(novo: T): T { return novo; }
 
   aguardarGravacoes(): Promise<void> { return this.fila; }
   /** Troca de escopo: limpa somente o snapshot; o armazenamento da conta anterior permanece. */
@@ -65,7 +67,7 @@ export class Persistido<T> extends Observavel<T> {
       const escopo = this.armazenamento.obterEscopo?.();
       const novo = mudar(this.obter());
       if (novo === this.obter()) return novo;
-      await this.armazenamento.gravar(this.chave, novo);
+      await this.armazenamento.gravar(this.chave, this.paraGravar(novo));
       if (escopo !== this.armazenamento.obterEscopo?.()) throw new Error('A conta mudou durante a gravação. Recarregue os dados.');
       this.definir(novo);
       return novo;

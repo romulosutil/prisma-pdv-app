@@ -71,6 +71,7 @@ export function resumirDia(dia: Date, vendas: readonly Venda[], caixa: Caixa | n
 /** Histórico de caixas do aparelho. Há no máximo um aberto (`fechamento === null`). */
 export class CaixaRepo extends Persistido<Caixa[]> {
   private abrindo = false;
+  private ocultos: Caixa[] = [];
   constructor(
     private readonly amb: Ambiente,
     private readonly contexto: ContextoCaixa,
@@ -79,8 +80,19 @@ export class CaixaRepo extends Persistido<Caixa[]> {
   }
 
   protected validarCarregado(valor: Caixa[]): Caixa[] {
-    return this.contexto.conferirOutros?.() === false ? valor.filter(c => c.operadorId === this.contexto.sessao().operadorId) : valor;
+    if (this.contexto.conferirOutros?.() === false) {
+      this.ocultos = valor.filter(c => c.operadorId !== this.contexto.sessao().operadorId);
+      return valor.filter(c => !this.ocultos.includes(c));
+    }
+    this.ocultos = [];
+    return valor;
   }
+
+  protected override paraGravar(novo: Caixa[]): Caixa[] {
+    return [...novo, ...this.ocultos.filter(o => !novo.some(n => n.id === o.id))];
+  }
+
+  override limparMemoria(): void { this.ocultos = []; super.limparMemoria(); }
 
   atual(): Caixa | null {
     if (!this.obter().some((c) => c.fechamento === null)) return null;
@@ -166,6 +178,7 @@ export class CaixaRepo extends Persistido<Caixa[]> {
   }
 
   async substituirTodos(caixas: Caixa[]): Promise<void> {
+    this.ocultos = [];
     await this.modificar(() => caixas);
   }
 }

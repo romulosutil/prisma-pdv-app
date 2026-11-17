@@ -15,7 +15,8 @@ import { Confirmacao } from '@/componentes/Confirmacao';
 import { useVoltar } from '@/util/useVoltar';
 import { falarDinheiro } from '@/util/dinheiroFalado';
 import { IconeCaixa } from './icones';
-import { compararGaveta, textoDaGaveta, type ResultadoGaveta } from './logica';
+import { compararGaveta, mensagemDaFalhaAoFechar, textoDaGaveta, type ResultadoGaveta } from './logica';
+import { registrar as registrarDiagnostico } from '@/diagnostico/registro';
 import { LinhaValor } from './LinhaValor';
 import { TelaDeValor } from './TelaDeValor';
 import { Campo } from '@/componentes/Campo';
@@ -64,8 +65,9 @@ export function FecharCaixa() {
       router.replace('/caixa');
     } catch (erro) {
       setConfirmando(false);
+      registrarDiagnostico('erro', 'falha ao fechar o caixa', { mensagem: erro instanceof Error ? erro.message : String(erro), tipo: erro instanceof Error ? erro.name : typeof erro });
       if (ehErroDeDominio(erro, 'caixa_fechado')) router.replace('/caixa');
-      else toast.mostrar(ehErroDeDominio(erro) ? erro.message : 'Não foi possível fechar o caixa. Tente de novo.', { tipo: 'erro' });
+      else toast.mostrar(mensagemDaFalhaAoFechar(erro), { tipo: 'erro' });
     } finally {
       setFechando(false);
     }

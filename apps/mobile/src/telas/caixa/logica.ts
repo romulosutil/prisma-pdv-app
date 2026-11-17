@@ -1,4 +1,6 @@
 import { formatarBRL, formatarDataCurta, MS_POR_DIA, type Centavos, type Venda } from '@pdv/shared';
+import { ErroDeDominio } from '@/dados/erros';
+import { ErroBackend, mensagemDeErro } from '@/servicos/backend';
 import type { MeioPagamento, Unidade } from '@/dados/tipos';
 import { rotuloDoMeio } from '@/util/meios';
 import { inicioDoDia } from '@/util/tempo';
@@ -126,4 +128,18 @@ export function rotuloDoDia(dia: Date, agora: Date): string {
   if (dia.getTime() === hoje - MS_POR_DIA) return `Ontem, ${data}`;
   // Meia-noite de Brasília cai às 03:00 UTC; recuar 3 h dá o dia da semana local.
   return `${DIAS_DA_SEMANA[new Date(dia.getTime() - 3 * 60 * 60 * 1000).getUTCDay()]}, ${data}`;
+}
+
+// ---------- Falha ao fechar o caixa ----------
+
+/**
+ * Texto do toast quando o fechamento falha. Antes (0.1.14) qualquer erro fora de `ErroDeDominio` virava
+ * "Tente de novo", e o fechamento offline do CP 152 falhava sem dizer o motivo. As travas do SQLite e do
+ * perfil já lançam mensagens em português para o usuário; só o erro sem mensagem cai no texto genérico.
+ */
+export function mensagemDaFalhaAoFechar(erro: unknown): string {
+  if (erro instanceof ErroDeDominio) return erro.message;
+  if (erro instanceof ErroBackend) return mensagemDeErro(erro);
+  if (erro instanceof Error && erro.message.trim()) return erro.message;
+  return 'Não foi possível fechar o caixa. Tente de novo.';
 }

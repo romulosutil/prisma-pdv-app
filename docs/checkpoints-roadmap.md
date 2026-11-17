@@ -2078,3 +2078,36 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
   - Lacunas automatizáveis fora do M1, listadas na matriz: manifesto sem permissões (F01-g), lanterna sem câmera, fluxo do primeiro produto (CP 115), abertura offline recusada sem aviso (F11-g), mensagens de sangria e máscara do troco.
 - **Pendências:** conectar o Android, instalar a 0.1.14 e rodar `python scripts/regressao-aparelho.py --fisico` (requer caixa fechado e sessão ativa), registrando o resultado. Aceite humano continua pendente.
 - **Próximo passo:** regressão da 0.1.14 no aparelho assim que ele for conectado. Depois, sessão M2 (falhas e restauração).
+
+## CP 20261116 151 M1: regressão da 0.1.14 aprovada no Samsung após ajustes dos fluxos
+
+- **Data e etapa:** 16/11/2026, 21h50 (America/Sao_Paulo). Sessão M1, continuação do [CP 150](#cp-20261116-150-m1-testes-automatizados-do-piloto-no-ci-e-0114-sem-aparelho). Execução no aparelho conduzida pelo agente via ADB, sem toque humano.
+- **Aparelho:** samsung SM-S938B, Android 17 (SDK 37), físico, 1440x3120. Pacote `br.com.pdv.mobile.homologacao`, loja de homologação "Loja Bloco 6 A", perfil Gerente.
+- **Instalação (validado no aparelho):** `adb install -r builds/pdv-homologacao-0.1.14.apk` → `Success`; antes 0.1.13/versionCode 14, depois **0.1.14/versionCode 15**. SHA256 do APK `a677d562…fab15`, igual ao CP 150. Dados preservados (13 vendas locais, fila 0 aguardando/0 em revisão).
+- **Caixa deixado aberto pelo CP 148:** aberto às 14:19, troco R$ 20, 1 venda fiado R$ 10, recebimento de fiado R$ 5 e dois estornos de R$ 5; esperado R$ 15. Com autorização do usuário nesta sessão, fechado contando R$ 15 ("Bateu certinho"); venda e fiado mantidos.
+- **Regressão completa (validado no aparelho):** `python scripts/regressao-aparelho.py --fisico` → **PASS, 111/111 passos**, 21:38–21:48. Relatório `builds/regressao-regressao-20261116-214819.json` (SHA256 `c7ad2e2c…65a6`, sem número de série). Sequência e valores conferidos na tela:
+  - abrir caixa com troco R$ 100;
+  - venda avulsa R$ 50 em dinheiro, "Venda concluída", "Pago", dinheiro vendido R$ 50;
+  - suprimento R$ 20 (esperado 150 → 170), sangria R$ 15 (170 → 155) e retirada R$ 5 (155 → 150), cada um com origem/destino e motivo;
+  - **offline real:** estado original salvo (avião desligado, Wi-Fi e dados ligados); `airplane on` desligou Wi-Fi e dados e confirmou `ping_ok=false` e `rede_ativa=false` para o host de homologação; venda R$ 30 em dinheiro concluída offline; app encerrado e reaberto ainda offline com dinheiro vendido R$ 80 preservado;
+  - `airplane off` restaurou o estado original e confirmou `ping_ok=true`; Sincronizar → "Dados confirmados no servidor", sem "aguardando envio" nem "revisão";
+  - fechar caixa com esperado **R$ 180** (100 + 50 + 20 − 15 − 5 + 30), contado R$ 180, "Bateu certinho", "Caixa fechado".
+- **Estado final do aparelho:** modo avião 0, Wi-Fi 1, dados 1 (iguais ao início); caixa de teste fechado; 0.1.14 instalada. Nenhuma outra configuração alterada.
+- **Ajustes nos fluxos e no driver (construídos; validados no aparelho pela regressão acima e por 43 testes offline do driver, 11 novos):** as rodadas anteriores falharam por suposições dos fluxos, não por defeito do app:
+  - a aba Caixa reabre na última seção visitada: todo toque em "Caixa" agora é seguido de "Resumo";
+  - em tela grande, botões e valores ficam abaixo da dobra: `tap` e `assert` rolam a lista para baixo e de volta ao topo antes de falhar, esperando a rolagem parar antes de tocar;
+  - "Nova venda" abre o leitor sem as abas: o fluxo `vender` fecha o leitor ("Fechar");
+  - o caixa auditado exige categoria, origem/destino e motivo em suprimento, sangria e retirada: os fluxos preenchem os campos;
+  - `text` passou a localizar o campo rolando, tocar o centro e usar `input text` (aceita rótulos acentuados; recusa valores acentuados) e fecha o teclado do sistema só quando ele está aberto;
+  - o relatório passa a dizer "nada a restaurar" quando o próprio fluxo já restaurou a rede.
+- **Rodadas que falharam (preservadas em `builds/`):**
+  - `regressao-fechar-caixa-20261116-211413` e `-211614`: "Fechar caixa" fora da tela (seção Sincronização lembrada). Nenhuma operação feita.
+  - `regressao-regressao-20261116-211941`: a tela de dinheiro continuou visível depois de "Confirmar recebimento". **Conferido antes de qualquer repetição:** a venda #000014 (R$ 50, dinheiro, 21:20) foi gravada **uma vez**; dinheiro vendido R$ 50 e 2 vendas no dia (a outra é o fiado de R$ 10). Os toques seguintes, inclusive um toque extra enviado por engano pelo agente durante o diagnóstico, não criaram venda. A tela de sucesso só apareceu 1–3 minutos depois. **Não se repetiu** nas três vendas seguintes (rodadas 2 e 4). Caixa fechado com R$ 150 conferidos.
+  - `regressao-regressao-20261116-212820`: "Caixa" ausente na tela do leitor depois de "Nova venda". Caixa fechado com R$ 150.
+  - `regressao-regressao-20261116-213451`: suprimento recusado com "Informe categoria, origem/destino e motivo." **Nada gravado** (o fechamento seguinte esperava R$ 150, sem os R$ 20).
+- **Achados para o backlog (não bloqueiam o piloto):**
+  - Em suprimento, sangria e retirada, os campos obrigatórios ficam abaixo do teclado numérico; no S25 o erro aparece junto do valor sem nenhum campo visível. A categoria aparece como código interno (`reforco_troco`).
+  - Observar em M2 a demora de 1–3 min entre a venda gravada e a tela "Venda concluída" vista uma vez (sem duplicidade financeira).
+- **Limites:** uma execução completa num único aparelho; o atraso da tela de sucesso não foi reproduzido nem explicado; a regressão não cobre fiado, estoque nem troca de aparelho (cobertos por testes de API/HTTP no CI). Aceite humano continua pendente.
+- **Pendências:** commitar fluxos e driver, rodar o CI e marcar o item M1 do roadmap.
+- **Próximo passo:** sessão M2 (falhas e restauração).

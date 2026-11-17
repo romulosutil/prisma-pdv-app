@@ -34,6 +34,10 @@ com a regressao; informe `esperado_antes_*`/`dinheiro_vendido_*` se o caixa esti
 - `assert`/`assert_ausente` sao as verificacoes: o passo falha (e o fluxo para) se o texto nao aparecer em 12 s.
 - Regressao: `"tipo": "regressao"` com `"fluxos": [...]`; seus `parametros`/`derivados` sobrepoem os padroes dos fluxos.
 - Acoes novas do driver: `tap_inicia` (rotulo que comeca com, ex. "Cobrar R$ 50,00") e `tap_ultimo` (o botao mais abaixo, para rotulos repetidos).
+- `tap`, `assert` e `text` rolam a lista (para baixo e de volta ao topo) quando o alvo esta abaixo da dobra.
+  `text` toca o campo pelo rotulo exato (acentos ok) e fecha o teclado do sistema; o valor nao pode ter acento.
+- Validado no Samsung SM-S938B/Android 17 (CP 151): a aba Caixa lembra a ultima secao (sempre tocar "Resumo"),
+  "Nova venda" abre o leitor sem abas (tocar "Fechar") e o caixa auditado exige origem/destino e motivo.
 - Nada de e-mail, codigo de acesso ou token nos fluxos (os testes recusam).
 
 ## Testes offline

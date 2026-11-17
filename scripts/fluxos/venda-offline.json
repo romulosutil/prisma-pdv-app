@@ -41,6 +41,13 @@
       ]
     },
     {
+      "nome": "Abrir a secao Resumo (a aba lembra a ultima secao)",
+      "acao": [
+        "tap",
+        "Resumo"
+      ]
+    },
+    {
       "nome": "Venda sobreviveu ao reinicio",
       "acao": [
         "assert",

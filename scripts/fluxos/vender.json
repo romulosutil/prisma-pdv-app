@@ -108,10 +108,24 @@
       ]
     },
     {
+      "nome": "Fechar o leitor (Nova venda abre a tela de venda sem as abas)",
+      "acao": [
+        "tap",
+        "Fechar"
+      ]
+    },
+    {
       "nome": "Voltar ao caixa",
       "acao": [
         "tap",
         "Caixa"
+      ]
+    },
+    {
+      "nome": "Abrir a secao Resumo (a aba lembra a ultima secao)",
+      "acao": [
+        "tap",
+        "Resumo"
       ]
     },
     {

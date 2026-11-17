@@ -234,5 +234,112 @@ class RegressaoDryRunTest(unittest.TestCase):
         self.assertTrue((wrapper.AQUI / 'fluxos' / 'regressao.json').is_file())
 
 
+def _no(desc, classe='android.widget.EditText', **kw):
+    n = {'class': classe, 'content-desc': desc, 'center': '[10,20]', 'interactions': []}
+    n.update(kw)
+    return n
+
+
+class AreaRolavelTest(unittest.TestCase):
+    def test_primeira_lista_rolavel(self):
+        ns = [_no('x', 'android.view.View'),
+              _no('a', 'android.widget.ScrollView', interactions=['SCROLLABLE'], bounds='[0,100][1080,2000]'),
+              _no('b', 'androidx.recyclerview.widget.RecyclerView', interactions=['SCROLLABLE'], bounds='[1,2][3,4]')]
+        self.assertEqual(d.area_rolavel(ns), (0, 100, 1080, 2000))
+
+    def test_recyclerview(self):
+        ns = [_no('b', 'androidx.recyclerview.widget.RecyclerView', interactions=['SCROLLABLE'], bounds='[1,2][3,4]')]
+        self.assertEqual(d.area_rolavel(ns), (1, 2, 3, 4))
+
+    def test_ausente_ou_outra_classe(self):
+        self.assertIsNone(d.area_rolavel([]))
+        self.assertIsNone(d.area_rolavel([_no('v', 'android.view.View', interactions=['SCROLLABLE'], bounds='[0,0][1,1]')]))
+        self.assertIsNone(d.area_rolavel([_no('s', 'android.widget.ScrollView', bounds='[0,0][1,1]')]))
+
+
+class CampoDeTextoTest(unittest.TestCase):
+    def test_exato_com_acentos(self):
+        alvo = _no('Destino e responsável pelo recebimento')
+        ns = [_no('Motivo'), alvo]
+        self.assertIs(d.campo_de_texto(ns, 'Destino e responsável pelo recebimento'), alvo)
+
+    def test_nao_edittext_ou_parcial(self):
+        ns = [_no('Motivo', 'android.view.View'), _no('Motivo do ajuste')]
+        self.assertIsNone(d.campo_de_texto(ns, 'Motivo'))
+        self.assertIsNone(d.campo_de_texto(ns, 'Motivo do'))
+
+
+class DigitarTest(unittest.TestCase):
+    def _patch(self, nos, rolar_ret=False):
+        from unittest import mock
+        self.adb = mock.Mock()
+        self.rolar = mock.Mock(return_value=rolar_ret)
+        stack = contextlib.ExitStack()
+        self.addCleanup(stack.close)
+        stack.enter_context(mock.patch.object(d, 'guard'))
+        stack.enter_context(mock.patch.object(d, 'layout', return_value=[]))
+        stack.enter_context(mock.patch.object(d, 'nodes', return_value=iter(nos)))
+        stack.enter_context(mock.patch.object(d, 'adb', self.adb))
+        stack.enter_context(mock.patch.object(d, 'rolar', self.rolar))
+        stack.enter_context(mock.patch.object(d, 'esconder_teclado'))
+        stack.enter_context(mock.patch.object(d.time, 'sleep'))
+
+    def test_valor_com_acento_levanta_valueerror_sem_digitar(self):
+        self._patch([_no('Motivo')])
+        with self.assertRaises(ValueError):
+            d.digitar('Motivo', 'Café')
+        for c in self.adb.call_args_list:
+            self.assertNotIn('text', c.args)
+
+    def test_valor_valido_envia_espacos_como_percent_s(self):
+        self._patch([_no('Origem do dinheiro')])
+        d.digitar('Origem do dinheiro', 'Cofre da loja')
+        self.adb.assert_any_call('shell', 'input', 'text', 'Cofre%sda%sloja')
+
+    def test_campo_ausente(self):
+        self._patch([_no('Outro')], rolar_ret=False)
+        with self.assertRaisesRegex(RuntimeError, 'Campo ausente: Motivo'):
+            d.digitar('Motivo', 'abc')
+
+
+class ComandosTextoTest(unittest.TestCase):
+    def test_text_tem_quatro_linhas_com_rotulo_e_percent_s(self):
+        linhas = d.comandos_da_acao(['text', 'Origem do dinheiro', 'Cofre da loja'])
+        self.assertEqual(len(linhas), 4)
+        self.assertIn('Origem do dinheiro', linhas[0])
+        self.assertIn('Cofre%sda%sloja', ' '.join(linhas))
+
+
+def _passos(nome):
+    return json.loads((FLUXOS / (nome + '.json')).read_text(encoding='utf-8'))['passos']
+
+
+class FluxosEstruturaTest(unittest.TestCase):
+    def test_registrar_precedido_de_motivo_e_campo_de_destino(self):
+        esperado = {'entrada': 'Origem do dinheiro', 'sangria': 'Destino e responsável pelo recebimento',
+                    'retirada': 'Destino e responsável pelo recebimento'}
+        for nome, campo in esperado.items():
+            acoes = [p['acao'] for p in _passos(nome)]
+            idx = [i for i, a in enumerate(acoes) if a[0] == 'tap_ultimo' and a[1].startswith('Registrar')]
+            self.assertTrue(idx, nome)
+            for i in idx:
+                self.assertGreaterEqual(i, 2, nome)
+                self.assertEqual(acoes[i - 1][:2], ['text', 'Motivo'], nome)
+                self.assertEqual(acoes[i - 2][:2], ['text', campo], nome)
+
+    def test_caixa_seguido_de_resumo_e_nova_venda_de_fechar(self):
+        vistos = {'Caixa': 0, 'Nova venda': 0}
+        for f in sorted(FLUXOS.glob('*.json')):
+            acoes = [p['acao'] for p in json.loads(f.read_text(encoding='utf-8')).get('passos', []) if 'acao' in p]
+            for i, a in enumerate(acoes):
+                for rotulo, seguinte in (('Caixa', 'Resumo'), ('Nova venda', 'Fechar')):
+                    if a == ['tap', rotulo]:
+                        vistos[rotulo] += 1
+                        self.assertLess(i + 1, len(acoes), f.name)
+                        self.assertEqual(acoes[i + 1], ['tap', seguinte], f.name)
+        self.assertGreater(vistos['Caixa'], 0)
+        self.assertGreater(vistos['Nova venda'], 0)
+
+
 if __name__ == '__main__':
     unittest.main()

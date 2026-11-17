@@ -232,17 +232,47 @@ def escolher_alvo(all_nodes, label, modo='exato'):
     return candidates[0]
 
 
+def area_rolavel(all_nodes):
+    """Funcao pura: bounds (x1, y1, x2, y2) da primeira lista rolavel, ou None."""
+    for n in all_nodes:
+        if 'SCROLLABLE' in n.get('interactions', []) and n.get('class') in ('android.widget.ScrollView', 'androidx.recyclerview.widget.RecyclerView'):
+            return tuple(map(int, re.findall(r'\d+', n['bounds'])))
+    return None
+
+
+def rolar(direcao, all_nodes=None):
+    guard()
+    area =area_rolavel(list(nodes(layout())) if all_nodes is None else all_nodes)
+    if area is None:
+        return False
+    x1, y1, x2, y2 = area
+    x = (x1 + x2) // 2
+    start, end = int(y1 + (y2-y1)*.8), int(y1 + (y2-y1)*.25)
+    if direcao == 'up':
+        start, end = end, start
+    adb('shell', 'input', 'swipe', x, start, x, end, 400)
+    # Espera a inercia parar: um toque durante a rolagem so a interrompe e nao aciona o botao.
+    time.sleep(1.5)
+    return True
+
+
 def tap(label, sistema=False, modo='exato'):
+    """Toca o rotulo. Se ele nao aparecer em 4 s, rola a lista para baixo e depois para cima
+    procurando (telas grandes ou fontes maiores deixam botoes abaixo da dobra)."""
     if not sistema:
         guard()
-    deadline = time.monotonic() + 12
+    deadline = time.monotonic() + 4
+    rolagens = ['down'] * 6 + ['up'] * 12
     while True:
-        target = escolher_alvo(list(nodes(layout())), label, modo)
+        atual = list(nodes(layout()))
+        target = escolher_alvo(atual, label, modo)
         if target:
             break
-        if time.monotonic() >= deadline:
+        if time.monotonic() < deadline:
+            time.sleep(.5)
+            continue
+        if sistema or not rolagens or not rolar(rolagens.pop(0), atual):
             raise RuntimeError('UI label absent: ' + label)
-        time.sleep(.5)
     # Toque por coordenada (centro do elemento): independe do seletor do `android input`,
     # que falha com rotulos acentuados/virgulas e em telas sem ociosidade (camera).
     x, y = map(int, re.findall(r'\d+', target['center']))
@@ -250,6 +280,49 @@ def tap(label, sistema=False, modo='exato'):
     # Accessibility exposes the destination during the native stack animation;
     # allow it to settle before another tap (do not retry a payment blindly).
     time.sleep(1)
+
+
+def campo_de_texto(all_nodes, descricao):
+    """Funcao pura: o EditText cujo content-desc e exatamente `descricao`, ou None."""
+    return next((n for n in all_nodes if n.get('class') == 'android.widget.EditText' and n.get('content-desc') == descricao), None)
+
+
+def digitar(descricao, valor):
+    """Digita no campo de descricao exata. Rola a lista ate o campo aparecer (campos abaixo do
+    teclado numerico em telas grandes). Toca o centro do campo e usa `input text`, que aceita
+    rotulos acentuados (o seletor do `android input` nao aceita)."""
+    if not re.fullmatch(r'[A-Za-z0-9 .,_-]+', valor):
+        raise ValueError('text aceita apenas letras sem acento, digitos, espaco e . , _ -')
+    guard()
+    rolagens = ['down'] * 6 + ['up'] * 12
+    while True:
+        atual = list(nodes(layout()))
+        campo = campo_de_texto(atual, descricao)
+        if campo:
+            break
+        if not rolagens or not rolar(rolagens.pop(0), atual):
+            raise RuntimeError('Campo ausente: ' + descricao)
+    x, y = map(int, re.findall(r'\d+', campo['center']))
+    adb('shell', 'input', 'tap', x, y)
+    time.sleep(.6)
+    adb('shell', 'input', 'text', valor.replace(' ', '%s'))
+    time.sleep(.4)
+    esconder_teclado()
+
+
+def teclado_visivel():
+    return 'mInputShown=true' in run([ADB, '-s', DEVICE, 'shell', 'dumpsys', 'input_method'])
+
+
+def esconder_teclado():
+    """Fecha o teclado do sistema (ele cobre o botao do rodape). Voltar so e enviado com o teclado
+    aberto: nesse caso o teclado consome o evento e a tela nao muda."""
+    if not teclado_visivel():
+        return
+    adb('shell', 'input', 'keyevent', 4)
+    time.sleep(.8)
+    if teclado_visivel():
+        raise RuntimeError('Teclado do sistema continua aberto')
 
 
 def money(value):
@@ -432,7 +505,8 @@ def restaurar_conectividade():
             return {'restaurado': True}
     except Exception as exc:  # noqa: BLE001 - restauracao e melhor esforco; o erro vai para o relatorio
         return {'restaurado': False, 'erro': str(exc).strip()[:300]}
-    return {'restaurado': False}
+    # Nenhum estado salvo: o proprio fluxo ja restaurou (ou nunca ficou offline).
+    return {'restaurado': False, 'pendente': False, 'motivo': 'nada a restaurar'}
 
 
 # ---------------------------------------------------------------------------
@@ -458,22 +532,28 @@ def executar_acao(a):
     elif a[0] == 'tap_sistema':
         tap(a[1], sistema=True)
     elif a[0] == 'text':
-        guard()
-        cli('input', '--device', DEVICE, 'text', a[2], 'desc=' + a[1] + ',class=EditText')
+        digitar(a[1], a[2])
     elif a[0] == 'money':
         money(a[1])
     elif a[0] == 'snapshot':
         snapshot(a[1])
     elif a[0] == 'assert':
-        deadline = time.monotonic() + 12
+        # Espera ate 6 s parado; depois rola a lista (para baixo e de volta ao topo) somando o que
+        # ja apareceu: cada texto precisa estar na tela em alguma posicao da rolagem.
+        deadline = time.monotonic() + 6
+        rolagens = ['down'] * 6 + ['up'] * 12
+        missing = list(a[1:])
         while True:
-            raw = json.dumps(layout(), ensure_ascii=False)
-            missing = [expected for expected in a[1:] if expected not in raw]
+            atual = layout()
+            raw = json.dumps(atual, ensure_ascii=False)
+            missing = [expected for expected in missing if expected not in raw]
             if not missing:
                 break
-            if time.monotonic() >= deadline:
+            if time.monotonic() < deadline:
+                time.sleep(.5)
+                continue
+            if not rolagens or not rolar(rolagens.pop(0), list(nodes(atual))):
                 raise AssertionError('UI text absent: ' + ', '.join(missing))
-            time.sleep(.5)
         print('PASS: ' + ' / '.join(a[1:]), flush=True)
     elif a[0] == 'assert_ausente':
         raw = json.dumps(layout(), ensure_ascii=False)
@@ -498,13 +578,8 @@ def executar_acao(a):
         time.sleep(min(float(a[1]), 30))
     elif a[0] == 'scroll':
         guard()
-        scroll = next(n for n in nodes(layout()) if 'SCROLLABLE' in n.get('interactions', []) and n.get('class') in ('android.widget.ScrollView', 'androidx.recyclerview.widget.RecyclerView'))
-        x1, y1, x2, y2 = map(int, re.findall(r'\d+', scroll['bounds']))
-        x = (x1 + x2) // 2
-        start, end = int(y1 + (y2-y1)*.8), int(y1 + (y2-y1)*.25)
-        if a[1] == 'up':
-            start, end = end, start
-        adb('shell', 'input', 'swipe', x, start, x, end, 400)
+        if not rolar(a[1]):
+            raise RuntimeError('Nenhuma lista rolavel na tela')
     elif a[0] == 'screenshot':
         p = subprocess.run([str(ADB), '-s', DEVICE, 'exec-out', 'screencap', '-p'], capture_output=True, check=True)
         (ROOT / 'builds' / ('pdv-ui-' + a[1] + '.png')).write_bytes(p.stdout)
@@ -530,7 +605,10 @@ def comandos_da_acao(a):
         modo = {'tap': 'exato', 'tap_inicia': 'comeca com', 'tap_ultimo': 'o mais abaixo', 'tap_sistema': 'exato, sem exigir o app'}[n]
         return ['android layout --device SERIAL --pretty  # localizar ' + q(a[1]) + ' (' + modo + ')', 'adb shell input tap <x> <y>  # centro do elemento']
     if n == 'text':
-        return ['android input --device SERIAL text ' + q(a[2]) + ' desc=' + a[1] + ',class=EditText']
+        return ['android layout --device SERIAL --pretty  # localizar EditText ' + q(a[1]) + ' (rola se preciso)',
+                'adb shell input tap <x> <y>  # foco no campo',
+                'adb shell input text ' + q(a[2].replace(' ', '%s')),
+                'adb shell input keyevent 4  # so se o teclado do sistema estiver aberto']
     if n == 'money':
         return ['android layout --device SERIAL --pretty  # teclado numerico'] + ['adb shell input tap <x> <y>  # tecla ' + d for d in str(a[1])]
     if n in ('assert', 'assert_ausente'):

@@ -14,6 +14,13 @@
       ]
     },
     {
+      "nome": "Abrir a secao Resumo (a aba lembra a ultima secao)",
+      "acao": [
+        "tap",
+        "Resumo"
+      ]
+    },
+    {
       "nome": "Conferir o resumo do caixa",
       "acao": [
         "assert",
@@ -47,6 +54,22 @@
       "acao": [
         "assert",
         "Valor retirado: {sangria_centavos:falado}"
+      ]
+    },
+    {
+      "nome": "Informar origem/destino (obrigatorio no caixa auditado)",
+      "acao": [
+        "text",
+        "Destino e responsável pelo recebimento",
+        "Cofre gerente"
+      ]
+    },
+    {
+      "nome": "Informar o motivo (obrigatorio no caixa auditado)",
+      "acao": [
+        "text",
+        "Motivo",
+        "Recolhimento regressao"
       ]
     },
     {

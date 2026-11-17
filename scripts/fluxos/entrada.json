@@ -14,6 +14,13 @@
       ]
     },
     {
+      "nome": "Abrir a secao Resumo (a aba lembra a ultima secao)",
+      "acao": [
+        "tap",
+        "Resumo"
+      ]
+    },
+    {
       "nome": "Conferir o resumo do caixa",
       "acao": [
         "assert",
@@ -47,6 +54,22 @@
       "acao": [
         "assert",
         "Valor colocado: {entrada_centavos:falado}"
+      ]
+    },
+    {
+      "nome": "Informar origem/destino (obrigatorio no caixa auditado)",
+      "acao": [
+        "text",
+        "Origem do dinheiro",
+        "Cofre da loja"
+      ]
+    },
+    {
+      "nome": "Informar o motivo (obrigatorio no caixa auditado)",
+      "acao": [
+        "text",
+        "Motivo",
+        "Reforco de troco regressao"
       ]
     },
     {

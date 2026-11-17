@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 export const VERSAO_POLITICAS = '2026-11-02';
+/** Contato público de suporte, privacidade e exclusão de conta (contato comercial, pode aparecer em páginas e no app). */
+export const EMAIL_CONTATO = 'contato@prumo.services';
 /** Lista fechada: nunca aceitar dumps de estado, mensagens de erro ou credenciais como diagnóstico. */
 export const ResumoSuporteSchema = z.object({
   versao: z.string().max(30), ambiente: z.enum(['demo', 'homologacao', 'producao']),

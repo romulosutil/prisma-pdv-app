@@ -1,0 +1,112 @@
+{
+  "nome": "suporte",
+  "descricao": "Sob demanda (F16): Ajustes > Suporte e privacidade. Confere as quatro politicas e a secao Contato, abre a aba Exclusao, confere o aviso de que excluir nao acontece ao enviar e volta sem enviar nada. Nao digita nada.",
+  "passos": [
+    {
+      "nome": "Ir para a aba Ajustes",
+      "acao": [
+        "tap",
+        "Ajustes"
+      ]
+    },
+    {
+      "nome": "Abrir Suporte e privacidade",
+      "acao": [
+        "tap_inicia",
+        "Suporte e privacidade"
+      ]
+    },
+    {
+      "nome": "Conferir a tela de suporte",
+      "acao": [
+        "assert",
+        "Suporte e privacidade",
+        "Políticas do piloto"
+      ]
+    },
+    {
+      "nome": "Conferir as quatro politicas",
+      "acao": [
+        "assert",
+        "Suporte do piloto",
+        "Privacidade",
+        "Retenção e exclusão",
+        "Termos do piloto"
+      ]
+    },
+    {
+      "nome": "Conferir a secao Contato e os links do site",
+      "acao": [
+        "assert",
+        "Contato",
+        "Para suporte, privacidade ou exclusão de conta, escreva para",
+        "Abrir política de privacidade no site",
+        "Abrir exclusão de conta no site"
+      ]
+    },
+    {
+      "nome": "Conferir o bloco de atendimento",
+      "acao": [
+        "assert",
+        "Atendimento pessoal"
+      ]
+    },
+    {
+      "nome": "Abrir a aba Exclusao",
+      "acao": [
+        "tap",
+        "Exclusão"
+      ]
+    },
+    {
+      "nome": "Conferir o aviso de que excluir nao acontece ao enviar",
+      "acao": [
+        "assert",
+        "exclusão não acontece ao tocar em enviar",
+        "Enviar pedido de análise de exclusão"
+      ]
+    },
+    {
+      "nome": "Registrar tela da exclusao",
+      "acao": [
+        "snapshot",
+        "suporte-exclusao"
+      ]
+    },
+    {
+      "nome": "Voltar para a aba Suporte sem enviar",
+      "acao": [
+        "tap",
+        "Suporte"
+      ]
+    },
+    {
+      "nome": "Conferir que nada foi enviado",
+      "acao": [
+        "assert_ausente",
+        "Solicitação registrada",
+        "Não foi possível concluir"
+      ]
+    },
+    {
+      "nome": "Voltar para Ajustes",
+      "acao": [
+        "back"
+      ]
+    },
+    {
+      "nome": "Conferir que saiu da tela de suporte",
+      "acao": [
+        "assert",
+        "Suporte e privacidade"
+      ]
+    },
+    {
+      "nome": "Conferir ausencia das politicas",
+      "acao": [
+        "assert_ausente",
+        "Políticas do piloto"
+      ]
+    }
+  ]
+}

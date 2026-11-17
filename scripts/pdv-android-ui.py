@@ -2,7 +2,7 @@
 
 No credentials, database access or auth bypass. Pass a JSON array of actions:
 tap/tap_inicia/tap_ultimo/tap_sistema/text/money/scroll/assert/assert_ausente/row/
-snapshot/screenshot/stop/launch/key/back/airplane/wait. Snapshots are sanitized and
+snapshot/screenshot/stop/launch/key/back/back_sistema/airplane/wait. Snapshots are sanitized and
 saved under builds.
 
 Uso:
@@ -28,6 +28,8 @@ Acoes (argumentos entre colchetes sao opcionais):
   screenshot N    salva builds/pdv-ui-N.png
   stop/launch     force-stop / abre o app de homologacao
   key K / back    keyevent do Android / voltar
+  back_sistema    voltar (keyevent 4) sem exigir o app em primeiro plano: fecha o seletor de
+                  compartilhamento do sistema e devolve o foco ao app
   scroll up|down  rola a primeira lista rolavel
   wait S          espera S segundos (maximo 30)
   airplane on|off
@@ -518,7 +520,7 @@ ACOES = {
     'tap': (1, 1), 'tap_inicia': (1, 1), 'tap_ultimo': (1, 1), 'tap_sistema': (1, 1),
     'text': (2, 2), 'money': (1, 1), 'snapshot': (1, 1), 'screenshot': (1, 1),
     'assert': (1, None), 'assert_ausente': (1, None), 'row': (2, 2),
-    'key': (1, 1), 'back': (0, 0), 'airplane': (1, 1), 'wait': (1, 1), 'scroll': (1, 1),
+    'key': (1, 1), 'back': (0, 0), 'back_sistema': (0, 0), 'airplane': (1, 1), 'wait': (1, 1), 'scroll': (1, 1),
     'stop': (0, 0), 'launch': (0, 0),
 }
 
@@ -573,6 +575,11 @@ def executar_acao(a):
     elif a[0] == 'back':
         guard()
         adb('shell', 'input', 'keyevent', 4)
+    elif a[0] == 'back_sistema':
+        # Sem guard(): o primeiro plano e o chooser do sistema, nao o app. Confere que o app voltou.
+        adb('shell', 'input', 'keyevent', 4)
+        time.sleep(1)
+        guard()
     elif a[0] == 'airplane':
         airplane(a[1])
     elif a[0] == 'wait':
@@ -624,6 +631,8 @@ def comandos_da_acao(a):
         return ['adb shell input keyevent ' + a[1]]
     if n == 'back':
         return ['adb shell input keyevent 4']
+    if n == 'back_sistema':
+        return ['adb shell input keyevent 4  # sem exigir o app em primeiro plano (fecha o seletor do sistema)', 'adb shell dumpsys window | grep mCurrentFocus  # confere que o app voltou']
     if n == 'wait':
         return ['sleep ' + str(min(float(a[1]), 30)) + ' s']
     if n == 'scroll':
@@ -795,6 +804,11 @@ def validar_fluxo(dados, caminho, _profundidade=0):
             erros.append(rot + ': objeto com "nome" obrigatorio')
             continue
         rot += ' (' + passo['nome'] + ')'
+        if 'se' in passo:
+            try:
+                avaliar_expressao(passo['se'], scope)
+            except ValueError as exc:
+                erros.append(rot + ': "se" ' + str(exc))
         if ('acao' in passo) == ('incluir' in passo):
             erros.append(rot + ': informe exatamente um entre "acao" e "incluir"')
         elif 'acao' in passo:
@@ -844,6 +858,8 @@ def expandir_fluxo(caminho, overrides=None, _profundidade=0):
     scope = montar_escopo(dados, overrides)
     itens = []
     for passo in dados['passos']:
+        if 'se' in passo and avaliar_expressao(passo['se'], scope) == 0:
+            continue  # passo opcional: "se" vale 0 (parametro desligado)
         if 'incluir' in passo:
             filhos = {k: avaliar_expressao(v, scope) for k, v in (passo.get('com') or {}).items()}
             for item in expandir_fluxo(base / passo['incluir'], filhos, _profundidade + 1):

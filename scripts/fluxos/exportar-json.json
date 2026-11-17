@@ -1,0 +1,83 @@
+{
+  "nome": "exportar-json",
+  "descricao": "Sob demanda (F17): exporta os dados confirmados da loja em JSON, registra o seletor de compartilhamento do sistema, fecha o seletor com back_sistema (sem escolher destino) e confere o aviso do app. Pre-condicao: conta conectada.",
+  "passos": [
+    {
+      "nome": "Ir para a aba Ajustes",
+      "acao": [
+        "tap",
+        "Ajustes"
+      ]
+    },
+    {
+      "nome": "Abrir Suporte e privacidade",
+      "acao": [
+        "tap_inicia",
+        "Suporte e privacidade"
+      ]
+    },
+    {
+      "nome": "Conferir a tela de suporte",
+      "acao": [
+        "assert",
+        "Suporte e privacidade",
+        "Políticas do piloto"
+      ]
+    },
+    {
+      "nome": "Tocar em exportar dados confirmados",
+      "acao": [
+        "tap",
+        "Exportar dados confirmados desta loja"
+      ]
+    },
+    {
+      "nome": "Aguardar o seletor do sistema abrir",
+      "acao": [
+        "wait",
+        "2"
+      ]
+    },
+    {
+      "nome": "Registrar o seletor do sistema",
+      "acao": [
+        "snapshot",
+        "exportar-json-seletor"
+      ]
+    },
+    {
+      "nome": "Fechar o seletor sem escolher destino",
+      "acao": [
+        "back_sistema"
+      ]
+    },
+    {
+      "nome": "Conferir o aviso de entrega ao compartilhamento",
+      "acao": [
+        "assert",
+        "Arquivo entregue ao compartilhamento"
+      ]
+    },
+    {
+      "nome": "Conferir o aviso sobre pendencias",
+      "acao": [
+        "assert",
+        "Pendências não estão neste arquivo"
+      ]
+    },
+    {
+      "nome": "Conferir que nao houve erro",
+      "acao": [
+        "assert_ausente",
+        "Não foi possível concluir"
+      ]
+    },
+    {
+      "nome": "Registrar tela",
+      "acao": [
+        "snapshot",
+        "exportar-json"
+      ]
+    }
+  ]
+}

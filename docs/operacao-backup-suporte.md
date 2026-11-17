@@ -2,7 +2,7 @@
 
 ## Responsabilidade e acesso
 
-Antes de iniciar o piloto, o responsável pelo produto deve designar quem consulta diariamente os protocolos e quem executa mudanças de infraestrutura. Essa escala e o aceite operacional ainda estão pendentes; o código não os substitui. Não há notificação automática ao atendente nesta versão. O app informa atendimento manual sem prazo garantido.
+Antes de iniciar o piloto, o responsável pelo produto deve designar quem consulta diariamente os protocolos e quem executa mudanças de infraestrutura. Decisão de 17/11/2026 ([CP 153](checkpoints-roadmap.md#cp-20261117-153-m3-dependencias-decididas-suporte-privacidade-e-monitoramento)): o atendimento e o monitoramento diário ficam com o dono do produto (substituto a definir; roteiro em [monitoramento-piloto.md](monitoramento-piloto.md)), com contato público contato@prumo.services. O aceite operacional segue pendente; o código não o substitui. Não há notificação automática ao atendente nesta versão. O app informa atendimento manual sem prazo garantido.
 
 Operadores/donos consultam somente seus protocolos no app. Atendimento administrativo é feito por pessoa autorizada no console PostgreSQL já protegido pelo EasyPanel, sem criar porta pública ou chave de administração no APK. Consultar primeiro apenas ID, tipo, estado e data; abrir mensagem/diagnóstico do protocolo específico somente para a finalidade do atendimento. Não copiar mensagens para logs ou repositório. Registrar executor, instante, motivo, protocolo e decisão em registro restrito de atendimento. O app não concede ao dono acesso às mensagens dos funcionários.
 

@@ -1,0 +1,92 @@
+{
+  "nome": "suporte-envio",
+  "descricao": "Sob demanda (F16): envia UMA solicitacao de suporte de teste (cria protocolo real na conta logada) e confere \"Protocolo:\" e \"Aguardando analise da equipe.\". Parametro incluir_resumo=1 liga o resumo tecnico opcional (padrao 0). Pre-condicao: conta conectada, sem solicitacao pendente nem 10 abertas.",
+  "parametros": {
+    "incluir_resumo": 0
+  },
+  "passos": [
+    {
+      "nome": "Ir para a aba Ajustes",
+      "acao": [
+        "tap",
+        "Ajustes"
+      ]
+    },
+    {
+      "nome": "Abrir Suporte e privacidade",
+      "acao": [
+        "tap_inicia",
+        "Suporte e privacidade"
+      ]
+    },
+    {
+      "nome": "Conferir a tela de suporte",
+      "acao": [
+        "assert",
+        "Suporte e privacidade",
+        "Políticas do piloto"
+      ]
+    },
+    {
+      "nome": "Conferir o formulario de suporte",
+      "acao": [
+        "assert",
+        "Descreva o problema ou o pedido",
+        "Enviar solicitação de suporte"
+      ]
+    },
+    {
+      "nome": "Digitar a mensagem de teste (sem dados pessoais)",
+      "acao": [
+        "text",
+        "Descreva o problema ou o pedido",
+        "Teste de suporte do piloto sem dados pessoais"
+      ]
+    },
+    {
+      "nome": "Ligar o resumo tecnico opcional (so com incluir_resumo=1)",
+      "acao": [
+        "tap",
+        "Incluir resumo técnico sem credenciais"
+      ],
+      "se": "incluir_resumo"
+    },
+    {
+      "nome": "Enviar a solicitacao",
+      "acao": [
+        "tap",
+        "Enviar solicitação de suporte"
+      ]
+    },
+    {
+      "nome": "Conferir o aviso de registro",
+      "acao": [
+        "assert",
+        "Solicitação registrada. Acompanhe a resposta pelo protocolo abaixo."
+      ]
+    },
+    {
+      "nome": "Conferir protocolo e estado inicial",
+      "acao": [
+        "assert",
+        "Protocolo:",
+        "Aguardando análise da equipe."
+      ]
+    },
+    {
+      "nome": "Conferir que nao houve erro",
+      "acao": [
+        "assert_ausente",
+        "Não foi possível concluir",
+        "Não foi possível consultar o atendimento"
+      ]
+    },
+    {
+      "nome": "Registrar tela",
+      "acao": [
+        "snapshot",
+        "suporte-envio"
+      ]
+    }
+  ]
+}

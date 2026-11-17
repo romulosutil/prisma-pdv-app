@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 import Constants from 'expo-constants';
-import { POLITICAS_PILOTO, VERSAO_POLITICAS, type SolicitacaoSuporte } from '@pdv/shared';
+import { EMAIL_CONTATO, POLITICAS_PILOTO, VERSAO_POLITICAS, type SolicitacaoSuporte } from '@pdv/shared';
 import { useRouter } from 'expo-router';
 import { Botao } from '@/componentes/Botao';
 import { Campo } from '@/componentes/Campo';
@@ -13,6 +13,9 @@ import { CabecalhoTela } from '@/componentes/CabecalhoTela';
 import { useConta, useDados, useSincronizacao } from '@/dados/hooks';
 import { useVoltar } from '@/util/useVoltar';
 import { compartilharJson } from './compartilhar';
+
+/** Origem da API (extra.apiUrl do app.config.js); ausente no modo demo. */
+const urlSite = () => { const url = Constants.expoConfig?.extra?.apiUrl; return typeof url === 'string' && url ? url.replace(/\/+$/, '') : null; };
 
 export function Suporte() {
   const dados = useDados(), { sessao } = useConta(), sync = useSincronizacao();
@@ -48,10 +51,21 @@ export function Suporte() {
       catch { setAviso('Não foi possível ler a solicitação local. Preserve os dados do app e tente novamente após liberar espaço.'); }
     }
   }
+  const site = urlSite();
+  function abrirSite(caminho: string) {
+    const falha = () => setAviso('Não foi possível abrir o link. Escreva para ' + EMAIL_CONTATO + '.');
+    try { Linking.openURL(`${site}${caminho}`).catch(falha); } catch { falha(); }
+  }
   return <TelaBase rolavel bordas={['top']} style={{ gap: 20, paddingVertical: 24 }}>
     <CabecalhoTela titulo="Suporte e privacidade" onVoltar={voltar} />
     <Texto>Políticas do piloto · versão {VERSAO_POLITICAS}</Texto>
     {POLITICAS_PILOTO.map(p => <View key={p.titulo} style={{ gap: 8 }}><Texto estilo="tituloM" accessibilityRole="header">{p.titulo}</Texto><Texto>{p.texto}</Texto></View>)}
+    <Texto estilo="tituloM" accessibilityRole="header">Contato</Texto>
+    <Texto>{`Para suporte, privacidade ou exclusão de conta, escreva para ${EMAIL_CONTATO}.`}</Texto>
+    {site ? <>
+      <Botao rotulo="Abrir política de privacidade no site" variante="terciario" onPress={() => abrirSite('/privacidade')} />
+      <Botao rotulo="Abrir exclusão de conta no site" variante="terciario" onPress={() => abrirSite('/exclusao-de-conta')} />
+    </> : null}
     <Texto estilo="tituloM" accessibilityRole="header">Atendimento pessoal</Texto>
     <Texto>As solicitações pertencem ao seu acesso nesta loja. O dono e outros operadores não recebem suas mensagens. A equipe de suporte autorizada consulta o protocolo e registra a resposta. O app não envia arquivos automaticamente.</Texto>
     {aviso ? <Texto accessibilityRole="alert">{aviso}</Texto> : null}

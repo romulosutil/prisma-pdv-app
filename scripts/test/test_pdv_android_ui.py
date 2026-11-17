@@ -113,9 +113,10 @@ class ExpressoesTest(unittest.TestCase):
 
 class FluxosTest(unittest.TestCase):
     ESPERADOS = ['abrir-caixa', 'vender', 'entrada', 'sangria', 'retirada', 'venda-offline', 'fechar-caixa', 'regressao']
+    SOB_DEMANDA = ['suporte', 'suporte-envio', 'exportar-json']  # F16/F17 (CP 153): fora da regressao
 
     def test_todos_os_fluxos_existem_e_sao_validos(self):
-        for nome in self.ESPERADOS:
+        for nome in self.ESPERADOS + self.SOB_DEMANDA:
             caminho = FLUXOS / (nome + '.json')
             self.assertTrue(caminho.is_file(), nome)
             with self.subTest(fluxo=nome):
@@ -123,10 +124,15 @@ class FluxosTest(unittest.TestCase):
 
     def test_nenhum_arquivo_fora_da_lista(self):
         encontrados = sorted(p.stem for p in FLUXOS.glob('*.json'))
-        self.assertEqual(encontrados, sorted(self.ESPERADOS))
+        self.assertEqual(encontrados, sorted(self.ESPERADOS + self.SOB_DEMANDA))
+
+    def test_fluxos_sob_demanda_nao_entram_na_regressao(self):
+        regressao = json.loads((FLUXOS / 'regressao.json').read_text(encoding='utf-8'))
+        for nome in self.SOB_DEMANDA:
+            self.assertNotIn(nome + '.json', regressao['fluxos'])
 
     def test_cada_fluxo_expande_sem_placeholder_restante(self):
-        for nome in self.ESPERADOS:
+        for nome in self.ESPERADOS + self.SOB_DEMANDA:
             with self.subTest(fluxo=nome):
                 itens = d.expandir_fluxo(FLUXOS / (nome + '.json'))
                 self.assertTrue(itens)
@@ -184,6 +190,99 @@ class FluxosTest(unittest.TestCase):
             texto = p.read_text(encoding='utf-8')
             self.assertNotRegex(texto, r'[\w.+-]+@[\w-]+\.[\w.]+', p.name)
             self.assertNotRegex(texto, r'\b\d{6}\b', p.name)
+
+
+class FluxosSuporteTest(unittest.TestCase):
+    """F16/F17 (CP 153): fluxos sob demanda de suporte e exportacao JSON, validados offline."""
+
+    def acoes(self, nome, overrides=None):
+        return [i['acao'] for i in d.expandir_fluxo(FLUXOS / (nome + '.json'), overrides)]
+
+    def test_suporte_confere_politicas_contato_e_exclusao_sem_digitar_nem_enviar(self):
+        acoes = self.acoes('suporte')
+        self.assertNotIn('text', [a[0] for a in acoes])
+        self.assertNotIn(['tap', 'Enviar pedido de análise de exclusão'], acoes)
+        self.assertNotIn(['tap', 'Enviar solicitação de suporte'], acoes)
+        textos = [t for a in acoes for t in a[1:]]
+        for esperado in ('Suporte do piloto', 'Privacidade', 'Retenção e exclusão', 'Termos do piloto', 'Contato',
+                         'exclusão não acontece ao tocar em enviar', 'Abrir política de privacidade no site',
+                         'Abrir exclusão de conta no site'):
+            self.assertIn(esperado, textos)
+        aviso = ['assert', 'exclusão não acontece ao tocar em enviar', 'Enviar pedido de análise de exclusão']
+        self.assertLess(acoes.index(['tap', 'Exclusão']), acoes.index(aviso))
+        self.assertIn(['back'], acoes)
+        self.assertGreater(acoes.index(['back']), acoes.index(aviso))
+
+    def test_suporte_envio_so_liga_o_resumo_com_parametro(self):
+        liga = ['tap', 'Incluir resumo técnico sem credenciais']
+        self.assertNotIn(liga, self.acoes('suporte-envio'))
+        self.assertNotIn(liga, self.acoes('suporte-envio', {'incluir_resumo': 0}))
+        com = self.acoes('suporte-envio', {'incluir_resumo': 1})
+        self.assertIn(liga, com)
+        self.assertLess(com.index(liga), com.index(['tap', 'Enviar solicitação de suporte']))
+
+    def test_suporte_envio_digita_mensagem_sem_acento_e_confere_protocolo(self):
+        acoes = self.acoes('suporte-envio')
+        digitado = next(a for a in acoes if a[0] == 'text')
+        self.assertEqual(digitado[1], 'Descreva o problema ou o pedido')
+        self.assertGreaterEqual(len(digitado[2]), 10)
+        self.assertTrue(digitado[2].isascii())
+        self.assertEqual(d.validar_acao(digitado), [])
+        self.assertIn(['assert', 'Protocolo:', 'Aguardando análise da equipe.'], acoes)
+        self.assertLess(acoes.index(digitado), acoes.index(['tap', 'Enviar solicitação de suporte']))
+
+    def test_exportar_json_fecha_o_seletor_do_sistema_antes_de_conferir_o_aviso(self):
+        acoes = self.acoes('exportar-json')
+        exportar = acoes.index(['tap', 'Exportar dados confirmados desta loja'])
+        fechar = acoes.index(['back_sistema'])
+        aviso = acoes.index(['assert', 'Arquivo entregue ao compartilhamento'])
+        self.assertLess(exportar, fechar)
+        self.assertLess(fechar, aviso)
+        self.assertNotIn(['back'], acoes)  # `back` exige o app em primeiro plano e falharia com o seletor aberto
+
+    def test_rotulos_de_botao_e_avisos_existem_em_suporte_tsx(self):
+        raiz = SCRIPTS.parent
+        fonte = ((raiz / 'apps' / 'mobile' / 'src' / 'telas' / 'suporte' / 'Suporte.tsx').read_text(encoding='utf-8')
+                 + (raiz / 'packages' / 'shared' / 'src' / 'suporte.ts').read_text(encoding='utf-8'))  # titulos das politicas
+        de_outras_telas = {'Ajustes', 'Suporte e privacidade'}
+        dinamicos = {'Protocolo:', 'Aguardando análise da equipe.'}  # montados com {s.id} / s.resposta
+        for nome in ('suporte', 'suporte-envio', 'exportar-json'):
+            for a in self.acoes(nome, {'incluir_resumo': 1} if nome == 'suporte-envio' else None):
+                if a[0] not in ('tap', 'tap_inicia', 'assert', 'assert_ausente'):
+                    continue
+                for texto in a[1:]:
+                    if texto in de_outras_telas:
+                        continue
+                    self.assertIn(texto.rstrip(':') if texto in dinamicos else texto, fonte, nome + ': ' + texto)
+
+    def test_back_sistema_valida_e_simula_sem_exigir_app(self):
+        self.assertEqual(d.validar_acao(['back_sistema']), [])
+        self.assertTrue(d.validar_acao(['back_sistema', 'x']))
+        comandos = ' '.join(d.comandos_da_acao(['back_sistema']))
+        self.assertIn('keyevent 4', comandos)
+        self.assertIn('sem exigir o app', comandos)
+
+    def test_passo_condicional_se_zero_pula_e_expressao_invalida_e_recusada(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            caminho = Path(tmp) / 'cond.json'
+            dados = {'nome': 'cond', 'parametros': {'ligar': 0}, 'passos': [
+                {'nome': 'a', 'acao': ['assert', 'A']},
+                {'nome': 'b', 'acao': ['assert', 'B'], 'se': 'ligar'},
+                {'nome': 'c', 'acao': ['assert', 'C'], 'se': 'ligar - 1 + 1'}]}
+            caminho.write_text(json.dumps(dados), encoding='utf-8')
+            self.assertEqual(d.validar_fluxo(dados, caminho), [])
+            self.assertEqual([i['acao'][1] for i in d.expandir_fluxo(caminho)], ['A'])
+            self.assertEqual([i['acao'][1] for i in d.expandir_fluxo(caminho, {'ligar': 1})], ['A', 'B', 'C'])
+            dados['passos'][1]['se'] = 'inexistente'
+            self.assertTrue(any('"se"' in e for e in d.validar_fluxo(dados, caminho)))
+
+    def test_dry_run_dos_tres_fluxos(self):
+        for nome in ('suporte', 'suporte-envio', 'exportar-json'):
+            saida, erro = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(saida), contextlib.redirect_stderr(erro):
+                codigo = d.entry(['--simular', 'fluxo', str(FLUXOS / (nome + '.json'))])
+            self.assertEqual(codigo, 0, erro.getvalue())
+            self.assertIn('Simulacao OK', saida.getvalue())
 
 
 class RegressaoDryRunTest(unittest.TestCase):

@@ -291,8 +291,9 @@ def digitar(descricao, valor):
     """Digita no campo de descricao exata. Rola a lista ate o campo aparecer (campos abaixo do
     teclado numerico em telas grandes). Toca o centro do campo e usa `input text`, que aceita
     rotulos acentuados (o seletor do `android input` nao aceita)."""
-    if not re.fullmatch(r'[A-Za-z0-9 .,_-]+', valor):
-        raise ValueError('text aceita apenas letras sem acento, digitos, espaco e . , _ -')
+    # '@' e '+' para e-mail de teste (CP 152: login na reinstalacao limpa).
+    if not re.fullmatch(r'[A-Za-z0-9 .,_@+-]+', valor):
+        raise ValueError('text aceita apenas letras sem acento, digitos, espaco e . , _ - @ +')
     guard()
     rolagens = ['down'] * 6 + ['up'] * 12
     while True:

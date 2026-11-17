@@ -6,7 +6,7 @@
 BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;
 SELECT 'R5_SNAPSHOT_BEGIN';
 SELECT format(
-  'SELECT %L || ''|'' || count(*)::text || ''|'' || md5(coalesce(string_agg(to_jsonb(t)::text, E''\n'' ORDER BY to_jsonb(t)::text), '''')) FROM %I.%I t;',
+  'SELECT %L || ''|'' || count(*)::text || ''|'' || md5(coalesce(string_agg(to_jsonb(t)::text, E''\n'' ORDER BY to_jsonb(t)::text COLLATE "C"), '''')) FROM %I.%I t;',
   'tabela|' || schemaname || '.' || tablename, schemaname, tablename
 ) FROM pg_tables WHERE schemaname IN ('public', 'drizzle') ORDER BY schemaname, tablename
 \gexec
@@ -38,11 +38,11 @@ SELECT 'integridade|' || jsonb_build_object(
 SELECT 'R5_SNAPSHOT_END';
 WITH snapshots AS MATERIALIZED (
   SELECT schemaname || '.' || tablename AS tabela,
-    query_to_xml(format('SELECT count(*) AS n, md5(coalesce(string_agg(to_jsonb(t)::text, E''\n'' ORDER BY to_jsonb(t)::text), '''')) AS h FROM %I.%I t', schemaname, tablename), false, true, '') AS dados
+    query_to_xml(format('SELECT count(*) AS n, md5(coalesce(string_agg(to_jsonb(t)::text, E''\n'' ORDER BY to_jsonb(t)::text COLLATE "C"), '''')) AS h FROM %I.%I t', schemaname, tablename), false, true, '') AS dados
   FROM pg_tables WHERE schemaname IN ('public', 'drizzle')
 ), resumo AS (
   SELECT tabela, (xpath('/row/n/text()', dados))[1]::text AS n,
     (xpath('/row/h/text()', dados))[1]::text AS h FROM snapshots
 )
-SELECT 'dataset|' || count(*) || '|' || sum(n::bigint) || '|' || md5(string_agg(tabela || '|' || n || '|' || h, E'\n' ORDER BY tabela)) || '|xml_validos=' || bool_and(n IS NOT NULL AND h IS NOT NULL AND length(h)=32) FROM resumo;
+SELECT 'dataset|' || count(*) || '|' || sum(n::bigint) || '|' || md5(string_agg(tabela || '|' || n || '|' || h, E'\n' ORDER BY tabela COLLATE "C")) || '|xml_validos=' || bool_and(n IS NOT NULL AND h IS NOT NULL AND length(h)=32) FROM resumo;
 COMMIT;

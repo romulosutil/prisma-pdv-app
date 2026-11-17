@@ -13,6 +13,13 @@ test('comparador recusa snapshot parcial, tabela faltante, divergência e integr
   for (const invalido of [s.replace('R5_SNAPSHOT_END', ''), s.replace('tabela|public.usuarios|0|', 'incompleto|public.usuarios|0|'), s.replace('"caixas":0', '"caixas":1')]) assert.throws(() => compararRestauracao(invalido, invalido));
   assert.throws(() => compararRestauracao(s, s.replace('schema_colunas|a', 'schema_colunas|x')));
 });
+test('snapshot de restauração ordena texto com COLLATE "C" (CP 152: banco restaurado en_US.utf8 x origem C mudou o checksum)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const sql = await readFile(new URL('../verificar-restauracao-r5.sql', import.meta.url), 'utf8');
+  const ordensDeTexto = [...sql.matchAll(/ORDER BY (to_jsonb\(t\)::text|tabela)\b([^),]*)/g)];
+  assert.equal(ordensDeTexto.length, 3, 'Esperadas 3 ordenações de texto: checksum por tabela, dataset e checksum do dataset');
+  for (const [trecho, , resto] of ordensDeTexto) assert.match(resto, /^\s*COLLATE "C"/, `Ordenação dependente da collation do banco: ${trecho}`);
+});
 test('gate do bundle exige recursos/host e recusa simulador ou fonte de diagnóstico mesmo sem strings', async () => {
   const pasta = await mkdtemp(join(tmpdir(), 'pdv-r5-'));
   try {

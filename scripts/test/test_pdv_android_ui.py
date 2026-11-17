@@ -296,6 +296,12 @@ class DigitarTest(unittest.TestCase):
         d.digitar('Origem do dinheiro', 'Cofre da loja')
         self.adb.assert_any_call('shell', 'input', 'text', 'Cofre%sda%sloja')
 
+    def test_email_de_teste_com_arroba_e_digitado(self):
+        # CP 152: o login da reinstalacao limpa precisa digitar e-mail.
+        self._patch([_no('E-mail')])
+        d.digitar('E-mail', 'teste+m2@exemplo.test')
+        self.adb.assert_any_call('shell', 'input', 'text', 'teste+m2@exemplo.test')
+
     def test_campo_ausente(self):
         self._patch([_no('Outro')], rolar_ret=False)
         with self.assertRaisesRegex(RuntimeError, 'Campo ausente: Motivo'):

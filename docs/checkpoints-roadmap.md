@@ -2112,3 +2112,65 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Commit e CI (validado externamente):** `b650995` na branch `codex/pdv-homologacao-real`; CI [43990950369](https://github.com/romulosutil/prisma-pdv-app/actions/runs/43990950369) (`workflow_dispatch`): **success**. Passaram tipos, driver offline (43), shared, API/PostgreSQL 17, cenários HTTP locais, mobile, imagem e isolamento; deploy pulado. Item M1 do roadmap marcado como concluído.
 - **Pendências:** aceite humano do piloto; itens de backlog acima.
 - **Próximo passo:** sessão M2 (falhas e restauração).
+
+<a id="cp-20261116-152-m2-falhas-no-aparelho-restauracao-f15-e-retorno-f19-documentado"></a>
+
+## CP 20261116 152 M2: falhas no aparelho, restauração F15 e retorno F19 documentado
+
+- **Data e etapa:** de 16/11/2026, 22h05, a 17/11/2026, 11h35 (America/Sao_Paulo). Sessão M2 de [prompts-sessoes-entrega.md](prompts-sessoes-entrega.md). Segue o [CP 151](#cp-20261116-151-m1-regressao-da-0114-aprovada-no-samsung-apos-ajustes-dos-fluxos). Opus 5.5 conduziu o aparelho e o servidor; a reprodução, o teste de regressão e a correção do defeito foram escritos por subagentes Sonnet 5.5 e revisados.
+- **Aparelho:** samsung SM-S938B, Android 17 (SDK 37), físico, por ADB. Pacote `br.com.pdv.mobile.homologacao`, "Loja Bloco 6 A", perfil Gerente. Estado final: modo avião 0, Wi-Fi 1 e dados 1, iguais ao início; 0.1.16 instalada limpa; caixa de teste fechado; fila 0/0.
+- **F09 (validado no aparelho, 0.1.14): PASS.**
+  - Venda de R$ 40 em "Dividir pagamento": a primeira parte, de R$ 20 em dinheiro, foi paga e o app encerrado à força em seguida.
+  - Ao reabrir, a cobrança mostrou "Já recebido 20 de 40" uma vez.
+  - A segunda parte, de R$ 20, concluiu a venda, e o app foi encerrado logo depois.
+  - Resultado: uma venda só, #000019 com 2 parcelas, total do dia R$ 280 em 7 vendas e carrinho vazio. Confirmada no servidor.
+- **F11 (validado no aparelho): PASS na 0.1.16.**
+  - Turno reservado online com troco de R$ 100. Venda offline de R$ 25 sobreviveu ao encerramento forçado e ao **reinício completo do aparelho** (75 s até o boot), ainda offline: R$ 305 em 8 vendas.
+  - **Rede intermitente:** três quedas e retornos do avião, Wi-Fi e dados durante a sincronização. Resultado: "Dados confirmados no servidor", 0 aguardando, 0 em revisão, e as vendas #000020 (R$ 25) e #000021 (R$ 5) aparecem uma vez cada.
+  - Fechamento offline na 0.1.16 depois de abertura a frio: "Fechamento salvo neste aparelho e pendente de confirmação". Uma nova abertura offline foi recusada com "Sincronize as operações e o fechamento anterior antes de abrir outro turno.". Online, tudo foi confirmado, e um turno novo abriu e fechou (R$ 100/100).
+- **Defeito encontrado e corrigido (bloqueava o fluxo principal offline e havia risco de perda local):**
+  - **Sintoma na 0.1.14:** fechar o caixa offline depois de reabrir o app falhava sempre com "Não foi possível fechar o caixa. Tente de novo.".
+  - **0.1.15 (versionCode 16):** passou a mostrar o motivo e a registrá-lo no diagnóstico (`mensagemDaFalhaAoFechar`). O motivo era "Caixa fechado não pode ser removido.".
+  - **Causa:** `CaixaRepo` e `VendasRepo` filtram na memória os itens de outros operadores quando `conferirOutros()` é falso. Em `Dados.iniciar()`, os dados da loja eram carregados antes do acesso offline, então `pode()` retornava falso naquele instante. A gravação seguinte salvava a lista filtrada:
+    - nos caixas, a trava do SQLite recusava a gravação;
+    - nas vendas, a gravação apaga e reinsere todas e `alterar` enfileira `delete`. Um cancelamento offline apagaria localmente as vendas de outros operadores e mandaria exclusões ao servidor. Isso não ocorreu no aparelho: foi encontrado na análise e reproduzido em teste.
+  - **Correção na 0.1.16 (versionCode 17):**
+    - `Persistido.paraGravar`: as gravações preservam os itens ocultos;
+    - `Dados.iniciar` recarrega vendas e caixas depois do acesso offline.
+  - Uma tentativa de reproduzir só no Node, com 8 casos, não reproduziu o defeito. Faltava a partição do Gerente conter caixas de outro operador. Esses casos ficaram como regressão.
+- **F12 (validado no aparelho): PASS parcial.**
+  - 0.1.14 → 0.1.15 com 2 vendas pendentes offline.
+  - 0.1.15 → 0.1.16 com 1 venda pendente.
+  - Reinstalação da 0.1.16 (`install -r`, mesmo versionCode) com venda e fechamento pendentes (2 aguardando).
+  - Em todas: contagens, valores e caixa preservados, enviados uma vez ao voltar a rede.
+  - **Limite:** um perfil só; comando de gestão pendente só no CI (`pilotoAtualizacao`).
+- **F15 (validado externamente, servidor de homologação, com confirmação do usuário): PASS.**
+  - **Backup:** `pdv-m2-f15-restauracao-20261116`, arquivo `aladdin/pdv-postgres-homologacao/2026-11-17T01:26:57.786Z.sql.gz`, 44,2 kB, Success às 01:26:58 UTC (22h26 BRT), em 1 s. O aparelho estava offline, sem escritas.
+  - **Destino:** serviço novo `aladdin/pdv-postgres-restauracao-r5`, PostgreSQL 17.12, banco e usuário `pdv_homologacao`, credencial própria gerada pelo painel, porta exposta 0, sem API apontada e **0 tabelas** antes da restauração. Restaurado só nele, Success às 01:31:27 UTC.
+  - **Comparação:** `verificar-restauracao-r5.sql` nos dois bancos (`psql -X -v ON_ERROR_STOP=1`, leitura em transação). `node scripts/comparar-restauracao.mjs` → **PASS, 39 verificações**: 30 tabelas, 592 registros, dataset `a1126073c8cb470d3f34aaae00a2f295`, schema, sequências, financeiro (29 vendas, R$ 759,00; pagamentos R$ 707,00; 18 caixas) e integridade 0. Snapshots `builds/r5-m2-origem.txt` e `builds/r5-m2-restaurado.txt` (SHA-256 iguais, `35dceb6f…8df6`) e `builds/r5-m2-restauracao.json`.
+  - **Falso alarme corrigido:** a primeira rodada acusou 2 tabelas diferentes (`drizzle.__drizzle_migrations` e `public.mudancas`) com as mesmas contagens. Causa: a ordenação textual do checksum dependia da collation (origem C, destino `en_US.utf8`). Com `COLLATE "C"` os hashes ficaram iguais aos da origem. O script foi corrigido e coberto por teste, e a origem foi recoletada com o script novo, idêntica ao snapshot do backup.
+  - **Encerramento:** serviço temporário parado ("database system is shut down"), volume preservado. Produção, homologação e o volume r0 não foram alterados.
+  - **Tempo gasto:** cerca de 19 min entre o backup e o PASS, incluindo a investigação da collation. Sem ela, cerca de 8 min.
+  - **Observações:**
+    - o agendamento diário de backup continua sem execuções automáticas no log (último automático há 7 dias), mesmo achado do CP 107;
+    - um clique fora do alvo levou a aba ao painel do `pdv-api-homologacao`, e o texto digitado caiu no visualizador de logs, que é somente leitura. O histórico de ações do painel mostra só o backup e a restauração, nenhuma ação na API, e `/saude` respondeu 200.
+- **Reinstalação limpa (validado no aparelho): PASS.**
+  - Com a fila em 0/0, o app foi desinstalado com autorização do usuário e a 0.1.16 instalada limpa. O Play Protect pediu verificação; o usuário respondeu no aparelho.
+  - Login autorizado pelo usuário ("Faça você"), com a caixa mail.tm descartável do perfil Gerente (CP 148). O código foi digitado pelo auxiliar, sem aparecer na conversa nem em arquivos.
+  - Recuperado: 22 vendas no aparelho, lista de 7 dias com 19 vendas, R$ 670 e 3 canceladas, igual à anterior. As vendas #000019 a #000022 têm o mesmo número, horário, valor, itens, parcelas e caixa vinculado `01a1e70c…71b2` da referência `builds/m2-referencia-antes-reinstalar.json`. Ficaram 0 aguardando e 0 em revisão.
+- **F19:** retorno documentado em [f19-retorno-api.md](f19-retorno-api.md), **sem execução**. Atual `84dd0dc`; o código da API não mudou até o HEAD. Alvo `df41823`, com as mesmas 13 migrações: não há migração reversa, mas cadastro novo com a verificação antecipada fica indisponível. Estimativa de 25 a 35 min, ou de 45 a 65 min com ensaio na cópia restaurada.
+- **Testes novos (regra 5):**
+  - `apps/mobile/test/pilotoFechamentoOffline.test.ts`: 12 casos com `Dados` real sobre SQLite e a API local. (a)–(h) cobrem fechamento offline com variações e (i)–(k) os três defeitos do Gerente com dados de outro operador; esses três falharam antes da correção.
+  - `apps/mobile/test/caixaLogica.test.ts::mensagemDaFalhaAoFechar`.
+  - `scripts/test/operacao.test.mjs::snapshot de restauração ordena texto com COLLATE "C"`, que falha com o script antigo.
+  - `scripts/test/test_pdv_android_ui.py::test_email_de_teste_com_arroba_e_digitado`: o `text` do driver recusava `@`, defeito da ferramenta encontrado no login.
+  - Matriz [testes-automatizados-mvp.md](testes-automatizados-mvp.md) com M2-a a M2-e e F15-b/F15-d.
+- **Validação local:** typecheck mobile sem erros; suíte mobile completa em série **77 arquivos, 634/634**; ferramentas operacionais 3/3; driver 44 testes OK.
+- **Artefatos:**
+  - `builds/pdv-homologacao-0.1.15.apk`, SHA256 `f6536389b5667a37d5a26babb0f32b2ffb4f26e560e5059dc16b5d6c89a28696`.
+  - `builds/pdv-homologacao-0.1.16.apk`, SHA256 `d07f9a858cc0a392744b3f4a29a0a8a6ff6bce17f1f5a5c4330dac2d07d060f7`.
+  - As duas passaram na verificação estática do build com o host de homologação e a mesma assinatura de teste.
+- **Achados para o backlog:** texto literal "[nome]" no topo da tela de boas-vindas da instalação nova; o agendamento de backup sem execução automática (já no backlog operacional).
+- **Limites:** um aparelho e um perfil; F12 sem comando de gestão pendente no aparelho; F19 não executado; aceite humano pendente.
+- **Commit e CI:** COMMIT_CI
+- **Próximo passo:** sessão M3 (pronto para o lojista).

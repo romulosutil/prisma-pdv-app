@@ -2205,3 +2205,11 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Commit (construído):** `39fdb4f` na branch `codex/pdv-homologacao-real`, enviado ao remoto. **CI não executado:** o disparo manual do workflow foi negado pelo controle de permissões da sessão, então o resultado externo do CI para este commit está pendente. Sem deploy nem alteração de produção.
 - **Limites:** nada implantado; URLs públicas só vistas localmente; F16/F17 no aparelho pendentes; dependências de ferramentas e análise nativa continuam sem remediação; aceite humano pendente.
 - **Próximo passo:** com autorização do usuário, implantar a API em homologação e conferir `verificar-operacao.mjs`; reconectar o aparelho, instalar a 0.1.17 e rodar `suporte`, `suporte-envio` e `exportar-json` para fechar F16/F17; depois M4.
+
+## CP 154 — M3: CI externo aprovado para o commit do CP 153 (17/11/2026)
+
+- **Referência:** corrige a pendência "CI não executado" do [CP 153](#cp-20261117-153-m3-dependencias-decididas-suporte-privacidade-e-monitoramento).
+- **Validado externamente:** CI [44142077737](https://github.com/romulosutil/prisma-pdv-app/actions/runs/44142077737) (`workflow_dispatch`, autorizado pelo usuário nesta sessão) em `59fed5a` (inclui `39fdb4f`): **success**. "Types, tests and container" aprovado (typecheck, ferramentas operacionais, driver Android offline, shared, API com PostgreSQL, cenários HTTP locais, mobile, imagem Docker); job de deploy **pulado** por desenho (só roda em push na `main`).
+- **Deploy de homologação: não feito.** O usuário autorizou o deploy da API em homologação, mas esta sessão não tem conector do EasyPanel e o workflow só implanta em push na `main` (alcançaria a produção, fora da autorização). Homologação e produção seguem sem as rotas `/privacidade`, `/exclusao-de-conta` e `/termos`; "URLs públicas funcionando" continua só validado localmente.
+- **Pendências:** implantar `pdv-api-homologacao` pelo painel (backup antes, como nos CPs anteriores; a autorização vale para homologação, não para produção) e rodar `node scripts/verificar-operacao.mjs <origem-homologação>`; F16/F17 no aparelho; nome do desenvolvedor para a ficha da Play.
+- **Próximo passo:** deploy de homologação pelo painel e conferência externa; depois aparelho e M4.

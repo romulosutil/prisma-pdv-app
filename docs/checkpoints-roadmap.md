@@ -2172,5 +2172,5 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
   - As duas passaram na verificação estática do build com o host de homologação e a mesma assinatura de teste.
 - **Achados para o backlog:** texto literal "[nome]" no topo da tela de boas-vindas da instalação nova; o agendamento de backup sem execução automática (já no backlog operacional).
 - **Limites:** um aparelho e um perfil; F12 sem comando de gestão pendente no aparelho; F19 não executado; aceite humano pendente.
-- **Commit e CI:** COMMIT_CI
+- **Commit e CI (validado externamente):** `77bff7b` (correção e 0.1.16) e `f50bd4d` (testes, scripts e documentos) na branch `codex/pdv-homologacao-real`; CI [44103845990](https://github.com/romulosutil/prisma-pdv-app/actions/runs/44103845990) (`workflow_dispatch`): **success**. "Types, tests and container" aprovado; deploy pulado. Nenhum deploy ou alteração de produção.
 - **Próximo passo:** sessão M3 (pronto para o lojista).

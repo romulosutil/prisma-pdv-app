@@ -2109,5 +2109,6 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
   - Em suprimento, sangria e retirada, os campos obrigatórios ficam abaixo do teclado numérico; no S25 o erro aparece junto do valor sem nenhum campo visível. A categoria aparece como código interno (`reforco_troco`).
   - Observar em M2 a demora de 1–3 min entre a venda gravada e a tela "Venda concluída" vista uma vez (sem duplicidade financeira).
 - **Limites:** uma execução completa num único aparelho; o atraso da tela de sucesso não foi reproduzido nem explicado; a regressão não cobre fiado, estoque nem troca de aparelho (cobertos por testes de API/HTTP no CI). Aceite humano continua pendente.
-- **Pendências:** commitar fluxos e driver, rodar o CI e marcar o item M1 do roadmap.
+- **Commit e CI (validado externamente):** `b650995` na branch `codex/pdv-homologacao-real`; CI [43990950369](https://github.com/romulosutil/prisma-pdv-app/actions/runs/43990950369) (`workflow_dispatch`): **success**. Passaram tipos, driver offline (43), shared, API/PostgreSQL 17, cenários HTTP locais, mobile, imagem e isolamento; deploy pulado. Item M1 do roadmap marcado como concluído.
+- **Pendências:** aceite humano do piloto; itens de backlog acima.
 - **Próximo passo:** sessão M2 (falhas e restauração).

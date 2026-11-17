@@ -2227,3 +2227,35 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Achado novo, causa não determinada:** ao voltar o app ao primeiro plano (reproduzido também depois do deploy), aparece o toast "Não foi possível atualizar a licença. Seus registros continuam guardados." O app permanece Online. O toast só dispara quando `AssinaturaServico.sincronizar()` lança um erro que **não** é `ErroBackend` (`apps/mobile/app/_layout.tsx:137`, `apps/mobile/src/servicos/assinatura.ts:75`), por exemplo falha de validação da resposta de `GET /assinatura`; a rota existe e responde 401 sem sessão. Sem logs do app em release, a causa não foi determinada; pendência: ler o diagnóstico do app ou reproduzir com a conta de teste. Não bloqueia F16/F17.
 - **Limites:** nada em produção; CI [44150903766](https://github.com/romulosutil/prisma-pdv-app/actions/runs/44150903766) (`workflow_dispatch`) em `d4443a5`: **success** (validação externa; job de deploy pulado por desenho); sem aprovação humana; checkboxes do roadmap não marcados.
 - **Próximo passo:** implantar a API em produção só com autorização explícita e rodar `verificar-operacao.mjs` lá; investigar o toast de licença; fechar os itens F16/F17 que exigem pessoa (deslogado, resposta manual, destino do JSON); nome do desenvolvedor para a ficha da Play; M4.
+
+
+## CP 156 — M4: produção reconciliada e implantada, e AAB com chave de upload (17/11/2026)
+
+- **Referência:** M4 de [prompts por sessão](prompts-sessoes-entrega.md); continua o [CP 155](#cp-155-m3-homologacao-implantada-paginas-publicas-confirmadas-e-f16f17-no-aparelho-17112026) e o [CP 101](#cp-20261110-101-google-play-planos-e-integracoes-definidos).
+- **Decisões do usuário (17/11):** piloto na **API de produção**, com 1 a 3 lojistas. Os e-mails dos testadores vão direto para o Play Console e não ficam no repositório. Cobrança desligada. Conta de desenvolvedor Play já existente. AAB assinado com chave de upload local, fora do repositório: criada pelo usuário com `keytool` em pasta pessoal e mantida por ele.
+- **Achado (lido na produção por console somente leitura):** o `pdv-postgres` (banco `pdv`, 0 contas) tinha sido migrado pelo `main` (`1cd184f`, ramo `codex/pdv-deploy`), inclusive as migrações de estoque 0008/0009 do `main` (hashes `3385f917edfb…`, `c4e8c2a3333a…`).
+  - As migrações 0008–0011 desta branch têm `when` menor. O migrator do drizzle aplica só o que for mais novo que a última linha gravada, então um deploy direto as pularia em silêncio e a API subiria sem `usuarios` nem `auditoria_caixa`.
+  - As migrações 0000–0007 são iguais nas duas branches. A diferença de hash vista no Windows vem só do CRLF.
+- **Construído:**
+  - `scripts/reconciliar-migracoes-producao.sql`: transacional e idempotente, com travas para nome do banco, histórico exato, hashes completos e ausência de dado nas colunas do `main`. Remove as duas linhas do `main` e as três colunas e o índice órfãos.
+  - `apps/api/test/reconciliarMigracoesProducao.test.ts`, com fixtures do `main`: reproduz o estado de produção, prova o defeito, verifica que o schema fica igual ao de um banco novo e testa idempotência e travas. Commit `f2fb3bc`.
+  - `scripts/build-android.ps1 -Aab`: `bundleRelease` assinado com chave de upload externa. As senhas são pedidas por prompt e só passam pelo ambiente do processo. Confere certificado, pacote, versionCode e targetSdk (bundletool) e o bundle JS do AAB, e deriva um APK universal assinado com debug, só para aparelho de teste. Commit `245fb94`.
+- **Validado:**
+  - **Local:** teste de reconciliação 6/6 (PGlite) e typecheck da API.
+  - **AAB de homologação** com chave descartável: assinatura conferida, targetSdk 36, minSdk 24, versionCode 18; APK universal verificado. Os artefatos ficam em `builds/`, ignorado pelo git.
+  - **CI externo** [44189918293](https://github.com/romulosutil/prisma-pdv-app/actions/runs/44189918293) em `f2fb3bc`: **success**. O teste rodou com PostgreSQL real (6 testes).
+- **Produção (validado externamente; cada etapa autorizada pelo usuário nesta sessão):**
+  1. backup `pdv-pre-m4-reconciliacao-20261117` do `pdv-postgres`: Success;
+  2. reconciliação aplicada pelo console (sha256 do arquivo conferido: `0577724cc1404605…`; NOTICE de conclusão; histórico com 8 linhas; colunas do `main` ausentes);
+  3. `codex/pdv-deploy` movido de `1cd184f` para `f2fb3bc` (`--force-with-lease`) e deploy do `pdv-api`;
+  4. saúde conferida: `verificar-operacao.mjs` **8/8 PASS** (`builds/operacao-producao-20261117.json`), `/auth/cadastro/configuracao` com verificação antecipada e `x-pdv-agora` presente. No banco, 13 migrações aplicadas (0008–0012 desta branch), tabelas `usuarios`, `auditoria_caixa` e `movimentos_estoque` presentes e 0 contas.
+- **Procedimento de retorno:** restaurar o backup `pdv-pre-m4-reconciliacao-20261117` pelo painel do `pdv-postgres`, mover `codex/pdv-deploy` de volta para `1cd184f` e implantar o `pdv-api`. Sem dados reais na produção hoje, o retorno não perde nada. Depois que os lojistas cadastrarem dados, o retorno passa a exigir novo backup e decisão do usuário. Não foi executado.
+- **Regras da Play (documentação oficial, 17/11):**
+  - targetSdk 36 é exigido para apps novos.
+  - O teste interno aceita até 100 testadores e não passa pela revisão padrão. O link de opt-in pode levar algumas horas no primeiro envio.
+  - A regra de 12 testadores por 14 dias vale só para o acesso à produção.
+  - App novo entra automaticamente no Play App Signing.
+  - Exclusão de conta exige caminho no app e URL pública.
+  - A verificação de desenvolvedor no Brasil vale desde 30/09/2026; para quem publica na Play, o pacote é registrado automaticamente.
+- **Pendências:** AAB de produção (exige que o usuário digite as senhas da chave); Samsung conectado ao ADB para o APK universal e os fluxos de M1; ações do usuário no Play Console; confirmação com um testador. O toast de licença do CP 155 continua sem causa determinada.
+- **Próximo passo:** gerar o AAB de produção no terminal do usuário, rodar os fluxos de M1 no aparelho, seguir o roteiro do Console e confirmar a instalação pela Play com um lojista.

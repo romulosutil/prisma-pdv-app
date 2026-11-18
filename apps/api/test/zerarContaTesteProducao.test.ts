@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import postgres from 'postgres';
 import { gerarId } from '@pdv/shared';
 import type { Conexao } from '../src/db/conexao';
 import {
@@ -58,6 +59,13 @@ function prepararScript(p: Params, bancoExigido = nomeBanco): string {
 
 async function rodarScript(p: Params = PADRAO, bancoExigido?: string): Promise<string[]> {
   const avisos: string[] = [];
+  if (usaPostgres()) {
+    // Como o psql: uma conexão só, que o script controla com BEGIN/COMMIT. O pool do cliente da API
+    // recusa transação manual (UNSAFE_TRANSACTION); fechar a conexão desfaz uma transação abortada.
+    const sessao = postgres(process.env.PDV_TEST_POSTGRES_URL!, { max: 1, onnotice: (n) => avisos.push(String(n.message)) });
+    try { await sessao.unsafe(prepararScript(p, bancoExigido)); } finally { await sessao.end(); }
+    return avisos;
+  }
   try { await exec(prepararScript(p, bancoExigido), (m) => avisos.push(m)); } catch (erro) {
     try { await exec('ROLLBACK'); } catch { /* já fora da transação */ }
     throw erro;

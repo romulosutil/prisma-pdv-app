@@ -167,7 +167,7 @@ export async function renovarConexao(amb: AmbienteConexao, lida: Conexao): Promi
   const [travada] = await amb.db.update(conexoesPagamento).set({
     renovandoAte: new Date(agora.getTime() + TRAVA_RENOVACAO_MS),
     // Trava vencida de uma renovação anterior = ela morreu sem gravar (queda/timeout): o refresh pode ter girado.
-    refreshSemRespostaEm: sql`case when ${conexoesPagamento.renovandoAte} is not null then coalesce(${conexoesPagamento.refreshSemRespostaEm}, ${agora}) else ${conexoesPagamento.refreshSemRespostaEm} end`,
+    refreshSemRespostaEm: sql`case when ${conexoesPagamento.renovandoAte} is not null then coalesce(${conexoesPagamento.refreshSemRespostaEm}, ${agora.toISOString()}::timestamptz) else ${conexoesPagamento.refreshSemRespostaEm} end`,
   }).where(and(mesmaVersao(lida), isNull(conexoesPagamento.reautorizarDesde),
     or(isNull(conexoesPagamento.renovandoAte), lte(conexoesPagamento.renovandoAte, agora))))
     .returning();
@@ -198,7 +198,7 @@ export async function renovarConexao(amb: AmbienteConexao, lida: Conexao): Promi
     // Sem resposta confiável: o Mercado Pago pode ter girado o refresh. Fica registrado para diagnóstico.
     const semResposta = !(erro instanceof ErroProvedorMp) || erro.tipo === 'indisponivel' || erro.tipo === 'resposta_invalida';
     await amb.db.update(conexoesPagamento)
-      .set({ renovandoAte: null, ...(semResposta ? { refreshSemRespostaEm: sql`coalesce(${conexoesPagamento.refreshSemRespostaEm}, ${amb.relogio.agora()})` } : {}) })
+      .set({ renovandoAte: null, ...(semResposta ? { refreshSemRespostaEm: sql`coalesce(${conexoesPagamento.refreshSemRespostaEm}, ${amb.relogio.agora().toISOString()}::timestamptz)` } : {}) })
       .where(eq(conexoesPagamento.id, travada.id));
     throw erro;
   }

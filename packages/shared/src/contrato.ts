@@ -334,6 +334,62 @@ export type TrocarPlanoReq = z.infer<typeof TrocarPlanoReqSchema>;
 export const AtualizarCartaoReqSchema = z.object({ tokenCartao: z.string().min(1) });
 export type AtualizarCartaoReq = z.infer<typeof AtualizarCartaoReqSchema>;
 
+// ---------- Pagamentos integrados: Pix do Mercado Pago (N2) ----------
+
+/**
+ * `criando` → (`erro_provedor` ↔ nova tentativa) → `aguardando` → `paga` | `divergente` | `expirada` | `cancelada`.
+ * `expirada`/`cancelada` → `paga_tardia` | `divergente` quando o provedor informa o pagamento depois.
+ * `paga`, `paga_tardia` e `divergente` são finais. Só `paga` pode ser usada numa venda.
+ */
+export const ESTADOS_COBRANCA_PIX = ['criando', 'erro_provedor', 'aguardando', 'expirada', 'cancelada', 'paga', 'paga_tardia', 'divergente'] as const;
+export const EstadoCobrancaPixSchema = z.enum(ESTADOS_COBRANCA_PIX);
+export type EstadoCobrancaPix = z.infer<typeof EstadoCobrancaPixSchema>;
+
+/** A credencial é do próprio lojista (Access Token do Mercado Pago). Nunca volta em resposta alguma. */
+export const ConectarMercadoPagoReqSchema = z.object({
+  accessToken: z.string().trim().min(10).max(500).regex(/^\S+$/),
+  /** Assinatura secreta do webhook da aplicação do lojista ("Suas integrações"). Ausente = mantém a atual. */
+  segredoWebhook: z.string().trim().min(8).max(500).regex(/^\S+$/).optional(),
+}).strict();
+export type ConectarMercadoPagoReq = z.infer<typeof ConectarMercadoPagoReqSchema>;
+
+export const ConexaoMercadoPagoSchema = z.object({
+  conectada: z.boolean(),
+  /** Caminho a colar, depois do endereço da API, em "Suas integrações" > Webhooks (evento Order). */
+  webhookPath: z.string().nullable(),
+  temSegredoWebhook: z.boolean(),
+  conectadaEm: DataIsoSchema.nullable(),
+  atualizadaEm: DataIsoSchema.nullable(),
+}).strict();
+export type ConexaoMercadoPago = z.infer<typeof ConexaoMercadoPagoSchema>;
+
+/** `pagamentoId` é o id do pagamento da venda gerado no aparelho; repetir o mesmo pedido devolve a mesma cobrança. */
+export const CriarCobrancaPixReqSchema = z.object({
+  vendaId: IdSchema,
+  pagamentoId: IdSchema,
+  valorCentavos: z.number().int().positive().max(100_000_000),
+}).strict();
+export type CriarCobrancaPixReq = z.infer<typeof CriarCobrancaPixReqSchema>;
+
+export const CobrancaPixSchema = z.object({
+  id: IdSchema,
+  vendaId: IdSchema,
+  estado: EstadoCobrancaPixSchema,
+  valorCentavos: CentavosNaoNegativosSchema,
+  valorPagoCentavos: CentavosNaoNegativosSchema.nullable(),
+  /** Só enquanto `aguardando`: QR expirado ou pago não é mais exibido. */
+  pix: z.object({ qrCode: z.string(), qrCodeBase64: z.string().nullable(), ticketUrl: z.string().nullable() }).nullable(),
+  expiraEm: DataIsoSchema.nullable(),
+  pagaEm: DataIsoSchema.nullable(),
+  vinculadaEm: DataIsoSchema.nullable(),
+  /** Estorno/contestação observados no provedor depois da confirmação (ex.: `refunded/refunded`). */
+  alerta: z.string().nullable(),
+  criadaEm: DataIsoSchema,
+  atualizadaEm: DataIsoSchema,
+}).strict();
+export type CobrancaPix = z.infer<typeof CobrancaPixSchema>;
+export const CobrancasPixSchema = z.array(CobrancaPixSchema);
+
 // ---------- Sincronização ----------
 
 export const EntidadeSyncSchema = z.enum(['produto', 'venda', 'caixa']);
@@ -369,6 +425,11 @@ export const SyncPushReqSchema = z.object({
 });
 export type SyncPushReq = z.infer<typeof SyncPushReqSchema>;
 
+/**
+ * `motivo` é um código estável. Pagamentos: `pagamento_indisponivel` (provedor/meio sem integração ou
+ * cobrança inexistente nesta loja) e `pagamento_nao_confirmado` (cobrança Pix do Mercado Pago que não está
+ * `paga`, é de outra venda, tem outro valor, troco ou já foi usada).
+ */
 export const SyncPushResSchema = z.object({
   aceitas: z.array(IdSchema),
   rejeitadas: z.array(z.object({ id: IdSchema, motivo: z.string() })),

@@ -18,6 +18,7 @@ import { rotasCaixa } from './rotas/caixa';
 import { rotasSuporte } from './rotas/suporte';
 import { rotasCadastro } from './rotas/cadastro';
 import { rotasPaginasPublicas } from './rotas/paginasPublicas';
+import { rotasPagamentos, rotasWebhookPagamentos } from './rotas/pagamentos';
 
 // Mensagens de validação do zod em português, inclusive nos schemas do @pdv/shared.
 z.config(z.locales.pt());
@@ -49,6 +50,7 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
     orcamentoEanMs: config.orcamentoEanMs,
     timeoutPorFonteEanMs: config.timeoutPorFonteEanMs,
     cacheNegativoEanMs: config.cacheNegativoEanMs,
+    pagamentos: config.pagamentos,
   };
   const app = Fastify({ logger: config.logger ?? false });
   // Referência precisa para novas operações do aparelho; não depende do Date HTTP arredondado.
@@ -100,6 +102,8 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
   rotasConta(app, deps);
   rotasCadastro(app, deps);
   rotasRecuperacao(app, deps);
+  // Público: autenticado pela assinatura HMAC do Mercado Pago, não pela sessão.
+  rotasWebhookPagamentos(app, deps);
   if (!producao && config.habilitarRotasDev !== false) rotasDev(app, deps);
 
   await app.register(async (privado) => {
@@ -113,6 +117,7 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
     rotasAssinatura(privado, deps);
     rotasSync(privado, deps);
     rotasCatalogo(privado, deps);
+    rotasPagamentos(privado, deps);
   });
 
   return app;

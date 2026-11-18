@@ -26,6 +26,7 @@ const TABELAS_DA_CONTA = [
   'itens_venda', 'pagamentos_venda', 'caixas', 'movimentos_caixa', 'auditoria_caixa', 'catalogo_ean_confirmacoes',
   'mudancas', 'mutacoes_aplicadas', 'assinaturas', 'faturas', 'eventos_cobranca', 'testes_usados',
   'movimentos_estoque', 'clientes', 'eventos_fiado', 'solicitacoes_suporte', 'usuarios', 'codigos_login', 'entregas_codigo',
+  'conexoes_pagamento', 'cobrancas_pagamento', 'eventos_cobranca_pagamento',
 ];
 
 type Linha = Record<string, unknown>;
@@ -110,7 +111,7 @@ async function semearContaTeste() {
   const agora = `'${INICIO.toISOString()}'`;
   const [codigo] = await linhas(`SELECT id FROM codigos_login WHERE email = ${literal(c.email)} LIMIT 1`);
   const [sessao] = await linhas(`SELECT id FROM sessoes WHERE conta_id = '${c.contaId}' LIMIT 1`);
-  const usuarioEquipe = gerarId(), operadorEquipe = gerarId();
+  const usuarioEquipe = gerarId(), operadorEquipe = gerarId(), conexaoPix = gerarId(), cobrancaPix = gerarId();
   await exec(`
     INSERT INTO movimentos_caixa (id, caixa_id, loja_id, tipo, valor_centavos, motivo, criado_em) VALUES
       ('${gerarId()}', '${cx.id}', '${c.lojaId}', 'suprimento', 2000, 'troco', ${agora}),
@@ -143,6 +144,14 @@ async function semearContaTeste() {
         FROM assinaturas WHERE conta_id = '${c.contaId}';
     INSERT INTO codigos_login (id, email, finalidade, codigo_hash, expira_em, criado_em)
       VALUES ('${gerarId()}', 'equipe@exemplo.com.br', 'login', 'h', ${agora}, ${agora});
+    INSERT INTO conexoes_pagamento (id, conta_id, loja_id, provedor, publico_id, token_envelope, ativa, criado_por, criado_em, atualizado_em)
+      VALUES ('${conexaoPix}', '${c.contaId}', '${c.lojaId}', 'mercadopago', 'publico-${gerarId()}', '{"versao":1,"iv":"x","tag":"x","conteudo":"x"}', true, '${c.operadorId}', ${agora}, ${agora});
+    INSERT INTO cobrancas_pagamento (id, conta_id, loja_id, conexao_id, venda_id, operador_id, aparelho_id, provedor, meio, valor_centavos, estado,
+        chave_idempotencia, pedido, criado_em, atualizado_em)
+      VALUES ('${cobrancaPix}', '${c.contaId}', '${c.lojaId}', '${conexaoPix}', '${gerarId()}', '${c.operadorId}', '${c.aparelhoId}', 'mercadopago', 'pix', 700,
+        'aguardando', 'pdv-pix-${cobrancaPix}', '{}', ${agora}, ${agora});
+    INSERT INTO eventos_cobranca_pagamento (id, cobranca_id, loja_id, tipo, dados, criado_em)
+      VALUES ('${gerarId()}', '${cobrancaPix}', '${c.lojaId}', 'criada', '{}', ${agora});
   `);
   return c;
 }

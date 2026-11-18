@@ -29,6 +29,7 @@ import type { Db } from '../db/conexao';
 import { contas, sessoes, caixas, clientes, eventosFiado, movimentosEstoque, itensVenda, movimentosCaixa, mudancas, mutacoesAplicadas, pagamentosVenda, produtos, vendas } from '../db/schema';
 import { ErroApi } from '../erros';
 import { carregarAssinatura } from './assinatura';
+import { validarPagamentoMercadoPago, vincularCobrancas } from './cobrancasPix';
 import { baixarVenda, validarBaixas } from './estoque';
 import { vendaConsistente } from './valoresVenda';
 
@@ -198,7 +199,16 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
   // O app não deixa vender offline além da janela: criadaEm mais antigo que isso é retroação.
   if (criadoEm < adicionarDias(c.agora, -OFFLINE_MAX_DIAS)) return 'venda_fora_da_janela_offline';
   if (!vendaConsistente(v)) return 'venda_inconsistente';
-  if (v.pagamentos.some(p => p.meio === 'tap' || p.provedor !== null)) return 'pagamento_indisponivel';
+  // Manual (`provedor: null`, sem Tap) segue como antes. Integrado: só Pix do Mercado Pago com cobrança `paga` desta loja.
+  const cobrancasMp: string[] = [];
+  for (const p of v.pagamentos) {
+    if (p.provedor === null && p.meio !== 'tap') continue;
+    if (p.meio !== 'pix' || p.provedor !== 'mercadopago') return 'pagamento_indisponivel';
+    if (cobrancasMp.includes(p.id)) return 'pagamento_nao_confirmado';
+    const motivo = await validarPagamentoMercadoPago(c.tx, v.lojaId, v.id, p);
+    if (motivo) return motivo;
+    cobrancasMp.push(p.id);
+  }
   if (v.fiado) {
     if (!podeUsar(c.licenca.planoId, 'fiado')) return 'recurso_plano';
     const [cliente] = await c.tx.select().from(clientes).where(and(eq(clientes.id, v.fiado.clienteId), eq(clientes.lojaId, v.lojaId)));
@@ -251,6 +261,7 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
       })),
     );
   }
+  await vincularCobrancas(c.tx, v.lojaId, v.id, cobrancasMp, c.agora);
   await baixarVenda(c.tx, v, c.agora);
   await registrarMudanca(c, 'venda', v.id);
   return null;

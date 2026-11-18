@@ -24,6 +24,7 @@ import {
   type CupomAplicado,
   type Permissao,
   type Caixa, type MovimentoCaixa,
+  ESTADOS_COBRANCA_PIX,
 } from '@pdv/shared';
 import type { EnvelopeCodigo } from '../email/cifrador';
 import type { MotivoEntregaCodigo } from '../email/tiposEntrega';
@@ -484,3 +485,92 @@ export const solicitacoesSuporte = pgTable('solicitacoes_suporte', {
   estado: text('estado', { enum: ['aberto', 'em_analise', 'concluido'] }).notNull().default('aberto'),
   resposta: text('resposta'), criadoEm: criadoEm(), atualizadoEm: atualizadoEm(),
 }, t => [index('solicitacoes_suporte_perfil_idx').on(t.contaId, t.lojaId, t.operadorId)]);
+
+// ---------- Pagamentos integrados (N2: Pix do Mercado Pago) ----------
+
+/** Envelope AES-256-GCM da credencial do lojista; o texto em claro nunca é gravado. */
+export type EnvelopePagamento = { versao: 1; iv: string; tag: string; conteudo: string };
+
+
+/** Corpo do pedido enviado ao provedor, guardado para que toda nova tentativa reenvie exatamente o mesmo. Sem segredos. */
+export interface PedidoPixGravado {
+  valorCentavos: number;
+  referenciaExterna: string;
+  expiracao: string;
+  pagadorEmail: string;
+  pagadorPrimeiroNome: string | null;
+}
+
+/** Credencial do próprio lojista no provedor, por loja. Desligar apaga a credencial e mantém o histórico. */
+export const conexoesPagamento = pgTable('conexoes_pagamento', {
+  id: uuid('id').primaryKey(),
+  contaId: uuid('conta_id').notNull().references(() => contas.id),
+  lojaId: uuid('loja_id').notNull().references(() => lojas.id),
+  provedor: text('provedor', { enum: ['mercadopago'] }).notNull(),
+  /** Identificador aleatório usado na URL do webhook; não é segredo (a proteção é a assinatura HMAC). */
+  publicoId: text('publico_id').notNull().unique(),
+  tokenEnvelope: jsonb('token_envelope').$type<EnvelopePagamento>(),
+  segredoWebhookEnvelope: jsonb('segredo_webhook_envelope').$type<EnvelopePagamento>(),
+  contaProvedorId: text('conta_provedor_id'),
+  ativa: boolean('ativa').notNull(),
+  criadoPor: uuid('criado_por').notNull(),
+  criadoEm: criadoEm(),
+  atualizadoEm: atualizadoEm(),
+  desativadaEm: instante('desativada_em'),
+}, (t) => [uniqueIndex('conexoes_pagamento_ativa_idx').on(t.lojaId, t.provedor).where(sql`${t.ativa} = true`)]);
+
+/** Cobrança Pix criada pela nossa integração. O `id` é o id do pagamento da venda (gerado no aparelho). */
+export const cobrancasPagamento = pgTable('cobrancas_pagamento', {
+  id: uuid('id').primaryKey(),
+  contaId: uuid('conta_id').notNull().references(() => contas.id),
+  lojaId: uuid('loja_id').notNull().references(() => lojas.id),
+  conexaoId: uuid('conexao_id').notNull().references(() => conexoesPagamento.id),
+  /** Venda ainda não sincronizada: sem FK, conferida no sync. */
+  vendaId: uuid('venda_id').notNull(),
+  operadorId: uuid('operador_id').notNull(),
+  aparelhoId: uuid('aparelho_id').notNull(),
+  provedor: text('provedor', { enum: ['mercadopago'] }).notNull(),
+  meio: text('meio', { enum: ['pix'] }).notNull(),
+  valorCentavos: inteiro('valor_centavos').notNull(),
+  estado: text('estado', { enum: ESTADOS_COBRANCA_PIX }).notNull(),
+  chaveIdempotencia: text('chave_idempotencia').notNull().unique(),
+  pedido: jsonb('pedido').$type<PedidoPixGravado>().notNull(),
+  pedidoProvedorId: text('pedido_provedor_id').unique(),
+  statusProvedor: text('status_provedor'),
+  detalheProvedor: text('detalhe_provedor'),
+  valorPagoCentavos: inteiro('valor_pago_centavos'),
+  qrCode: text('qr_code'),
+  qrCodeBase64: text('qr_code_base64'),
+  ticketUrl: text('ticket_url'),
+  expiraEm: instante('expira_em'),
+  /** Trava curta da criação no provedor: duas requisições iguais não chamam o provedor ao mesmo tempo. */
+  leaseAte: instante('lease_ate'),
+  consultadoEm: instante('consultado_em'),
+  /** Próxima conferência pela conciliação; `null` = não conferir mais (estado final ou fim da janela de 24 h). */
+  proximaConsultaEm: instante('proxima_consulta_em'),
+  /** Falhas seguidas de consulta ao provedor: alimentam o recuo exponencial. */
+  falhasConsulta: integer('falhas_consulta').notNull().default(0),
+  tentativas: integer('tentativas').notNull().default(0),
+  ultimoErro: text('ultimo_erro'),
+  /** Estorno ou contestação observados depois da confirmação: só informam o dono, nunca desfazem a venda. */
+  alerta: text('alerta'),
+  pagaEm: instante('paga_em'),
+  vinculadaEm: instante('vinculada_em'),
+  criadoEm: criadoEm(),
+  atualizadoEm: atualizadoEm(),
+}, (t) => [
+  index('cobrancas_pagamento_loja_estado_idx').on(t.lojaId, t.estado),
+  index('cobrancas_pagamento_proxima_consulta_idx').on(t.proximaConsultaEm).where(sql`${t.proximaConsultaEm} is not null`),
+  // O webhook procura a order da loja sem diferenciar maiúsculas (o manifesto da assinatura usa minúsculas).
+  index('cobrancas_pagamento_loja_pedido_idx').on(t.lojaId, sql`lower(${t.pedidoProvedorId})`),
+]);
+
+/** Auditoria de criação, consultas, avisos e cancelamentos. Sem credenciais nem QR. */
+export const eventosCobrancaPagamento = pgTable('eventos_cobranca_pagamento', {
+  id: uuid('id').primaryKey(),
+  cobrancaId: uuid('cobranca_id').notNull().references(() => cobrancasPagamento.id),
+  lojaId: uuid('loja_id').notNull().references(() => lojas.id),
+  tipo: text('tipo').notNull(),
+  dados: jsonb('dados').$type<Record<string, unknown>>().notNull(),
+  criadoEm: criadoEm(),
+}, (t) => [index('eventos_cobranca_pagamento_cobranca_idx').on(t.cobrancaId)]);

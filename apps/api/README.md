@@ -24,7 +24,9 @@ As migrações em `drizzle/` são aplicadas na inicialização.
 | `DATABASE_URL` | Postgres (postgres.js). Sem ela, usa PGlite em `.data/pglite`. Obrigatória com `NODE_ENV=production`. |
 | `NODE_ENV=production` | Não registra `/dev/*`, desliga o CORS e não devolve o código de login na resposta. |
 | `BILLING_PROVIDER` | `mock` por padrão, recusado em produção. `disabled` concede acesso sem cobrança, cartão ou faturas; é o modo de produção inicial. Novos gateways entram em `src/billing.ts`. |
-| `JOBS=off` | Não agenda o job de cobrança (que roda a cada hora). |
+| `JOBS=off` | Não agenda o job de cobrança (que roda a cada hora) nem a conciliação do Pix. |
+| `PDV_PAGAMENTOS_CHAVE` | Base64 de 32 bytes (AES-256-GCM) que cifra a credencial do Mercado Pago de cada loja. Ausente: a API sobe e as rotas de pagamento respondem 503 `pagamentos_indisponiveis`. Formato inválido impede a partida. |
+| `PDV_MP_PAYER_EMAIL` | E-mail enviado como `payer.email` nas orders Pix (o PDV não coleta e-mail do cliente). Ausente: a cobrança responde 503 `pagador_nao_configurado`. Valor pendente de decisão do usuário. |
 
 Fora de produção o relógio do servidor anda em tempo real e pode ser avançado por `POST /dev/relogio/avancar`.
 
@@ -55,6 +57,13 @@ Erros: `{ "erro": "codigo_estavel", "mensagem": "Texto em português" }`. Rotas 
 | `GET /sync/pull?desde=<cursor>` (auth) | Até 500 mudanças depois do cursor. Repetir com o cursor devolvido enquanto vierem 500. |
 | `POST /dev/relogio/avancar` | `{ dias }`. Só fora de produção. |
 | `POST /dev/jobs/cobranca` | Roda o job de cobrança agora e devolve o resumo. Só fora de produção. |
+| `POST /dev/jobs/conciliacao-pix` | Roda a conciliação do Pix agora. Só fora de produção. |
+| `GET/PUT/DELETE /pagamentos/mercadopago/conexao` (auth, dono) | Estado, conexão/troca (`{ accessToken, segredoWebhook? }`, cifrados; nunca devolvidos) e desligamento (apaga a credencial, mantém o histórico). Devolve o `webhookPath`. |
+| `POST /pagamentos/cobrancas` (auth, `vender`) | `{ vendaId, pagamentoId, valorCentavos }`: cria a order Pix (idempotente pelo `pagamentoId`; outros dados → 409 `cobranca_conflitante`). |
+| `GET /pagamentos/cobrancas/:id` (auth, `vender`) | Estado e QR; consulta o Mercado Pago no máximo a cada 3 s. |
+| `POST /pagamentos/cobrancas/:id/cancelar` (auth, `vender`) | Venda abandonada: cancela a order; se já foi paga, devolve `paga`. |
+| `GET /pagamentos/cobrancas?estado=` (auth, dono) | Lista para o dono (ex.: `divergente`, `paga_tardia`). |
+| `POST /webhooks/pdv-mercadopago/:conexaoPublicaId` | Público, autenticado pelo `x-signature` (HMAC). Só dispara a consulta da order. |
 
 ### Sincronização
 
@@ -88,3 +97,7 @@ R1 autoriza o push por operação e filtra o pull no servidor: funcionário sem 
 | `GET /suporte/exportacao` | Dados confirmados da loja atual conforme permissão, finanças próprias sem `conferir_caixas`, identidade pessoal e protocolos próprios. Sem credenciais/cartões/sessões; não é backup restaurável. |
 
 Migração aditiva `0011_condemned_unus.sql`. Retenção de protocolos concluídos há mais de 90 dias no startup e diariamente com jobs ativos, com drain no shutdown. Abertos/em análise preservados. [Procedimento de atendimento, retenção, monitoramento, backup e retorno compatível](../../docs/operacao-backup-suporte.md). Implantação externa e responsável pelo atendimento ainda exigem registro de homologação.
+
+### Pix do Mercado Pago (N2, validação local com provedor simulado)
+
+Credencial do próprio lojista, cifrada; confirmação sempre por `GET /v1/orders/{id}`; máquina de estados monotônica; venda com `pix`/`mercadopago` só é aceita no sync com a cobrança `paga`, sem alerta de estorno, da mesma loja, venda e valor (`pagamento_nao_confirmado` caso contrário). Migração aditiva `0013_light_annihilus.sql`. Desenho, estados, configuração do webhook e pendências: [N2](../../docs/n2-pix-mercadopago.md).

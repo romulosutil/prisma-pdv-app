@@ -41,3 +41,24 @@ export function validarConfiguracao(env: NodeJS.ProcessEnv): Configuracao {
 
   return { ambiente, porta, databaseUrl, billingProvider };
 }
+
+export interface ConfiguracaoPagamentos {
+  /** `PDV_PAGAMENTOS_CHAVE`: base64 de 32 bytes. Ausente = rotas de pagamento respondem 503, sem impedir a partida. */
+  chave: string | undefined;
+  /** `PDV_MP_PAYER_EMAIL`: e-mail enviado como `payer.email` (o PDV não coleta e-mail do cliente). */
+  pagadorEmail: string | undefined;
+}
+
+/** Separada de `validarConfiguracao` para não mudar o formato já conferido; mensagens nunca citam valores. */
+export function lerConfiguracaoPagamentos(env: NodeJS.ProcessEnv): ConfiguracaoPagamentos {
+  const chave = env.PDV_PAGAMENTOS_CHAVE?.trim() || undefined;
+  if (chave !== undefined) {
+    const bytes = /^[A-Za-z0-9+/]+={0,2}$/.test(chave) ? Buffer.from(chave, 'base64') : Buffer.alloc(0);
+    if (bytes.length !== 32 || bytes.toString('base64') !== chave) throw new Error('PDV_PAGAMENTOS_CHAVE deve ser base64 de 32 bytes.');
+  }
+  const pagadorEmail = env.PDV_MP_PAYER_EMAIL?.trim() || undefined;
+  if (pagadorEmail !== undefined && (pagadorEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pagadorEmail))) {
+    throw new Error('PDV_MP_PAYER_EMAIL deve ser um e-mail válido.');
+  }
+  return { chave, pagadorEmail };
+}

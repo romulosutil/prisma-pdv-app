@@ -16,6 +16,7 @@ import { asc, eq, getTableName, is, sql } from 'drizzle-orm';
 import { PgTable } from 'drizzle-orm/pg-core';
 import { abrirPglite, abrirPostgres, type Conexao, type Db } from '../src/db/conexao';
 import type { FonteEan } from '../src/fontes/fonte';
+import type { ConfigPagamentos } from '../src/deps';
 import * as schema from '../src/db/schema';
 import { criarApp } from '../src/servidor';
 
@@ -64,7 +65,7 @@ export async function criarAmbiente(
   billing?: (mock: MockBillingProvider) => BillingProvider,
   fontesEan: FonteEan[] = [],
   orcamentoEanMs?: number,
-  extrasEan: { timeoutPorFonteEanMs?: number; cacheNegativoEanMs?: number } = {},
+  extrasEan: { timeoutPorFonteEanMs?: number; cacheNegativoEanMs?: number; pagamentos?: ConfigPagamentos } = {},
 ): Promise<Ambiente> {
   await conexao.db.execute(sql.raw(`truncate table ${TABELAS} restart identity cascade`));
   const relogio = new RelogioFalso(INICIO);
@@ -87,7 +88,7 @@ export interface Resposta<T = any> {
 
 export async function chamar<T = any>(
   amb: Ambiente,
-  metodo: 'GET' | 'POST' | 'PUT',
+  metodo: 'GET' | 'POST' | 'PUT' | 'DELETE',
   url: string,
   opcoes: { token?: string; corpo?: unknown } = {},
 ): Promise<Resposta<T>> {

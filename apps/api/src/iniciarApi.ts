@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { relogioSistema, type Relogio } from '@pdv/shared';
 import type { FastifyInstance } from 'fastify';
 import { criarBilling, criarBillingDesativado } from './billing';
-import { validarConfiguracao } from './configuracao';
+import { lerConfiguracaoPagamentos, validarConfiguracao } from './configuracao';
 import { abrirPglite, abrirPostgres, type Conexao } from './db/conexao';
 import { lerConfiguracaoEntregaCodigo } from './email/configuracaoEntrega';
 import { ErroCanalEmail } from './email/contrato';
@@ -12,6 +12,11 @@ import type { EmissaoCodigo } from './email/tiposEntrega';
 import { fontesEanGratuitas } from './fontes/openFoodFacts';
 import { agendarCobranca } from './jobs';
 import { agendarEntregasCodigo } from './jobsEmail';
+import { agendarConciliacaoPix } from './jobsPagamentos';
+import { criarCifradorPagamentos } from './pagamentos/cifrador';
+import { criarProvedorMercadoPago } from './pagamentos/mercadoPago';
+import type { ConfigPagamentos } from './deps';
+import { ambientePix, conciliarCobrancasPix } from './servicos/cobrancasPix';
 import { RelogioDeDesenvolvimento } from './relogio-dev';
 import { criarApp } from './servidor';
 import { agendarRetencaoSuporte, limparSuporteConcluido } from './servicos/retencaoSuporte';
@@ -19,6 +24,13 @@ import { agendarRetencaoSuporte, limparSuporteConcluido } from './servicos/reten
 export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () => Promise<void> }> {
   const configuracao = validarConfiguracao(process.env);
   const entrega = lerConfiguracaoEntregaCodigo(process.env);
+  // Sem PDV_PAGAMENTOS_CHAVE a API sobe normalmente e as rotas de pagamento respondem 503.
+  const configPagamentos = lerConfiguracaoPagamentos(process.env);
+  const pagamentos: ConfigPagamentos = {
+    cifrador: configPagamentos.chave ? criarCifradorPagamentos(configPagamentos.chave) : null,
+    mercadoPago: criarProvedorMercadoPago(),
+    pagadorEmail: configPagamentos.pagadorEmail ?? null,
+  };
   const relogio: Relogio = configuracao.ambiente === 'production' ? relogioSistema : new RelogioDeDesenvolvimento();
   const emissao: EmissaoCodigo = entrega.modo === 'smtp'
     ? { modo: 'email', chaves: entrega.chaves, dominioRemetente: entrega.smtp.remetente.split('@')[1]! }
@@ -28,6 +40,7 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
   let pararCobranca: (() => void) | undefined;
   let pararEmail: (() => Promise<void>) | undefined;
   let pararSuporte: (() => Promise<void>) | undefined;
+  let pararPix: (() => Promise<void>) | undefined;
   let parada: Promise<void> | undefined;
   const parar = (): Promise<void> => {
     if (parada) return parada;
@@ -35,6 +48,7 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
       let falhou = false;
       try { pararCobranca?.(); } catch { falhou = true; }
       try { await pararSuporte?.(); } catch { falhou = true; }
+      try { await pararPix?.(); } catch { falhou = true; }
       try { await pararEmail?.(); } catch { falhou = true; }
       try { await app?.close(); } catch { falhou = true; }
       try { await conexao?.fechar(); } catch { falhou = true; }
@@ -51,12 +65,16 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
     const canal = entrega.modo === 'smtp' ? criarCanalSmtp(entrega.smtp) : undefined;
     const cobrancaDesativada = configuracao.billingProvider === 'disabled';
     const billing = cobrancaDesativada ? criarBillingDesativado() : criarBilling(configuracao.billingProvider);
-    app = await criarApp({ db: conexao.db, relogio, billing, cobrancaDesativada, fontesEan: fontesEanGratuitas, logger: true, emissaoCodigo: emissao });
+    app = await criarApp({ db: conexao.db, relogio, billing, cobrancaDesativada, fontesEan: fontesEanGratuitas, logger: true, emissaoCodigo: emissao, pagamentos });
     await app.listen({ port: configuracao.porta, host: '0.0.0.0' });
     if (process.env.JOBS !== 'off') {
       const db = conexao.db;
       const registrar = (mensagem: string) => app!.log.info(mensagem);
       pararSuporte = agendarRetencaoSuporte(() => limparSuporteConcluido(db, relogio), registrar);
+      if (pagamentos.cifrador) {
+        const amb = ambientePix({ db, relogio, pagamentos });
+        pararPix = agendarConciliacaoPix((deveParar) => conciliarCobrancasPix(amb, { deveParar }), registrar);
+      }
       if (!cobrancaDesativada) pararCobranca = agendarCobranca(db, billing, relogio, registrar);
       if (entrega.modo === 'smtp' && emissao.modo === 'email' && canal) {
         pararEmail = agendarEntregasCodigo(() => processarEntregasCodigo(db, { chaves: entrega.chaves, canal, dominioRemetente: emissao.dominioRemetente, relogio }), registrar);

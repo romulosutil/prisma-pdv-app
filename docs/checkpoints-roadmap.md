@@ -2446,3 +2446,78 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Commits:** `8526cc0` (0.1.19, atribuição, correções do catálogo, procedimento) e `d393e1e` (teste em conexão única), enviados à branch atual.
 - **Retorno da API:** restaurar `pdv-pre-n1-deploy-d393e1e-20261118`, mover `codex/pdv-deploy` para `f2fb3bc` e implantar, apagando antes as linhas das fontes novas em `catalogo_ean` (item 1).
 - **Próximo passo:** usuário gera o AAB 0.1.19 (senhas da chave); conectar o Samsung por cabo USB; desinstalar, instalar e refazer o cadastro; fluxos, venda offline, diagnóstico do toast e bipagem de 5 produtos.
+
+<a id="cp-164-n2-servidor-do-pix-mercado-pago-construido-e-testado-com-provedor-simulado-18112026"></a>
+
+## CP 164 — N2: servidor do Pix Mercado Pago construído e testado com provedor simulado (18/11/2026)
+
+- **Data e etapa:** 18/11/2026, 18h49 (America/Sao_Paulo). Sessão N2 de [prompts-sessoes-entrega.md](prompts-sessoes-entrega.md); segue a [pesquisa de pagamentos](pesquisa-pagamentos.md), o [CP 101](#cp-20261110-101-google-play-planos-e-integracoes-definidos), o [CP 103](#cp-20261110-103-escolha-da-maquininha-pelo-lojista-decidida) e o R6 do roadmap. Os CPs 162 e 163 são do agente de design, ainda sem commit, e foram preservados.
+- **Estado:** avanço parcial. Servidor **construído e validado localmente** com o provedor simulado. **Falta** a validação com a conta de teste do Mercado Pago: a variável `MP_TESTE_ACCESS_TOKEN` não está definida na máquina, e só o usuário pode defini-la. Também faltam as telas (QR e conexão), bloqueadas até o pacote de design ser integrado. Nenhuma chamada real ao Mercado Pago, nenhum deploy, nenhum valor real.
+- **Escopo seguido (mínimo da documentação):**
+  - **Credencial:** o lojista informa o próprio access token do Mercado Pago, sem OAuth e sem parceria. Opcionalmente informa também a assinatura secreta do webhook da aplicação dele.
+  - **Armazenamento:** os dois ficam só no servidor, cifrados com AES-256-GCM, com a chave `PDV_PAGAMENTOS_CHAVE` do ambiente. Nenhuma rota, log ou evento devolve o token.
+  - **Sem a chave no ambiente:** as rotas de pagamento respondem 503 `pagamentos_indisponiveis`, e a API sobe normalmente (a produção não tem a chave).
+  - **Pix:** `POST /v1/orders`, com `X-Idempotency-Key` fixo por pagamento (`pdv-pix-<uuid>`), `external_reference` igual ao id do pagamento da venda, expiração `PT30M` (mínimo da documentação) e o mesmo corpo salvo e reenviado em toda nova tentativa.
+  - **Confirmação:** sempre por `GET /v1/orders/{id}`, nunca pelo corpo do aviso e nunca por valor. Exige `processed`/`accredited`, o mesmo id de pedido, o mesmo `external_reference` e o valor pago exatamente igual ao esperado.
+  - **Webhook:** `POST /webhooks/pdv-mercadopago/:conexaoPublicaId`. Valida o HMAC-SHA256 do manifesto `id:<data.id em minúsculas>;request-id:…;ts:…;`, com comparação em tempo constante; assinatura ausente, inválida ou sem segredo cadastrado → 401. Sem janela de `ts`: um aviso repetido só gera outra consulta, sem efeito.
+  - **Detalhes da documentação conferidos em 18/11** (fontes em [n2-pix-mercadopago.md](n2-pix-mercadopago.md)): valores como texto com duas casas; cancelamento `POST /v1/orders/{id}/cancel` com 409 `cannot_cancel_order` quando o pedido já foi pago; webhook configurado por aplicação, sem `notification_url` por pedido; `APRO` aprova o Pix no modo de teste; a conta precisa de chave Pix cadastrada.
+- **Construído:**
+  - **Código:** `apps/api/src/pagamentos/{cifrador,assinaturaWebhook,mercadoPago}.ts`, `apps/api/src/servicos/cobrancasPix.ts`, `apps/api/src/rotas/pagamentos.ts`, `apps/api/src/jobsPagamentos.ts`.
+  - **Migração 0013:** tabelas `conexoes_pagamento`, `cobrancas_pagamento` e `eventos_cobranca_pagamento`. As duas primeiras têm índices únicos para conexão ativa por loja, chave de idempotência e id do pedido; a de eventos é a auditoria, sem token, segredo nem QR.
+  - **Integração no sync:** o pagamento `pix` + `mercadopago` só é aceito com uma cobrança `paga` da mesma loja e da mesma venda, com o mesmo valor, troco 0, sem alerta de estorno e ainda não vinculada. O vínculo é feito na mesma transação da venda.
+  - **Código novo de recusa:** `pagamento_nao_confirmado`.
+  - **Sem mudança:** pagamento manual (`provedor: null`), Tap e os demais provedores.
+  - **Script de limpeza:** `scripts/zerar-conta-teste-producao.sql` passa a cobrir as três tabelas novas.
+  - **Testes:** `apps/api/test/{pagamentosPix,mercadoPagoUnidade}.test.ts`, `apps/api/test/provedorMercadoPagoSimulado.ts` e `packages/shared/test/pagamentosPixContrato.test.ts`.
+  - **Homologação:** `scripts/homologar-mercadopago-pix.mts`, fora do CI. Lê só `MP_TESTE_ACCESS_TOKEN`, cria um Pix `APRO`, aguarda `paga` pela nossa API, sincroniza a venda e grava `builds/n2-mercadopago-pix-homologacao.json` sem token nem QR.
+  - **Documentação:** [n2-pix-mercadopago.md](n2-pix-mercadopago.md) e `apps/api/README.md`, só com os nomes das variáveis.
+- **Estados da cobrança:**
+  - `criando` → `aguardando` ou `erro_provedor` (nova tentativa com a mesma chave).
+  - `aguardando` → `paga` | `divergente` | `expirada` | `cancelada`.
+  - `expirada`/`cancelada` → `paga_tardia` | `divergente`.
+  - `paga`, `paga_tardia` e `divergente` são finais, e as gravações são condicionadas ao estado lido, então nunca regridem.
+  - Estorno ou contestação vistos depois da confirmação viram alerta para o dono, e a cobrança com alerta não pode ser usada em venda.
+- **Casos de falha tratados, todos com teste e provedor simulado:**
+  - aviso duplicado e fora de ordem;
+  - valor divergente, para mais e para menos;
+  - pedido com outro id e a mesma referência;
+  - pagamento tardio, após expirar ou após cancelar;
+  - venda abandonada (cancelamento, inclusive quando o pedido já foi pago no provedor);
+  - aviso perdido, com reconciliação pela consulta do app (no máximo a cada 3 s) e pela tarefa a cada 30 s, com espera crescente após a expiração e após falhas, `Retry-After` no 429 e parada 24 h depois da expiração;
+  - isolamento entre lojas e conexão só pelo dono;
+  - reconexão sem perder cobranças pendentes;
+  - avisos repetidos com limite de consultas;
+  - webhook, consulta, tarefa e cancelamento simultâneos;
+  - duas sincronizações simultâneas da mesma venda, que geram um único vínculo.
+- **Revisão (orquestrador + revisor Opus independente):** nenhum defeito grave em dinheiro, assinatura ou isolamento. Oito achados médios e baixos foram corrigidos, cada um com teste que falhava antes da correção:
+  - cobranças presas ao desconectar ou reconectar;
+  - consultas sem fim;
+  - corrida que apagava o alerta de estorno;
+  - cobrança estornada ainda aceita na venda;
+  - avisos repetidos sem limite;
+  - robustez da tarefa;
+  - duas conexões simultâneas resultando em 500;
+  - índice do webhook.
+  - **Limite:** a corrida de duas conexões simultâneas só ocorre de verdade no PostgreSQL do CI; o PGlite executa uma transação por vez.
+- **Validações locais (em série, um worker), sobre o código final:** typecheck shared, API e mobile sem erros; shared 18 arquivos 175/175; API (PGlite) 57 arquivos 704/704; mobile 81 arquivos 665/665. O teste de migrações passa a esperar 14 migrações.
+- **NÃO VERIFICADO (depende da conta de teste):**
+  - o fluxo completo com credencial de teste;
+  - se a credencial de teste é aceita na consulta e no cancelamento (a documentação diverge);
+  - o tempo da aprovação `APRO`;
+  - a presença de `total_paid_amount` no Pix pago;
+  - uma assinatura real do Mercado Pago (não há vetor oficial de teste);
+  - `GET /users/me` com o token.
+- **Esclarecimento ao usuário (18/11):** a integração é com o Mercado Pago **de cada lojista**. Cada loja conecta a própria conta, e o dinheiro cai na conta dela. A credencial pedida ao usuário serve só para a validação em ambiente de teste, sem dinheiro. O caminho OAuth ("Conectar com Mercado Pago") continua possível como evolução, para o lojista não precisar criar uma aplicação no painel de desenvolvedor.
+- **Decisões pendentes do usuário:**
+  - o e-mail enviado em `payer.email` (variável `PDV_MP_PAYER_EMAIL`; sem ela, a cobrança responde 503 `pagador_nao_configurado` em vez de inventar um endereço);
+  - a chave `PDV_PAGAMENTOS_CHAVE` e o deploy, só com autorização.
+- **Limitações:**
+  - sem estorno por API;
+  - uma cobrança em `erro_provedor` cujo pedido possa ter sido criado durante um timeout não é procurada no provedor, porque a documentação não traz busca;
+  - o app precisa aguardar `paga` antes de concluir a venda;
+  - telas ainda não feitas.
+- **Próximo passo:**
+  1. O usuário define `MP_TESTE_ACCESS_TOKEN` no ambiente da máquina (Access Token de teste, conta com chave Pix), sem colar na conversa.
+  2. Rodar `scripts/homologar-mercadopago-pix.mts` e registrar a evidência.
+  3. Depois da integração do pacote de design: o QR na tela de pagamento e a tela de conexão do lojista.
+  4. Deploy só com autorização.

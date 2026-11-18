@@ -481,9 +481,17 @@ def esperar_conectividade(online, tentativas=8):
     raise RuntimeError(('Aparelho continua OFFLINE apos restaurar: ' if online else 'Aparelho continua CONECTADO apos airplane on: ') + json.dumps(ultima))
 
 
+def conexao_sem_fio(serial):
+    """Funcao pura: ADB por Wi-Fi (IP:porta ou servico mDNS adb-...) cai junto com a rede."""
+    return bool(serial) and (bool(re.fullmatch(r'[\d.]+:\d+', serial)) or serial.startswith('adb-'))
+
+
 def airplane(state):
     if state not in ('on', 'off'):
         raise ValueError('airplane espera "on" ou "off"')
+    if state == 'on' and conexao_sem_fio(DEVICE):
+        # CP 156: com depuracao por Wi-Fi, desligar a rede derruba o proprio ADB e o aparelho fica offline.
+        raise RuntimeError('Modo aviao recusado: ADB por Wi-Fi (' + DEVICE + ') perderia a conexao. Use cabo USB para fluxos offline.')
     salvos = carregar_estados_salvos()
     chave = chave_dispositivo()
     if state == 'on':

@@ -341,6 +341,19 @@ class RegressaoDryRunTest(unittest.TestCase):
         self.assertEqual(d.PACOTE_PRODUCAO, 'br.com.pdv.mobile')
         self.assertEqual(d.PACKAGE, 'br.com.pdv.mobile.homologacao')
 
+    def test_aviao_recusado_por_wifi(self):
+        self.assertTrue(d.conexao_sem_fio('192.168.15.198:46265'))
+        self.assertTrue(d.conexao_sem_fio('adb-XYZ-abc._adb-tls-connect._tcp'))
+        self.assertFalse(d.conexao_sem_fio('emulator-5554'))
+        self.assertFalse(d.conexao_sem_fio('R5CX123ABC'))
+        anterior = d.DEVICE
+        try:
+            d.DEVICE = '192.168.15.198:46265'
+            with self.assertRaises(RuntimeError):
+                d.airplane('on')
+        finally:
+            d.DEVICE = anterior
+
     def test_param_invalido(self):
         with self.assertRaises(ValueError):
             d.parse_params(['x=abc'])

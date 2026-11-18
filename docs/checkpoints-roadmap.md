@@ -2259,3 +2259,61 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
   - A verificação de desenvolvedor no Brasil vale desde 30/09/2026; para quem publica na Play, o pacote é registrado automaticamente.
 - **Pendências:** AAB de produção (exige que o usuário digite as senhas da chave); Samsung conectado ao ADB para o APK universal e os fluxos de M1; ações do usuário no Play Console; confirmação com um testador. O toast de licença do CP 155 continua sem causa determinada.
 - **Próximo passo:** gerar o AAB de produção no terminal do usuário, rodar os fluxos de M1 no aparelho, seguir o roteiro do Console e confirmar a instalação pela Play com um lojista.
+
+
+## CP 157 — M4: versão 0.1.18 de produção conferida no Samsung, pronta para o teste interno (17/11/2026)
+
+- **Referência:** continua o [CP 156](#cp-156-m4-producao-reconciliada-e-implantada-e-aab-com-chave-de-upload-17112026).
+- **Pedido do usuário no aparelho (0.1.17):**
+  - o teclado escondia o campo focado;
+  - o código de confirmação devia ser uma etapa própria;
+  - "Já tenho conta" devia sair da tela do nome da loja;
+  - a tela de meios de recebimento é só informativa: tudo vem ativo e a conferência é manual.
+
+  Achado nosso: o "[nome]" provisório aparecia na tela de boas-vindas.
+- **Construído:** commit `8ab08c3`, versão **0.1.18 / versionCode 19**.
+  - `TelaBase` com `KeyboardAvoidingView` em `padding`.
+  - Etapa do código em `criar-conta.tsx`: resumo "Código enviado para…", foco automático, "Alterar dados".
+  - `loja.tsx` sem "Já tenho conta".
+  - "Prisma PDV" na boas-vindas e no nome sob o ícone (`app.json`).
+  - 3 testes de tela novos.
+  - Driver `--producao`, que exige `--fisico`, para agir em `br.com.pdv.mobile`.
+  - Roteiro [play-console-teste-interno.md](play-console-teste-interno.md).
+- **Validado:**
+  - **Local:** mobile 79 arquivos / 655 testes. Na primeira execução, com a máquina carregada, 2 arquivos falharam de forma intermitente; a repetição passou inteira. Typecheck OK.
+  - **CI externo** [44205778279](https://github.com/romulosutil/prisma-pdv-app/actions/runs/44205778279) em `8ab08c3`: **success**.
+- **AAB 0.1.18** (`builds/`, ignorado pelo git):
+  - `pdv-producao-0.1.18-aab.aab`, sha256 `8dbab22e…d5c9`;
+  - pacote `br.com.pdv.mobile`, targetSdk 36, minSdk 24;
+  - certificado de upload `8B:86:81:63:…:D9:40`, igual ao da chave do usuário;
+  - bundle verificado com a API de produção (PASS).
+
+  O AAB 0.1.17 (sha256 `c0e642cb…`) foi substituído e **não deve ser enviado**.
+- **Aparelho** (Samsung SM-S938B, Android 17; pacote de produção contra a API de produção, conta própria "Loja Teste M4" criada pelo usuário com o código recebido por e-mail):
+  - **Cadastro real:** concluído pelo usuário. Comprova a entrega de e-mail da produção e o contrato de cadastro (**relato do usuário + aparelho**).
+  - **0.1.17, via driver/ADB:**
+    - abrir caixa (R$ 100), vender R$ 50 em dinheiro, entrada R$ 20, sangria R$ 15 e retirada R$ 5: **PASS**;
+    - fechamento feito pelo usuário na mão;
+    - venda offline **não executada pelo driver** (ver achados). O usuário declarou que o modo avião funciona: **relato do usuário**, não teste.
+  - **0.1.18:** instalada por cima da 0.1.17 sem perda: conta, venda e caixa preservados. Rótulo "Prisma PDV" conferido no APK. As telas novas do onboarding só têm teste automatizado, sem conferência no aparelho, porque a conta já existia.
+  - **API de produção (HTTP pelo console, só leitura):** 1 conta e 1 loja; caixa com troco 10000, esperado 15000 e contado 15000, fechado; movimentos suprimento 2000, sangria 1500 e retirada 500, um de cada; 1 venda concluída de 5000. Valores e IDs únicos batem com o aparelho, **sem duplicação**.
+- **Achados de ferramenta (corrigidos ou contornados):**
+  - (a) Com a câmera permitida, o leitor ao vivo impede a leitura de tela pelo `uiautomator`. Durante os fluxos a permissão foi retirada e depois restaurada (`granted=true` conferido).
+  - (b) Com ADB por Wi-Fi, o modo avião derruba o próprio ADB e deixou o aparelho offline. O driver agora recusa `airplane on` em conexão sem fio (`conexao_sem_fio`, com teste; 57 testes do driver passam).
+  - (c) Os fluxos avulsos exigem os saldos esperados por `--param` quando o caixa não está no estado padrão.
+- **Versão, SHA e retorno:**
+  - App 0.1.18 (19), commit `8ab08c3`.
+  - API de produção em `f2fb3bc` (`codex/pdv-deploy`).
+  - Retorno da API: restaurar o backup `pdv-pre-m4-reconciliacao-20261117`, mover `codex/pdv-deploy` para `1cd184f` e implantar (CP 156). Agora a produção tem os dados da conta de teste, que o retorno apagaria.
+  - Retorno do app: no teste interno, publicar de novo uma versão anterior exige versionCode maior; o caminho é uma correção nova.
+- **Pendências (usuário):** seguir [play-console-teste-interno.md](play-console-teste-interno.md):
+  1. criar o app "Prisma PDV";
+  2. enviar `pdv-producao-0.1.18-aab.aab` ao teste interno;
+  3. conferir o certificado de upload;
+  4. preencher conteúdo do app e segurança de dados;
+  5. montar a lista com os e-mails dos 1–3 lojistas;
+  6. mandar o link de opt-in.
+
+  Depois, confirmar com um lojista a instalação pela Play e o cadastro real.
+- **Observação:** no Samsung, o app instalado por ADB tem outra assinatura que a da Play. Para instalar pela Play nele, desinstale antes.
+- **Próximo passo:** ações do usuário no Console e confirmação com um testador (fecha o M4); depois o M5.

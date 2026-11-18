@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "PDV",
+    "name": "Prisma PDV",
     "slug": "pdv-mobile",
     "scheme": "pdv",
-    "version": "0.1.17",
+    "version": "0.1.18",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "br.com.pdv.mobile",
-      "versionCode": 18,
+      "versionCode": 19,
       "adaptiveIcon": {
         "backgroundColor": "#FFC933",
         "foregroundImage": "./assets/android-icon-foreground.png",

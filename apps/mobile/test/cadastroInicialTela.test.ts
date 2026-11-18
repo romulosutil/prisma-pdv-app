@@ -17,6 +17,7 @@ vi.mock('@/componentes/CabecalhoEtapa', async () => { const R = await import('re
 vi.mock('@/componentes/TelaBase', async () => { const R = await import('react'); return { TelaBase: (p: any) => R.createElement('tela', null, p.children, p.rodape) }; });
 import CriarConta from '../app/(onboarding)/criar-conta';
 import Loja from '../app/(onboarding)/loja';
+import { readFileSync } from 'node:fs';
 import { RascunhoProvider, useRascunho } from '@/nucleo/rascunho';
 
 const dados = { backend: { modo: 'http' }, pedirCodigoCadastro: m.pedir, verificarCadastro: m.verificar, cancelarCadastro: () => { m.prova = null; }, cadastroConfirmado: (email: string, documento: string) => m.prova?.email === email && m.prova?.documento === documento, criarConta: m.criar, assinatura: { obter: () => ({ assinatura: { status: 'liberada' } }) } };
@@ -83,4 +84,23 @@ it('se a confirmação expirou, a loja retorna aos dados sem enviar criação', 
   await preparar(); await clicar('Continuar e enviar código'); await confirmar();
   m.prova = null; await act(async () => r.update(tela(Loja))); await clicar('Criar minha conta');
   expect(m.criar).not.toHaveBeenCalled(); expect(m.replace).toHaveBeenCalledWith('/criar-conta');
+});
+
+it('após enviar o código mostra só a etapa do código e Alterar dados volta aos campos', async () => {
+  await preparar(); await clicar('Continuar e enviar código');
+  expect(campo('Código de confirmação do e-mail').props.autoFocus).toBe(true);
+  expect(campo('Seu nome')).toBeUndefined(); expect(campo('E-mail')).toBeUndefined(); expect(campo('CPF ou CNPJ')).toBeUndefined();
+  expect(JSON.stringify(r.toJSON())).toContain('ana@example.com');
+  await clicar('Alterar dados');
+  expect(campo('Código de confirmação do e-mail')).toBeUndefined();
+  expect(campo('E-mail').props.value).toBe('ana@example.com'); expect(campo('Seu nome').props.value).toBe('Ana');
+  expect(botao('Continuar e enviar código')).toBeDefined();
+});
+it('a etapa da loja não oferece Já tenho conta', async () => {
+  await act(async () => { r = create(tela(Loja)); });
+  expect(botao('Já tenho conta')).toBeUndefined();
+});
+it('boas-vindas não traz texto provisório [nome]', () => {
+  const fonte = readFileSync(new URL('../app/(onboarding)/boas-vindas.tsx', import.meta.url), 'utf8');
+  expect(fonte).not.toContain('[nome]'); expect(fonte).toContain('Prisma PDV');
 });

@@ -9,7 +9,7 @@ const m = vi.hoisted(() => ({
   arquivos: new Map<string, string>(), compartilhar: vi.fn(), disponivel: vi.fn(), id: 0,
 }));
 vi.mock('react-native', async () => { const R = await import('react'); return { View: (p: any) => R.createElement('view', p, p.children), Platform: { OS: 'android' }, Linking: { openURL: vi.fn() } }; });
-vi.mock('expo-constants', () => ({ default: { expoConfig: { version: '0.1.17', extra: { ambiente: 'homologacao' } } } }));
+vi.mock('expo-constants', () => ({ default: { expoConfig: { version: '0.1.18', extra: { ambiente: 'homologacao' } } } }));
 vi.mock('expo-router', () => ({ useRouter: () => ({ push: m.push }) }));
 vi.mock('@/util/useVoltar', () => ({ useVoltar: () => vi.fn() }));
 vi.mock('@/util/ids', () => ({ novoId: () => `id-${++m.id}` }));
@@ -100,12 +100,12 @@ it('F16: resumo técnico desligado envia diagnostico null; ligado envia só os s
   const diagnostico = m.enviar.mock.calls[1]![0].diagnostico;
   expect(Object.keys(diagnostico).sort()).toEqual(['ambiente', 'pendentes', 'plataforma', 'rejeitadas', 'ultimaSincronizacaoEm', 'versao']);
   expect(ResumoSuporteSchema.safeParse(diagnostico).success).toBe(true);
-  expect(diagnostico).toMatchObject({ versao: '0.1.17', ambiente: 'homologacao', plataforma: 'android', pendentes: 3, rejeitadas: 1 });
+  expect(diagnostico).toMatchObject({ versao: '0.1.18', ambiente: 'homologacao', plataforma: 'android', pendentes: 3, rejeitadas: 1 });
   expect(JSON.stringify(diagnostico)).not.toContain('tok-secreto');
 });
 
 it('F16: o schema do resumo técnico recusa qualquer campo extra (credencial, e-mail, estado)', () => {
-  const base = { versao: '0.1.17', ambiente: 'homologacao', plataforma: 'android', pendentes: 0, rejeitadas: 0, ultimaSincronizacaoEm: null };
+  const base = { versao: '0.1.18', ambiente: 'homologacao', plataforma: 'android', pendentes: 0, rejeitadas: 0, ultimaSincronizacaoEm: null };
   expect(ResumoSuporteSchema.safeParse(base).success).toBe(true);
   for (const extra of [{ token: 'x' }, { email: 'a@b.co' }, { estado: {} }, { mensagemDeErro: 'falha' }]) expect(ResumoSuporteSchema.safeParse({ ...base, ...extra }).success).toBe(false);
 });

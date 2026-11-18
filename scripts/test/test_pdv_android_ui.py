@@ -334,6 +334,13 @@ class RegressaoDryRunTest(unittest.TestCase):
         with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
             d.parse_args(['--simular', 'acoes.json'])
 
+    def test_producao_exige_fisico(self):
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+            d.parse_args(['--producao', 'acoes.json'])
+        self.assertTrue(d.parse_args(['--producao', '--fisico', 'acoes.json']).producao)
+        self.assertEqual(d.PACOTE_PRODUCAO, 'br.com.pdv.mobile')
+        self.assertEqual(d.PACKAGE, 'br.com.pdv.mobile.homologacao')
+
     def test_param_invalido(self):
         with self.assertRaises(ValueError):
             d.parse_params(['x=abc'])

@@ -21,6 +21,7 @@ export interface CampoProps
     | 'onBlur'
     | 'editable'
     | 'testID'
+    | 'autoFocus'
   > {
   rotulo: string;
   erro?: string | null;

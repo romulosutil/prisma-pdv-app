@@ -40,7 +40,7 @@ export const textoBotao = {
 /** Dígitos do teclado numérico: Inter 24/600. */
 export const textoTeclado = estiloDeTexto({ familia: 'Inter', tamanho: 24, alturaLinha: 30, peso: '600' });
 
-/** Wordmark provisório "[nome]": Bricolage 22/28 800. */
+/** Wordmark "Prisma PDV": Bricolage 22/28 800. */
 export const textoMarca = estiloDeTexto({ familia: 'Bricolage Grotesque', tamanho: 22, alturaLinha: 28, peso: '800', espacamentoLetras: -0.02 });
 
 /** Monograma do provedor de pagamento ("IP", "MP"): Inter 14/18 700. */

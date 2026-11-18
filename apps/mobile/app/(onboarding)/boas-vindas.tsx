@@ -21,7 +21,7 @@ export default function BoasVindas() {
     >
       <View style={estilos.marca}>
         <Texto style={textoMarca} accessibilityRole="header">
-          [nome]
+          Prisma PDV
         </Texto>
       </View>
       <View style={estilos.ilustracao}>

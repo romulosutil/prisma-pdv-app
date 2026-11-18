@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { cores, margemTela } from '@/tema';
 
@@ -22,14 +22,13 @@ export function TelaBase({ children, rolavel, rodape, bordas = ['top', 'bottom',
   const margem = semMargem ? null : estilos.margem;
   return (
     <SafeAreaView edges={bordas} style={estilos.raiz} testID={testID}>
-      <KeyboardAvoidingView style={estilos.corpo} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={estilos.corpo} behavior="padding">
       {rolavel ? (
         <ScrollView
           style={estilos.corpo}
           contentContainerStyle={[estilos.rolagem, margem, style]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
           showsVerticalScrollIndicator={false}
         >
           {children}

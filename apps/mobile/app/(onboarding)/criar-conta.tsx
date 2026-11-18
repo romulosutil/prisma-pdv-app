@@ -76,14 +76,16 @@ export default function CriarConta() {
       router.push('/loja');
     } catch (erro) {
       if (!montado.current) return;
-      if (erro instanceof ErroBackend && erro.codigo === 'email_ja_cadastrado') setErros({ email: mensagemDeErro(erro) });
-      else if (erro instanceof ErroBackend && erro.codigo === 'documento_ja_cadastrado') setErros({ documento: mensagemDeErro(erro) });
+      if (erro instanceof ErroBackend && erro.codigo === 'email_ja_cadastrado') { setDesafioId(null); setCodigo(''); setErros({ email: mensagemDeErro(erro) }); }
+      else if (erro instanceof ErroBackend && erro.codigo === 'documento_ja_cadastrado') { setDesafioId(null); setCodigo(''); setErros({ documento: mensagemDeErro(erro) }); }
       else setErroGeral(mensagemDeErro(erro));
     } finally {
       trava.current = false;
       if (montado.current) setVerificando(false);
     }
   };
+
+  const voltarAosDados = () => { if (!trava.current) { dados.cancelarCadastro(); setDesafioId(null); setCodigo(''); setErroGeral(null); } };
 
   return (
     <TelaBase rolavel rodape={<Botao rotulo={dados.backend.modo === 'http' && !confirmadoAtual ? desafioId ? 'Confirmar e continuar' : 'Continuar e enviar código' : 'Continuar'} onPress={continuar} carregando={verificando} />}>
@@ -92,54 +94,58 @@ export default function CriarConta() {
         <Texto estilo="tituloXL" accessibilityRole="header">
           Vamos criar sua conta
         </Texto>
+        {desafioId ? null : <>
         <Texto estilo="corpo" cor={cores.ink2}>
           Usamos o CPF ou CNPJ para identificar sua loja.
         </Texto>
         <Texto estilo="corpo" cor={cores.ink2}>Você confirmará seu e-mail com um código antes de criar a conta. Para acessar uma conta existente, toque em Entrar e use seu código pessoal.</Texto>
-        <Campo
-          rotulo="Seu nome"
-          editable={!verificando}
-          value={nome}
-          onChangeText={setNome}
-          autoComplete="name"
-          textContentType="name"
-          autoCapitalize="words"
-          returnKeyType="next"
-          onSubmitEditing={() => refEmail.current?.focus()}
-          erro={erros.nome}
-        />
-        <Campo
-          ref={refEmail}
-          rotulo="E-mail"
-          editable={!verificando}
-          value={email}
-          onChangeText={t => { dados.cancelarCadastro(); setDesafioId(null); setCodigo(''); setEmail(t); }}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          autoComplete="email"
-          textContentType="emailAddress"
-          returnKeyType="next"
-          onSubmitEditing={() => refDocumento.current?.focus()}
-          erro={erros.email}
-        />
-        <Campo
-          ref={refDocumento}
-          rotulo="CPF ou CNPJ"
-          editable={!verificando}
-          value={documento}
-          onChangeText={t => { dados.cancelarCadastro(); setDocumento(formatarDocumento(t)); }}
-          keyboardType="number-pad"
-          maxLength={18}
-          returnKeyType="done"
-          onSubmitEditing={continuar}
-          erro={erros.documento}
-        />
+        </>}
         {desafioId ? <>
-          <Texto accessibilityLiveRegion="polite">Confira o código enviado ao e-mail informado, inclusive na pasta de spam. Só depois da confirmação seguiremos para a loja.</Texto>
-          <Campo rotulo="Código de confirmação do e-mail" value={codigo} onChangeText={t => setCodigo(t.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6} autoComplete="one-time-code" editable={!verificando} onSubmitEditing={continuar} />
-          <Botao rotulo="Solicitar outro código" variante="terciario" desabilitado={verificando} onPress={() => { if (!trava.current) { dados.cancelarCadastro(); setDesafioId(null); setCodigo(''); setErroGeral(null); } }} />
-        </> : null}
+          <Texto accessibilityLiveRegion="polite">Código enviado para {email.trim().toLowerCase()}. Confira também a pasta de spam. Só depois da confirmação seguiremos para a loja.</Texto>
+          <Campo rotulo="Código de confirmação do e-mail" autoFocus value={codigo} onChangeText={t => setCodigo(t.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6} autoComplete="one-time-code" editable={!verificando} onSubmitEditing={continuar} />
+          <Botao rotulo="Solicitar outro código" variante="terciario" desabilitado={verificando} onPress={voltarAosDados} />
+          <Botao rotulo="Alterar dados" variante="terciario" desabilitado={verificando} onPress={voltarAosDados} />
+        </> : <>
+          <Campo
+            rotulo="Seu nome"
+            editable={!verificando}
+            value={nome}
+            onChangeText={setNome}
+            autoComplete="name"
+            textContentType="name"
+            autoCapitalize="words"
+            returnKeyType="next"
+            onSubmitEditing={() => refEmail.current?.focus()}
+            erro={erros.nome}
+          />
+          <Campo
+            ref={refEmail}
+            rotulo="E-mail"
+            editable={!verificando}
+            value={email}
+            onChangeText={t => { dados.cancelarCadastro(); setDesafioId(null); setCodigo(''); setEmail(t); }}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="email"
+            textContentType="emailAddress"
+            returnKeyType="next"
+            onSubmitEditing={() => refDocumento.current?.focus()}
+            erro={erros.email}
+          />
+          <Campo
+            ref={refDocumento}
+            rotulo="CPF ou CNPJ"
+            editable={!verificando}
+            value={documento}
+            onChangeText={t => { dados.cancelarCadastro(); setDocumento(formatarDocumento(t)); }}
+            keyboardType="number-pad"
+            maxLength={18}
+            returnKeyType="done"
+            onSubmitEditing={continuar}
+            erro={erros.documento}
+          />
+        </>}
         {erroGeral ? <Banner tipo="erro" texto={erroGeral} /> : null}
         <Botao rotulo="Já tenho conta" variante="terciario" desabilitado={verificando} onPress={() => { if (!trava.current) { dados.cancelarCadastro(); router.replace('/entrar'); } }} />
       </View>

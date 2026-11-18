@@ -83,7 +83,6 @@ export default function Loja() {
         </View>
         {conectado ? <Texto>Seu e-mail foi confirmado na etapa anterior. Confira os dados da loja antes de criar a conta.</Texto> : null}
         {erroGeral ? <Banner tipo="erro" texto={erroGeral} /> : null}
-        <Botao rotulo="Já tenho conta" variante="terciario" desabilitado={criando} onPress={() => { if (!trava.current) { dados.cancelarCadastro(); router.replace('/entrar'); } }} />
       </View>
     </TelaBase>
   );

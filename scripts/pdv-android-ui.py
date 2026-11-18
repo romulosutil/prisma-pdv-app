@@ -68,6 +68,7 @@ SDK = Path(os.environ.get('LOCALAPPDATA', '')) / 'Android/Sdk'
 ANDROID = SDK / 'cmdline-tools/latest/bin/android.exe'
 ADB = SDK / 'platform-tools/adb.exe'
 PACKAGE = 'br.com.pdv.mobile.homologacao'
+PACOTE_PRODUCAO = 'br.com.pdv.mobile'
 DEVICE = None  # serial resolvido em runtime
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
@@ -972,7 +973,10 @@ def parse_args(argv=None):
     ap.add_argument('--listar', action='store_true', help='lista aparelhos conectados e sai')
     ap.add_argument('--param', action='append', default=[], metavar='NOME=VALOR', help='sobrepoe parametro inteiro do fluxo (repetivel)')
     ap.add_argument('--simular', '--dry-run', dest='simular', action='store_true', help='com "fluxo": valida e imprime os comandos ADB sem executar (nao usa aparelho)')
+    ap.add_argument('--producao', action='store_true', help='age no app de producao ' + PACOTE_PRODUCAO + ' (exige --fisico; uso autorizado na sessao, ex.: M4)')
     args = ap.parse_args(argv)
+    if args.producao and not (args.fisico or args.simular):
+        ap.error('--producao exige --fisico')
     if not args.listar and not args.acoes:
         ap.error('informe o JSON de acoes, "fluxo ARQUIVO" ou use --listar')
     if args.acoes == 'fluxo' and not args.arquivo:
@@ -985,8 +989,11 @@ def parse_args(argv=None):
 
 
 def entry(argv=None):
-    global DEVICE
+    global DEVICE, PACKAGE
     args = parse_args(argv)
+    if args.producao:
+        PACKAGE = PACOTE_PRODUCAO
+        print('Aviso: agindo no app de PRODUCAO ' + PACKAGE + '; os registros vao para a API de producao.', file=sys.stderr)
     if args.simular:
         try:
             simular_fluxo(Path(args.arquivo), parse_params(args.param))

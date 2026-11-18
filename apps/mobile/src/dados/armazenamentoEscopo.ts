@@ -5,6 +5,11 @@ const METADATA = new Set(['assinatura', 'preferencias', 'atalhos_ordem', 'chaveP
 const FINANCEIROS = new Set(['produtos', 'caixas', 'vendas']);
 const DONO_LEGADO = 'proprietario_metadata_v1';
 
+/** Gravação recusada porque a troca de conta/aplicação de sync local está em curso; nada foi gravado e vale tentar de novo. */
+export class ErroAlteracaoBloqueada extends Error {
+  constructor(mensagem: string) { super(mensagem); this.name = 'ErroAlteracaoBloqueada'; }
+}
+
 /** Isola metadata por conta/loja. SQLite já particiona seus agregados financeiros. */
 export class ArmazenamentoEscopo implements Armazenamento {
   private bloqueado = false;
@@ -52,7 +57,7 @@ export class ArmazenamentoEscopo implements Armazenamento {
   }
 
   async gravar<T>(chave: string, valor: T): Promise<void> {
-    if (this.bloqueado) throw new Error('Aguarde a troca de conta antes de alterar os dados.');
+    if (this.bloqueado) throw new ErroAlteracaoBloqueada('Aguarde a troca de conta antes de alterar os dados.');
     const alvo = this.particionada(chave) ? this.endereco(chave) : null;
     await this.antesDeGravar?.(chave);
     if (!this.particionada(chave)) return this.base.gravar(chave, valor);

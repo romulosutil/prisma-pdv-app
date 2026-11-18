@@ -292,7 +292,7 @@ Entregas locais adicionais, sem equivalência a homologação física/externa:
 
 ## R6 Integrar pagamentos reais
 
-**Planejada; critério de entrada ainda não atendido.** Antes da implementação, concluir a [revisão de prontidão e as pendências do piloto](#revisao-de-prontidao-para-r6), com evidências de R3 e piloto estável. O APK interno e os testes locais de R5 não substituem esse resultado.
+**Planejada; obrigatória no MVP por decisão do usuário em 17/11/2026 ([CP 158](checkpoints-roadmap.md#cp-158-escopo-do-mvp-ampliado-e-aceite-parcial-do-usuario-17112026)).** Mercado Pago, InfinitePay e Stone entram antes do lançamento na Play, nas sessões E3 e E4 de [prompts por sessão](prompts-sessoes-entrega.md), em vez de depois do piloto. O critério de entrada antigo (piloto estável) deixa de bloquear a implementação, mas a [revisão de prontidão](#revisao-de-prontidao-para-r6) continua valendo como conferência. O APK interno e os testes locais de R5 não substituem a homologação de cada provedor. Se um provedor não liberar acesso, o recurso não é anunciado como integrado e a decisão volta ao usuário.
 
 **Direção desejada pelo usuário em 10/11/2026:** confirmação automática com Stone, InfinitePay e Mercado Pago. Nas documentações públicas consultadas, os avisos ao servidor valem para cobranças criadas pela integração; aviso de toda transação da conta, inclusive maquininha sem integração, não foi confirmado em nenhum dos três. Ordem proposta, ainda sem aprovação: Pix do Mercado Pago, InfiniteTap por deeplink e Stone após resposta do programa de parceiros. [CP 101](checkpoints-roadmap.md#cp-20261110-101-google-play-planos-e-integracoes-definidos).
 
@@ -331,12 +331,12 @@ Priorizar esta frente após validar o MVP, conforme decisão do usuário em 01/1
 - [ ] Configurar alertas de indisponibilidade/recuperação das APIs e testar a detecção e a entrega, incluindo falha da VPS quando houver monitor externo.
 - [ ] Definir destino e destinatário no momento da retomada. A inspeção desta rodada encontrou apenas Local Disk e nenhum canal de notificações; nenhum serviço, destino externo ou canal foi criado.
 
-Corte do MVP decidido pelo usuário em 16/11/2026 ([CP 149](checkpoints-roadmap.md#cp-20261116-149-prompts-simplificados-para-o-mvp-com-testes-automatizados)). Estes itens também saem do caminho até o piloto, sem apagar as evidências já registradas. O caminho até o piloto está em [prompts por sessão](prompts-sessoes-entrega.md) (M1–M5).
+Corte do MVP decidido pelo usuário em 16/11/2026 ([CP 149](checkpoints-roadmap.md#cp-20261116-149-prompts-simplificados-para-o-mvp-com-testes-automatizados)). Estes itens também saem do caminho até o piloto, sem apagar as evidências já registradas. O caminho até o piloto está em [prompts por sessão](prompts-sessoes-entrega.md) (M1–M5, com E1–E4 inseridas em 17/11/2026).
 
-- [ ] Acessibilidade e layout em fonte grande e tela pequena (F18; defeitos de layout dos CPs 144 e 145; TalkBack não testado).
-- [ ] Cobertura do catálogo por EAN em amostra de 100 produtos (antigo bloco 12).
+- [ ] Acessibilidade e layout em fonte grande e tela pequena (F18; defeitos de layout dos CPs 144 e 145; TalkBack não testado). Especificação consolidada nas ondas W1–W2 do [pacote escalável de melhorias de design](pacote-melhorias-design.md) ([CP 159](checkpoints-roadmap.md#cp-159-pacote-escalavel-de-melhorias-de-design-ux-ui-visual-e-branding-17112026)), ainda sem implementação.
+- ~~Cobertura do catálogo por EAN em amostra de 100 produtos (antigo bloco 12)~~ — **saiu do backlog em 17/11/2026 e virou obrigatória no MVP (sessão E2)**, com as fontes pagas ou gratuitas incorporadas ao plano pago e o custo por loja calculado ([CP 158](checkpoints-roadmap.md#cp-158-escopo-do-mvp-ampliado-e-aceite-parcial-do-usuario-17112026)).
 - [ ] Disco cheio (F10) e mudança de relógio com pendências.
-- [ ] F13 com dois Androids físicos (hoje: um Android e um segundo aparelho simulado por HTTP, CPs 147 e 148).
+- [ ] F13 com dois Androids físicos (hoje: um Android e um segundo aparelho simulado por HTTP, CPs 147 e 148). Cobertura de dispositivos fora do MVP por decisão do usuário em 17/11/2026, que testa pessoalmente.
 - [ ] Credencial e cota de e-mail separadas por ambiente (antigo bloco 3, CP 109).
 - [ ] Execução real do retorno da API para a versão anterior (F19); no MVP, só o procedimento documentado.
 - [ ] Avisar "Última venda concluída" quando o app reabre logo após uma conclusão (o carrinho agora abre vazio, CP 150).

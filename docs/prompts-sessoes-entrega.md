@@ -1,8 +1,8 @@
 # Prompts por sessão até a entrega (MVP)
 
-Versão de 16/11/2026, enxuta para chegar ao piloto. Continua o [CP 148](checkpoints-roadmap.md#cp-20261116-148-bloco-7-gestao-f14-no-samsung-e-na-api-com-segundo-aparelho-por-http). As versões anteriores, com os blocos 1 a 23, estão no histórico do git.
+Versão de 17/11/2026, com o escopo do MVP ampliado pelo usuário. Continua o CP 157 e o CP 158 de [checkpoints-roadmap.md](checkpoints-roadmap.md). A versão anterior (16/11, com M1–M5 e P1–P5) e as de blocos 1 a 23 estão no histórico do git.
 
-**Por que mudou:** o usuário pediu foco em MVP. Os blocos 1 a 7 foram concluídos, e o que sobrou foi reagrupado em **cinco sessões até o piloto com lojistas** (M1–M5). Cobrança, maquininhas e publicação aberta ficam para depois do piloto (P1–P5). O restante vai para o backlog. Cada sessão transforma em **teste automatizado** tudo o que executar ou encontrar, para que o próximo reteste seja um comando e não um roteiro manual.
+**Por que mudou:** os blocos 1 a 7 e as sessões M1 a M3 foram concluídos, e M4 está construído e implantado em produção, faltando só o Console da Play. Em 17/11 o usuário declarou **obrigatórios no MVP**: (1) cobrar o cliente final pelas maquininhas e Pix do Mercado Pago, da InfinitePay e da Stone; (2) leitura completa de produtos por EAN, com as fontes pagas incorporadas ao plano pago e o custo calculado. Isso moveu a antiga P3 e a antiga P4 e o antigo bloco 12 para antes do lançamento, como **E1–E4**. A publicação na Play só acontece depois do app pronto. Cada sessão transforma em **teste automatizado** tudo o que executar ou encontrar, para que o próximo reteste seja um comando e não um roteiro manual.
 
 **Como usar:** escolha no app o modelo indicado, copie o bloco e cole como primeira mensagem de uma sessão nova. Rode uma sessão por vez, na ordem.
 
@@ -11,29 +11,40 @@ Versão de 16/11/2026, enxuta para chegar ao piloto. Continua o [CP 148](checkpo
 | O quê | Situação | Registro |
 |---|---|---|
 | Blocos 1–7 (versão de 10/11) | Concluídos | CPs 105–148 |
-| Limites herdados | F18 adiado (backlog), F13 sem dois Androids reais, F17 parcial, aceite humano pendente | CPs 145, 147, 148 |
+| M1, M2 e M3 | Concluídas | CPs 149–155 |
+| M4 | Produção reconciliada e implantada, AAB 0.1.18 assinado; **falta só o Console da Play**, que passa a vir depois de E4 | CPs 156, 157 |
+| Aceite do usuário (17/11) | Venda offline na produção aceita por relato; F16/F17 aceitas com cobertura por teste automatizado; cobertura de dispositivos fora do MVP (o usuário testa pessoalmente) | CP 158 |
+| Limites herdados | F18 adiado (backlog), F13 sem dois Androids reais (backlog, o usuário testa), toast de licença (E1) | CPs 145, 147, 148, 155 |
 
 ## Caminho até o piloto
 
 | Sessão | Tipo | Modelo | O que fica com você |
 |---|---|---|---|
-| M1. Testes automatizados e correções | Agente (+ aparelho no fim) | Opus 5.5 | Nada além de manter o aparelho conectado |
-| M2. Falhas e restauração | Agente + aparelho | Opus 5.5 | Confirmar ações no servidor de homologação |
-| M3. Pronto para o lojista | Agente + aparelho | Sonnet 5.5 | Indicar quem atende o suporte |
-| M4. Piloto no ar | Aprovação | Opus 5.5 | Ações no Play Console e autorização de produção |
-| M5. Piloto e aceite | Você + agente | Sonnet 5.5 nas rodadas, Opus 5.5 no aceite | Usar com os lojistas, relatar e dar o aceite |
+| M1. Testes automatizados e correções | Concluída | Opus 5.5 | — |
+| M2. Falhas e restauração | Concluída | Opus 5.5 | — |
+| M3. Pronto para o lojista | Concluída | Sonnet 5.5 | — |
+| M4. Piloto no ar | Parcial: produção e AAB prontos; **Console da Play depois de E4** | Opus 5.5 | Ações no Play Console |
+| **E1. Revalidação 0.1.19 e conta zerada** | Agente + aparelho | Opus 5.5 | Confirmar a limpeza da conta de teste na produção e digitar as senhas da chave |
+| **E2. Catálogo completo por EAN** | Agente | Opus 5.5 | Contratar e inserir chaves das fontes escolhidas |
+| **E3. Cobrança na maquininha: Mercado Pago** | Agente + aparelho | Opus 5.5 | Conta de teste e credenciais no ambiente |
+| **E4. InfinitePay e Stone** | Agente + aparelho | Opus 5.5 | Respostas e acessos dos provedores |
+| M5. Piloto e aceite | Você + agente | Sonnet 5.5 nas rodadas, Opus 5.5 no aceite | Usar com o lojista-testador, relatar e dar o aceite |
+
+Ordem: E1, E2, E3, E4, fim do M4 (Console e instalação pela Play) e M5. E2 não depende de E3 e pode andar em paralelo, desde que em sessões e arquivos separados. E1 vem primeiro porque o toast de licença e a conta zerada valem para todas as outras.
 
 ## Depois do piloto
 
 | Sessão | Junta os antigos blocos | Modelo |
 |---|---|---|
-| P1. Cobrança na Play | 14, 15 | Opus 5.5 |
+| P1. Cobrança na Play (assinatura do lojista) | 14, 15 | Opus 5.5 |
 | P2. Publicação aberta | 16, 17, 18 | Opus 5.5 |
-| P3. Mercado Pago | 19, 20 | Opus 5.5 |
-| P4. InfinitePay e Stone | 21, 22 | Opus 5.5 |
+| P3. Mercado Pago | movida para E3 | — |
+| P4. InfinitePay e Stone | movida para E4 | — |
 | P5. Encerramento | 23 | Opus 5.5 |
 
-**Backlog (não bloqueia o MVP):** acessibilidade e layout em fonte grande e tela pequena (F18, CPs 144–145); catálogo por EAN (antigo bloco 12); disco cheio (F10) e mudança de relógio; F13 com dois Androids reais; e-mail separado por ambiente (antigo bloco 3); cópia externa de backup e alertas; execução real do retorno da API (F19), que no MVP fica só documentada.
+Enquanto a P1 não existir, o piloto roda **sem cobrança** (por configuração), como o usuário definiu.
+
+**Backlog (não bloqueia o MVP):** acessibilidade e layout em fonte grande e tela pequena (F18, CPs 144–145); disco cheio (F10) e mudança de relógio; F13 com dois Androids reais e cobertura de dispositivos (o usuário testa pessoalmente); e-mail separado por ambiente (antigo bloco 3); cópia externa de backup e alertas; execução real do retorno da API (F19), que no MVP fica só documentada. O catálogo por EAN saiu do backlog e virou E2.
 
 ## Regras comuns
 
@@ -138,6 +149,82 @@ Objetivo: colocar o app nas mãos dos lojistas do piloto pelo teste interno da G
 5. Confirmar com um testador a instalação pela Play e um cadastro real.
 
 Pronto quando: lojistas instalando pelo teste interno, API conferida e versão, SHA e procedimento de retorno registrados.
+
+Situação em 17/11 (CP 158): os passos 2 e 3 estão feitos (AAB 0.1.18 e produção). Os passos 4 e 5 (Console da Play e confirmação com o testador) ficam para **depois de E4**, porque o usuário só publica com o app pronto. O AAB final será o da versão gerada em E1 ou posterior.
+```
+
+## E1. Revalidação 0.1.19 e conta zerada
+
+**Modelo:** Opus 5.5. Motivo: apaga dados na produção e gera nova versão.
+
+```text
+Siga as regras comuns de docs/prompts-sessoes-entrega.md. Leia o CP 157 e o CP 158 de docs/checkpoints-roadmap.md.
+
+Objetivo: fechar o toast de licença, zerar a conta de teste da produção e conferir no aparelho as telas novas do onboarding.
+
+1. Toast "Não foi possível atualizar a licença": aplicar a correção do CP 158 (ou concluí-la), com teste automatizado que falhava antes. Gerar a versão seguinte (versionCode maior) e rodar CI.
+2. Zerar a conta de teste da produção ("Loja Teste M4": 1 conta, 1 loja, 1 venda, 1 caixa). Mostrar o alvo e o impacto e AGUARDAR a confirmação do usuário. Fazer backup antes e, se possível, usar o fluxo de exclusão de conta do próprio app; só recorrer a SQL no console com a confirmação do alvo e do arquivo. Conferir depois que a produção tem 0 contas, sem tocar em outras tabelas.
+3. Gerar o AAB (o usuário digita as senhas da chave) e o APK universal. Desinstalar o app no aparelho com autorização, instalar o novo e fazer com o usuário o cadastro do zero: etapa do código, "Alterar dados", teclado, "Já tenho conta" fora da tela da loja e meios de recebimento informativos.
+4. Rodar os fluxos de scripts/fluxos/ e a venda offline com o aparelho por cabo USB (o driver recusa o modo avião em ADB por Wi-Fi), para que o relato do usuário passe a ter também evidência de aparelho.
+5. Cada falha vira teste automatizado.
+
+Pronto quando: toast corrigido e testado, produção com 0 contas, onboarding conferido no aparelho e a versão, o SHA e o retorno registrados.
+```
+
+## E2. Catálogo completo por EAN
+
+**Modelo:** Opus 5.5. Motivo: custo, termos de uso das fontes e desenho de contrato.
+
+```text
+Siga as regras comuns de docs/prompts-sessoes-entrega.md. Leia docs/produto-catalogo-ean.md e docs/pesquisa-catalogo-ean.md (se não existir, parar e informar). Veja também o item R4 do roadmap.
+
+Objetivo: o app reconhece o produto a partir do EAN com a maior cobertura possível do varejo brasileiro, com custo por loja dentro do plano pago.
+
+1. Com a pesquisa em mãos, decidir com o usuário quais fontes entram (Open Food Facts, as fontes livres da lista public-apis, SI5 Global, DotCompany, Cosmos) e a ordem de consulta. Só contratar com autorização explícita do usuário; chaves só no servidor, inseridas pelo usuário no ambiente, nunca no repositório nem no app.
+2. Conferir nos termos de cada fonte se o resultado pode ser guardado em `catalogo_ean` e reaproveitado por outras lojas. Se uma fonte proibir, consultar sem guardar e registrar a limitação.
+3. Implementar na API a consulta em cascata (catálogo próprio, depois as fontes), com timeout total de 2 s, limite por loja, registro de custo por consulta e contrato em `packages/shared`. Offline e fonte fora do ar não bloqueiam o cadastro.
+4. Colocar no plano pago o limite de consultas externas por loja, com custo calculado, sem nunca limitar vendas (regra comercial). O catálogo próprio e as fontes gratuitas não entram no limite.
+5. Testes automatizados com fontes simuladas: ordem, timeout, falha de fonte, cache, limite por plano, atribuição exigida pela licença. Depois medir a cobertura em uma amostra de 100 produtos reais de mercadinho, por fonte, e o p95 em 4G (critério de pronto: ≥ 70% com nome correto e p95 ≤ 1,5 s).
+
+Pronto quando: fontes escolhidas e integradas, custo por loja e limite por plano registrados, testes no CI e cobertura medida.
+```
+
+## E3. Cobrança na maquininha: Mercado Pago
+
+**Modelo:** Opus 5.5.
+
+```text
+Siga as regras comuns de docs/prompts-sessoes-entrega.md. Leia os CPs 101 e 103, o item R6 do roadmap e docs/contato-provedores.md.
+
+Objetivo: tela "Conectar minha maquininha" e integração completa do Mercado Pago, mantendo a confirmação manual identificada como alternativa.
+
+1. Reconferir a documentação atual. Conexão por OAuth, com cada lojista recebendo na própria conta e tokens guardados no servidor com renovação.
+2. Pix por POST /v1/orders, com external_reference ligado à venda, chave de idempotência e QR no PDV. Webhook com assinatura validada e consulta da order como confirmação, sem casar por valor.
+3. Point por API: valor divergente, confirmação tardia, pagamento duplicado, resposta perdida, venda abandonada e pagamento dividido.
+4. Estorno real, separando solicitação, confirmação financeira e cancelamento comercial.
+5. Testes automatizados de cada caso, inclusive avisos duplicados e fora de ordem, e validação no aparelho com conta de teste. Credenciais inseridas pelo usuário no ambiente. Nenhum pagamento real sem autorização na sessão.
+
+Pronto quando: fluxo completo em homologação e meios homologados listados.
+```
+
+## E4. InfinitePay e Stone
+
+**Modelo:** Opus 5.5.
+
+```text
+Siga as regras comuns de docs/prompts-sessoes-entrega.md. Leia o CP 101 e docs/contato-provedores.md. Pré-requisito: E3 concluída. Perguntar ao usuário o que cada provedor respondeu. Se um provedor não liberou acesso, parar neste ponto e informar: o recurso não pode ser anunciado como integrado e a tela deve mostrar a operação manual identificada, mas isso muda o critério do MVP e é decisão do usuário.
+
+Objetivo: acrescentar os conectores sobre a base da E3.
+
+1. InfinitePay:
+   - deeplink para o InfiniteTap com retorno ao PDV, deixando claro que a confirmação é só no aparelho;
+   - Checkout em QR com order_nsu da venda, webhook paid e confirmação por payment_check;
+   - estorno sem API, com orientação ao lojista;
+   - sem sandbox, então todo valor real exige autorização na sessão.
+2. Stone: escolher entre Connect e SDK com leitor Bluetooth conforme a documentação liberada; confirmar a autorização por lojista; cobrança, confirmação, estorno e conciliação; homologação exigida pela Stone.
+3. Testes automatizados de cada caso e limites descritos na própria tela de conexão.
+
+Pronto quando: cada conector testado com serviço real, ou o motivo e a decisão do usuário registrados.
 ```
 
 ## M5. Piloto e aceite
@@ -162,7 +249,7 @@ Pronto quando: aceite registrado e P1–P4 liberadas, ou lista objetiva do que f
 **Modelo:** Opus 5.5.
 
 ```text
-Siga as regras comuns de docs/prompts-sessoes-entrega.md. Leia docs/produto-planos-e-cobranca.md, os CPs 101 e 102, apps/api/src/billing.ts e packages/shared/src/billing.ts. Pré-requisito: aceite do piloto (M5); sem ele, parar e informar.
+Siga as regras comuns de docs/prompts-sessoes-entrega.md. Leia docs/produto-planos-e-cobranca.md, os CPs 101 e 102, apps/api/src/billing.ts e packages/shared/src/billing.ts. Pré-requisito: aceite do piloto (M5); sem ele, parar e informar. Inclua no plano pago os limites de consulta externa de catálogo definidos em E2.
 
 Objetivo: assinatura dentro do app por Google Play Billing, com a oferta vigente, teste grátis e as regras comerciais.
 
@@ -197,43 +284,9 @@ Objetivo: homologar a assinatura real e publicar na Play. Cada ação em produç
 Pronto quando: app publicado, API de produção conferida e versão, SHA e procedimento de retorno registrados.
 ```
 
-## P3. Mercado Pago
+## P3 e P4
 
-**Modelo:** Opus 5.5.
-
-```text
-Siga as regras comuns de docs/prompts-sessoes-entrega.md. Leia os CPs 101 e 103 e o item R6 do roadmap. Pré-requisito: aceite do piloto (M5).
-
-Objetivo: tela "Conectar minha maquininha" e integração completa do Mercado Pago, mantendo a confirmação manual identificada como alternativa.
-
-1. Reconferir a documentação atual. Conexão por OAuth, com cada lojista recebendo na própria conta e tokens guardados no servidor com renovação.
-2. Pix por POST /v1/orders, com external_reference ligado à venda, chave de idempotência e QR no PDV. Webhook com assinatura validada e consulta da order como confirmação, sem casar por valor.
-3. Point por API: valor divergente, confirmação tardia, pagamento duplicado, resposta perdida, venda abandonada e pagamento dividido.
-4. Estorno real, separando solicitação, confirmação financeira e cancelamento comercial.
-5. Testes automatizados de cada caso, inclusive avisos duplicados e fora de ordem, e validação no aparelho com conta de teste. Credenciais inseridas pelo usuário no ambiente. Nenhum pagamento real sem autorização na sessão.
-
-Pronto quando: fluxo completo em homologação e meios homologados listados.
-```
-
-## P4. InfinitePay e Stone
-
-**Modelo:** Opus 5.5.
-
-```text
-Siga as regras comuns de docs/prompts-sessoes-entrega.md. Leia o CP 101. Pré-requisito: P3 concluída. Perguntar ao usuário o que cada provedor respondeu; seguir só com os que tiverem resposta ou parceria aprovada.
-
-Objetivo: acrescentar os conectores sobre a base da P3.
-
-1. InfinitePay:
-   - deeplink para o InfiniteTap com retorno ao PDV, deixando claro que a confirmação é só no aparelho;
-   - Checkout em QR com order_nsu da venda, webhook paid e confirmação por payment_check;
-   - estorno sem API, com orientação ao lojista;
-   - sem sandbox, então todo valor real exige autorização na sessão.
-2. Stone: escolher entre Connect e SDK com leitor Bluetooth conforme a documentação liberada; confirmar a autorização por lojista; cobrança, confirmação, estorno e conciliação; homologação exigida pela Stone.
-3. Testes automatizados de cada caso e limites descritos na própria tela de conexão.
-
-Pronto quando: cada conector testado ou o motivo da não integração registrado.
-```
+Movidas para o MVP em 17/11/2026: o conteúdo está em **E3** (Mercado Pago) e **E4** (InfinitePay e Stone), antes do lançamento.
 
 ## P5. Encerramento
 

@@ -13,6 +13,7 @@ import {
   type Relogio,
 } from '@pdv/shared';
 import type { Armazenamento } from '@/dados/armazenamento';
+import { ErroAlteracaoBloqueada } from '@/dados/armazenamentoEscopo';
 import { Observavel } from '@/dados/observavel';
 import { registrar } from '@/diagnostico/registro';
 import { ErroBackend, type Backend } from './backend';
@@ -72,6 +73,9 @@ export class AssinaturaServico extends Observavel<EstadoAssinatura> {
       else this.definir({ ...this.obter(), agora: this.relogio.agora(), offline: false });
     } catch (erro) {
       if (vinculo !== this.vinculo()) return;
+      // A revalidação de perfil e o sync local bloqueiam gravações da loja por instantes ao voltar ao primeiro
+      // plano. Nada foi gravado: o cache atual segue válido e a próxima sincronização renova a licença.
+      if (erro instanceof ErroAlteracaoBloqueada) { registrar('assinatura', 'licença não gravada: troca de conta ou sync em andamento'); return; }
       if (!(erro instanceof ErroBackend)) throw erro;
       const offline = erro.codigo === 'rede';
       if (offline !== this.obter().offline) registrar('assinatura', offline ? 'sem conexão: usando a licença em cache' : 'sincronização falhou', { codigo: erro.codigo });

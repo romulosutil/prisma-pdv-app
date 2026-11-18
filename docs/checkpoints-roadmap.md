@@ -2556,7 +2556,7 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 
   Também foram corrigidos os achados baixos e as lacunas de teste: `mp-connect` forjável, perda do token girado identificada, tarefa presa, estados antigos sem limpeza, leitura do `invalid_grant`, caso entre lojas, 401 na criação e logs.
 - **Risco aceito no MVP:** um dono mal-intencionado pode enviar o próprio link de autorização a outra pessoa e ligar a conta dela à loja dele. O efeito se limita a criar cobranças que pagam para essa pessoa, sem acesso a dados nem a tokens. Mitigação futura: mostrar ao dono a conta conectada.
-- **Validações locais (em série) sobre o código final:** typecheck shared, API e mobile sem erros; shared 18 arquivos 175/175; API (PGlite) 58 arquivos 729/729; mobile 81 arquivos 665/665. Migrações: 15.
+- **Validações locais (em série) sobre o código final:** typecheck shared, API e mobile sem erros; shared 18 arquivos 175/175; API (PGlite) 58 arquivos 729/729; mobile 81 arquivos 665/665. Migrações: 15. **CI:** [44388565569](https://github.com/romulosutil/prisma-pdv-app/actions/runs/44388565569) em `fdba155` **falhou** no PostgreSQL. Foram 10 testes de renovação: um `Date` passado dentro de `sql` bruto, que o postgres.js recusa e o PGlite aceitava. A correção passou o instante como texto `::timestamptz`, em `20f0490`. [44389654210](https://github.com/romulosutil/prisma-pdv-app/actions/runs/44389654210) em `20f0490`: **success**. Deploy não executado.
 - **NÃO VERIFICADO (depende da aplicação real e de contas de teste):**
   - o fluxo OAuth com um vendedor de teste;
   - o `test_token`;

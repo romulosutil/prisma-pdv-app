@@ -11,7 +11,7 @@ Roteiro do M4 ([CP 156](checkpoints-roadmap.md#cp-156-m4-producao-reconciliada-e
   - Política de privacidade: `https://aladdin-pdv-api.jicnzg.easypanel.host/privacidade`
   - Exclusão de conta: `https://aladdin-pdv-api.jicnzg.easypanel.host/exclusao-de-conta`
   - Termos: `https://aladdin-pdv-api.jicnzg.easypanel.host/termos`
-- Nome do app: as políticas citam **"Prisma PDV"**. Use esse nome na ficha, porque a Play exige que a página de exclusão cite o nome do app ou do desenvolvedor como aparece na ficha. O nome sob o ícone no aparelho continua "PDV" até uma próxima versão.
+- Nome do app: as políticas citam **"Prisma PDV"**. Use esse nome na ficha, porque a Play exige que a página de exclusão cite o nome do app ou do desenvolvedor como aparece na ficha. Desde a 0.1.18 o nome sob o ícone também é "Prisma PDV".
 
 ## Passo a passo
 
@@ -24,7 +24,7 @@ Roteiro do M4 ([CP 156](checkpoints-roadmap.md#cp-156-m4-producao-reconciliada-e
 2. **Play App Signing:** não há nada a fazer. App novo entra automaticamente quando você envia o primeiro AAB, e o Google gera e guarda a chave de assinatura do app. Depois do envio, anote a impressão SHA-256 do **certificado de upload** em *Testar e lançar > Configuração > Integridade do app*. Ela deve ser igual ao `certificadoSha256` do arquivo `builds/pdv-producao-<versão>-aab-manifesto.json`.
 3. **Teste interno, envio do AAB:** *Testar e lançar > Testes > Teste interno > Criar nova versão*.
    - Envie o `.aab`.
-   - Nome da versão: `0.1.17 (18)`, ou a versão do manifesto.
+   - Nome da versão: `0.1.18 (19)`. Envie `pdv-producao-0.1.18-aab.aab`; o AAB 0.1.17 foi substituído.
    - Notas da versão: "Piloto: vendas, caixa e estoque com pagamentos manuais."
    - *Avançar > Salvar > Publicar no teste interno*.
 4. **Lista de testadores:** na mesma tela, aba *Testadores > Criar lista de e-mails*.

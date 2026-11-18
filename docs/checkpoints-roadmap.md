@@ -2499,7 +2499,7 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
   - duas conexões simultâneas resultando em 500;
   - índice do webhook.
   - **Limite:** a corrida de duas conexões simultâneas só ocorre de verdade no PostgreSQL do CI; o PGlite executa uma transação por vez.
-- **Validações locais (em série, um worker), sobre o código final:** typecheck shared, API e mobile sem erros; shared 18 arquivos 175/175; API (PGlite) 57 arquivos 704/704; mobile 81 arquivos 665/665. O teste de migrações passa a esperar 14 migrações.
+- **Validações locais (em série, um worker), sobre o código final:** typecheck shared, API e mobile sem erros; shared 18 arquivos 175/175; API (PGlite) 57 arquivos 704/704; mobile 81 arquivos 665/665. O teste de migrações passa a esperar 14 migrações. **CI** [44374367044](https://github.com/romulosutil/prisma-pdv-app/actions/runs/44374367044) em `6df115b` (PostgreSQL isolado): **success**; deploy não executado (só roda na `main`).
 - **NÃO VERIFICADO (depende da conta de teste):**
   - o fluxo completo com credencial de teste;
   - se a credencial de teste é aceita na consulta e no cancelamento (a documentação diverge);

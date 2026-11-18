@@ -4,6 +4,7 @@ import type { FonteEan } from './fontes/fonte';
 import type { EmissaoCodigo } from './email/tiposEntrega';
 import type { CifradorPagamentos } from './pagamentos/cifrador';
 import type { ProvedorMercadoPago } from './pagamentos/mercadoPago';
+import type { ConfiguracaoOAuthMercadoPago } from './configuracao';
 
 /** Pagamentos integrados (N2). Sem `cifrador` (chave ausente), as rotas respondem 503 `pagamentos_indisponiveis`. */
 export interface ConfigPagamentos {
@@ -15,6 +16,8 @@ export interface ConfigPagamentos {
   pagadorPrimeiroNome?: string | null;
   /** Intervalo mínimo entre consultas ao provedor pela rota de acompanhamento; o padrão é 3 s. */
   consultaMinimaMs?: number;
+  /** Aplicação da plataforma para o OAuth; `null`/ausente = rotas OAuth respondem 503 `oauth_indisponivel`. */
+  oauth?: ConfiguracaoOAuthMercadoPago | null;
 }
 
 export interface Deps {

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 /**
  * Cliente da Orders API do Mercado Pago (Pix), atrás de uma interface para os testes usarem o provedor simulado.
  * Documentação consultada em 18/11/2026 (ver docs/n2-pix-mercadopago.md). Nunca registra nem devolve o token:
@@ -5,6 +7,8 @@
  */
 
 export const MERCADO_PAGO_BASE_URL = 'https://api.mercadopago.com';
+/** Tela de autorização do OAuth (o lojista entra na própria conta do Mercado Pago e autoriza a aplicação da plataforma). */
+export const MERCADO_PAGO_AUTORIZACAO_URL = 'https://auth.mercadopago.com/authorization';
 /** Mínimo aceito pelo Mercado Pago para o vencimento do Pix (30 min a 30 dias). */
 export const EXPIRACAO_PIX = 'PT30M';
 export const EXPIRACAO_PIX_MS = 30 * 60 * 1000;
@@ -32,11 +36,16 @@ export interface PedidoMercadoPago {
 }
 
 export type FalhaProvedor =
+  /** 401: token recusado (no OAuth, motivo para renovar uma vez). */
   | 'credencial_invalida'
+  /** 403: sem permissão para o recurso; nunca dispara renovação. */
+  | 'acesso_negado'
   | 'nao_encontrado'
   | 'nao_cancelavel'
   | 'ja_cancelado'
   | 'idempotencia_conflito'
+  /** `invalid_grant` no `/oauth/token`: código ou refresh token recusado; exige nova autorização. */
+  | 'concessao_invalida'
   | 'limite'
   | 'rejeitado'
   | 'resposta_invalida'
@@ -54,7 +63,31 @@ export class ErroProvedorMp extends Error {
   }
 }
 
+/** Credenciais da aplicação da plataforma (OAuth). O `clientSecret` nunca sai do servidor. */
+export interface AplicacaoOAuth {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  /** PKCE ligado no painel da aplicação: depois de ligado, o Mercado Pago o exige. */
+  pkce: boolean;
+  /** `test_token: "true"` gera credenciais de teste (só fora de produção). */
+  testToken: boolean;
+}
+
+/** Resposta do `/oauth/token`, já lida. `expiraEmSegundos` vem de `expires_in`. */
+export interface TokensOAuth {
+  accessToken: string;
+  refreshToken: string | null;
+  expiraEmSegundos: number | null;
+  contaProvedorId: string | null;
+  liveMode: boolean | null;
+}
+
 export interface ProvedorMercadoPago {
+  /** `grant_type=authorization_code` com o `code_verifier` do PKCE. */
+  trocarCodigo(app: AplicacaoOAuth, codigo: string, codeVerifier: string | null): Promise<TokensOAuth>;
+  /** `grant_type=refresh_token`; o Mercado Pago devolve um refresh token novo (o antigo deixa de valer). */
+  renovarToken(app: AplicacaoOAuth, refreshToken: string): Promise<TokensOAuth>;
   /** Consulta barata e autenticada para conferir o token ao conectar. */
   validarCredencial(token: string): Promise<{ contaProvedorId: string | null }>;
   criarPedidoPix(token: string, chaveIdempotencia: string, pedido: PedidoPixEntrada): Promise<PedidoMercadoPago>;
@@ -112,14 +145,18 @@ export function lerPedido(corpo: unknown): PedidoMercadoPago {
   };
 }
 
-function codigoDoErro(corpo: unknown): string | null {
+/** `/oauth/token` responde `{ error: "invalid_grant" }`; a Orders API, `{ errors: [{ code }] }`. */
+function codigoDoErro(corpo: unknown, preferirError = false): string | null {
   const o = (corpo && typeof corpo === 'object' ? corpo : {}) as Record<string, any>;
-  const bruto = o.errors?.[0]?.code ?? o.code ?? o.error;
+  const error = typeof o.error === 'string' ? o.error : undefined;
+  const bruto = error === 'invalid_grant' ? error : preferirError ? (error ?? o.errors?.[0]?.code ?? o.code) : (o.errors?.[0]?.code ?? o.code ?? error);
   return typeof bruto === 'string' && /^[A-Za-z0-9_.-]{1,64}$/.test(bruto) ? bruto : null;
 }
 
 function falhaDoStatus(status: number, codigo: string | null): FalhaProvedor {
-  if (status === 401 || status === 403) return 'credencial_invalida';
+  if (codigo === 'invalid_grant') return 'concessao_invalida';
+  if (status === 401) return 'credencial_invalida';
+  if (status === 403) return 'acesso_negado';
   if (status === 404) return 'nao_encontrado';
   if (status === 429) return 'limite';
   if (status === 409) {
@@ -130,6 +167,40 @@ function falhaDoStatus(status: number, codigo: string | null): FalhaProvedor {
   }
   if (status >= 500) return 'indisponivel';
   return 'rejeitado';
+}
+
+export function lerTokens(corpo: unknown): TokensOAuth {
+  const o = (corpo && typeof corpo === 'object' ? corpo : {}) as Record<string, any>;
+  const accessToken = textoOuNull(o.access_token);
+  if (!accessToken || accessToken.length > 2048) throw new ErroProvedorMp('resposta_invalida');
+  const expira = Number(o.expires_in);
+  const usuario = o.user_id;
+  return {
+    accessToken,
+    refreshToken: textoOuNull(o.refresh_token),
+    expiraEmSegundos: Number.isFinite(expira) && expira > 0 ? Math.floor(expira) : null,
+    contaProvedorId: typeof usuario === 'number' || typeof usuario === 'string' ? String(usuario).slice(0, 64) : null,
+    liveMode: typeof o.live_mode === 'boolean' ? o.live_mode : null,
+  };
+}
+
+/** PKCE S256: `code_challenge = base64url(sha256(code_verifier))`. */
+export function desafioPkce(verificador: string): string {
+  return createHash('sha256').update(verificador, 'ascii').digest('base64url');
+}
+
+/** Sem parâmetro de escopo (o Mercado Pago concede `read write offline_access`); dados extras só dentro do `state`. */
+export function urlAutorizacao(app: Pick<AplicacaoOAuth, 'clientId' | 'redirectUri'>, estado: string, verificador: string | null): string {
+  const url = new URL(MERCADO_PAGO_AUTORIZACAO_URL);
+  url.search = new URLSearchParams({
+    client_id: app.clientId,
+    response_type: 'code',
+    platform_id: 'mp',
+    state: estado,
+    redirect_uri: app.redirectUri,
+    ...(verificador ? { code_challenge: desafioPkce(verificador), code_challenge_method: 'S256' } : {}),
+  }).toString();
+  return url.toString();
 }
 
 type Buscar = typeof fetch;
@@ -167,7 +238,36 @@ export function criarProvedorMercadoPago(opcoes: { buscar?: Buscar; baseUrl?: st
 
   const caminhoPedido = (id: string) => `/v1/orders/${encodeURIComponent(id)}`;
 
+  /** `/oauth/token` não usa Bearer: as credenciais da aplicação vão no corpo. */
+  async function pedirToken(corpo: Record<string, string>): Promise<TokensOAuth> {
+    let res: Response;
+    try {
+      res = await buscar(`${base}/oauth/token`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(timeoutMs),
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(corpo),
+      });
+    } catch {
+      throw new ErroProvedorMp('indisponivel');
+    }
+    let resposta: unknown = null;
+    try { resposta = await res.json(); } catch { resposta = null; }
+    if (res.ok) return lerTokens(resposta);
+    const codigo = codigoDoErro(resposta, true);
+    throw new ErroProvedorMp(falhaDoStatus(res.status, codigo), res.status, codigo);
+  }
+
   return {
+    async trocarCodigo(app, codigo, codeVerifier) {
+      return pedirToken({
+        client_id: app.clientId, client_secret: app.clientSecret, grant_type: 'authorization_code', code: codigo, redirect_uri: app.redirectUri,
+        ...(codeVerifier ? { code_verifier: codeVerifier } : {}), test_token: app.testToken ? 'true' : 'false',
+      });
+    },
+    async renovarToken(app, refreshToken) {
+      return pedirToken({ client_id: app.clientId, client_secret: app.clientSecret, grant_type: 'refresh_token', refresh_token: refreshToken });
+    },
     async validarCredencial(token) {
       const corpo = (await chamar('GET', '/users/me', token)) as { id?: unknown } | null;
       const id = corpo?.id;

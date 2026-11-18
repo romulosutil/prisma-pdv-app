@@ -1,5 +1,5 @@
 import {
-  centavosParaValor, ErroProvedorMp, lerPedido, type PedidoMercadoPago, type PedidoPixEntrada, type ProvedorMercadoPago,
+  centavosParaValor, ErroProvedorMp, lerPedido, lerTokens, type AplicacaoOAuth, type PedidoMercadoPago, type PedidoPixEntrada, type ProvedorMercadoPago,
 } from '../src/pagamentos/mercadoPago';
 
 /**
@@ -8,7 +8,7 @@ import {
  * dono da order, cancelamento só de `created`/`action_required`. O roteiro de cada order é ajustável.
  * As respostas passam por `lerPedido`, o mesmo leitor do cliente real.
  */
-type Operacao = 'validar' | 'criar' | 'consultar' | 'cancelar';
+type Operacao = 'validar' | 'criar' | 'consultar' | 'cancelar' | 'trocar' | 'renovar';
 
 interface OrderSimulada {
   corpo: Record<string, any>;
@@ -24,6 +24,66 @@ export class ProvedorMercadoPagoSimulado implements ProvedorMercadoPago {
   readonly tokensValidos = new Set<string>();
   private readonly falhas: { operacao: Operacao; erro: Error; criarAntes?: boolean }[] = [];
   private contador = 0;
+
+  // ---------- OAuth simulado ----------
+  /** `code` → dados do vendedor que autorizou (o code só vale uma vez, como no Mercado Pago). */
+  readonly codigos = new Map<string, { usuario: string; codeChallenge: string | null }>();
+  /** refresh token válido → usuário; gira a cada renovação (o antigo deixa de valer). */
+  readonly refreshValidos = new Map<string, string>();
+  readonly trocas: { codigo: string; codeVerifier: string | null; clientId: string; testToken: boolean }[] = [];
+  readonly renovacoes: string[] = [];
+  /** Atraso artificial da renovação, para os testes de concorrência. */
+  atrasoRenovacaoMs = 0;
+  private emitidos = 0;
+
+  /** O que a tela de autorização faria: gera um `code` para este usuário, guardando o desafio PKCE recebido. */
+  autorizar(urlAutorizacao: string, usuario = '123456789'): { code: string; state: string } {
+    const url = new URL(urlAutorizacao);
+    const code = `TG-SIMULADO-${++this.emitidos}`;
+    this.codigos.set(code, { usuario, codeChallenge: url.searchParams.get('code_challenge') });
+    return { code, state: url.searchParams.get('state')! };
+  }
+
+  private emitir(usuario: string) {
+    const n = ++this.emitidos;
+    const accessToken = `TESTE-SIMULADO-OAUTH-ACESSO-${n}`;
+    const refreshToken = `TESTE-SIMULADO-OAUTH-REFRESH-${n}`;
+    this.tokensValidos.add(accessToken);
+    this.refreshValidos.set(refreshToken, usuario);
+    this.donoDoToken.set(accessToken, usuario);
+    return lerTokens({ access_token: accessToken, token_type: 'bearer', expires_in: 15552000, scope: 'read write offline_access', user_id: Number(usuario), refresh_token: refreshToken, public_key: 'APP_PUB-SIMULADO', live_mode: false });
+  }
+
+  /** Tokens do mesmo vendedor (antes e depois da renovação) enxergam as mesmas orders. */
+  readonly donoDoToken = new Map<string, string>();
+
+  async trocarCodigo(app: AplicacaoOAuth, codigo: string, codeVerifier: string | null) {
+    this.trocas.push({ codigo, codeVerifier, clientId: app.clientId, testToken: app.testToken });
+    const f = this.falha('trocar');
+    if (f) throw f.erro;
+    const dados = this.codigos.get(codigo);
+    this.codigos.delete(codigo);
+    if (!dados) throw new ErroProvedorMp('concessao_invalida', 400, 'invalid_grant');
+    if (dados.codeChallenge) {
+      const { createHash } = await import('node:crypto');
+      if (!codeVerifier || createHash('sha256').update(codeVerifier).digest('base64url') !== dados.codeChallenge) throw new ErroProvedorMp('concessao_invalida', 400, 'invalid_grant');
+    }
+    return this.emitir(dados.usuario);
+  }
+
+  async renovarToken(_app: AplicacaoOAuth, refreshToken: string) {
+    this.renovacoes.push(refreshToken);
+    if (this.atrasoRenovacaoMs) await new Promise((ok) => setTimeout(ok, this.atrasoRenovacaoMs));
+    const f = this.falha('renovar');
+    if (f) throw f.erro;
+    const usuario = this.refreshValidos.get(refreshToken);
+    if (!usuario) throw new ErroProvedorMp('concessao_invalida', 400, 'invalid_grant');
+    this.refreshValidos.delete(refreshToken);
+    return this.emitir(usuario);
+  }
+
+  /** Revoga o access token (como troca de senha do vendedor): a próxima chamada recebe 401. */
+  revogarAcesso(token: string): void { this.tokensValidos.delete(token); }
 
   /** Próxima chamada da operação falha. `criarAntes`: a order nasce no provedor e a resposta se perde (timeout). */
   falharProxima(operacao: Operacao, erro: Error = new ErroProvedorMp('indisponivel', 503, 'internal_error'), criarAntes = false): void {
@@ -41,8 +101,9 @@ export class ProvedorMercadoPagoSimulado implements ProvedorMercadoPago {
 
   private order(token: string, id: string): OrderSimulada {
     const o = this.orders.get(id);
-    // Order de outro vendedor não existe para este token.
-    if (!o || o.token !== token) throw new ErroProvedorMp('nao_encontrado', 404, 'order_not_found');
+    // Order de outro vendedor não existe para este token (tokens renovados do mesmo vendedor continuam valendo).
+    const mesmoVendedor = o && (o.token === token || (this.donoDoToken.get(token) !== undefined && this.donoDoToken.get(token) === this.donoDoToken.get(o.token)));
+    if (!o || !mesmoVendedor) throw new ErroProvedorMp('nao_encontrado', 404, 'order_not_found');
     return o;
   }
 

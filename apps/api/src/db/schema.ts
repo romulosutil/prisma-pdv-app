@@ -513,11 +513,56 @@ export const conexoesPagamento = pgTable('conexoes_pagamento', {
   segredoWebhookEnvelope: jsonb('segredo_webhook_envelope').$type<EnvelopePagamento>(),
   contaProvedorId: text('conta_provedor_id'),
   ativa: boolean('ativa').notNull(),
+  /** `token`: o lojista colou o próprio Access Token; `oauth`: autorizou a aplicação da plataforma. */
+  modo: text('modo', { enum: ['token', 'oauth'] }).notNull().default('token'),
+  /** Só OAuth: refresh token cifrado, vencimento do access token e ambiente informado pelo Mercado Pago. */
+  refreshTokenEnvelope: jsonb('refresh_token_envelope').$type<EnvelopePagamento>(),
+  tokenExpiraEm: instante('token_expira_em'),
+  liveMode: boolean('live_mode'),
+  /** Incrementada a cada troca de tokens: a renovação só grava se ninguém renovou antes (sem perder o refresh token girado). */
+  versaoToken: integer('versao_token').notNull().default(0),
+  /** Trava curta: uma renovação por vez por conexão. */
+  renovandoAte: instante('renovando_ate'),
+  /** O Mercado Pago recusou a renovação (`invalid_grant`): o dono precisa autorizar de novo. */
+  reautorizarDesde: instante('reautorizar_desde'),
+  /** `refresh_recusado` ou `refresh_girado_sem_resposta` (uma renovação anterior ficou sem resposta gravada). */
+  reautorizarMotivo: text('reautorizar_motivo'),
+  /** Última renovação gravada: um 401 logo depois não dispara outra renovação. */
+  tokenRenovadoEm: instante('token_renovado_em'),
+  /** Uma renovação terminou sem resposta gravada (timeout, queda): o refresh pode ter girado no provedor. */
+  refreshSemRespostaEm: instante('refresh_sem_resposta_em'),
+  /** Dica de `mp-connect`: conferir a conexão (consulta barata) a partir deste instante; não mexe no vencimento. */
+  revisarEm: instante('revisar_em'),
+  /** Recuo do job de renovação depois de falhas: quem falha não ocupa a vez dos outros. */
+  proximaRenovacaoEm: instante('proxima_renovacao_em'),
+  falhasRenovacao: integer('falhas_renovacao').notNull().default(0),
   criadoPor: uuid('criado_por').notNull(),
   criadoEm: criadoEm(),
   atualizadoEm: atualizadoEm(),
   desativadaEm: instante('desativada_em'),
-}, (t) => [uniqueIndex('conexoes_pagamento_ativa_idx').on(t.lojaId, t.provedor).where(sql`${t.ativa} = true`)]);
+}, (t) => [
+  uniqueIndex('conexoes_pagamento_ativa_idx').on(t.lojaId, t.provedor).where(sql`${t.ativa} = true`),
+  index('conexoes_pagamento_renovacao_idx').on(t.tokenExpiraEm).where(sql`${t.ativa} = true and ${t.modo} = 'oauth'`),
+]);
+
+/**
+ * `state` do OAuth: uso único, 10 min, ligado à loja e ao dono que iniciou. Só o hash do `state` é gravado;
+ * o `code_verifier` do PKCE fica cifrado e é apagado ao concluir.
+ */
+export const estadosOauthPagamento = pgTable('estados_oauth_pagamento', {
+  id: uuid('id').primaryKey(),
+  contaId: uuid('conta_id').notNull().references(() => contas.id),
+  lojaId: uuid('loja_id').notNull().references(() => lojas.id),
+  operadorId: uuid('operador_id').notNull().references(() => operadores.id),
+  provedor: text('provedor', { enum: ['mercadopago'] }).notNull(),
+  estadoHash: text('estado_hash').notNull().unique(),
+  verificadorEnvelope: jsonb('verificador_envelope').$type<EnvelopePagamento>(),
+  criadoEm: criadoEm(),
+  expiraEm: instante('expira_em').notNull(),
+  usadoEm: instante('usado_em'),
+  invalidadoEm: instante('invalidado_em'),
+  resultado: text('resultado'),
+}, (t) => [index('estados_oauth_pagamento_loja_idx').on(t.lojaId)]);
 
 /** Cobrança Pix criada pela nossa integração. O `id` é o id do pagamento da venda (gerado no aparelho). */
 export const cobrancasPagamento = pgTable('cobrancas_pagamento', {
@@ -563,6 +608,8 @@ export const cobrancasPagamento = pgTable('cobrancas_pagamento', {
   index('cobrancas_pagamento_proxima_consulta_idx').on(t.proximaConsultaEm).where(sql`${t.proximaConsultaEm} is not null`),
   // O webhook procura a order da loja sem diferenciar maiúsculas (o manifesto da assinatura usa minúsculas).
   index('cobrancas_pagamento_loja_pedido_idx').on(t.lojaId, sql`lower(${t.pedidoProvedorId})`),
+  // Webhook da aplicação da plataforma (OAuth): a order chega sem a loja; a busca é por todas as lojas.
+  index('cobrancas_pagamento_pedido_lower_idx').on(sql`lower(${t.pedidoProvedorId})`),
 ]);
 
 /** Auditoria de criação, consultas, avisos e cancelamentos. Sem credenciais nem QR. */

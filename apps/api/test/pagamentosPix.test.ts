@@ -121,7 +121,7 @@ describe('disponibilidade e conexão', () => {
     }
     expect((await chamar(amb, 'GET', '/pagamentos/cobrancas', { token: operadora.token })).status).toBe(403);
 
-    expect((await chamar(amb, 'GET', '/pagamentos/mercadopago/conexao', { token: dono.token })).corpo).toEqual({ conectada: false, webhookPath: null, temSegredoWebhook: false, conectadaEm: null, atualizadaEm: null });
+    expect((await chamar(amb, 'GET', '/pagamentos/mercadopago/conexao', { token: dono.token })).corpo).toEqual({ conectada: false, modo: null, reautorizacaoNecessaria: false, webhookPath: null, temSegredoWebhook: false, conectadaEm: null, atualizadaEm: null });
     const recusada = await chamar(amb, 'PUT', '/pagamentos/mercadopago/conexao', { token: dono.token, corpo: { accessToken: 'TESTE-SIMULADO-TOKEN-INVALIDO' } });
     expect(recusada.status).toBe(400);
     expect(recusada.corpo.erro).toBe('credencial_invalida');

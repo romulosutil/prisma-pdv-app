@@ -2521,3 +2521,53 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
   2. Rodar `scripts/homologar-mercadopago-pix.mts` e registrar a evidência.
   3. Depois da integração do pacote de design: o QR na tela de pagamento e a tela de conexão do lojista.
   4. Deploy só com autorização.
+
+<a id="cp-165-n2-conectar-com-mercado-pago-oauth-no-servidor-e-gateways-do-lojista-18112026"></a>
+
+## CP 165 — N2: "Conectar com Mercado Pago" (OAuth) no servidor e gateways do lojista (18/11/2026)
+
+- **Data e etapa:** 18/11/2026 (America/Sao_Paulo). Sessão N2; continua o [CP 164](#cp-164-n2-servidor-do-pix-mercado-pago-construido-e-testado-com-provedor-simulado-18112026).
+- **Decisões do usuário nesta sessão:**
+  - **Gateways do lojista:** tudo sobre Mercado Pago, InfinitePay, Stone, PicPay e outros existe para o lojista integrar os próprios gateways de forma simples. O dinheiro cai na conta do lojista, e o produto não recebe nem intermedeia valores. Registrado em [prompts-sessoes-entrega.md](prompts-sessoes-entrega.md) (decisões, tabela e N2) e no R6 do roadmap.
+  - **OAuth agora:** "Conectar com Mercado Pago" por OAuth passa a ser o caminho do lojista. O token colado fica como alternativa avançada e caminho de teste.
+- **Estado:** servidor do OAuth **construído e validado localmente** com o Mercado Pago simulado. Nada commitado antes deste registro. Sem chamada real ao Mercado Pago, sem deploy e sem tela.
+- **Construído:**
+  - **Módulos:** `apps/api/src/servicos/{conexoesMercadoPago,oauthMercadoPago}.ts` e `apps/api/src/rotas/oauthMercadoPago.ts`.
+  - **Migração 0014:** tabela `estados_oauth_pagamento` e colunas de modo, tokens cifrados, validade, versão e renovação em `conexoes_pagamento`.
+  - **Script de limpeza e testes:** a limpeza cobre a tabela nova; testes em `apps/api/test/oauthMercadoPago.test.ts`.
+  - **Homologação:** OAuth incluído em `scripts/homologar-mercadopago-pix.mts`.
+  - **Documentação:** [n2-pix-mercadopago.md](n2-pix-mercadopago.md), com o fluxo, as variáveis e o que o dono da plataforma configura uma única vez no painel do Mercado Pago.
+- **Fluxo:**
+  1. O dono inicia em `POST /pagamentos/mercadopago/oauth/inicio`. O `state` tem 32 bytes, é guardado só como hash, é de uso único, ligado à loja e ao dono, e vale 10 min; o PKCE é S256, com o verificador cifrado.
+  2. O lojista autoriza na página do Mercado Pago.
+  3. O retorno público `GET /pagamentos/mercadopago/oauth/retorno` consome o `state` de forma atômica e troca o código em `POST /oauth/token`. Os tokens do lojista são guardados cifrados.
+  4. A página de retorno não reflete nada da URL e tem CSP `default-src 'none'`. O código e o `state` não aparecem nos logs, e há teste para isso.
+- **Renovação:**
+  - Tarefa por hora, 30 dias antes do vencimento, com espera crescente quando falha.
+  - O token de renovação gira a cada uso e é gravado com versão; só uma renovação roda por vez.
+  - Só o 401 dispara renovação e nova tentativa, que reutiliza a mesma chave de idempotência; um 403 vira falha comum.
+  - `invalid_grant` marca a conexão como "reautorização necessária" sem regredir as cobranças.
+  - Desconectar durante uma renovação não grava tokens de volta.
+- **Webhook da plataforma:** `POST /webhooks/pdv-mercadopago`, assinado com o segredo da aplicação da plataforma. Acha a cobrança pelo id do pedido e confirma com o token da loja dona da cobrança; o `user_id` do corpo nunca decide. `mp-connect` só agenda uma conferência.
+- **Variáveis (só nomes):** `PDV_MP_CLIENT_ID`, `PDV_MP_CLIENT_SECRET`, `PDV_MP_REDIRECT_URI`, `PDV_MP_WEBHOOK_SECRET`, `PDV_MP_OAUTH_PKCE` e `PDV_MP_OAUTH_TEST_TOKEN` (este recusado em produção). Sem elas, o OAuth responde 503 `oauth_indisponivel` e a API sobe normalmente.
+- **Revisão (orquestrador + revisor Opus independente):** dois achados médios corrigidos, cada um com teste que falhava antes da correção:
+  - tokens regravados após a desconexão;
+  - renovação disparada por qualquer 403.
+
+  Também foram corrigidos os achados baixos e as lacunas de teste: `mp-connect` forjável, perda do token girado identificada, tarefa presa, estados antigos sem limpeza, leitura do `invalid_grant`, caso entre lojas, 401 na criação e logs.
+- **Risco aceito no MVP:** um dono mal-intencionado pode enviar o próprio link de autorização a outra pessoa e ligar a conta dela à loja dele. O efeito se limita a criar cobranças que pagam para essa pessoa, sem acesso a dados nem a tokens. Mitigação futura: mostrar ao dono a conta conectada.
+- **Validações locais (em série) sobre o código final:** typecheck shared, API e mobile sem erros; shared 18 arquivos 175/175; API (PGlite) 58 arquivos 729/729; mobile 81 arquivos 665/665. Migrações: 15.
+- **NÃO VERIFICADO (depende da aplicação real e de contas de teste):**
+  - o fluxo OAuth com um vendedor de teste;
+  - o `test_token`;
+  - se a configuração do PKCE bate com a do painel;
+  - se o `APRO` aprova com o token OAuth;
+  - se os pedidos criados com o token de cada lojista geram aviso no webhook da plataforma (a reconciliação cobre se não gerarem);
+  - o conteúdo do `mp-connect`;
+  - os itens que já estavam pendentes no CP 164.
+- **Próximo passo:**
+  1. **Você cria uma única vez a aplicação da plataforma** no painel de desenvolvedor do Mercado Pago: endereço de retorno https, webhook `/webhooks/pdv-mercadopago` com o evento Order, e PKCE conforme `PDV_MP_OAUTH_PKCE`.
+  2. **Você cria um vendedor de teste** e informa as credenciais da aplicação no ambiente, sem colar na conversa.
+  3. O OAuth precisa de um endereço https público: um túnel para a API local ou um deploy de homologação, este só com autorização.
+  4. Depois disso, rodar a homologação.
+  5. As telas esperam o pacote de design.

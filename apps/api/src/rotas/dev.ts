@@ -5,6 +5,7 @@ import type { Deps } from '../deps';
 import { ErroApi } from '../erros';
 import { processarCobrancas } from '../servicos/cobranca';
 import { ambientePix, conciliarCobrancasPix } from '../servicos/cobrancasPix';
+import { renovarTokensOAuth } from '../servicos/conexoesMercadoPago';
 
 const AvancarReqSchema = z.object({ dias: z.number().positive() });
 
@@ -22,4 +23,5 @@ export function rotasDev(app: FastifyInstance, deps: Deps): void {
 
   app.post('/dev/jobs/cobranca', async (request) => processarCobrancas(db, billing, relogio, (m) => request.log.info(m)));
   app.post('/dev/jobs/conciliacao-pix', async () => conciliarCobrancasPix(ambientePix(deps)));
+  app.post('/dev/jobs/renovacao-oauth', async () => renovarTokensOAuth(ambientePix(deps)));
 }

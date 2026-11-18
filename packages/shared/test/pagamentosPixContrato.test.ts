@@ -9,7 +9,7 @@ describe('contrato do Pix do Mercado Pago', () => {
     expect(ConectarMercadoPagoReqSchema.safeParse({ accessToken: 'curto' }).success).toBe(false);
     expect(ConectarMercadoPagoReqSchema.safeParse({ accessToken: 'TESTE SIMULADO 0001' }).success).toBe(false);
     expect(ConectarMercadoPagoReqSchema.safeParse({ accessToken: 'TESTE-SIMULADO-0001', lojaId: id }).success).toBe(false);
-    expect(Object.keys(ConexaoMercadoPagoSchema.shape).sort()).toEqual(['atualizadaEm', 'conectada', 'conectadaEm', 'temSegredoWebhook', 'webhookPath']);
+    expect(Object.keys(ConexaoMercadoPagoSchema.shape).sort()).toEqual(['atualizadaEm', 'conectada', 'conectadaEm', 'modo', 'reautorizacaoNecessaria', 'temSegredoWebhook', 'webhookPath']);
   });
 
   it('cobrança: ids UUID e valor positivo em centavos; estados fechados', () => {

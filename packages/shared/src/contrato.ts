@@ -355,13 +355,21 @@ export type ConectarMercadoPagoReq = z.infer<typeof ConectarMercadoPagoReqSchema
 
 export const ConexaoMercadoPagoSchema = z.object({
   conectada: z.boolean(),
-  /** Caminho a colar, depois do endereço da API, em "Suas integrações" > Webhooks (evento Order). */
+  /** `oauth`: conta autorizada pela tela do Mercado Pago (padrão); `token`: credencial colada (avançado). */
+  modo: z.enum(['token', 'oauth']).nullable(),
+  /** O Mercado Pago recusou a renovação: o dono precisa conectar de novo. Cobranças pendentes ficam como estão. */
+  reautorizacaoNecessaria: z.boolean(),
+  /** Só no modo token: caminho a colar, depois do endereço da API, em "Suas integrações" > Webhooks (evento Order). */
   webhookPath: z.string().nullable(),
   temSegredoWebhook: z.boolean(),
   conectadaEm: DataIsoSchema.nullable(),
   atualizadaEm: DataIsoSchema.nullable(),
 }).strict();
 export type ConexaoMercadoPago = z.infer<typeof ConexaoMercadoPagoSchema>;
+
+/** Início do OAuth: o app abre esta URL (tela de autorização do Mercado Pago) no navegador. */
+export const InicioOAuthMercadoPagoSchema = z.object({ url: z.url({ protocol: /^https$/ }) }).strict();
+export type InicioOAuthMercadoPago = z.infer<typeof InicioOAuthMercadoPagoSchema>;
 
 /** `pagamentoId` é o id do pagamento da venda gerado no aparelho; repetir o mesmo pedido devolve a mesma cobrança. */
 export const CriarCobrancaPixReqSchema = z.object({

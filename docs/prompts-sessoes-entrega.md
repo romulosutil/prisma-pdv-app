@@ -8,6 +8,7 @@ Versão de 17/11/2026, simplificada pelo usuário. Continua o CP 158 e o CP 159 
 
 - **Fontes de catálogo: só gratuitas.** Sem contrato e sem token pago.
 - **Provedores de pagamento: sem contato.** Tudo se descobre pela documentação pública. O que a documentação não proíbe nem exige como regra é tratado como permitido.
+- **Pagamentos são do lojista (18/11/2026):** tudo o que se refere a Mercado Pago, InfinitePay, Stone, PicPay ou qualquer outro gateway existe para **o cliente (lojista) integrar os próprios gateways de forma simples**. O dinheiro cai na conta do lojista, e o produto não recebe nem intermedeia valores. Cada conector usa o caminho mais simples para o lojista que a documentação oferece: no Mercado Pago, o botão "Conectar com Mercado Pago" (OAuth), em que o lojista só entra na conta e autoriza; na InfinitePay, o handle ou a chave do próprio lojista (não há OAuth). A conta do dono do produto só aparece como a aplicação da plataforma, criada uma única vez, e nas contas de teste. Nubank e PicPay não foram pesquisados ([CP 164](checkpoints-roadmap.md#cp-164-n2-servidor-do-pix-mercado-pago-construido-e-testado-com-provedor-simulado-18112026)).
 - **Conta de teste da produção ("Loja Teste M4"): pode ser zerada** (confirmado).
 - **Play só com o app pronto.** O lojista disponível será testador enquanto o piloto roda sem cobrança.
 - **Cobertura de dispositivos:** o usuário testa pessoalmente.
@@ -29,7 +30,7 @@ Versão de 17/11/2026, simplificada pelo usuário. Continua o CP 158 e o CP 159 
 | # | Sessão | Modelo | O que fica com você |
 |---|---|---|---|
 | N1 | Fechar a base e gerar a 0.1.19 | Sonnet 5.5 orquestra, Opus 5.5 no que mexe em produção | Digitar as senhas da chave e testar no aparelho |
-| N2 | Pagamento: Pix do Mercado Pago | Opus 5.5 | Conta de teste e uma cobrança pequena, com sua autorização |
+| N2 | Pagamento: Pix do Mercado Pago, com o lojista conectando a própria conta | Opus 5.5 | Criar uma vez a aplicação da plataforma no Mercado Pago, contas de teste e uma cobrança pequena, com sua autorização |
 | N3 | Pagamento: Checkout da InfinitePay (Stone e InfiniteTap ficam manuais identificados) | Opus 5.5 | Um pagamento real de R$ 1,00 na InfinitePay, com sua autorização |
 | N4 | Fechar o MVP: Play, lojista testador e aceite | Sonnet 5.5 nas rodadas, Opus 5.5 no aceite | Console da Play, uso com o lojista e o aceite |
 
@@ -79,7 +80,7 @@ Siga as regras comuns de docs/prompts-sessoes-entrega.md. Leia docs/pesquisa-pag
 
 Objetivo: o app confirmar de verdade que o cliente pagou o Pix pelo Mercado Pago, pelo caminho mínimo da documentação, com a confirmação manual identificada como alternativa.
 
-1. Seguir o escopo recomendado na pesquisa. Não usar OAuth nem parceria se a documentação permitir o mais simples (por exemplo, o lojista informar a própria credencial). Credenciais só no servidor, inseridas pelo usuário no ambiente, nunca no repositório.
+1. Seguir o escopo recomendado na pesquisa. O gateway é o do lojista, conectado da forma mais simples para ele: "Conectar com Mercado Pago" por OAuth, decisão do usuário em 18/11/2026, com a conexão por token colado como alternativa avançada. Sem parceria. Os tokens dos lojistas ficam só no servidor, cifrados. As credenciais da aplicação da plataforma são inseridas pelo usuário no ambiente, nunca no repositório.
 2. Servidor primeiro: criar a cobrança com chave de idempotência e referência ligada à venda; receber o aviso (webhook) com assinatura validada e confirmar consultando a cobrança no provedor, sem casar por valor. Tratar aviso duplicado e fora de ordem, valor divergente, pagamento tardio e venda abandonada.
 3. Só depois da integração do pacote de design: o QR na tela de pagamento e a tela de conexão do lojista, mínimas.
 4. Testes automatizados de cada caso com o provedor simulado, e validação com a conta de teste do Mercado Pago. Qualquer valor real só com a autorização do usuário na sessão.

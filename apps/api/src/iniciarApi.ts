@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { relogioSistema, type Relogio } from '@pdv/shared';
 import type { FastifyInstance } from 'fastify';
 import { criarBilling, criarBillingDesativado } from './billing';
-import { lerConfiguracaoPagamentos, validarConfiguracao } from './configuracao';
+import { lerConfiguracaoOAuthMercadoPago, lerConfiguracaoPagamentos, validarConfiguracao } from './configuracao';
 import { abrirPglite, abrirPostgres, type Conexao } from './db/conexao';
 import { lerConfiguracaoEntregaCodigo } from './email/configuracaoEntrega';
 import { ErroCanalEmail } from './email/contrato';
@@ -12,7 +12,8 @@ import type { EmissaoCodigo } from './email/tiposEntrega';
 import { fontesEanGratuitas } from './fontes/openFoodFacts';
 import { agendarCobranca } from './jobs';
 import { agendarEntregasCodigo } from './jobsEmail';
-import { agendarConciliacaoPix } from './jobsPagamentos';
+import { agendarConciliacaoPix, agendarRenovacaoOAuth } from './jobsPagamentos';
+import { renovarTokensOAuth } from './servicos/conexoesMercadoPago';
 import { criarCifradorPagamentos } from './pagamentos/cifrador';
 import { criarProvedorMercadoPago } from './pagamentos/mercadoPago';
 import type { ConfigPagamentos } from './deps';
@@ -30,6 +31,8 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
     cifrador: configPagamentos.chave ? criarCifradorPagamentos(configPagamentos.chave) : null,
     mercadoPago: criarProvedorMercadoPago(),
     pagadorEmail: configPagamentos.pagadorEmail ?? null,
+    // Sem PDV_MP_CLIENT_ID/SECRET/REDIRECT_URI, as rotas de OAuth respondem 503 e o modo token continua.
+    oauth: lerConfiguracaoOAuthMercadoPago(process.env),
   };
   const relogio: Relogio = configuracao.ambiente === 'production' ? relogioSistema : new RelogioDeDesenvolvimento();
   const emissao: EmissaoCodigo = entrega.modo === 'smtp'
@@ -41,6 +44,7 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
   let pararEmail: (() => Promise<void>) | undefined;
   let pararSuporte: (() => Promise<void>) | undefined;
   let pararPix: (() => Promise<void>) | undefined;
+  let pararOAuth: (() => Promise<void>) | undefined;
   let parada: Promise<void> | undefined;
   const parar = (): Promise<void> => {
     if (parada) return parada;
@@ -49,6 +53,7 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
       try { pararCobranca?.(); } catch { falhou = true; }
       try { await pararSuporte?.(); } catch { falhou = true; }
       try { await pararPix?.(); } catch { falhou = true; }
+      try { await pararOAuth?.(); } catch { falhou = true; }
       try { await pararEmail?.(); } catch { falhou = true; }
       try { await app?.close(); } catch { falhou = true; }
       try { await conexao?.fechar(); } catch { falhou = true; }
@@ -74,6 +79,7 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
       if (pagamentos.cifrador) {
         const amb = ambientePix({ db, relogio, pagamentos });
         pararPix = agendarConciliacaoPix((deveParar) => conciliarCobrancasPix(amb, { deveParar }), registrar);
+        if (amb.oauth) pararOAuth = agendarRenovacaoOAuth((deveParar) => renovarTokensOAuth(amb, { deveParar }), registrar);
       }
       if (!cobrancaDesativada) pararCobranca = agendarCobranca(db, billing, relogio, registrar);
       if (entrega.modo === 'smtp' && emissao.modo === 'email' && canal) {

@@ -14,7 +14,7 @@
 --   Por loja da conta: movimentos_estoque, eventos_fiado, auditoria_caixa, movimentos_caixa,
 --     itens_venda, pagamentos_venda, vendas, caixas, clientes, produtos,
 --     catalogo_ean_confirmacoes, mudancas, mutacoes_aplicadas,
---     eventos_cobranca_pagamento, cobrancas_pagamento, conexoes_pagamento (Pix do Mercado Pago).
+--     eventos_cobranca_pagamento, cobrancas_pagamento, conexoes_pagamento, estados_oauth_pagamento (Pix do Mercado Pago).
 --   Por conta: recuperacoes_aparelho, solicitacoes_suporte, sessoes, aparelhos, operadores,
 --     usuarios (os ligados aos operadores da conta e o do e-mail da conta, se nenhum outro
 --     operador os usa), entregas_codigo e codigos_login (pelos e-mails acima e pelos aparelhos
@@ -120,7 +120,8 @@ BEGIN
     public.mudancas, public.mutacoes_aplicadas, public.assinaturas, public.faturas,
     public.eventos_cobranca, public.testes_usados, public.movimentos_estoque, public.clientes,
     public.eventos_fiado, public.solicitacoes_suporte,
-    public.conexoes_pagamento, public.cobrancas_pagamento, public.eventos_cobranca_pagamento
+    public.conexoes_pagamento, public.cobrancas_pagamento, public.eventos_cobranca_pagamento,
+    public.estados_oauth_pagamento
     IN EXCLUSIVE MODE;
 
   SELECT count(*) INTO n_contas FROM public.contas;
@@ -184,6 +185,8 @@ BEGIN
   DELETE FROM public.eventos_cobranca_pagamento WHERE loja_id = ANY (v_lojas);
   DELETE FROM public.cobrancas_pagamento WHERE conta_id = v_conta OR loja_id = ANY (v_lojas);
   DELETE FROM public.conexoes_pagamento WHERE conta_id = v_conta OR loja_id = ANY (v_lojas);
+  -- `state` do OAuth (FK para operadores): antes de apagar os operadores.
+  DELETE FROM public.estados_oauth_pagamento WHERE conta_id = v_conta OR loja_id = ANY (v_lojas);
 
   DELETE FROM public.movimentos_estoque WHERE loja_id = ANY (v_lojas);
   DELETE FROM public.eventos_fiado WHERE loja_id = ANY (v_lojas);
@@ -224,7 +227,7 @@ BEGIN
     'auditoria_caixa', 'catalogo_ean_confirmacoes', 'mudancas', 'mutacoes_aplicadas',
     'assinaturas', 'faturas', 'eventos_cobranca', 'testes_usados', 'movimentos_estoque',
     'clientes', 'eventos_fiado', 'solicitacoes_suporte',
-    'conexoes_pagamento', 'cobrancas_pagamento', 'eventos_cobranca_pagamento'
+    'conexoes_pagamento', 'cobrancas_pagamento', 'eventos_cobranca_pagamento', 'estados_oauth_pagamento'
   ] LOOP
     EXECUTE format('SELECT count(*) FROM public.%I', tabela) INTO n;
     IF n <> 0 THEN

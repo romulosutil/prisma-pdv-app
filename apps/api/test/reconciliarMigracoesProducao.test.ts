@@ -154,7 +154,7 @@ describe('reconciliação das migrações de produção (estado deixado pela mai
     try {
       expect(await historico(banco)).toHaveLength(10);
       expect(await existe(banco, 'usuarios')).toBe(false);
-      // 0008-0011 são puladas em silêncio; 0012 e 0013 (created_at maior) ainda tentam rodar e podem falhar.
+      // 0008-0011 são puladas em silêncio; 0012-0014 (created_at maior) ainda tentam rodar e podem falhar.
       await banco.migrarBranch().catch(() => undefined);
       expect(await existe(banco, 'usuarios')).toBe(false);
     } finally { await banco.fechar(); }
@@ -198,7 +198,7 @@ describe('reconciliação das migrações de produção (estado deixado pela mai
       esperado = await fotoSchema(referencia);
       historicoEsperado = await historico(referencia);
     } finally { await referencia.fechar(); }
-    expect(historicoEsperado).toHaveLength(14); // 0000-0013 (0013: pagamentos Pix do Mercado Pago, N2)
+    expect(historicoEsperado).toHaveLength(15); // 0000-0014 (0013: Pix do Mercado Pago; 0014: OAuth, N2)
 
     const banco = await bancoNoEstadoDaMain('pdv');
     try {

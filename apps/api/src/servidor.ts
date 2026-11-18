@@ -19,12 +19,14 @@ import { rotasSuporte } from './rotas/suporte';
 import { rotasCadastro } from './rotas/cadastro';
 import { rotasPaginasPublicas } from './rotas/paginasPublicas';
 import { rotasPagamentos, rotasWebhookPagamentos } from './rotas/pagamentos';
+import { rotasOAuthMercadoPago, rotasOAuthMercadoPagoPublicas } from './rotas/oauthMercadoPago';
 
 // Mensagens de validação do zod em português, inclusive nos schemas do @pdv/shared.
 z.config(z.locales.pt());
 
 export interface ConfigApp extends Deps {
-  logger?: boolean;
+  /** `true` em produção; os testes passam um destino para conferir o que vai para o log. */
+  logger?: boolean | { level?: string; stream?: { write(linha: string): void } };
   /** Permite homologação local sem ferramentas de desenvolvimento. Nunca habilita /dev em produção. */
   habilitarRotasDev?: boolean;
 }
@@ -104,6 +106,8 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
   rotasRecuperacao(app, deps);
   // Público: autenticado pela assinatura HMAC do Mercado Pago, não pela sessão.
   rotasWebhookPagamentos(app, deps);
+  // Público: retorno do OAuth (autenticado pelo `state` de uso único) e webhook da aplicação da plataforma.
+  rotasOAuthMercadoPagoPublicas(app, deps);
   if (!producao && config.habilitarRotasDev !== false) rotasDev(app, deps);
 
   await app.register(async (privado) => {
@@ -118,6 +122,7 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
     rotasSync(privado, deps);
     rotasCatalogo(privado, deps);
     rotasPagamentos(privado, deps);
+    rotasOAuthMercadoPago(privado, deps);
   });
 
   return app;

@@ -1,14 +1,16 @@
-import { randomBytes } from 'node:crypto';
 import { and, asc, desc, eq, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 import { gerarId, type CobrancaPix, type ConectarMercadoPagoReq, type ConexaoMercadoPago, type EstadoCobrancaPix, type PagamentoVenda, type Relogio } from '@pdv/shared';
 import type { SessaoAutenticada } from '../auth';
 import type { Db } from '../db/conexao';
 import { cobrancasPagamento, conexoesPagamento, eventosCobrancaPagamento } from '../db/schema';
+import {
+  comTokenDaLoja, conexaoAtiva, desconectar, reautorizar, salvarConexao, serializarConexao, sinalizarRevisaoConexao, type AmbienteConexao,
+} from './conexoesMercadoPago';
 import type { ConfigPagamentos, Deps } from '../deps';
 import { ErroApi } from '../erros';
 import { assinaturaValida } from '../pagamentos/assinaturaWebhook';
-import { ErroCifraPagamentos, type CifradorPagamentos } from '../pagamentos/cifrador';
-import { ErroProvedorMp, EXPIRACAO_PIX, EXPIRACAO_PIX_MS, type FalhaProvedor, type PedidoMercadoPago, type ProvedorMercadoPago } from '../pagamentos/mercadoPago';
+import { ErroCifraPagamentos } from '../pagamentos/cifrador';
+import { ErroProvedorMp, EXPIRACAO_PIX, EXPIRACAO_PIX_MS, type FalhaProvedor, type PedidoMercadoPago } from '../pagamentos/mercadoPago';
 
 /**
  * Pix do Mercado Pago (N2). Regras:
@@ -19,7 +21,6 @@ import { ErroProvedorMp, EXPIRACAO_PIX, EXPIRACAO_PIX_MS, type FalhaProvedor, ty
  */
 
 type Cobranca = typeof cobrancasPagamento.$inferSelect;
-type Conexao = typeof conexoesPagamento.$inferSelect;
 
 export const CONSULTA_MINIMA_MS = 3000;
 const LEASE_CRIACAO_MS = 30_000;
@@ -46,11 +47,7 @@ const ENCERRADAS: readonly EstadoCobrancaPix[] = ['expirada', 'cancelada'];
 const SEM_PEDIDO: readonly EstadoCobrancaPix[] = ['criando', 'erro_provedor'];
 const STATUS_EM_ANDAMENTO = new Set(['created', 'processing', 'action_required']);
 
-export interface AmbientePix {
-  db: Db;
-  relogio: Relogio;
-  cifrador: CifradorPagamentos;
-  provedor: ProvedorMercadoPago;
+export interface AmbientePix extends AmbienteConexao {
   pagadorEmail: string | null;
   pagadorPrimeiroNome: string | null;
   consultaMinimaMs: number;
@@ -67,6 +64,7 @@ export function ambientePix(deps: Pick<Deps, 'db' | 'relogio' | 'pagamentos'>): 
     pagadorEmail: p.pagadorEmail,
     pagadorPrimeiroNome: p.pagadorPrimeiroNome ?? null,
     consultaMinimaMs: p.consultaMinimaMs ?? CONSULTA_MINIMA_MS,
+    oauth: p.oauth ?? null,
   };
 }
 
@@ -135,11 +133,15 @@ function idadeStatus(status: string | null, detalhe: string | null): number {
   return 0;
 }
 
-/** `conexao_inativa`: loja desconectou o Mercado Pago ou a credencial não decifra (chave trocada). */
-export type FalhaConsulta = FalhaProvedor | 'conexao_inativa';
+/**
+ * `conexao_inativa`: loja desconectou o Mercado Pago ou a credencial não decifra (chave trocada).
+ * `reautorizacao_necessaria`: o refresh token do OAuth foi recusado; o dono precisa autorizar de novo.
+ */
+export type FalhaConsulta = FalhaProvedor | 'conexao_inativa' | 'reautorizacao_necessaria';
 
 function descreverFalha(erro: unknown): { tipo: FalhaConsulta; status: number | null; codigo: string | null } {
   if (erro instanceof ErroProvedorMp) return { tipo: erro.tipo, status: erro.status, codigo: erro.codigo };
+  if (erro instanceof ErroApi && erro.codigo === 'mercadopago_reautorizar') return { tipo: 'reautorizacao_necessaria', status: null, codigo: null };
   if (erro instanceof ErroCifraPagamentos || (erro instanceof ErroApi && erro.codigo === 'mercadopago_nao_conectado')) return { tipo: 'conexao_inativa', status: null, codigo: null };
   // Qualquer outra exceção do caminho externo conta como indisponibilidade; a mensagem não é gravada.
   return { tipo: 'indisponivel', status: null, codigo: null };
@@ -147,90 +149,31 @@ function descreverFalha(erro: unknown): { tipo: FalhaConsulta; status: number | 
 
 // ---------- Conexão (credencial do lojista) ----------
 
-export const webhookPath = (publicoId: string): string => `/webhooks/pdv-mercadopago/${publicoId}`;
-
-async function conexaoAtiva(db: Db, lojaId: string): Promise<Conexao | undefined> {
-  const [c] = await db.select().from(conexoesPagamento)
-    .where(and(eq(conexoesPagamento.lojaId, lojaId), eq(conexoesPagamento.provedor, 'mercadopago'), eq(conexoesPagamento.ativa, true)));
-  return c;
-}
-
-function serializarConexao(c: Conexao | undefined): ConexaoMercadoPago {
-  if (!c) return { conectada: false, webhookPath: null, temSegredoWebhook: false, conectadaEm: null, atualizadaEm: null };
-  return { conectada: true, webhookPath: webhookPath(c.publicoId), temSegredoWebhook: c.segredoWebhookEnvelope !== null, conectadaEm: c.criadoEm.toISOString(), atualizadaEm: c.atualizadoEm.toISOString() };
-}
+export { webhookPath, violacaoUnica } from './conexoesMercadoPago';
 
 export async function estadoConexao(amb: AmbientePix, lojaId: string): Promise<ConexaoMercadoPago> {
   return serializarConexao(await conexaoAtiva(amb.db, lojaId));
 }
 
-/** Conecta ou troca a credencial. A URL do webhook (id público) é mantida na troca. */
+/** Modo token (avançado): o dono cola o Access Token da própria aplicação. A URL do webhook é mantida na troca. */
 export async function conectarMercadoPago(amb: AmbientePix, sessao: SessaoAutenticada, req: ConectarMercadoPagoReq): Promise<{ conexao: ConexaoMercadoPago; criada: boolean }> {
   let contaProvedorId: string | null = null;
   try {
     contaProvedorId = (await amb.provedor.validarCredencial(req.accessToken)).contaProvedorId;
   } catch (erro) {
     // Só a recusa explícita bloqueia; falha de rede é conferida de novo na primeira cobrança.
-    if (erro instanceof ErroProvedorMp && erro.tipo === 'credencial_invalida') {
+    if (erro instanceof ErroProvedorMp && (erro.tipo === 'credencial_invalida' || erro.tipo === 'acesso_negado')) {
       throw new ErroApi(400, 'credencial_invalida', 'O Mercado Pago recusou esta credencial. Confira o Access Token.');
     }
   }
-  const agora = amb.relogio.agora();
-  try {
-    return await gravarConexao(amb, sessao, req, contaProvedorId, agora);
-  } catch (erro) {
-    // Duas primeiras conexões simultâneas: a segunda bate no índice único parcial e vira troca de credencial.
-    if (!violacaoUnica(erro)) throw erro;
-    return gravarConexao(amb, sessao, req, contaProvedorId, agora);
-  }
+  const { conexao, criada } = await salvarConexao(amb, sessao,
+    { modo: 'token', accessToken: req.accessToken, ...(req.segredoWebhook !== undefined ? { segredoWebhook: req.segredoWebhook } : {}), contaProvedorId },
+    amb.relogio.agora());
+  return { conexao: serializarConexao(conexao), criada };
 }
 
-/** Erro de unicidade do PostgreSQL (23505), direto ou embrulhado pelo drizzle. */
-export function violacaoUnica(erro: unknown): boolean {
-  for (let e: any = erro, i = 0; e && i < 4; e = e.cause, i++) if (e.code === '23505') return true;
-  return false;
-}
-
-async function gravarConexao(amb: AmbientePix, sessao: SessaoAutenticada, req: ConectarMercadoPagoReq, contaProvedorId: string | null, agora: Date): Promise<{ conexao: ConexaoMercadoPago; criada: boolean }> {
-  return amb.db.transaction(async (tx) => {
-    const [atual] = await tx.select().from(conexoesPagamento)
-      .where(and(eq(conexoesPagamento.lojaId, sessao.lojaId), eq(conexoesPagamento.provedor, 'mercadopago'), eq(conexoesPagamento.ativa, true))).for('update');
-    const id = atual?.id ?? gerarId();
-    const contexto = { lojaId: sessao.lojaId, conexaoId: id };
-    const tokenEnvelope = amb.cifrador.cifrar(req.accessToken, { ...contexto, campo: 'token' });
-    const segredoWebhookEnvelope = req.segredoWebhook !== undefined
-      ? amb.cifrador.cifrar(req.segredoWebhook, { ...contexto, campo: 'segredo_webhook' })
-      : (atual?.segredoWebhookEnvelope ?? null);
-    if (atual) {
-      const [salva] = await tx.update(conexoesPagamento)
-        .set({ tokenEnvelope, segredoWebhookEnvelope, contaProvedorId: contaProvedorId ?? atual.contaProvedorId, atualizadoEm: agora })
-        .where(eq(conexoesPagamento.id, id)).returning();
-      return { conexao: serializarConexao(salva), criada: false };
-    }
-    const [salva] = await tx.insert(conexoesPagamento).values({
-      id, contaId: sessao.contaId, lojaId: sessao.lojaId, provedor: 'mercadopago', publicoId: randomBytes(32).toString('base64url'),
-      tokenEnvelope, segredoWebhookEnvelope, contaProvedorId, ativa: true, criadoPor: sessao.operadorId, criadoEm: agora, atualizadoEm: agora,
-    }).returning();
-    return { conexao: serializarConexao(salva), criada: true };
-  });
-}
-
-/** Desliga e APAGA a credencial cifrada; cobranças e eventos ficam no histórico. */
 export async function desconectarMercadoPago(amb: AmbientePix, lojaId: string): Promise<void> {
-  const agora = amb.relogio.agora();
-  await amb.db.update(conexoesPagamento)
-    .set({ ativa: false, tokenEnvelope: null, segredoWebhookEnvelope: null, desativadaEm: agora, atualizadoEm: agora })
-    .where(and(eq(conexoesPagamento.lojaId, lojaId), eq(conexoesPagamento.provedor, 'mercadopago'), eq(conexoesPagamento.ativa, true)));
-}
-
-/**
- * Token da conexão ATIVA da loja (não a que criou a cobrança): desconectar e conectar de novo não deixa cobranças
- * pendentes órfãs. É seguro porque a confirmação ainda exige a mesma order e a mesma `external_reference`.
- */
-async function tokenDaLoja(amb: AmbientePix, lojaId: string): Promise<string> {
-  const c = await conexaoAtiva(amb.db, lojaId);
-  if (!c?.tokenEnvelope) throw new ErroApi(409, 'mercadopago_nao_conectado', 'Conecte o Mercado Pago da loja para cobrar por Pix.');
-  return amb.cifrador.decifrar(c.tokenEnvelope, { lojaId: c.lojaId, conexaoId: c.id, campo: 'token' });
+  await desconectar(amb, lojaId);
 }
 
 // ---------- Máquina de estados ----------
@@ -325,8 +268,8 @@ export async function aplicarPedido(amb: Pick<AmbientePix, 'db' | 'relogio'>, in
 export async function consultarNoProvedor(amb: AmbientePix, c: Cobranca, origem: string): Promise<{ cobranca: Cobranca; falha: FalhaConsulta | null }> {
   if (!c.pedidoProvedorId) return { cobranca: c, falha: null };
   try {
-    const token = await tokenDaLoja(amb, c.lojaId);
-    const pedido = await amb.provedor.consultarPedido(token, c.pedidoProvedorId);
+    const pedidoId = c.pedidoProvedorId;
+    const pedido = await comTokenDaLoja(amb, c.lojaId, (token) => amb.provedor.consultarPedido(token, pedidoId));
     return { cobranca: await aplicarPedido(amb, c, pedido, origem), falha: null };
   } catch (erro) {
     if (erro instanceof ErroApi && erro.status === 409 && erro.codigo === 'conflito_cobranca') throw erro;
@@ -362,8 +305,7 @@ async function criarNoProvedor(amb: AmbientePix, c: Cobranca): Promise<Cobranca>
   // Outra requisição está criando agora: devolve o estado atual (`criando`); o app acompanha pela consulta.
   if (!travada) return lerCobranca(amb.db, c.id);
   try {
-    const token = await tokenDaLoja(amb, travada.lojaId);
-    const pedido = await amb.provedor.criarPedidoPix(token, travada.chaveIdempotencia, travada.pedido);
+    const pedido = await comTokenDaLoja(amb, travada.lojaId, (token) => amb.provedor.criarPedidoPix(token, travada.chaveIdempotencia, travada.pedido));
     const fim = amb.relogio.agora();
     const [salva] = await amb.db.update(cobrancasPagamento).set({
       estado: 'aguardando',
@@ -399,6 +341,7 @@ async function criarNoProvedor(amb: AmbientePix, c: Cobranca): Promise<Cobranca>
 export async function criarCobrancaPix(amb: AmbientePix, sessao: SessaoAutenticada, req: { vendaId: string; pagamentoId: string; valorCentavos: number }): Promise<{ cobranca: CobrancaPix; criada: boolean }> {
   const conexao = await conexaoAtiva(amb.db, sessao.lojaId);
   if (!conexao?.tokenEnvelope) throw new ErroApi(409, 'mercadopago_nao_conectado', 'Conecte o Mercado Pago da loja para cobrar por Pix.');
+  if (conexao.reautorizarDesde) throw reautorizar();
   if (!amb.pagadorEmail) throw new ErroApi(503, 'pagador_nao_configurado', 'O e-mail do pagador do Pix não está configurado neste servidor. Use a confirmação manual.');
   const agora = amb.relogio.agora();
   const inseridas = await amb.db.insert(cobrancasPagamento).values({
@@ -463,17 +406,18 @@ export async function cancelarCobrancaPix(amb: AmbientePix, lojaId: string, id: 
     await registrarEvento(amb.db, salva, 'transicao', { origem: 'cancelamento', de: c.estado, para: 'cancelada', motivo: 'sem_order_no_provedor' }, agora);
     return serializarCobranca(salva);
   }
-  const token = await tokenDaLoja(amb, c.lojaId);
+  const pedidoId = c.pedidoProvedorId!;
   try {
-    const pedido = await amb.provedor.cancelarPedido(token, c.pedidoProvedorId!, `pdv-cancelar-${c.id}`);
+    const pedido = await comTokenDaLoja(amb, c.lojaId, (token) => amb.provedor.cancelarPedido(token, pedidoId, `pdv-cancelar-${c.id}`));
     return serializarCobranca(await aplicarPedido(amb, c, pedido, 'cancelamento'));
   } catch (erro) {
+    if (erro instanceof ErroApi) throw erro;
     const falha = descreverFalha(erro);
     await registrarEvento(amb.db, c, 'falha_cancelamento', falha, amb.relogio.agora());
     // Recusa do cancelamento: o estado verdadeiro vem da consulta (pode estar paga).
     if (['nao_cancelavel', 'ja_cancelado', 'idempotencia_conflito'].includes(falha.tipo)) {
       try {
-        const pedido = await amb.provedor.consultarPedido(token, c.pedidoProvedorId!);
+        const pedido = await comTokenDaLoja(amb, c.lojaId, (token) => amb.provedor.consultarPedido(token, pedidoId));
         return serializarCobranca(await aplicarPedido(amb, await lerCobranca(amb.db, c.id), pedido, 'cancelamento'));
       } catch { /* cai no 502 abaixo */ }
     }
@@ -511,9 +455,43 @@ export async function receberAvisoMercadoPago(amb: AmbientePix, publicoId: strin
   const [c] = await amb.db.select().from(cobrancasPagamento)
     .where(and(eq(cobrancasPagamento.lojaId, conexao.lojaId), sql`lower(${cobrancasPagamento.pedidoProvedorId}) = ${aviso.dataId.toLowerCase()}`));
   if (!c) return 'ignorado';
+  return processarAviso(amb, c, aviso);
+}
+
+/**
+ * Webhook único da aplicação da plataforma (conexões OAuth), assinado com `PDV_MP_WEBHOOK_SECRET`. A order é
+ * procurada em todas as lojas (índice em lower(order)) e conferida com o token ATUAL da loja dona da cobrança.
+ * O `user_id` do corpo nunca decide nada; se diverge da conexão, só fica registrado. `mp-connect` só antecipa a
+ * renovação da conexão daquele usuário. Tipos desconhecidos são ignorados.
+ */
+export async function receberAvisoPlataforma(amb: AmbientePix, aviso: { assinatura?: string; requestId?: string; dataId?: string; tipo?: string; usuarioId?: string | null }): Promise<'ignorado' | 'consultado' | 'revisao'> {
+  const segredo = amb.oauth?.webhookSegredo;
+  if (!segredo) throw new ErroApi(503, 'oauth_indisponivel', 'Conexão pelo Mercado Pago indisponível neste servidor.');
+  if (!assinaturaValida({ assinatura: aviso.assinatura, requestId: aviso.requestId, dataId: aviso.dataId, segredo })) {
+    throw new ErroApi(401, 'assinatura_invalida', 'Assinatura do aviso inválida.');
+  }
+  if (aviso.tipo === 'mp-connect') {
+    const usuario = aviso.usuarioId ?? aviso.dataId ?? null;
+    if (usuario) await sinalizarRevisaoConexao(amb, usuario);
+    return 'revisao';
+  }
+  if (!aviso.dataId || (aviso.tipo !== undefined && aviso.tipo !== 'order')) return 'ignorado';
+  const [c] = await amb.db.select().from(cobrancasPagamento)
+    .where(sql`lower(${cobrancasPagamento.pedidoProvedorId}) = ${aviso.dataId.toLowerCase()}`).limit(1);
+  if (!c) return 'ignorado';
+  if (aviso.usuarioId) {
+    const conexao = await conexaoAtiva(amb.db, c.lojaId);
+    if (conexao?.contaProvedorId && conexao.contaProvedorId !== aviso.usuarioId) {
+      await registrarEventoAgrupado(amb.db, c, 'observacao', 'usuario_divergente_no_aviso', { origem: 'webhook_plataforma', motivo: 'usuario_divergente_no_aviso' }, amb.relogio.agora());
+    }
+  }
+  return processarAviso(amb, c, aviso);
+}
+
+/** Registro agrupado do aviso + o mesmo limite da consulta do app (uma consulta a cada 3 s por cobrança). */
+async function processarAviso(amb: AmbientePix, c: Cobranca, aviso: { tipo?: string }): Promise<'ignorado' | 'consultado'> {
   const agora = amb.relogio.agora();
   await registrarEventoAgrupado(amb.db, c, 'aviso_recebido', 'aviso', { tipo: aviso.tipo ?? null }, agora);
-  // Mesmo limite da consulta do app: avisos repetidos (ou reenviados) não viram consultas ilimitadas ao provedor.
   const [travada] = await amb.db.update(cobrancasPagamento).set({ consultadoEm: agora })
     .where(and(eq(cobrancasPagamento.id, c.id),
       or(isNull(cobrancasPagamento.consultadoEm), lte(cobrancasPagamento.consultadoEm, new Date(agora.getTime() - amb.consultaMinimaMs)))))

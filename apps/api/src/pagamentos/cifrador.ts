@@ -5,8 +5,9 @@ import type { EnvelopePagamento } from '../db/schema';
 /** Campo cifrado: o AAD amarra o envelope à loja, à conexão e ao campo (um envelope não pode ser trocado de lugar). */
 export interface ContextoCifra {
   lojaId: string;
+  /** Id do registro dono do campo: a conexão, ou o `state` do OAuth no caso do `pkce_verificador`. */
   conexaoId: string;
-  campo: 'token' | 'segredo_webhook';
+  campo: 'token' | 'segredo_webhook' | 'refresh_token' | 'pkce_verificador';
 }
 
 export interface CifradorPagamentos {

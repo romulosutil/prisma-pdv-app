@@ -26,7 +26,7 @@ const TABELAS_DA_CONTA = [
   'itens_venda', 'pagamentos_venda', 'caixas', 'movimentos_caixa', 'auditoria_caixa', 'catalogo_ean_confirmacoes',
   'mudancas', 'mutacoes_aplicadas', 'assinaturas', 'faturas', 'eventos_cobranca', 'testes_usados',
   'movimentos_estoque', 'clientes', 'eventos_fiado', 'solicitacoes_suporte', 'usuarios', 'codigos_login', 'entregas_codigo',
-  'conexoes_pagamento', 'cobrancas_pagamento', 'eventos_cobranca_pagamento',
+  'conexoes_pagamento', 'cobrancas_pagamento', 'eventos_cobranca_pagamento', 'estados_oauth_pagamento',
 ];
 
 type Linha = Record<string, unknown>;
@@ -152,6 +152,8 @@ async function semearContaTeste() {
         'aguardando', 'pdv-pix-${cobrancaPix}', '{}', ${agora}, ${agora});
     INSERT INTO eventos_cobranca_pagamento (id, cobranca_id, loja_id, tipo, dados, criado_em)
       VALUES ('${gerarId()}', '${cobrancaPix}', '${c.lojaId}', 'criada', '{}', ${agora});
+    INSERT INTO estados_oauth_pagamento (id, conta_id, loja_id, operador_id, provedor, estado_hash, criado_em, expira_em)
+      VALUES ('${gerarId()}', '${c.contaId}', '${c.lojaId}', '${c.operadorId}', 'mercadopago', 'hash-${gerarId()}', ${agora}, ${agora});
   `);
   return c;
 }

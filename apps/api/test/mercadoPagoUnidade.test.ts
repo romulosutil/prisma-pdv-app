@@ -3,7 +3,7 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { lerConfiguracaoPagamentos } from '../src/configuracao';
 import { assinarManifesto, assinaturaValida, lerCabecalhoAssinatura, manifestoAssinatura } from '../src/pagamentos/assinaturaWebhook';
 import { chavePagamentosValida, criarCifradorPagamentos } from '../src/pagamentos/cifrador';
-import { centavosParaValor, corpoPedidoPix, criarProvedorMercadoPago, ErroProvedorMp, lerPedido, valorParaCentavos } from '../src/pagamentos/mercadoPago';
+import { centavosParaValor, corpoPedidoPix, criarProvedorMercadoPago, desafioPkce, ErroProvedorMp, lerPedido, urlAutorizacao, valorParaCentavos } from '../src/pagamentos/mercadoPago';
 import { decidirTransicao } from '../src/servicos/cobrancasPix';
 
 const SEGREDO = 'segredo-simulado-webhook';
@@ -124,6 +124,13 @@ describe('cliente da Orders API', () => {
       }
     }
     expect(tipos).toEqual([['nao_cancelavel', null], ['ja_cancelado', null], ['idempotencia_conflito', null], ['limite', 7000], ['credencial_invalida', null], ['indisponivel', null]]);
+    const outro = [
+      new Response(JSON.stringify({ message: 'x' }), { status: 403 }),
+      new Response(JSON.stringify({ error: 'invalid_grant', errors: [{ code: 'outro' }] }), { status: 400 }),
+    ];
+    const mp2 = criarProvedorMercadoPago({ buscar: (async () => outro.shift()!) as unknown as typeof fetch });
+    await expect(mp2.consultarPedido('TESTE-SIMULADO-TOKEN', 'ORD1')).rejects.toMatchObject({ tipo: 'acesso_negado', status: 403 });
+    await expect(mp2.consultarPedido('TESTE-SIMULADO-TOKEN', 'ORD1')).rejects.toMatchObject({ tipo: 'concessao_invalida', codigo: 'invalid_grant' });
     expect(pedidos[1]!.url).toBe('https://mp.exemplo.invalid/v1/orders/ORD1/cancel');
     const rede = criarProvedorMercadoPago({ buscar: (async () => { throw new Error('falha com TESTE-SIMULADO-TOKEN'); }) as unknown as typeof fetch });
     await expect(rede.consultarPedido('TESTE-SIMULADO-TOKEN', 'ORD1')).rejects.toThrow(/^Mercado Pago: indisponivel$/);
@@ -165,5 +172,36 @@ describe('máquina de estados', () => {
   it('estorno ou contestação viram alerta sem mudar o estado', () => {
     expect(decidirTransicao({ ...base, estado: 'paga' }, pedido('refunded', 'refunded'))).toMatchObject({ estado: 'paga', alerta: 'refunded/refunded' });
     expect(decidirTransicao({ ...base, estado: 'aguardando' }, pedido('charged_back', 'settled'))).toMatchObject({ estado: 'aguardando', alerta: 'charged_back/settled', motivo: 'estorno_sem_confirmacao' });
+  });
+});
+
+describe('cliente OAuth do Mercado Pago', () => {
+  const app = { clientId: 'cliente-simulado', clientSecret: 'TESTE-SIMULADO-SEGREDO-APP', redirectUri: 'https://api.exemplo.invalid/retorno', pkce: true, testToken: false };
+
+  it('troca e renova pelo /oauth/token com corpo JSON documentado; invalid_grant vira concessao_invalida sem vazar segredo', async () => {
+    const pedidos: { url: string; init: RequestInit }[] = [];
+    const respostas = [
+      new Response(JSON.stringify({ access_token: 'TESTE-SIMULADO-A', token_type: 'bearer', expires_in: 15552000, scope: 'read write offline_access', user_id: 42, refresh_token: 'TESTE-SIMULADO-R', public_key: 'x', live_mode: false }), { status: 200 }),
+      new Response(JSON.stringify({ access_token: 'TESTE-SIMULADO-A2', refresh_token: 'TESTE-SIMULADO-R2', expires_in: 15552000, user_id: 42, live_mode: false }), { status: 200 }),
+      new Response(JSON.stringify({ error: 'invalid_grant', message: 'TESTE-SIMULADO-SEGREDO-APP' }), { status: 400 }),
+    ];
+    const buscar = (async (url: string, init: RequestInit) => { pedidos.push({ url, init }); return respostas.shift()!; }) as unknown as typeof fetch;
+    const mp = criarProvedorMercadoPago({ buscar, baseUrl: 'https://mp.exemplo.invalid' });
+    expect(await mp.trocarCodigo(app, 'TG-1', 'v'.repeat(64))).toEqual({ accessToken: 'TESTE-SIMULADO-A', refreshToken: 'TESTE-SIMULADO-R', expiraEmSegundos: 15552000, contaProvedorId: '42', liveMode: false });
+    expect(pedidos[0]!.url).toBe('https://mp.exemplo.invalid/oauth/token');
+    expect(pedidos[0]!.init.headers).toEqual({ Accept: 'application/json', 'Content-Type': 'application/json' });
+    expect(JSON.parse(String(pedidos[0]!.init.body))).toEqual({ client_id: 'cliente-simulado', client_secret: 'TESTE-SIMULADO-SEGREDO-APP', grant_type: 'authorization_code', code: 'TG-1', redirect_uri: 'https://api.exemplo.invalid/retorno', code_verifier: 'v'.repeat(64), test_token: 'false' });
+    expect((await mp.renovarToken(app, 'TESTE-SIMULADO-R')).refreshToken).toBe('TESTE-SIMULADO-R2');
+    expect(JSON.parse(String(pedidos[1]!.init.body))).toEqual({ client_id: 'cliente-simulado', client_secret: 'TESTE-SIMULADO-SEGREDO-APP', grant_type: 'refresh_token', refresh_token: 'TESTE-SIMULADO-R' });
+    const erro = await mp.renovarToken(app, 'TESTE-SIMULADO-R2').catch((e: unknown) => e);
+    expect(erro).toMatchObject({ tipo: 'concessao_invalida', status: 400, codigo: 'invalid_grant' });
+    expect(String((erro as Error).message)).not.toContain('TESTE-SIMULADO');
+  });
+
+  it('URL de autorização com state e PKCE S256 (RFC 7636)', () => {
+    // Vetor do apêndice B da RFC 7636.
+    expect(desafioPkce('dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk')).toBe('E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM');
+    const url = new URL(urlAutorizacao(app, 'estado-x', null));
+    expect([...url.searchParams.keys()].sort()).toEqual(['client_id', 'platform_id', 'redirect_uri', 'response_type', 'state']);
   });
 });

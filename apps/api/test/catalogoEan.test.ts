@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { atribuicaoCatalogo, ProdutoCatalogoSchema, validarEan, type FonteCatalogo } from '@pdv/shared';
+import { atribuicaoCatalogo, EMAIL_CONTATO, ProdutoCatalogoSchema, validarEan, type FonteCatalogo } from '@pdv/shared';
 import type { Conexao } from '../src/db/conexao';
 import type { DadosEan, FonteEan, ResultadoFonte } from '../src/fontes/fonte';
 import { criarOpenBeautyFacts, criarOpenFoodFacts, criarOpenProductsFacts, fontesEanGratuitas } from '../src/fontes/openFoodFacts';
@@ -334,7 +334,8 @@ describe('fonte Open Food Facts', () => {
     const fonte = criarOpenFoodFacts(comoFetch(buscar));
     expect(await fonte.consultar(EAN, AbortSignal.timeout(1000))).toEqual({ nome: 'Coffee', marca: null, conteudo: null, imagemUrl: null });
     const init = buscar.mock.calls[0]![1];
-    expect((init.headers as Record<string, string>)['User-Agent']).toBe('PDVMobile/0.1 (defina OFF_USER_AGENT com um contato)');
+    // O Open Food Facts exige "App/Versão (contato)": sem a variável, o padrão já leva o contato público do produto.
+    expect((init.headers as Record<string, string>)['User-Agent']).toBe(`PrismaPDV/0.1 (${EMAIL_CONTATO})`);
   });
 
   it('devolve null quando status != 1 ou sem nome', async () => {
@@ -379,7 +380,7 @@ describe('cascata de fontes gratuitas', () => {
     expect(res.status).toBe(200);
     expect(res.corpo).toMatchObject({ nome: 'Sabonete Lux 85g', fonte: 'open_beauty_facts', confianca: 'externa' });
     expect(res.corpo.atribuicao).toEqual({
-      texto: 'Dados de Open Beauty Facts (Open Food Facts), sob a Open Database License',
+      texto: 'Dados do Open Beauty Facts, um projeto Open Food Facts, sob a Open Database License',
       licenca: 'ODbL-1.0',
       url: `https://world.openbeautyfacts.org/product/${EAN}`,
     });
@@ -547,6 +548,8 @@ describe('fontes Open Beauty Facts e Open Products Facts', () => {
     expect(await criarOpenFoodFacts(dica('product')).consultar(EAN, s())).toEqual({ outraFonte: 'open_products_facts' });
     expect(await criarOpenFoodFacts(dica('petfood')).consultar(EAN, s())).toEqual({ outraFonte: null });
     expect(await criarOpenFoodFacts(dica('desconhecido')).consultar(EAN, s())).toBeNull();
+    // Chave herdada do protótipo não é tipo conhecido: não pode virar dica e encerrar a cascata.
+    expect(await criarOpenFoodFacts(dica('constructor')).consultar(EAN, s())).toBeNull();
     const corpoRuim = comoFetch(async () => new Response('não é json', { status: 404 }));
     expect(await criarOpenBeautyFacts(corpoRuim).consultar(EAN, s())).toBeNull();
   });

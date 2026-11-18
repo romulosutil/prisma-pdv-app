@@ -22,7 +22,7 @@ export function BuscandoNoCatalogo() {
       .then((resultado) =>
         router.replace({
           pathname: '/produtos/novo',
-          params: { ean, origem: 'camera', ...(resultado.achou ? { nome: resultado.nome } : {}) },
+          params: { ean, origem: 'camera', ...(resultado.achou ? { nome: resultado.nome, ...(resultado.fonte ? { fonte: resultado.fonte } : {}) } : {}) },
         }),
       )
       // Só rejeita ao sair da tela (consulta cancelada), quando não há mais o que fazer.

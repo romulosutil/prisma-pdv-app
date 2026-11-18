@@ -1,4 +1,4 @@
-import type { Centavos, Produto } from '@pdv/shared';
+import { atribuicaoCatalogo, type AtribuicaoCatalogo as Atribuicao, type Centavos, type Produto } from '@pdv/shared';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -19,12 +19,20 @@ import { cores } from '@/tema';
 import { EntradaDeValor } from '@/componentes/EntradaDeValor';
 import { formatarEstoque, somenteDigitos } from './logica';
 import { useVoltar } from '@/util/useVoltar';
+import { AtribuicaoCatalogo } from './AtribuicaoCatalogo';
 
 interface Lido {
   ean: string;
   /** Produto já cadastrado com este código; `null` quando é novo. */
   produto: Produto | null;
   nomeSugerido: string;
+  /** Crédito da fonte externa do nome sugerido (ODbL); `null` no catálogo próprio. */
+  atribuicao: Atribuicao | null;
+}
+
+/** Atribuição do resultado do catálogo; deriva da fonte quando o cache antigo não a trouxe. */
+function atribuicaoDe(r: { achou: true; fonte?: Parameters<typeof atribuicaoCatalogo>[0]; atribuicao?: Atribuicao | null }, ean: string): Atribuicao | null {
+  return r.atribuicao ?? (r.fonte ? atribuicaoCatalogo(r.fonte, ean) : null);
 }
 
 /**
@@ -51,14 +59,14 @@ export function CadastroRapido() {
       consulta.current?.abort();
       const produto = buscarPorEan(ean);
       const catalogo = buscarNoCatalogo(ean);
-      setLido({ ean, produto, nomeSugerido: catalogo.achou ? catalogo.nome : '' });
+      setLido({ ean, produto, nomeSugerido: catalogo.achou ? catalogo.nome : '', atribuicao: catalogo.achou ? atribuicaoDe(catalogo, ean) : null });
       // Com a API, o que não está no cache local chega logo depois e preenche o nome se o campo ainda estiver vazio.
       if (!produto && !catalogo.achou && catalogoComApi()) {
         const controle = new AbortController();
         consulta.current = controle;
         consultarCatalogo(ean, { sinal: controle.signal })
           .then((r) => {
-            if (r.achou) setLido((atual) => (atual && atual.ean === ean && !atual.nomeSugerido ? { ...atual, nomeSugerido: r.nome } : atual));
+            if (r.achou) setLido((atual) => (atual && atual.ean === ean && !atual.nomeSugerido ? { ...atual, nomeSugerido: r.nome, atribuicao: atribuicaoDe(r, ean) } : atual));
           })
           .catch(() => undefined);
       }
@@ -164,6 +172,9 @@ function FolhaRapida({ lido, onConcluir }: { lido: Lido; onConcluir: () => void 
           maxLength={80}
           ajuda={lido.nomeSugerido ? 'Nome encontrado no catálogo. Confira.' : 'Código fora do catálogo: digite o nome.'}
         />
+      )}
+      {produto || !lido.nomeSugerido ? null : (
+        <AtribuicaoCatalogo atribuicao={lido.atribuicao} />
       )}
 
       <EntradaDeValor

@@ -1,9 +1,10 @@
-import type { FonteCatalogo } from '@pdv/shared';
+import { EMAIL_CONTATO, type FonteCatalogo } from '@pdv/shared';
 import type { DadosEan, FonteEan, ResultadoFonte } from './fonte';
 
 type Buscar = typeof fetch;
 
-const USER_AGENT_PADRAO = 'PDVMobile/0.1 (defina OFF_USER_AGENT com um contato)';
+/** O OFF exige "App/Versão (contato)"; sem `OFF_USER_AGENT`, usa o contato público do produto. */
+const USER_AGENT_PADRAO = `PrismaPDV/0.1 (${EMAIL_CONTATO})`;
 
 /**
  * Bases do projeto Open Food Facts: mesma API (`/api/v2/product/{ean}.json`), mesmo banco, licença
@@ -52,7 +53,8 @@ async function dicaDo404(res: Response): Promise<ResultadoFonte> {
   try {
     const corpo = (await res.json()) as { status_verbose?: unknown } | null;
     const tipo = /different product type:\s*([a-z]+)/i.exec(texto(corpo?.status_verbose) ?? '')?.[1]?.toLowerCase();
-    if (tipo && tipo in FONTE_DO_TIPO) return { outraFonte: FONTE_DO_TIPO[tipo] ?? null };
+    // `Object.hasOwn`, não `in`: "constructor" (herdado do protótipo) não é tipo de produto.
+    if (tipo && Object.hasOwn(FONTE_DO_TIPO, tipo)) return { outraFonte: FONTE_DO_TIPO[tipo] ?? null };
   } catch {
     // Corpo ilegível: continua sendo só "não achei".
   }

@@ -106,7 +106,7 @@ describe('catálogo de EAN (com API)', () => {
   });
 
   it('repassa fonte nova e atribuição da licença, também a partir do cache local', async () => {
-    const atribuicao = { texto: 'Dados de Open Beauty Facts (Open Food Facts), sob a Open Database License', licenca: 'ODbL-1.0', url: `https://world.openbeautyfacts.org/product/${EAN_ACHADO}` };
+    const atribuicao = { texto: 'Dados do Open Beauty Facts, um projeto Open Food Facts, sob a Open Database License', licenca: 'ODbL-1.0', url: `https://world.openbeautyfacts.org/product/${EAN_ACHADO}` };
     const { catalogo, chamadas } = montar(async () => json(produtoApi(EAN_ACHADO, { fonte: 'open_beauty_facts', confianca: 'externa', atribuicao })));
     await expect(catalogo.consultar(EAN_ACHADO)).resolves.toMatchObject({ achou: true, fonte: 'open_beauty_facts', atribuicao });
     await expect(catalogo.consultar(EAN_ACHADO)).resolves.toMatchObject({ fonte: 'open_beauty_facts', atribuicao });
@@ -308,11 +308,11 @@ describe('confirmarNoCatalogo', () => {
 
 describe('sugestaoParaCadastro', () => {
   it('usa o nome já consultado', () => {
-    expect(sugestaoParaCadastro('7896543210987', 'Achocolatado')).toEqual({ ean: '7896543210987', nome: 'Achocolatado', origem: 'catalogo' });
+    expect(sugestaoParaCadastro('7896543210987', 'Achocolatado')).toEqual({ ean: '7896543210987', nome: 'Achocolatado', origem: 'catalogo', atribuicao: null });
   });
 
   it('consulta a base quando só chega o código (fluxo de Vender)', () => {
-    expect(sugestaoParaCadastro('7890000000048')).toEqual({ ean: '7890000000048', nome: 'Café torrado 500g', origem: 'catalogo' });
+    expect(sugestaoParaCadastro('7890000000048')).toEqual({ ean: '7890000000048', nome: 'Café torrado 500g', origem: 'catalogo', atribuicao: null });
     expect(sugestaoParaCadastro('7891234567895')).toEqual({ ean: '7891234567895', nome: '', origem: 'ausente' });
   });
 

@@ -4,17 +4,18 @@ import { sugestaoParaCadastro } from '@/telas/produtos/sugestao';
 
 /** `?ean=` pré-preenche o código (o fluxo de Vender chega aqui com um código não cadastrado). */
 export default function NovoProduto() {
-  const { ean, nome, manual, origem, atalho } = useLocalSearchParams<{
+  const { ean, nome, manual, origem, atalho, fonte } = useLocalSearchParams<{
     ean?: string;
     nome?: string;
     manual?: string;
     origem?: string;
     atalho?: string;
+    fonte?: string;
   }>();
   return (
     <FormularioProduto
       key={ean ?? 'sem-codigo'}
-      sugestao={sugestaoParaCadastro(ean, nome, manual === '1')}
+      sugestao={sugestaoParaCadastro(ean, nome, manual === '1', fonte)}
       daCamera={origem === 'camera'}
       atalhoInicial={atalho === '1'}
     />

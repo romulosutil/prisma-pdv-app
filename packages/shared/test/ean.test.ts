@@ -74,7 +74,19 @@ describe('ProdutoCatalogoSchema', () => {
       expect(ProdutoCatalogoSchema.parse({ ...base, fonte, atribuicao })).toMatchObject({ fonte, atribuicao });
     }
     expect(atribuicaoCatalogo('proprio', base.ean)).toBeNull();
+    // A tela mostra "texto (licença)": nada de "Open Food Facts (Open Food Facts)" nem nome repetido.
+    expect(atribuicaoCatalogo('open_food_facts', base.ean)?.texto).toBe('Dados do Open Food Facts, sob a Open Database License');
+    expect(atribuicaoCatalogo('open_beauty_facts', base.ean)?.texto).toBe(
+      'Dados do Open Beauty Facts, um projeto Open Food Facts, sob a Open Database License',
+    );
+    expect(atribuicaoCatalogo('open_products_facts', base.ean)?.texto).toBe(
+      'Dados do Open Products Facts, um projeto Open Food Facts, sob a Open Database License',
+    );
     expect(ProdutoCatalogoSchema.safeParse({ ...base, atribuicao: { texto: 'x', licenca: 'y', url: 'não é url' } }).success).toBe(false);
+    // O app abre esta URL com Linking.openURL ao tocar no crédito: só https.
+    for (const url of ['javascript:alert(1)', 'intent://x#Intent;end', 'http://world.openfoodfacts.org/product/1']) {
+      expect(ProdutoCatalogoSchema.safeParse({ ...base, atribuicao: { texto: 'x', licenca: 'y', url } }).success).toBe(false);
+    }
   });
 
   it('não carrega preço: campos de preço são descartados', () => {

@@ -26,6 +26,7 @@ import { Confirmacao } from '@/componentes/Confirmacao';
 import { FolhaDePlano } from '@/componentes/FolhaDePlano';
 import { lerQuantidade, planoSemLimiteDeProdutos, somenteDigitos, textoDeQuantidade } from './logica';
 import { useVoltar } from '@/util/useVoltar';
+import { AtribuicaoCatalogo } from './AtribuicaoCatalogo';
 import type { SugestaoDeCadastro } from './sugestao';
 
 
@@ -188,6 +189,7 @@ export function FormularioProduto({ produto, sugestao, atalhoInicial = false, da
               <Texto estilo="corpo" cor={cores.ink2}>
                 O nome já veio. Confira e informe o preço.
               </Texto>
+              <AtribuicaoCatalogo atribuicao={sugestao.atribuicao} />
             </View>
           </View>
         ) : sugestao.origem === 'ausente' ? (

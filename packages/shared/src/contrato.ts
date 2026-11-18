@@ -47,7 +47,8 @@ export type ConfiancaCatalogo = z.infer<typeof ConfiancaCatalogoSchema>;
 export const AtribuicaoCatalogoSchema = z.object({
   texto: z.string().min(1),
   licenca: z.string().min(1),
-  url: z.url(),
+  /** Só https: o app abre esta URL ao tocar no crédito (z.url() sozinho aceita `javascript:` e `intent:`). */
+  url: z.url({ protocol: /^https$/ }),
 });
 export type AtribuicaoCatalogo = z.infer<typeof AtribuicaoCatalogoSchema>;
 
@@ -61,8 +62,10 @@ const PROJETOS_OPEN_FACTS: Record<Exclude<FonteCatalogo, 'proprio'>, { nome: str
 export function atribuicaoCatalogo(fonte: FonteCatalogo, ean: string): AtribuicaoCatalogo | null {
   if (fonte === 'proprio') return null;
   const projeto = PROJETOS_OPEN_FACTS[fonte];
+  // As bases irmãs também creditam o Open Food Facts (mesmo banco); o próprio OFF não se repete.
+  const credito = fonte === 'open_food_facts' ? projeto.nome : `${projeto.nome}, um projeto Open Food Facts`;
   return {
-    texto: `Dados de ${projeto.nome} (Open Food Facts), sob a Open Database License`,
+    texto: `Dados do ${credito}, sob a Open Database License`,
     licenca: 'ODbL-1.0',
     url: `https://${projeto.host}/product/${encodeURIComponent(ean)}`,
   };

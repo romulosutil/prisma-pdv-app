@@ -29,7 +29,8 @@ import type { EnvelopeCodigo } from '../email/cifrador';
 import type { MotivoEntregaCodigo } from '../email/tiposEntrega';
 
 // `satisfies` mantém as listas alinhadas com o contrato (o enum do drizzle exige uma tupla).
-const FONTES_CATALOGO = ['proprio', 'open_food_facts'] as const satisfies readonly FonteCatalogo[];
+// Coluna `text` com enum só no TypeScript: novas fontes não exigem migração.
+const FONTES_CATALOGO = ['proprio', 'open_food_facts', 'open_beauty_facts', 'open_products_facts'] as const satisfies readonly FonteCatalogo[];
 const CONFIANCAS_CATALOGO = ['confirmada', 'externa'] as const satisfies readonly ConfiancaCatalogo[];
 
 const instante = (nome: string) => timestamp(nome, { withTimezone: true, mode: 'date' });

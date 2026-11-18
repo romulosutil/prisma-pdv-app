@@ -9,7 +9,7 @@ import { ErroCanalEmail } from './email/contrato';
 import { encerrarEntregasExpiradas, processarEntregasCodigo, validarPendenciasEntrega } from './email/filaCodigo';
 import { criarCanalSmtp } from './email/smtp';
 import type { EmissaoCodigo } from './email/tiposEntrega';
-import { openFoodFacts } from './fontes/openFoodFacts';
+import { fontesEanGratuitas } from './fontes/openFoodFacts';
 import { agendarCobranca } from './jobs';
 import { agendarEntregasCodigo } from './jobsEmail';
 import { RelogioDeDesenvolvimento } from './relogio-dev';
@@ -51,7 +51,7 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
     const canal = entrega.modo === 'smtp' ? criarCanalSmtp(entrega.smtp) : undefined;
     const cobrancaDesativada = configuracao.billingProvider === 'disabled';
     const billing = cobrancaDesativada ? criarBillingDesativado() : criarBilling(configuracao.billingProvider);
-    app = await criarApp({ db: conexao.db, relogio, billing, cobrancaDesativada, fontesEan: [openFoodFacts], logger: true, emissaoCodigo: emissao });
+    app = await criarApp({ db: conexao.db, relogio, billing, cobrancaDesativada, fontesEan: fontesEanGratuitas, logger: true, emissaoCodigo: emissao });
     await app.listen({ port: configuracao.porta, host: '0.0.0.0' });
     if (process.env.JOBS !== 'off') {
       const db = conexao.db;

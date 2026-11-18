@@ -37,10 +37,36 @@ export const ProdutoSchema = z.object({
 });
 export type Produto = z.infer<typeof ProdutoSchema>;
 
-export const FonteCatalogoSchema = z.enum(['proprio', 'open_food_facts']);
+/** Só fontes gratuitas e sem chave. As três "Open … Facts" são o mesmo banco do Open Food Facts (ODbL). */
+export const FonteCatalogoSchema = z.enum(['proprio', 'open_food_facts', 'open_beauty_facts', 'open_products_facts']);
 export type FonteCatalogo = z.infer<typeof FonteCatalogoSchema>;
 export const ConfiancaCatalogoSchema = z.enum(['confirmada', 'externa']);
 export type ConfiancaCatalogo = z.infer<typeof ConfiancaCatalogoSchema>;
+
+/** Crédito exigido pela licença da fonte (ODbL: citar a licença e o Open Food Facts, com link). */
+export const AtribuicaoCatalogoSchema = z.object({
+  texto: z.string().min(1),
+  licenca: z.string().min(1),
+  url: z.url(),
+});
+export type AtribuicaoCatalogo = z.infer<typeof AtribuicaoCatalogoSchema>;
+
+const PROJETOS_OPEN_FACTS: Record<Exclude<FonteCatalogo, 'proprio'>, { nome: string; host: string }> = {
+  open_food_facts: { nome: 'Open Food Facts', host: 'world.openfoodfacts.org' },
+  open_beauty_facts: { nome: 'Open Beauty Facts', host: 'world.openbeautyfacts.org' },
+  open_products_facts: { nome: 'Open Products Facts', host: 'world.openproductsfacts.org' },
+};
+
+/** Atribuição de um item do catálogo; `null` para o catálogo próprio (nome confirmado pelas lojas). */
+export function atribuicaoCatalogo(fonte: FonteCatalogo, ean: string): AtribuicaoCatalogo | null {
+  if (fonte === 'proprio') return null;
+  const projeto = PROJETOS_OPEN_FACTS[fonte];
+  return {
+    texto: `Dados de ${projeto.nome} (Open Food Facts), sob a Open Database License`,
+    licenca: 'ODbL-1.0',
+    url: `https://${projeto.host}/product/${encodeURIComponent(ean)}`,
+  };
+}
 
 /** Sugestão de cadastro a partir do código de barras. Nunca carrega preço: cada loja define o seu. */
 export const ProdutoCatalogoSchema = z.object({
@@ -51,6 +77,8 @@ export const ProdutoCatalogoSchema = z.object({
   imagemUrl: z.url().nullable(),
   fonte: FonteCatalogoSchema,
   confianca: ConfiancaCatalogoSchema,
+  /** Ausente nas respostas de APIs anteriores e no cache antigo do aparelho: vira `null`. */
+  atribuicao: AtribuicaoCatalogoSchema.nullable().default(null),
 });
 export type ProdutoCatalogo = z.infer<typeof ProdutoCatalogoSchema>;
 

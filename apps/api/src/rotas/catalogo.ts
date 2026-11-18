@@ -3,10 +3,11 @@ import { ConfirmarEanReqSchema, normalizarEan, ProdutoCatalogoSchema } from '@pd
 import type { Deps } from '../deps';
 import { exigirPermissao } from '../auth';
 import { ErroApi } from '../erros';
-import { confirmarEan, consultarEan, criarLimitador } from '../servicos/catalogoEan';
+import { confirmarEan, consultarEan, criarCacheNegativo, criarLimitador } from '../servicos/catalogoEan';
 
 const LIMITE_CONSULTAS_POR_HORA = 300;
 const UMA_HORA_MS = 60 * 60 * 1000;
+const CACHE_NEGATIVO_MS = 10 * 60 * 1000;
 
 function eanDaRota(parametros: unknown): string {
   const bruto = (parametros as { ean?: string }).ean ?? '';
@@ -15,9 +16,13 @@ function eanDaRota(parametros: unknown): string {
   return ean;
 }
 
-export function rotasCatalogo(app: FastifyInstance, { db, relogio, fontesEan, orcamentoEanMs }: Deps): void {
-  // Estado por instância do app (não global): cada criarApp tem a sua contagem.
+export function rotasCatalogo(
+  app: FastifyInstance,
+  { db, relogio, fontesEan, orcamentoEanMs, timeoutPorFonteEanMs, cacheNegativoEanMs }: Deps,
+): void {
+  // Estado por instância do app (não global): cada criarApp tem a sua contagem e o seu cache negativo.
   const limitador = criarLimitador(LIMITE_CONSULTAS_POR_HORA, UMA_HORA_MS, () => relogio.agora());
+  const cacheNegativo = criarCacheNegativo(cacheNegativoEanMs ?? CACHE_NEGATIVO_MS, () => relogio.agora());
 
   app.get('/catalogo/ean/:ean', async (request) => {
     const ean = eanDaRota(request.params);
@@ -28,6 +33,8 @@ export function rotasCatalogo(app: FastifyInstance, { db, relogio, fontesEan, or
       fontes: fontesEan,
       agora: relogio.agora(),
       orcamentoMs: orcamentoEanMs,
+      timeoutPorFonteMs: timeoutPorFonteEanMs,
+      cacheNegativo,
       aviso: (mensagem, erro) => request.log.warn({ err: erro }, mensagem),
     });
     if (!produto) throw new ErroApi(404, 'ean_nao_encontrado', 'Produto não encontrado para este código de barras.');

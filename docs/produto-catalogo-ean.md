@@ -25,6 +25,10 @@ O reconhecimento só **acelera o cadastro**. Venda e cadastro funcionam sem ele:
 |---|---|---|---|---|
 | 1 | **Catálogo próprio** (tabela `catalogo_ean` na nossa API) | Zero | Cresce com o uso | Sempre primeiro |
 | 2 | **Open Food Facts** | Grátis e aberta (exige `User-Agent` identificado) | Boa em alimentos e bebidas de marca; fraca em limpeza, bazar e marcas regionais | Segunda consulta |
+| 2b | **Open Beauty Facts** (`world.openbeautyfacts.org`) | Grátis, sem chave, mesma API e mesmo banco/licença (ODbL) do OFF | Higiene e cosméticos; dados esparsos (muitos registros sem nome) | Terceira consulta (17/11/2026) |
+| 2c | **Open Products Facts** (`world.openproductsfacts.org`) | Idem | Limpeza, bazar e outros não alimentícios; esparsa | Quarta consulta (17/11/2026) |
+
+Cascata gratuita (17/11/2026): timeout total de 2 s e 1,2 s por fonte; para na primeira resposta com nome; falha de uma fonte não impede as seguintes. O 404 "found with a different product type: X" do banco compartilhado faz o servidor pular direto para a base certa. EAN que nenhuma fonte conhece fica 10 min em cache negativo (em memória, por instância; falha/timeout não entra). As novas fontes gravam só nome, marca e conteúdo (sem imagem). A resposta traz `atribuicao` (texto, `ODbL-1.0`, link da página do produto) para fontes ODbL; `null` no catálogo próprio.
 | 3 | **Cosmos (Bluesoft)** | **Só plano pago.** Pelos Termos de Uso, o acesso gratuito à API foi desativado em 01/10/2026 e o período de teste não inclui consultas. Cada requisição (e cada página) conta na franquia diária do plano. Preços e franquias: `cosmos.bluesoft.com.br/api-pricings` (conferir no navegador) | A mais completa do varejo brasileiro | Avaliar somente se a cobertura medida de 1 e 2 justificar; não contratado |
 | — | GS1 Brasil | Contrato | Oficial | Avaliar depois, se a qualidade de 2 e 3 não bastar |
 

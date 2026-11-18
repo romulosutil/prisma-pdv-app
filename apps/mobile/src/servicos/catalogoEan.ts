@@ -1,4 +1,4 @@
-import { normalizarEan, ProdutoCatalogoSchema, type FonteCatalogo, type ProdutoCatalogo } from '@pdv/shared';
+import { normalizarEan, ProdutoCatalogoSchema, type AtribuicaoCatalogo, type FonteCatalogo, type ProdutoCatalogo } from '@pdv/shared';
 import type { Armazenamento } from '@/dados/armazenamento';
 import { registrar } from '@/diagnostico/registro';
 import { registrarPiloto } from '@/telemetria/registro';
@@ -8,7 +8,9 @@ import { registrarPiloto } from '@/telemetria/registro';
  * (a base de demonstração só conhece o nome).
  */
 export type ResultadoCatalogo =
-  | { achou: true; nome: string; marca?: string | null; conteudo?: string | null; imagemUrl?: string | null; fonte?: FonteCatalogo }
+  | { achou: true; nome: string; marca?: string | null; conteudo?: string | null; imagemUrl?: string | null; fonte?: FonteCatalogo;
+      /** Crédito exigido pela licença da fonte externa (ODbL); `null` no catálogo próprio. */
+      atribuicao?: AtribuicaoCatalogo | null }
   | { achou: false };
 
 import { buscarCatalogoDemo, consultarCatalogoDemo } from './catalogoDemo';
@@ -43,8 +45,8 @@ function erroDeCancelamento(): Error {
   return Object.assign(new Error('Consulta cancelada'), { name: 'AbortError' });
 }
 
-function resultadoDe(p: Pick<ProdutoCatalogo, 'nome' | 'marca' | 'conteudo' | 'imagemUrl' | 'fonte'>): ResultadoCatalogo {
-  return { achou: true, nome: p.nome, marca: p.marca, conteudo: p.conteudo, imagemUrl: p.imagemUrl, fonte: p.fonte };
+function resultadoDe(p: Pick<ProdutoCatalogo, 'nome' | 'marca' | 'conteudo' | 'imagemUrl' | 'fonte' | 'atribuicao'>): ResultadoCatalogo {
+  return { achou: true, nome: p.nome, marca: p.marca, conteudo: p.conteudo, imagemUrl: p.imagemUrl, fonte: p.fonte, atribuicao: p.atribuicao };
 }
 
 /** Rejeita quando o sinal dispara; nunca resolve. Serve para não depender de o `fetch` respeitar o sinal. */

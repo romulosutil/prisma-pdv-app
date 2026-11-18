@@ -64,12 +64,13 @@ export async function criarAmbiente(
   billing?: (mock: MockBillingProvider) => BillingProvider,
   fontesEan: FonteEan[] = [],
   orcamentoEanMs?: number,
+  extrasEan: { timeoutPorFonteEanMs?: number; cacheNegativoEanMs?: number } = {},
 ): Promise<Ambiente> {
   await conexao.db.execute(sql.raw(`truncate table ${TABELAS} restart identity cascade`));
   const relogio = new RelogioFalso(INICIO);
   const mock = new MockBillingProvider();
   const provider = billing ? billing(mock) : mock;
-  const app = await criarApp({ db: conexao.db, relogio, billing: provider, fontesEan, orcamentoEanMs });
+  const app = await criarApp({ db: conexao.db, relogio, billing: provider, fontesEan, orcamentoEanMs, ...extrasEan });
   return { app, db: conexao.db, relogio, billing: provider, mock, fechar: () => app.close() };
 }
 

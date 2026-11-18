@@ -1,8 +1,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { ProdutoCatalogoSchema, validarEan } from '@pdv/shared';
+import { atribuicaoCatalogo, ProdutoCatalogoSchema, validarEan, type FonteCatalogo } from '@pdv/shared';
 import type { Conexao } from '../src/db/conexao';
-import type { DadosEan, FonteEan } from '../src/fontes/fonte';
-import { criarOpenFoodFacts } from '../src/fontes/openFoodFacts';
+import type { DadosEan, FonteEan, ResultadoFonte } from '../src/fontes/fonte';
+import { criarOpenBeautyFacts, criarOpenFoodFacts, criarOpenProductsFacts, fontesEanGratuitas } from '../src/fontes/openFoodFacts';
 import { abrirBanco, chamar, criarAmbiente, criarConta, type Ambiente } from './ajuda';
 
 /** Completa 12 dígitos com o verificador GS1 (EAN-13). */
@@ -14,14 +14,14 @@ function ean13(base: string): string {
 
 const EAN = ean13('789100010010');
 const OUTRO_EAN = ean13('789200020020');
-const CAMPOS = ['ean', 'nome', 'marca', 'conteudo', 'imagemUrl', 'fonte', 'confianca'];
+const CAMPOS = ['ean', 'nome', 'marca', 'conteudo', 'imagemUrl', 'fonte', 'confianca', 'atribuicao'];
 
 const DADOS: DadosEan = { nome: 'Café Pilão 500g', marca: 'Pilão', conteudo: '500 g', imagemUrl: 'https://img.exemplo.com/cafe.jpg' };
 
-function fonteFalsa(comportamento: (ean: string, sinal: AbortSignal) => Promise<DadosEan | null>) {
+function fonteFalsa(comportamento: (ean: string, sinal: AbortSignal) => Promise<ResultadoFonte>, id: FonteCatalogo = 'open_food_facts') {
   const chamadas: string[] = [];
   const fonte: FonteEan = {
-    id: 'open_food_facts',
+    id,
     consultar(ean, sinal) {
       chamadas.push(ean);
       return comportamento(ean, sinal);
@@ -40,8 +40,8 @@ afterEach(async () => {
   await amb?.fechar();
 });
 
-async function iniciar(fontes: FonteEan[] = [], orcamentoMs?: number) {
-  amb = await criarAmbiente(banco, undefined, fontes, orcamentoMs);
+async function iniciar(fontes: FonteEan[] = [], orcamentoMs?: number, extras: { timeoutPorFonteEanMs?: number; cacheNegativoEanMs?: number } = {}) {
+  amb = await criarAmbiente(banco, undefined, fontes, orcamentoMs, extras);
   return { loja1: await criarConta(amb), loja2: await criarConta(amb), loja3: await criarConta(amb) };
 }
 
@@ -96,6 +96,7 @@ describe('GET /catalogo/ean/:ean', () => {
       imagemUrl: null,
       fonte: 'proprio',
       confianca: 'confirmada',
+      atribuicao: null,
     });
     expect(chamadas).toEqual([]);
   });
@@ -103,7 +104,7 @@ describe('GET /catalogo/ean/:ean', () => {
   it('acerto externo grava o cache e a segunda consulta não chama a fonte', async () => {
     const { fonte, chamadas } = fonteFalsa(async () => DADOS);
     const { loja1, loja2 } = await iniciar([fonte]);
-    const esperado = { ean: EAN, ...DADOS, fonte: 'open_food_facts', confianca: 'externa' };
+    const esperado = { ean: EAN, ...DADOS, fonte: 'open_food_facts', confianca: 'externa', atribuicao: atribuicaoCatalogo('open_food_facts', EAN) };
     expect(await consultar(loja1.token)).toEqual({ status: 200, corpo: esperado });
     expect(await consultar(loja2.token)).toEqual({ status: 200, corpo: esperado });
     expect(chamadas).toHaveLength(1);
@@ -231,6 +232,7 @@ describe('POST /catalogo/ean/:ean/confirmacao', () => {
       imagemUrl: DADOS.imagemUrl,
       fonte: 'proprio',
       confianca: 'confirmada',
+      atribuicao: null,
     });
   });
 
@@ -358,5 +360,199 @@ describe('fonte Open Food Facts', () => {
       }),
     );
     await expect(rede.consultar(EAN, sinal)).rejects.toThrow('fetch failed');
+  });
+});
+
+describe('cascata de fontes gratuitas', () => {
+  const nunca = () => new Promise<ResultadoFonte>(() => undefined);
+
+  it('a ordem padrão é Open Food Facts → Open Beauty Facts → Open Products Facts', () => {
+    expect(fontesEanGratuitas.map((f) => f.id)).toEqual(['open_food_facts', 'open_beauty_facts', 'open_products_facts']);
+  });
+
+  it('segue a ordem, para na primeira resposta útil e grava fonte e atribuição', async () => {
+    const off = fonteFalsa(async () => null, 'open_food_facts');
+    const obf = fonteFalsa(async () => ({ ...DADOS, nome: 'Sabonete Lux 85g', imagemUrl: null }), 'open_beauty_facts');
+    const opf = fonteFalsa(async () => DADOS, 'open_products_facts');
+    const { loja1, loja2 } = await iniciar([off.fonte, obf.fonte, opf.fonte]);
+    const res = await consultar(loja1.token);
+    expect(res.status).toBe(200);
+    expect(res.corpo).toMatchObject({ nome: 'Sabonete Lux 85g', fonte: 'open_beauty_facts', confianca: 'externa' });
+    expect(res.corpo.atribuicao).toEqual({
+      texto: 'Dados de Open Beauty Facts (Open Food Facts), sob a Open Database License',
+      licenca: 'ODbL-1.0',
+      url: `https://world.openbeautyfacts.org/product/${EAN}`,
+    });
+    expect([off.chamadas.length, obf.chamadas.length, opf.chamadas.length]).toEqual([1, 1, 0]);
+    // Gravado no catálogo próprio: outra loja recebe sem nova consulta externa.
+    expect((await consultar(loja2.token)).corpo).toEqual(res.corpo);
+    expect([off.chamadas.length, obf.chamadas.length, opf.chamadas.length]).toEqual([1, 1, 0]);
+  });
+
+  it('timeout por fonte: uma fonte travada não consome o orçamento das seguintes', async () => {
+    const travada = fonteFalsa(nunca, 'open_food_facts');
+    const boa = fonteFalsa(async () => DADOS, 'open_beauty_facts');
+    const { loja1 } = await iniciar([travada.fonte, boa.fonte], 2000, { timeoutPorFonteEanMs: 50 });
+    const t0 = Date.now();
+    const res = await consultar(loja1.token);
+    expect(res.status).toBe(200);
+    expect(res.corpo.fonte).toBe('open_beauty_facts');
+    expect(Date.now() - t0).toBeLessThan(1500);
+  });
+
+  it('o orçamento total vale mesmo com várias fontes lentas', async () => {
+    const fontes = (['open_food_facts', 'open_beauty_facts', 'open_products_facts'] as const).map((id) => fonteFalsa(nunca, id));
+    const { loja1 } = await iniciar(fontes.map((f) => f.fonte), 120, { timeoutPorFonteEanMs: 50 });
+    const t0 = Date.now();
+    expect((await consultar(loja1.token)).status).toBe(404);
+    expect(Date.now() - t0).toBeLessThan(1500);
+    expect(fontes[2]!.chamadas.length).toBeLessThanOrEqual(1);
+  });
+
+  it('falha parcial: duas fontes fora do ar e a terceira responde', async () => {
+    const offline = fonteFalsa(async () => {
+      throw new TypeError('fetch failed');
+    }, 'open_food_facts');
+    const http503 = fonteFalsa(async () => {
+      throw new Error('Open Beauty Facts respondeu HTTP 503');
+    }, 'open_beauty_facts');
+    const opf = fonteFalsa(async () => ({ ...DADOS, nome: 'Pilha AA Panasonic' }), 'open_products_facts');
+    const { loja1 } = await iniciar([offline.fonte, http503.fonte, opf.fonte]);
+    const res = await consultar(loja1.token);
+    expect(res.status).toBe(200);
+    expect(res.corpo).toMatchObject({ nome: 'Pilha AA Panasonic', fonte: 'open_products_facts' });
+    expect(res.corpo.atribuicao.url).toBe(`https://world.openproductsfacts.org/product/${EAN}`);
+  });
+
+  it('todas fora do ar (404 e offline, com as fontes reais): 404 e o cadastro segue', async () => {
+    const naoAchou = async () => new Response(JSON.stringify({ status: 0, status_verbose: 'product not found' }), { status: 404 });
+    const semRede = async (): Promise<Response> => {
+      throw new TypeError('fetch failed');
+    };
+    const { loja1, loja2 } = await iniciar([criarOpenFoodFacts(naoAchou), criarOpenBeautyFacts(semRede), criarOpenProductsFacts(naoAchou)]);
+    const res = await consultar(loja1.token);
+    expect(res.status).toBe(404);
+    expect(res.corpo.erro).toBe('ean_nao_encontrado');
+    // Nada impede o lojista de cadastrar e confirmar o nome à mão.
+    expect((await confirmar(loja1.token, 'Detergente Ypê 500ml')).status).toBe(204);
+    expect((await confirmar(loja2.token, 'Detergente Ypê 500ml')).status).toBe(204);
+    expect((await consultar(loja1.token)).corpo).toMatchObject({ nome: 'Detergente Ypê 500ml', fonte: 'proprio', atribuicao: null });
+  });
+
+  it('a dica "different product type" pula direto para a fonte certa', async () => {
+    const off = fonteFalsa(async () => ({ outraFonte: 'open_products_facts' }), 'open_food_facts');
+    const obf = fonteFalsa(async () => DADOS, 'open_beauty_facts');
+    const opf = fonteFalsa(async () => ({ ...DADOS, nome: 'Palito de dente' }), 'open_products_facts');
+    const { loja1 } = await iniciar([off.fonte, obf.fonte, opf.fonte]);
+    expect((await consultar(loja1.token)).corpo).toMatchObject({ nome: 'Palito de dente', fonte: 'open_products_facts' });
+    expect(obf.chamadas).toHaveLength(0);
+  });
+
+  it('dica para tipo fora da cascata (ração) encerra a busca sem chamar as outras', async () => {
+    const off = fonteFalsa(async () => ({ outraFonte: null }), 'open_food_facts');
+    const obf = fonteFalsa(async () => DADOS, 'open_beauty_facts');
+    const { loja1 } = await iniciar([off.fonte, obf.fonte]);
+    expect((await consultar(loja1.token)).status).toBe(404);
+    expect(obf.chamadas).toHaveLength(0);
+  });
+});
+
+describe('cache negativo', () => {
+  it('EAN que nenhuma fonte conhece não é reconsultado até expirar', async () => {
+    const off = fonteFalsa(async () => null, 'open_food_facts');
+    const obf = fonteFalsa(async () => null, 'open_beauty_facts');
+    const { loja1, loja2 } = await iniciar([off.fonte, obf.fonte], undefined, { cacheNegativoEanMs: 10 * 60 * 1000 });
+    expect((await consultar(loja1.token)).status).toBe(404);
+    expect((await consultar(loja2.token)).status).toBe(404);
+    expect([off.chamadas.length, obf.chamadas.length]).toEqual([1, 1]);
+    // Outro EAN não é afetado.
+    await consultar(loja1.token, OUTRO_EAN);
+    expect(off.chamadas).toEqual([EAN, OUTRO_EAN]);
+
+    amb.relogio.avancarHoras(1);
+    expect((await consultar(loja1.token)).status).toBe(404);
+    expect(off.chamadas.filter((e) => e === EAN)).toHaveLength(2);
+  });
+
+  it('falha não entra no cache negativo', async () => {
+    let falhar = true;
+    const off = fonteFalsa(async () => {
+      if (falhar) throw new TypeError('fetch failed');
+      return DADOS;
+    });
+    const { loja1 } = await iniciar([off.fonte]);
+    expect((await consultar(loja1.token)).status).toBe(404);
+    falhar = false;
+    expect((await consultar(loja1.token)).status).toBe(200);
+    expect(off.chamadas).toHaveLength(2);
+  });
+
+  it('o catálogo próprio vence o cache negativo (nome confirmado por duas lojas)', async () => {
+    const off = fonteFalsa(async () => null);
+    const { loja1, loja2, loja3 } = await iniciar([off.fonte]);
+    expect((await consultar(loja1.token)).status).toBe(404);
+    await confirmar(loja1.token, 'Vela de aniversário');
+    await confirmar(loja2.token, 'Vela de aniversário');
+    expect((await consultar(loja3.token)).corpo).toMatchObject({ nome: 'Vela de aniversário', fonte: 'proprio' });
+    expect(off.chamadas).toHaveLength(1);
+  });
+
+  it('acerto no cache negativo ainda conta no limite por loja', async () => {
+    const off = fonteFalsa(async () => null);
+    const { loja1 } = await iniciar([off.fonte]);
+    for (let i = 0; i < 300; i++) await consultar(loja1.token);
+    expect((await consultar(loja1.token)).status).toBe(429);
+    expect(off.chamadas).toHaveLength(1);
+  });
+
+  it('EAN com dígito verificador errado é rejeitado sem chamar fonte', async () => {
+    const off = fonteFalsa(async () => DADOS);
+    const { loja1 } = await iniciar([off.fonte]);
+    const errado = EAN.slice(0, 12) + String((Number(EAN[12]) + 1) % 10);
+    expect((await consultar(loja1.token, errado)).corpo.erro).toBe('ean_invalido');
+    expect(off.chamadas).toHaveLength(0);
+  });
+});
+
+describe('fontes Open Beauty Facts e Open Products Facts', () => {
+  const resposta = (corpo: unknown, status = 200) => new Response(JSON.stringify(corpo), { status });
+  const comoFetch = (f: unknown) => f as typeof fetch;
+
+  it('mesma API em outro host, sem pedir nem gravar imagem', async () => {
+    for (const [criar, host] of [
+      [criarOpenBeautyFacts, 'world.openbeautyfacts.org'],
+      [criarOpenProductsFacts, 'world.openproductsfacts.org'],
+    ] as const) {
+      const buscar = vi.fn(async (_url: string, _init: RequestInit) =>
+        resposta({ status: 1, product: { product_name: 'Shampoo', brands: 'Seda', quantity: '325 ml', image_front_small_url: 'https://x/y.jpg' } }),
+      );
+      expect(await criar(comoFetch(buscar)).consultar(EAN, AbortSignal.timeout(1000))).toEqual({
+        nome: 'Shampoo',
+        marca: 'Seda',
+        conteudo: '325 ml',
+        imagemUrl: null,
+      });
+      const [url, init] = buscar.mock.calls[0]!;
+      expect(url).toBe(`https://${host}/api/v2/product/${EAN}.json?fields=product_name,product_name_pt,brands,quantity`);
+      expect((init.headers as Record<string, string>)['User-Agent']).toBeTruthy();
+    }
+  });
+
+  it('404 "found with a different product type" vira dica da fonte certa', async () => {
+    const dica = (tipo: string) =>
+      comoFetch(async () => resposta({ code: EAN, status: 0, status_verbose: `product found with a different product type: ${tipo}` }, 404));
+    const s = () => AbortSignal.timeout(1000);
+    expect(await criarOpenFoodFacts(dica('beauty')).consultar(EAN, s())).toEqual({ outraFonte: 'open_beauty_facts' });
+    expect(await criarOpenProductsFacts(dica('food')).consultar(EAN, s())).toEqual({ outraFonte: 'open_food_facts' });
+    expect(await criarOpenFoodFacts(dica('product')).consultar(EAN, s())).toEqual({ outraFonte: 'open_products_facts' });
+    expect(await criarOpenFoodFacts(dica('petfood')).consultar(EAN, s())).toEqual({ outraFonte: null });
+    expect(await criarOpenFoodFacts(dica('desconhecido')).consultar(EAN, s())).toBeNull();
+    const corpoRuim = comoFetch(async () => new Response('não é json', { status: 404 }));
+    expect(await criarOpenBeautyFacts(corpoRuim).consultar(EAN, s())).toBeNull();
+  });
+
+  it('produto achado sem nome (comum no Open Beauty Facts) não serve e a cascata segue', async () => {
+    const semNome = comoFetch(async () => resposta({ status: 1, product: { product_type: 'beauty' } }));
+    expect(await criarOpenBeautyFacts(semNome).consultar(EAN, AbortSignal.timeout(1000))).toBeNull();
   });
 });

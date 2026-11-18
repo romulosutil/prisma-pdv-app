@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ConfirmarEanReqSchema, normalizarEan, ProdutoCatalogoSchema, validarEan } from '../src';
+import { atribuicaoCatalogo, ConfirmarEanReqSchema, normalizarEan, ProdutoCatalogoSchema, validarEan } from '../src';
 
 const VALIDOS = ['7896009765148', '7891000100103', '8843163765148', '7890000000017'];
 
@@ -59,9 +59,22 @@ describe('ProdutoCatalogoSchema', () => {
   };
 
   it('aceita um produto válido, com campos opcionais nulos', () => {
-    expect(ProdutoCatalogoSchema.parse(base)).toEqual(base);
-    const minimo = { ...base, marca: null, conteudo: null, imagemUrl: null, fonte: 'proprio', confianca: 'confirmada' };
+    // Resposta sem `atribuicao` (API anterior, cache antigo) continua válida e ganha `null`.
+    expect(ProdutoCatalogoSchema.parse(base)).toEqual({ ...base, atribuicao: null });
+    const minimo = { ...base, marca: null, conteudo: null, imagemUrl: null, fonte: 'proprio', confianca: 'confirmada', atribuicao: null };
     expect(ProdutoCatalogoSchema.parse(minimo)).toEqual(minimo);
+  });
+
+  it('aceita as fontes gratuitas novas com atribuição ODbL', () => {
+    for (const fonte of ['open_food_facts', 'open_beauty_facts', 'open_products_facts'] as const) {
+      const atribuicao = atribuicaoCatalogo(fonte, base.ean);
+      expect(atribuicao).toMatchObject({ licenca: 'ODbL-1.0' });
+      expect(atribuicao?.texto).toMatch(/Open Food Facts/);
+      expect(atribuicao?.url).toMatch(new RegExp(`^https://world\\.open\\w+facts\\.org/product/${base.ean}$`));
+      expect(ProdutoCatalogoSchema.parse({ ...base, fonte, atribuicao })).toMatchObject({ fonte, atribuicao });
+    }
+    expect(atribuicaoCatalogo('proprio', base.ean)).toBeNull();
+    expect(ProdutoCatalogoSchema.safeParse({ ...base, atribuicao: { texto: 'x', licenca: 'y', url: 'não é url' } }).success).toBe(false);
   });
 
   it('não carrega preço: campos de preço são descartados', () => {

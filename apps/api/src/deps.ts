@@ -14,4 +14,8 @@ export interface Deps {
   fontesEan: FonteEan[];
   /** Orçamento total da consulta externa em ms; o padrão é 2000. Existe para os testes não esperarem 2 s. */
   orcamentoEanMs?: number;
+  /** Teto de cada fonte externa em ms; o padrão é 1200. */
+  timeoutPorFonteEanMs?: number;
+  /** Validade do cache negativo (EAN que nenhuma fonte conhece) em ms; o padrão é 10 min. */
+  cacheNegativoEanMs?: number;
 }

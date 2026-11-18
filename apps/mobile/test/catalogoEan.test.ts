@@ -96,12 +96,22 @@ describe('catálogo de EAN (com API)', () => {
   it('acha pela API, autenticado, e devolve marca, conteúdo e fonte', async () => {
     const { catalogo, chamadas } = montar(async () => json(produtoApi(EAN_ACHADO)));
     const r = await catalogo.consultar(EAN_ACHADO);
-    expect(r).toEqual({ achou: true, nome: 'Leite condensado 395g', marca: 'Marca X', conteudo: '395 g', imagemUrl: null, fonte: 'proprio' });
+    // API anterior (sem `atribuicao`) continua aceita: o campo chega como null.
+    expect(r).toEqual({ achou: true, nome: 'Leite condensado 395g', marca: 'Marca X', conteudo: '395 g', imagemUrl: null, fonte: 'proprio', atribuicao: null });
     expect(chamadas).toHaveBeenCalledTimes(1);
     const [url, init] = chamadas.mock.calls[0]!;
     expect(url).toBe(`${URL_API}/catalogo/ean/${EAN_ACHADO}`);
     expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer tok-1');
     expect(registrar).toHaveBeenCalledWith('leitura', 'consulta de catálogo', expect.objectContaining({ fonte: 'api', achou: true, ean: EAN_ACHADO }));
+  });
+
+  it('repassa fonte nova e atribuição da licença, também a partir do cache local', async () => {
+    const atribuicao = { texto: 'Dados de Open Beauty Facts (Open Food Facts), sob a Open Database License', licenca: 'ODbL-1.0', url: `https://world.openbeautyfacts.org/product/${EAN_ACHADO}` };
+    const { catalogo, chamadas } = montar(async () => json(produtoApi(EAN_ACHADO, { fonte: 'open_beauty_facts', confianca: 'externa', atribuicao })));
+    await expect(catalogo.consultar(EAN_ACHADO)).resolves.toMatchObject({ achou: true, fonte: 'open_beauty_facts', atribuicao });
+    await expect(catalogo.consultar(EAN_ACHADO)).resolves.toMatchObject({ fonte: 'open_beauty_facts', atribuicao });
+    expect(catalogo.buscarLocal(EAN_ACHADO)).toMatchObject({ atribuicao });
+    expect(chamadas).toHaveBeenCalledTimes(1);
   });
 
   it('não usa o atraso artificial', async () => {

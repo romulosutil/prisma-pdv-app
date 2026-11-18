@@ -47,6 +47,8 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
     emissaoCodigo: config.emissaoCodigo ?? { modo: 'desenvolvimento' },
     fontesEan: config.fontesEan,
     orcamentoEanMs: config.orcamentoEanMs,
+    timeoutPorFonteEanMs: config.timeoutPorFonteEanMs,
+    cacheNegativoEanMs: config.cacheNegativoEanMs,
   };
   const app = Fastify({ logger: config.logger ?? false });
   // Referência precisa para novas operações do aparelho; não depende do Date HTTP arredondado.

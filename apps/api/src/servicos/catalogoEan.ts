@@ -1,10 +1,11 @@
 import { and, eq } from 'drizzle-orm';
-import { ProdutoCatalogoSchema, type ProdutoCatalogo } from '@pdv/shared';
+import { atribuicaoCatalogo, ProdutoCatalogoSchema, type ProdutoCatalogo } from '@pdv/shared';
 import type { Db } from '../db/conexao';
 import { catalogoEan, catalogoEanConfirmacoes } from '../db/schema';
-import type { DadosEan, FonteEan } from '../fontes/fonte';
+import { ehDica, type DadosEan, type FonteEan, type ResultadoFonte } from '../fontes/fonte';
 
 export const ORCAMENTO_CONSULTA_MS = 2000;
+export const TIMEOUT_POR_FONTE_MS = 1200;
 /** Lojas diferentes que precisam concordar no nome para ele virar sugestão. */
 export const CONFIRMACOES_MINIMAS = 2;
 
@@ -19,6 +20,7 @@ function paraProduto(linha: LinhaCatalogo): ProdutoCatalogo {
     imagemUrl: linha.imagemUrl,
     fonte: linha.fonte,
     confianca: linha.confianca,
+    atribuicao: atribuicaoCatalogo(linha.fonte, linha.ean),
   });
 }
 
@@ -61,29 +63,64 @@ function sanear(dados: DadosEan): DadosEan | null {
   return { nome, marca: dados.marca?.trim() || null, conteudo: dados.conteudo?.trim() || null, imagemUrl };
 }
 
+export interface CacheNegativo {
+  contem(ean: string): boolean;
+  registrar(ean: string): void;
+}
+
 export interface OpcoesConsulta {
   fontes: readonly FonteEan[];
   agora: Date;
+  /** Orçamento total das fontes externas (padrão 2000 ms). */
   orcamentoMs?: number;
+  /** Teto de cada fonte dentro do orçamento (padrão 1200 ms): uma fonte lenta não come o tempo das outras. */
+  timeoutPorFonteMs?: number;
+  /** EANs que nenhuma fonte conhece, por pouco tempo: evita repetir a cascata a cada bipe. */
+  cacheNegativo?: CacheNegativo;
   aviso(mensagem: string, erro?: unknown): void;
 }
 
-/** Catálogo próprio primeiro; depois as fontes externas, em ordem, dentro de um orçamento total. */
+/**
+ * Catálogo próprio primeiro; depois as fontes externas, em ordem, dentro de um orçamento total e de um
+ * teto por fonte. Para na primeira resposta útil; falha ou demora de uma fonte não impede as seguintes.
+ */
 export async function consultarEan(db: Db, ean: string, opcoes: OpcoesConsulta): Promise<ProdutoCatalogo | null> {
   const [existente] = await db.select().from(catalogoEan).where(eq(catalogoEan.ean, ean));
   if (existente) return paraProduto(existente);
+  if (opcoes.fontes.length === 0) return null;
+  if (opcoes.cacheNegativo?.contem(ean)) return null;
 
-  const sinal = AbortSignal.timeout(opcoes.orcamentoMs ?? ORCAMENTO_CONSULTA_MS);
-  for (const fonte of opcoes.fontes) {
-    if (sinal.aborted) break;
-    let dados: DadosEan | null = null;
+  const orcamento = AbortSignal.timeout(opcoes.orcamentoMs ?? ORCAMENTO_CONSULTA_MS);
+  const porFonteMs = opcoes.timeoutPorFonteMs ?? TIMEOUT_POR_FONTE_MS;
+  // Só um "não conheço" de todas as fontes vira cache negativo; falha ou timeout pode ser passageiro.
+  let todasResponderam = true;
+
+  for (let i = 0; i < opcoes.fontes.length; i++) {
+    const fonte = opcoes.fontes[i]!;
+    if (orcamento.aborted) {
+      todasResponderam = false;
+      break;
+    }
+    const sinal = AbortSignal.any([orcamento, AbortSignal.timeout(porFonteMs)]);
+    let resultado: ResultadoFonte;
     try {
-      const bruto = await corrida(fonte.consultar(ean, sinal), sinal);
-      dados = bruto ? sanear(bruto) : null;
+      resultado = await corrida(fonte.consultar(ean, sinal), sinal);
     } catch (erro) {
+      todasResponderam = false;
       opcoes.aviso(`Fonte ${fonte.id} falhou para o EAN ${ean}; seguindo para a próxima.`, erro);
       continue;
     }
+
+    if (ehDica(resultado)) {
+      // A base compartilhada disse onde o código mora: pula direto para lá, ou encerra se não for adiante.
+      const alvo = resultado.outraFonte;
+      const atual = i;
+      const destino = opcoes.fontes.findIndex((f, j) => j > atual && f.id === alvo);
+      if (destino === -1) break;
+      i = destino - 1;
+      continue;
+    }
+    const dados = resultado ? sanear(resultado) : null;
     if (!dados) continue;
 
     await db
@@ -94,7 +131,31 @@ export async function consultarEan(db: Db, ean: string, opcoes: OpcoesConsulta):
     const [gravado] = await db.select().from(catalogoEan).where(eq(catalogoEan.ean, ean));
     if (gravado) return paraProduto(gravado);
   }
+  if (todasResponderam) opcoes.cacheNegativo?.registrar(ean);
   return null;
+}
+
+/** Cache negativo em memória, por instância do app (como o limitador). */
+export function criarCacheNegativo(ttlMs: number, agora: () => Date, maximo = 5000): CacheNegativo {
+  const expiraEm = new Map<string, number>();
+  return {
+    contem(ean) {
+      const limite = expiraEm.get(ean);
+      if (limite === undefined) return false;
+      if (agora().getTime() < limite) return true;
+      expiraEm.delete(ean);
+      return false;
+    },
+    registrar(ean) {
+      expiraEm.delete(ean);
+      expiraEm.set(ean, agora().getTime() + ttlMs);
+      while (expiraEm.size > maximo) {
+        const maisAntigo = expiraEm.keys().next();
+        if (maisAntigo.done) break;
+        expiraEm.delete(maisAntigo.value);
+      }
+    },
+  };
 }
 
 /**

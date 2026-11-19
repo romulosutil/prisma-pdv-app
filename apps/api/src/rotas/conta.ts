@@ -3,8 +3,10 @@ import { and, asc, eq, isNull, or } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import {
+  adicionarMeses,
   CriarContaReqSchema,
   CriarContaResSchema,
+  criarAssinaturaGratuita,
   dentroDoLimite,
   gerarId,
   criarAcessoLiberado,
@@ -31,7 +33,7 @@ const CODIGO_VALIDADE_MS = 10 * 60 * 1000;
 const PedirCodigoReqSchema = z.object({ email: z.email() });
 
 
-export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativada, emissaoCodigo = { modo: 'desenvolvimento' } }: Deps): void {
+export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativada, billingProvider, emissaoCodigo = { modo: 'desenvolvimento' } }: Deps): void {
   app.post('/contas', async (request, reply) => {
     const req = CriarContaReqSchema.parse(request.body);
     const email = normalizarEmail(req.email);
@@ -81,6 +83,13 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
         const acesso = criarAcessoLiberado({ id: gerarId(), contaId, agora });
         await salvarAssinatura(tx, acesso, agora);
         await registrarEvento(tx, acesso, 'acesso_liberado_sem_cobranca', { planoId: acesso.planoId }, agora);
+      } else if (billingProvider === 'google_play') {
+        const gratuita = {
+          ...criarAssinaturaGratuita({ id: gerarId(), contaId, agora }),
+          periodoAtualFim: adicionarMeses(agora, 120),
+        };
+        await salvarAssinatura(tx, gratuita, agora);
+        await registrarEvento(tx, gratuita, 'plano_free_ativado', { planoId: gratuita.planoId }, agora);
       }
       if (provaId) await consumirCodigoLogin(tx, provaId, agora);
       return criarSessao(tx, { contaId, lojaId, operadorId, aparelhoId: req.aparelhoId }, agora);

@@ -69,7 +69,7 @@ describe('destaquesDoPlano', () => {
       'Vendas ilimitadas',
       'Produtos ilimitados',
       'Histórico de vendas ilimitado',
-      'Pix, cartão e dinheiro com confirmação manual',
+      'Pix MP/InfinitePay integrado no app',
     ]);
   });
 });

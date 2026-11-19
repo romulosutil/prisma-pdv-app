@@ -1,8 +1,14 @@
 import { fileURLToPath } from 'node:url';
 import { relogioSistema, type Relogio } from '@pdv/shared';
 import type { FastifyInstance } from 'fastify';
-import { criarBilling, criarBillingDesativado } from './billing';
-import { lerConfiguracaoOAuthMercadoPago, lerConfiguracaoPagamentos, validarConfiguracao } from './configuracao';
+import { criarBilling } from './billing';
+import {
+  lerConfiguracaoGooglePlay,
+  lerConfiguracaoOAuthMercadoPago,
+  lerConfiguracaoPagamentos,
+  lerUrlPublicaApi,
+  validarConfiguracao,
+} from './configuracao';
 import { abrirPglite, abrirPostgres, type Conexao } from './db/conexao';
 import { lerConfiguracaoEntregaCodigo } from './email/configuracaoEntrega';
 import { ErroCanalEmail } from './email/contrato';
@@ -15,6 +21,8 @@ import { agendarEntregasCodigo } from './jobsEmail';
 import { agendarConciliacaoPix, agendarRenovacaoOAuth } from './jobsPagamentos';
 import { renovarTokensOAuth } from './servicos/conexoesMercadoPago';
 import { criarCifradorPagamentos } from './pagamentos/cifrador';
+import { criarVerificadorGooglePlay } from './pagamentos/googlePlayBilling';
+import { criarProvedorInfinitePay } from './pagamentos/infinitePay';
 import { criarProvedorMercadoPago } from './pagamentos/mercadoPago';
 import type { ConfigPagamentos } from './deps';
 import { ambientePix, conciliarCobrancasPix } from './servicos/cobrancasPix';
@@ -27,9 +35,12 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
   const entrega = lerConfiguracaoEntregaCodigo(process.env);
   // Sem PDV_PAGAMENTOS_CHAVE a API sobe normalmente e as rotas de pagamento respondem 503.
   const configPagamentos = lerConfiguracaoPagamentos(process.env);
+  const configGooglePlay = lerConfiguracaoGooglePlay(process.env);
   const pagamentos: ConfigPagamentos = {
     cifrador: configPagamentos.chave ? criarCifradorPagamentos(configPagamentos.chave) : null,
     mercadoPago: criarProvedorMercadoPago(),
+    infinitePay: criarProvedorInfinitePay(),
+    urlPublicaApi: lerUrlPublicaApi(process.env),
     pagadorEmail: configPagamentos.pagadorEmail ?? null,
     // Sem PDV_MP_CLIENT_ID/SECRET/REDIRECT_URI, as rotas de OAuth respondem 503 e o modo token continua.
     oauth: lerConfiguracaoOAuthMercadoPago(process.env),
@@ -69,8 +80,24 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
     await limparSuporteConcluido(conexao.db, relogio);
     const canal = entrega.modo === 'smtp' ? criarCanalSmtp(entrega.smtp) : undefined;
     const cobrancaDesativada = configuracao.billingProvider === 'disabled';
-    const billing = cobrancaDesativada ? criarBillingDesativado() : criarBilling(configuracao.billingProvider);
-    app = await criarApp({ db: conexao.db, relogio, billing, cobrancaDesativada, fontesEan: fontesEanGratuitas, logger: true, emissaoCodigo: emissao, pagamentos });
+    const billing = criarBilling(configuracao.billingProvider);
+    app = await criarApp({
+      db: conexao.db,
+      relogio,
+      billing,
+      billingProvider: configuracao.billingProvider,
+      cobrancaDesativada,
+      googlePlay: {
+        verificador: criarVerificadorGooglePlay(configGooglePlay.credencial),
+        packageName: configGooglePlay.packageName,
+        skuProMensal: configGooglePlay.skuProMensal,
+        webhookToken: configGooglePlay.webhookToken,
+      },
+      fontesEan: fontesEanGratuitas,
+      logger: true,
+      emissaoCodigo: emissao,
+      pagamentos,
+    });
     await app.listen({ port: configuracao.porta, host: '0.0.0.0' });
     if (process.env.JOBS !== 'off') {
       const db = conexao.db;
@@ -81,7 +108,7 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
         pararPix = agendarConciliacaoPix((deveParar) => conciliarCobrancasPix(amb, { deveParar }), registrar);
         if (amb.oauth) pararOAuth = agendarRenovacaoOAuth((deveParar) => renovarTokensOAuth(amb, { deveParar }), registrar);
       }
-      if (!cobrancaDesativada) pararCobranca = agendarCobranca(db, billing, relogio, registrar);
+      if (configuracao.billingProvider === 'mock') pararCobranca = agendarCobranca(db, billing, relogio, registrar);
       if (entrega.modo === 'smtp' && emissao.modo === 'email' && canal) {
         pararEmail = agendarEntregasCodigo(() => processarEntregasCodigo(db, { chaves: entrega.chaves, canal, dominioRemetente: emissao.dominioRemetente, relogio }), registrar);
       }

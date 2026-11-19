@@ -29,6 +29,7 @@ export function TelaDinheiro() {
 
   return (
     <TelaBase
+      rolavel
       rodape={
         <Botao
           rotulo="Confirmar recebimento"

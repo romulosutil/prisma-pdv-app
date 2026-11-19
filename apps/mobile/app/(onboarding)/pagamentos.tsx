@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Botao } from '@/componentes/Botao';
 import { CabecalhoEtapa } from '@/componentes/CabecalhoEtapa';
@@ -18,8 +18,8 @@ export default function Pagamentos() {
           Seus meios de recebimento
         </Texto>
         <View style={estilos.lista}>
-          <TilePagamento titulo="Pix" legenda="Pela sua chave, com confirmação manual" icone="pix" fundo={cores.bg} cor={cores.ink} estado="sempre_ativo" />
-          <TilePagamento titulo="Cartão" legenda="Registro manual da maquininha" icone="cartao" fundo={cores.bg} cor={cores.ink} estado="sempre_ativo" />
+          <TilePagamento titulo="Pix" legenda="Pela sua chave, ou automático via MP/InfinitePay" icone="pix" fundo={cores.anilSoft} cor={cores.anil} estado="sempre_ativo" />
+          <TilePagamento titulo="Cartão" legenda="InfinitePay, Mercado Pago, Stone ou registro manual" icone="cartao" fundo={cores.mangaSoft} cor={cores.ink} estado="sempre_ativo" />
           <TilePagamento
             titulo="Dinheiro"
             legenda="Com calculadora de troco"
@@ -29,8 +29,9 @@ export default function Pagamentos() {
             estado="sempre_ativo"
           />
           <Texto estilo="legenda" cor={cores.ink3}>
-            Confira o recebimento antes de confirmar a venda.
+            Confira o recebimento antes de confirmar a venda. Você também pode conectar sua maquininha agora ou depois em Ajustes.
           </Texto>
+          <Botao rotulo="Conectar maquininhas e Pix automático" variante="terciario" tamanho="M" larguraTotal onPress={() => router.push('/ajustes/maquininhas' as Href)} />
         </View>
       </View>
     </TelaBase>

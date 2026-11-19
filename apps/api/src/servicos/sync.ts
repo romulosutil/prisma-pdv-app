@@ -26,9 +26,10 @@ import {
 } from '@pdv/shared';
 import { autorizacaoAtual, revalidarSessaoSync, type SessaoAutenticada } from '../auth';
 import type { Db } from '../db/conexao';
-import { contas, sessoes, caixas, clientes, eventosFiado, movimentosEstoque, itensVenda, movimentosCaixa, mudancas, mutacoesAplicadas, pagamentosVenda, produtos, vendas } from '../db/schema';
+import { contas, sessoes, caixas, clientes, detalhesPagamentosVenda, eventosFiado, movimentosEstoque, itensVenda, movimentosCaixa, mudancas, mutacoesAplicadas, pagamentosVenda, produtos, vendas } from '../db/schema';
 import { ErroApi } from '../erros';
 import { carregarAssinatura } from './assinatura';
+import { validarPagamentoInfinitePay } from './cobrancasInfinitePay';
 import { validarPagamentoMercadoPago, vincularCobrancas } from './cobrancasPix';
 import { baixarVenda, validarBaixas } from './estoque';
 import { vendaConsistente } from './valoresVenda';
@@ -199,15 +200,35 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
   // O app não deixa vender offline além da janela: criadaEm mais antigo que isso é retroação.
   if (criadoEm < adicionarDias(c.agora, -OFFLINE_MAX_DIAS)) return 'venda_fora_da_janela_offline';
   if (!vendaConsistente(v)) return 'venda_inconsistente';
-  // Manual (`provedor: null`, sem Tap) segue como antes. Integrado: só Pix do Mercado Pago com cobrança `paga` desta loja.
-  const cobrancasMp: string[] = [];
+  // Manual (provedor null/stone/outro ou confirmação manual, exceto Tap), Tap confirmado no aparelho com NSU, ou integrado validado no servidor.
+  const cobrancasIntegras: string[] = [];
   for (const p of v.pagamentos) {
-    if (p.provedor === null && p.meio !== 'tap') continue;
-    if (p.meio !== 'pix' || p.provedor !== 'mercadopago') return 'pagamento_indisponivel';
-    if (cobrancasMp.includes(p.id)) return 'pagamento_nao_confirmado';
-    const motivo = await validarPagamentoMercadoPago(c.tx, v.lojaId, v.id, p);
-    if (motivo) return motivo;
-    cobrancasMp.push(p.id);
+    const manualIdentificado =
+      (p.provedor === null || p.provedor === 'stone' || p.provedor === 'outro' || p.confirmacao === 'manual') &&
+      p.meio !== 'tap';
+    if (manualIdentificado) continue;
+
+    if (p.meio === 'tap' && p.provedor === 'infinitepay' && p.confirmacao === 'aparelho' && p.identificadorExterno) {
+      continue;
+    }
+
+    if (p.provedor === 'mercadopago' && p.meio === 'pix') {
+      if (cobrancasIntegras.includes(p.id)) return 'pagamento_nao_confirmado';
+      const motivo = await validarPagamentoMercadoPago(c.tx, v.lojaId, v.id, p);
+      if (motivo) return motivo;
+      cobrancasIntegras.push(p.id);
+      continue;
+    }
+
+    if (p.provedor === 'infinitepay' && (p.meio === 'pix' || p.meio === 'cartao_credito' || p.meio === 'cartao_debito')) {
+      if (cobrancasIntegras.includes(p.id)) return 'pagamento_nao_confirmado';
+      const motivo = await validarPagamentoInfinitePay(c.tx, v.lojaId, v.id, p);
+      if (motivo) return motivo;
+      cobrancasIntegras.push(p.id);
+      continue;
+    }
+
+    return 'pagamento_indisponivel';
   }
   if (v.fiado) {
     if (!podeUsar(c.licenca.planoId, 'fiado')) return 'recurso_plano';
@@ -260,8 +281,21 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
         criadoEm,
       })),
     );
+    const detalhes = v.pagamentos
+      .filter((p) => p.confirmacao !== undefined || p.identificadorExterno !== undefined || p.maquininha !== undefined || p.provedor === 'stone' || p.provedor === 'outro')
+      .map((p) => ({
+        pagamentoId: p.id,
+        lojaId: v.lojaId,
+        confirmacao: p.confirmacao ?? (p.provedor === 'stone' || p.provedor === 'outro' ? ('manual' as const) : ('integrado' as const)),
+        identificadorExterno: p.identificadorExterno ?? null,
+        maquininha: p.maquininha ?? null,
+        criadoEm,
+      }));
+    if (detalhes.length > 0) {
+      await c.tx.insert(detalhesPagamentosVenda).values(detalhes);
+    }
   }
-  await vincularCobrancas(c.tx, v.lojaId, v.id, cobrancasMp, c.agora);
+  await vincularCobrancas(c.tx, v.lojaId, v.id, cobrancasIntegras, c.agora);
   await baixarVenda(c.tx, v, c.agora);
   await registrarMudanca(c, 'venda', v.id);
   return null;
@@ -536,6 +570,10 @@ export async function carregarVendas(db: Db, ids: string[]): Promise<Map<string,
     db.select().from(itensVenda).where(inArray(itensVenda.vendaId, ids)).orderBy(asc(itensVenda.posicao)),
     db.select().from(pagamentosVenda).where(inArray(pagamentosVenda.vendaId, ids)).orderBy(asc(pagamentosVenda.posicao)),
   ]);
+  const detalhes = pagamentos.length > 0
+    ? await db.select().from(detalhesPagamentosVenda).where(inArray(detalhesPagamentosVenda.pagamentoId, pagamentos.map((p) => p.id)))
+    : [];
+  const detalhesPorPagamento = new Map(detalhes.map((d) => [d.pagamentoId, d]));
   for (const v of linhas) {
     resultado.set(v.id, {
       entidade: 'venda',
@@ -560,13 +598,23 @@ export async function carregarVendas(db: Db, ids: string[]): Promise<Map<string,
           })),
         pagamentos: pagamentos
           .filter((p) => p.vendaId === v.id)
-          .map((p) => ({
-            id: p.id,
-            meio: p.meio,
-            provedor: p.provedor,
-            valorCentavos: p.valorCentavos,
-            trocoCentavos: p.trocoCentavos,
-          })),
+          .map((p) => {
+            const det = detalhesPorPagamento.get(p.id);
+            return {
+              id: p.id,
+              meio: p.meio,
+              provedor: p.provedor,
+              valorCentavos: p.valorCentavos,
+              trocoCentavos: p.trocoCentavos,
+              ...(det
+                ? {
+                    confirmacao: det.confirmacao,
+                    ...(det.identificadorExterno ? { identificadorExterno: det.identificadorExterno } : {}),
+                    ...(det.maquininha ? { maquininha: det.maquininha } : {}),
+                  }
+                : {}),
+            };
+          }),
         totalCentavos: v.totalCentavos,
         status: v.status,
         criadaEm: iso(v.criadoEm),

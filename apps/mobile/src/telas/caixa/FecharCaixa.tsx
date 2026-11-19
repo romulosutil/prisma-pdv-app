@@ -92,6 +92,20 @@ export function FecharCaixa() {
         }}
         depois={<View style={{ gap: 12 }}>
           <Campo rotulo="Troco que permanece na gaveta (R$)" value={trocoFica} onChangeText={setTrocoFica} keyboardType="decimal-pad" ajuda={`O restante do valor contado será registrado como recolhido. A contagem é feita antes dessa destinação.`} />
+          <View style={estilos.atalhosTroco}>
+            <Botao
+              rotulo="Manter troco inicial"
+              variante="terciario"
+              tamanho="S"
+              onPress={() => setTrocoFica((caixa.abertura.trocoInicialCentavos / 100).toFixed(2).replace('.', ','))}
+            />
+            <Botao
+              rotulo="Zerar gaveta"
+              variante="terciario"
+              tamanho="S"
+              onPress={() => setTrocoFica('0')}
+            />
+          </View>
           {resultado ? <ResultadoDaContagem resultado={resultado} /> : null}
         </View>}
         acao={{ rotulo: 'Fechar caixa', onPress: () => setConfirmando(true), desabilitado: !digitou }}
@@ -129,5 +143,6 @@ function ResultadoDaContagem({ resultado }: { resultado: ResultadoGaveta }) {
 const estilos = StyleSheet.create({
   semCaixa: { gap: 16, paddingTop: 16 },
   esperado: { paddingHorizontal: 16, borderRadius: raio.md, backgroundColor: cores.surface },
+  atalhosTroco: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   resultado: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderRadius: raio.md },
 });

@@ -16,6 +16,7 @@ export function criarBillingDesativado(): BillingProvider {
 export function criarBilling(nome: string = 'disabled'): BillingProvider {
   switch (nome) {
     case 'disabled':
+    case 'google_play':
       return criarBillingDesativado();
     case 'mock':
       return new MockBillingProvider();

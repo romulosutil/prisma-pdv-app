@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { cores, raio, textoTeclado } from '@/tema';
 import type { TeclaNumerica } from '@/util/entradaDinheiro';
 import { Icone } from './Icone';
@@ -29,13 +29,16 @@ const ROTULO_FALADO: Record<TeclaNumerica, string> = {
 export interface TecladoNumericoProps {
   onTecla: (tecla: TeclaNumerica) => void;
   desabilitado?: boolean;
+  densidade?: 'padrao' | 'compacta' | 'auto';
 }
 
-export function TecladoNumerico({ onTecla, desabilitado }: TecladoNumericoProps) {
+export function TecladoNumerico({ onTecla, desabilitado, densidade = 'auto' }: TecladoNumericoProps) {
+  const { height, fontScale } = useWindowDimensions();
+  const compacta = densidade === 'compacta' || (densidade === 'auto' && (height < 700 || fontScale > 1.3));
   return (
-    <View style={estilos.grade} accessibilityLabel="Teclado numérico">
+    <View style={[estilos.grade, compacta && estilos.gradeCompacta]} accessibilityLabel="Teclado numérico">
       {LINHAS.map((linha, i) => (
-        <View key={i} style={estilos.linha}>
+        <View key={i} style={[estilos.linha, compacta && estilos.gradeCompacta]}>
           {linha.map((tecla) => (
             <Pressable
               key={tecla}
@@ -44,7 +47,7 @@ export function TecladoNumerico({ onTecla, desabilitado }: TecladoNumericoProps)
               accessibilityState={{ disabled: desabilitado }}
               disabled={desabilitado}
               onPress={() => onTecla(tecla)}
-              style={({ pressed }) => [estilos.tecla, pressed && estilos.pressionada, desabilitado && estilos.inativa]}
+              style={({ pressed }) => [estilos.tecla, compacta && estilos.teclaCompacta, pressed && estilos.pressionada, desabilitado && estilos.inativa]}
             >
               {tecla === 'apagar' ? (
                 <Icone nome="apagar" />
@@ -63,6 +66,7 @@ export function TecladoNumerico({ onTecla, desabilitado }: TecladoNumericoProps)
 
 const estilos = StyleSheet.create({
   grade: { gap: 8 },
+  gradeCompacta: { gap: 6 },
   linha: { flexDirection: 'row', gap: 8 },
   tecla: {
     flex: 1,
@@ -72,6 +76,7 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  teclaCompacta: { minHeight: 48 },
   pressionada: { backgroundColor: cores.surface2 },
   inativa: { opacity: 0.4 },
   digito: { ...textoTeclado, fontVariant: ['tabular-nums'] },

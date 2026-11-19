@@ -12,6 +12,7 @@ export * from './ids';
 export * from './licenca';
 export * from './planos';
 export * from './relogio';
+export * from './rotulos';
 export * from './tokens';
 export * from './caixa';
 

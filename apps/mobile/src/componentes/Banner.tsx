@@ -4,10 +4,11 @@ import { Botao } from './Botao';
 import { Icone, type NomeIcone } from './Icone';
 import { Texto } from './Texto';
 
-export type TipoBanner = 'info' | 'atencao' | 'erro';
+export type TipoBanner = 'info' | 'sucesso' | 'atencao' | 'erro';
 
 const ESTILO: Record<TipoBanner, { fundo: string; cor: string; icone: NomeIcone }> = {
   info: { fundo: cores.anilSoft, cor: cores.anil, icone: 'info' },
+  sucesso: { fundo: cores.folhaSoft, cor: cores.folha, icone: 'check' },
   atencao: { fundo: cores.ambarSoft, cor: cores.ambar, icone: 'alerta' },
   erro: { fundo: cores.pitangaSoft, cor: cores.pitanga, icone: 'erro' },
 };
@@ -24,7 +25,7 @@ export function Banner({ tipo, texto, acao }: BannerProps) {
   return (
     <View
       accessible={!acao}
-      accessibilityRole={tipo === 'info' ? undefined : 'alert'}
+      accessibilityRole={tipo === 'info' || tipo === 'sucesso' ? undefined : 'alert'}
       accessibilityLabel={acao ? undefined : texto}
       style={[estilos.caixa, { backgroundColor: e.fundo }]}
     >

@@ -85,11 +85,34 @@ export default function CriarConta() {
     }
   };
 
-  const voltarAosDados = () => { if (!trava.current) { dados.cancelarCadastro(); setDesafioId(null); setCodigo(''); setErroGeral(null); } };
+  const [avisoCodigo, setAvisoCodigo] = useState<string | null>(null);
+  const voltarAosDados = () => { if (!trava.current) { dados.cancelarCadastro(); setDesafioId(null); setCodigo(''); setErroGeral(null); setAvisoCodigo(null); } };
+
+  const reenviarCodigo = async () => {
+    if (trava.current) return;
+    const endereco = email.trim().toLowerCase();
+    trava.current = true;
+    setVerificando(true);
+    setErroGeral(null);
+    setAvisoCodigo(null);
+    try {
+      const desafio = await dados.pedirCodigoCadastro(endereco);
+      if (montado.current) {
+        setDesafioId(desafio.desafioId);
+        setCodigo('');
+        setAvisoCodigo(`Novo código enviado para ${endereco}.`);
+      }
+    } catch (erro) {
+      if (montado.current) setErroGeral(mensagemDeErro(erro));
+    } finally {
+      trava.current = false;
+      if (montado.current) setVerificando(false);
+    }
+  };
 
   return (
     <TelaBase rolavel rodape={<Botao rotulo={dados.backend.modo === 'http' && !confirmadoAtual ? desafioId ? 'Confirmar e continuar' : 'Continuar e enviar código' : 'Continuar'} onPress={continuar} carregando={verificando} />}>
-      <CabecalhoEtapa etapa={1} total={6} onVoltar={() => { if (!trava.current) router.back(); }} />
+      <CabecalhoEtapa etapa={1} total={6} onVoltar={() => { if (!trava.current) { if (desafioId) voltarAosDados(); else router.back(); } }} />
       <View style={estilos.corpo}>
         <Texto estilo="tituloXL" accessibilityRole="header">
           Vamos criar sua conta
@@ -102,8 +125,9 @@ export default function CriarConta() {
         </>}
         {desafioId ? <>
           <Texto accessibilityLiveRegion="polite">Código enviado para {email.trim().toLowerCase()}. Confira também a pasta de spam. Só depois da confirmação seguiremos para a loja.</Texto>
+          {avisoCodigo ? <Banner tipo="sucesso" texto={avisoCodigo} /> : null}
           <Campo rotulo="Código de confirmação do e-mail" autoFocus value={codigo} onChangeText={t => setCodigo(t.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6} autoComplete="one-time-code" editable={!verificando} onSubmitEditing={continuar} />
-          <Botao rotulo="Solicitar outro código" variante="terciario" desabilitado={verificando} onPress={voltarAosDados} />
+          <Botao rotulo="Reenviar código" variante="terciario" desabilitado={verificando} onPress={() => void reenviarCodigo()} />
           <Botao rotulo="Alterar dados" variante="terciario" desabilitado={verificando} onPress={voltarAosDados} />
         </> : <>
           <Campo
@@ -147,7 +171,9 @@ export default function CriarConta() {
           />
         </>}
         {erroGeral ? <Banner tipo="erro" texto={erroGeral} /> : null}
-        <Botao rotulo="Já tenho conta" variante="terciario" desabilitado={verificando} onPress={() => { if (!trava.current) { dados.cancelarCadastro(); router.replace('/entrar'); } }} />
+        {desafioId ? null : (
+          <Botao rotulo="Já tenho conta" variante="terciario" desabilitado={verificando} onPress={() => { if (!trava.current) { dados.cancelarCadastro(); router.replace('/entrar'); } }} />
+        )}
       </View>
     </TelaBase>
   );

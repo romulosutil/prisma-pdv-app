@@ -12,11 +12,13 @@ function historico(dias: number | null): string {
  * fica escrito na tela: mudou o catálogo, mudou o paywall. Vendas nunca são limitadas.
  */
 export function destaquesDoPlano(plano: Plano): string[] {
-  const { limites } = plano;
+  const { limites, recursos } = plano;
   return [
     'Vendas ilimitadas',
     limites.produtos === null ? 'Produtos ilimitados' : `Até ${limites.produtos} produtos`,
     historico(limites.historicoDias),
-    'Pix, cartão e dinheiro com confirmação manual',
+    recursos.includes('integracao_pagamentos')
+      ? 'Pix MP/InfinitePay integrado no app'
+      : 'Pix, cartão e dinheiro com confirmação manual',
   ];
 }

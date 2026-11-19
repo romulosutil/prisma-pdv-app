@@ -1,7 +1,8 @@
-import { pagamentoManualDisponivel, type Produto, type Venda } from '@pdv/shared';
+import type { Produto, Venda } from '@pdv/shared';
 import { Carrinho, type EstadoCarrinho, type Parcela } from './carrinho';
 import type { PersistenciaCheckout, RegistroCheckout } from './checkoutTipos';
 import { Observavel } from './observavel';
+import { pagamentoAceitoNoApp } from './vendas';
 
 const vazio = (): EstadoCarrinho => ({ itens: [], parcelas: [], removido: null, concluidaId: null });
 type ProdutoCarrinho = Pick<Produto, 'id' | 'nome' | 'ean' | 'precoCentavos' | 'unidade'>;
@@ -20,6 +21,7 @@ export class CarrinhoDuravel extends Observavel<EstadoCarrinho> {
     this.contexto = contexto;
   }
   pendenteNoCaixa(caixaId: string): boolean { return this.registro?.caixaId === caixaId && !this.obter().concluidaId && this.obter().itens.length > 0; }
+  vendaIdAtual(): string | null { return this.registro?.vendaId ?? null; }
   aguardarGravacoes(): Promise<void> { return this.fila; }
   limparMemoria(): void { this.registro = null; this.definir(vazio()); }
   private exigirDisponivel(): void {
@@ -81,7 +83,7 @@ export class CarrinhoDuravel extends Observavel<EstadoCarrinho> {
   readonly desfazerRemocao = () => this.mudar((r) => r.desfazerRemocao());
   readonly destacar = (chave: string) => this.mudar((r) => r.destacar(chave));
   readonly adicionarParcela = (parcela: Parcela) => this.mudar((r) => {
-    if (!pagamentoManualDisponivel(parcela)) throw new Error('Pagamento integrado indisponível nesta fase.');
+    if (!pagamentoAceitoNoApp(parcela)) throw new Error('Pagamento integrado indisponível nesta fase.');
     r.adicionarParcela(parcela);
   });
 
@@ -97,7 +99,7 @@ export class CarrinhoDuravel extends Observavel<EstadoCarrinho> {
   readonly concluir = (): Promise<Venda> => this.enfileirar(async () => {
     if (!this.persistencia) throw new Error('Persistência do checkout não configurada.');
     this.exigirDisponivel();
-    if (!this.obter().concluidaId && this.obter().parcelas.some((p) => !pagamentoManualDisponivel(p))) throw new Error('Pagamento integrado indisponível nesta fase. Preserve o checkout para recuperação.');
+    if (!this.obter().concluidaId && this.obter().parcelas.some((p) => !pagamentoAceitoNoApp(p))) throw new Error('Pagamento integrado indisponível nesta fase. Preserve o checkout para recuperação.');
     const venda = await this.persistencia.concluir();
     await this.contexto?.aposConcluir?.();
     // Não há segunda gravação: o serviço já confirmou venda/outbox/rascunho no mesmo commit.

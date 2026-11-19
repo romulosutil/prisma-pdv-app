@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { View } from 'react-native';
-import { permissoesDoPapel, type Permissao, type Vinculo } from '@pdv/shared';
+import { permissoesDoPapel, rotuloPapel, type Permissao, type Vinculo } from '@pdv/shared';
 import { Banner } from '@/componentes/Banner';
 import { Botao } from '@/componentes/Botao';
 import { BottomSheet } from '@/componentes/BottomSheet';
@@ -48,7 +48,7 @@ export default function Equipe() {
       <Texto estilo="corpo">Cada pessoa entra com seu próprio e-mail. O convite precisa ser aceito antes de liberar o acesso.</Texto>
       <Botao rotulo="Convidar pessoa" onPress={() => editar()} desabilitado={ocupado || carregandoConta} />
       {lista.map(v => <View key={v.operadorId} style={{ gap: 8, paddingVertical: 16 }}>
-        <Texto estilo="corpoMedio">{v.nome} · {v.papel}</Texto><Texto estilo="legenda">{v.email} · {ESTADOS[v.estado]}</Texto>
+        <Texto estilo="corpoMedio">{v.nome} · {rotuloPapel(v.papel)}</Texto><Texto estilo="legenda">{v.email} · {ESTADOS[v.estado]}</Texto>
         {v.papel !== 'dono' ? <>
           {v.estado === 'ativo' || v.estado === 'suspenso' ? <Botao tamanho="S" variante="terciario" rotulo={`Permissões de ${v.nome}`} onPress={() => editar(v)} desabilitado={ocupado || carregandoConta} /> : null}
           {v.estado === 'ativo' ? <Botao tamanho="S" variante="terciario" rotulo={`Suspender ${v.nome}`} onPress={() => mudarEstado(v, 'suspenso')} desabilitado={ocupado || carregandoConta} /> : null}

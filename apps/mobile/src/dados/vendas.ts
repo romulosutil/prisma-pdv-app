@@ -1,10 +1,23 @@
-import { multiplicarPreco, pagamentoManualDisponivel, somar, type Centavos, type Venda } from '@pdv/shared';
+import { multiplicarPreco, pagamentoManualDisponivel, somar, type Centavos, type PagamentoVenda, type Venda } from '@pdv/shared';
 import { registrar } from '@/diagnostico/registro';
 import { inicioDoDia } from '@/util/tempo';
 import type { Ambiente } from './ambiente';
 import { ErroDeDominio } from './erros';
 import { Persistido } from './observavel';
-import type { MeioPagamento, ProvedorPagamento } from './tipos';
+import type { MeioPagamento, ProvedorVenda } from './tipos';
+
+export function pagamentoAceitoNoApp(p: {
+  meio: MeioPagamento;
+  provedor?: ProvedorVenda | null;
+  confirmacao?: PagamentoVenda['confirmacao'];
+  identificadorExterno?: string;
+}): boolean {
+  if (pagamentoManualDisponivel(p)) return true;
+  if (p.confirmacao === 'integrado' && (p.provedor === 'infinitepay' || p.provedor === 'mercadopago') && p.meio !== 'tap') {
+    return true;
+  }
+  return p.meio === 'tap' && p.provedor === 'infinitepay' && p.confirmacao === 'aparelho' && Boolean(p.identificadorExterno);
+}
 
 export interface ItemNovaVenda {
   /** `null` para venda avulsa (valor digitado sem produto). */
@@ -17,12 +30,16 @@ export interface ItemNovaVenda {
 }
 
 export interface PagamentoNovaVenda {
+  id?: string;
   meio: MeioPagamento;
-  provedor?: ProvedorPagamento | null;
+  provedor?: ProvedorVenda | null;
   /** Quanto este meio pagou da venda (líquido: no dinheiro, sem o troco). A soma dos pagamentos é o total. */
   valorCentavos: Centavos;
   /** Troco devolvido (só dinheiro). Dinheiro recebido = valor + troco. */
   trocoCentavos?: Centavos;
+  confirmacao?: PagamentoVenda['confirmacao'];
+  identificadorExterno?: string;
+  maquininha?: string;
 }
 
 export interface NovaVenda {
@@ -104,7 +121,7 @@ export class VendasRepo extends Persistido<EstadoVendas> {
     const existente = id ? this.obter().vendas.find((v) => v.id === id) : null;
     if (existente) return existente;
     if (!id) this.contexto.autorizarVenda?.();
-    if (nova.pagamentos.some((p) => !pagamentoManualDisponivel(p))) throw new Error('Pagamento integrado indisponível nesta fase.');
+    if (nova.pagamentos.some((p) => !pagamentoAceitoNoApp(p))) throw new Error('Pagamento integrado indisponível nesta fase.');
     if (nova.itens.length === 0) throw new ErroDeDominio('sem_itens', 'Adicione ao menos um item à venda.');
     const totalCentavos = totalDosItens(nova.itens);
     if (somar(...nova.pagamentos.map((p) => p.valorCentavos), nova.fiado?.valorCentavos ?? 0) !== totalCentavos) {
@@ -126,11 +143,14 @@ export class VendasRepo extends Persistido<EstadoVendas> {
         totalCentavos: totalDoItem(item),
       })),
       pagamentos: nova.pagamentos.map((p) => ({
-        id: this.amb.novoId(),
+        id: p.id ?? this.amb.novoId(),
         meio: p.meio,
         provedor: p.provedor ?? null,
         valorCentavos: p.valorCentavos,
         trocoCentavos: p.trocoCentavos ?? 0,
+        ...(p.confirmacao ? { confirmacao: p.confirmacao } : {}),
+        ...(p.identificadorExterno ? { identificadorExterno: p.identificadorExterno } : {}),
+        ...(p.maquininha ? { maquininha: p.maquininha } : {}),
       })),
       totalCentavos,
       status: 'concluida',

@@ -1,8 +1,8 @@
-import { MeioPagamentoSchema, MutacaoSchema, ProvedorPagamentoSchema, VendaSchema, multiplicarPreco, pagamentoManualDisponivel, somar, type Venda } from '@pdv/shared';
+import { ConfirmacaoPagamentoSchema, MeioPagamentoSchema, MutacaoSchema, ProvedorPagamentoSchema, VendaSchema, multiplicarPreco, somar, type Venda } from '@pdv/shared';
 import { IdentidadeLocalSchema } from '../estadoConta';
 import { z } from 'zod';
 import type { PersistenciaCheckout, RegistroCheckout } from '../checkoutTipos';
-import type { EstadoVendas } from '../vendas';
+import { pagamentoAceitoNoApp, type EstadoVendas } from '../vendas';
 import type { ArmazenamentoSqlite } from './armazenamentoSqlite';
 import type { SqlExecutor } from './driver';
 import { lerFinanceiro, lojaLocal, type ParticaoLocal } from './financeiro';
@@ -14,8 +14,12 @@ const itemSchema = z.object({
   unidade: z.enum(['un', 'kg']), ean: z.string().nullable(),
 });
 const parcelaSchema = z.object({
+  id: z.uuid().optional(),
   meio: MeioPagamentoSchema, provedor: ProvedorPagamentoSchema.nullable().optional(),
   valorCentavos: inteiro.positive(), trocoCentavos: inteiro.nonnegative().optional(),
+  confirmacao: ConfirmacaoPagamentoSchema.optional(),
+  identificadorExterno: z.string().min(1).max(128).optional(),
+  maquininha: z.string().min(1).max(80).optional(),
 });
 const registroSchema = z.object({
   vendaId: z.uuid(), criadaEm: z.iso.datetime(), caixaId: z.uuid().nullable(),
@@ -53,7 +57,15 @@ async function vendaConcluida(tx: SqlExecutor, p: ParticaoLocal, registro: Regis
   const { vendas } = await lerFinanceiro(tx, 'vendas', p) as EstadoVendas;
   const venda = vendas.find((v) => v.id === registro.vendaId);
   const itens = registro.estado.itens.map((i) => ({ produtoId: i.produtoId, descricao: i.descricao, precoUnitarioCentavos: i.precoUnitarioCentavos, quantidadeMilesimos: i.quantidadeMilesimos, totalCentavos: multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos) }));
-  const pagamentos = registro.estado.parcelas.map((parcela) => ({ meio: parcela.meio, provedor: parcela.provedor ?? null, valorCentavos: parcela.valorCentavos, trocoCentavos: parcela.trocoCentavos ?? 0 }));
+  const pagamentos = registro.estado.parcelas.map((parcela) => ({
+    meio: parcela.meio,
+    provedor: parcela.provedor ?? null,
+    valorCentavos: parcela.valorCentavos,
+    trocoCentavos: parcela.trocoCentavos ?? 0,
+    ...(parcela.confirmacao ? { confirmacao: parcela.confirmacao } : {}),
+    ...(parcela.identificadorExterno ? { identificadorExterno: parcela.identificadorExterno } : {}),
+    ...(parcela.maquininha ? { maquininha: parcela.maquininha } : {}),
+  }));
   const itensVenda = venda?.itens.map(({ id: _id, ...item }) => item);
   const pagamentosVenda = venda?.pagamentos.map(({ id: _id, ...pagamento }) => pagamento);
   // Cancelamento comercial posterior é legítimo; sua auditoria pertence a P0-04.
@@ -91,7 +103,7 @@ export class CheckoutSqlite implements PersistenciaCheckout {
       if (anterior && !anterior.estado.concluidaId && anterior.estado.parcelas.length) {
         if (!novo || !igual(anterior.estado.itens, novo.estado.itens) || !igual(anterior.estado.parcelas, novo.estado.parcelas.slice(0, anterior.estado.parcelas.length))) throw new Error('Checkout com pagamento recebido não pode ser alterado ou descartado.');
       }
-      if (novo?.estado.parcelas.slice(anterior?.estado.parcelas.length ?? 0).some((p) => !pagamentoManualDisponivel(p))) throw new Error('Pagamento integrado indisponível nesta fase.');
+      if (novo?.estado.parcelas.slice(anterior?.estado.parcelas.length ?? 0).some((p) => !pagamentoAceitoNoApp(p))) throw new Error('Pagamento integrado indisponível nesta fase.');
       if (!novo) {
         await tx.runAsync('DELETE FROM rascunhos WHERE conta_id = ? AND loja_id = ?', p.contaId, lojaLocal(p));
       } else {
@@ -122,12 +134,21 @@ export class CheckoutSqlite implements PersistenciaCheckout {
       }
       if (existente) throw new Error('Venda já existe sem conclusão do checkout.');
       const { itens, parcelas } = registro.estado;
-      if (parcelas.some((p) => !pagamentoManualDisponivel(p))) throw new Error('Pagamento integrado indisponível nesta fase. Preserve o checkout para recuperação.');
+      if (parcelas.some((p) => !pagamentoAceitoNoApp(p))) throw new Error('Pagamento integrado indisponível nesta fase. Preserve o checkout para recuperação.');
       const totalCentavos = somar(...itens.map((i) => multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos)));
       if (!itens.length || !parcelas.length || somar(...parcelas.map((p) => p.valorCentavos)) !== totalCentavos) throw new Error('Pagamento incompleto ou checkout sem itens.');
       const venda = VendaSchema.parse({ id: registro.vendaId, lojaId: p.lojaId, aparelhoId: sessao.data.aparelhoId, operadorId: sessao.data.operadorId,
         itens: itens.map((i) => ({ id: this.novoId(), produtoId: i.produtoId, descricao: i.descricao, precoUnitarioCentavos: i.precoUnitarioCentavos, quantidadeMilesimos: i.quantidadeMilesimos, totalCentavos: multiplicarPreco(i.precoUnitarioCentavos, i.quantidadeMilesimos) })),
-        pagamentos: parcelas.map((parcela) => ({ id: this.novoId(), meio: parcela.meio, provedor: parcela.provedor ?? null, valorCentavos: parcela.valorCentavos, trocoCentavos: parcela.trocoCentavos ?? 0 })), totalCentavos, status: 'concluida', criadaEm: registro.criadaEm, caixaId: registro.caixaId });
+        pagamentos: parcelas.map((parcela) => ({
+          id: parcela.id ?? this.novoId(),
+          meio: parcela.meio,
+          provedor: parcela.provedor ?? null,
+          valorCentavos: parcela.valorCentavos,
+          trocoCentavos: parcela.trocoCentavos ?? 0,
+          ...(parcela.confirmacao ? { confirmacao: parcela.confirmacao } : {}),
+          ...(parcela.identificadorExterno ? { identificadorExterno: parcela.identificadorExterno } : {}),
+          ...(parcela.maquininha ? { maquininha: parcela.maquininha } : {}),
+        })), totalCentavos, status: 'concluida', criadaEm: registro.criadaEm, caixaId: registro.caixaId });
       const mutacao = MutacaoSchema.parse({ id: this.novoId(), criadaEm: registro.criadaEm, entidade: 'venda', operacao: 'upsert', dados: venda });
       await tx.runAsync('INSERT INTO vendas VALUES (?, ?, ?, ?, ?)', p.contaId, lojaLocal(p), venda.id, registro.caixaId, JSON.stringify(venda));
       for (const [tabela, filhos] of [['itens_venda', venda.itens], ['pagamentos_venda', venda.pagamentos]] as const) {

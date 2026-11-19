@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { cores, raio } from '@/tema';
 import { useFoco } from '@/tema/useFoco';
+import { Icone } from './Icone';
 import { Texto } from './Texto';
 
 export interface LinhaListaProps {
@@ -11,6 +12,8 @@ export interface LinhaListaProps {
   miniatura?: ReactNode;
   /** Valor à direita (ex.: `<Dinheiro />`). */
   valor?: ReactNode;
+  /** Exibe chevron à direita quando há `onPress` e nenhum `valor`. */
+  navegavel?: boolean;
   /** Nome lido pelo leitor de tela quando o valor à direita não for texto simples. */
   rotuloAcessivel?: string;
   onPress?: () => void;
@@ -20,7 +23,7 @@ export interface LinhaListaProps {
 }
 
 /** Linha de lista de 64–72 de altura: miniatura, título + legenda e valor tabular à direita. */
-export function LinhaLista({ titulo, subtitulo, miniatura, valor, rotuloAcessivel, onPress, divisor, testID }: LinhaListaProps) {
+export function LinhaLista({ titulo, subtitulo, miniatura, valor, navegavel, rotuloAcessivel, onPress, divisor, testID }: LinhaListaProps) {
   const { aoFocar, aoDesfocar, anel } = useFoco();
   const conteudo = (
     <>
@@ -35,7 +38,7 @@ export function LinhaLista({ titulo, subtitulo, miniatura, valor, rotuloAcessive
           </Texto>
         ) : null}
       </View>
-      {valor}
+      {valor ?? (onPress && navegavel ? <Icone nome="chevronDireita" tamanho={20} cor={cores.ink3} /> : null)}
     </>
   );
   const estiloLinha = [estilos.linha, divisor && estilos.divisor];

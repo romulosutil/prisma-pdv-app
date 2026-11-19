@@ -198,7 +198,7 @@ describe('reconciliação das migrações de produção (estado deixado pela mai
       esperado = await fotoSchema(referencia);
       historicoEsperado = await historico(referencia);
     } finally { await referencia.fechar(); }
-    expect(historicoEsperado).toHaveLength(15); // 0000-0014 (0013: Pix do Mercado Pago; 0014: OAuth, N2)
+    expect(historicoEsperado).toHaveLength(16); // 0000-0015 (0013: MP; 0014: OAuth; 0015: InfinitePay, Play Billing, detalhes pagamento)
 
     const banco = await bancoNoEstadoDaMain('pdv');
     try {

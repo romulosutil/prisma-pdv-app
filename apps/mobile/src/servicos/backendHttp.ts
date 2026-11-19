@@ -2,6 +2,16 @@ import { OpcoesRelatorioSchema, ComandoGestaoSchema, ClienteSchema, EstoqueResSc
 import {
   AssinaturaResSchema,
   CaixaSchema, PainelCaixasSchema, ReservarCaixaReqSchema, OperacaoCaixaReqSchema, AutorizarTransferenciaReqSchema, TrocarAparelhoCaixaReqSchema,
+  CobrancaPixSchema,
+  ConectarInfinitePayReqSchema,
+  ConectarMercadoPagoReqSchema,
+  ConexaoInfinitePaySchema,
+  ConexaoMercadoPagoSchema,
+  ConfiguracaoCobrancaResSchema,
+  ConfirmarCompraPlayReqSchema,
+  CriarCobrancaPixReqSchema,
+  InicioOAuthMercadoPagoSchema,
+  RestaurarCompraPlayReqSchema,
   SyncPushReqSchema, SyncPushResSchema, SyncPullResSchema,
   PerfilResSchema,
   AparelhosResSchema,
@@ -14,12 +24,22 @@ import {
   VinculosSchema, VinculoSchema,
   type ConvidarReq, type AlterarVinculoReq,
   type AssinaturaRes,
+  type CobrancaPix,
+  type ConectarInfinitePayReq,
+  type ConectarMercadoPagoReq,
+  type ConexaoInfinitePay,
+  type ConexaoMercadoPago,
+  type ConfiguracaoCobrancaRes,
+  type ConfirmarCompraPlayReq,
   type CriarAssinaturaReq,
+  type CriarCobrancaPixReq,
   type CriarContaReq,
+  type InicioOAuthMercadoPago,
   type LoginReq,
   type IniciarRecuperacaoReq, type ConfirmarRecuperacaoReq, type RecuperacaoAparelho,
   type Plano,
   type PlanoId,
+  type RestaurarCompraPlayReq,
   type Sessao,
   type SyncPushReq,
 } from '@pdv/shared';
@@ -195,6 +215,74 @@ export class BackendHttp implements Backend {
     return this.chamar('PUT', '/assinatura/cartao', AssinaturaResSchema, { corpo: { tokenCartao } });
   }
 
+  obterConfiguracaoCobranca(): Promise<ConfiguracaoCobrancaRes> {
+    return this.chamar('GET', '/assinatura/configuracao', ConfiguracaoCobrancaResSchema, { publica: true });
+  }
+
+  confirmarCompraGooglePlay(req: ConfirmarCompraPlayReq): Promise<AssinaturaRes> {
+    return this.chamar('POST', '/assinatura/google-play/confirmar', AssinaturaResSchema, {
+      corpo: ConfirmarCompraPlayReqSchema.parse(req),
+    });
+  }
+
+  restaurarCompraGooglePlay(req: RestaurarCompraPlayReq): Promise<AssinaturaRes> {
+    return this.chamar('POST', '/assinatura/google-play/restaurar', AssinaturaResSchema, {
+      corpo: RestaurarCompraPlayReqSchema.parse(req),
+    });
+  }
+
+  ativarPlanoGratuito(): Promise<AssinaturaRes> {
+    return this.chamar('POST', '/assinatura/gratuito', AssinaturaResSchema, {});
+  }
+
+  obterConexaoMercadoPago(): Promise<ConexaoMercadoPago> {
+    return this.chamar('GET', '/pagamentos/mercadopago/conexao', ConexaoMercadoPagoSchema, {});
+  }
+
+  conectarMercadoPago(req: ConectarMercadoPagoReq): Promise<ConexaoMercadoPago> {
+    return this.chamar('PUT', '/pagamentos/mercadopago/conexao', ConexaoMercadoPagoSchema, {
+      corpo: ConectarMercadoPagoReqSchema.parse(req),
+    });
+  }
+
+  async desconectarMercadoPago(): Promise<void> {
+    await this.chamar('DELETE', '/pagamentos/mercadopago/conexao', null, { espera204: true });
+  }
+
+  iniciarOAuthMercadoPago(): Promise<InicioOAuthMercadoPago> {
+    return this.chamar('POST', '/pagamentos/mercadopago/oauth/iniciar', InicioOAuthMercadoPagoSchema, {});
+  }
+
+  obterConexaoInfinitePay(): Promise<ConexaoInfinitePay> {
+    return this.chamar('GET', '/pagamentos/infinitepay/conexao', ConexaoInfinitePaySchema, {});
+  }
+
+  conectarInfinitePay(req: ConectarInfinitePayReq): Promise<ConexaoInfinitePay> {
+    return this.chamar('PUT', '/pagamentos/infinitepay/conexao', ConexaoInfinitePaySchema, {
+      corpo: ConectarInfinitePayReqSchema.parse(req),
+    });
+  }
+
+  async desconectarInfinitePay(): Promise<void> {
+    await this.chamar('DELETE', '/pagamentos/infinitepay/conexao', null, { espera204: true });
+  }
+
+  criarCobrancaIntegrada(req: CriarCobrancaPixReq): Promise<CobrancaPix> {
+    return this.chamar('POST', '/pagamentos/cobrancas', CobrancaPixSchema, {
+      corpo: CriarCobrancaPixReqSchema.parse(req),
+    });
+  }
+
+  acompanharCobrancaIntegrada(id: string): Promise<CobrancaPix> {
+    z.uuid().parse(id);
+    return this.chamar('GET', `/pagamentos/cobrancas/${encodeURIComponent(id)}`, CobrancaPixSchema, {});
+  }
+
+  cancelarCobrancaIntegrada(id: string): Promise<CobrancaPix> {
+    z.uuid().parse(id);
+    return this.chamar('POST', `/pagamentos/cobrancas/${encodeURIComponent(id)}/cancelar`, CobrancaPixSchema, {});
+  }
+
   private async chamar<T>(metodo: string, caminho: string, schema: ZodType<T> | null, opcoes: OpcoesChamada): Promise<T> {
     const inicio = Date.now();
     const cabecalhos: Record<string, string> = { Accept: 'application/json' };
@@ -266,11 +354,30 @@ function safeJson(texto: string): unknown {
   }
 }
 
+const MENSAGENS_PAGAMENTO_CONFLITO = new Set([
+  'pagamentos_indisponiveis',
+  'pagador_nao_configurado',
+  'oauth_indisponivel',
+  'google_play_nao_configurado',
+  'mercadopago_nao_conectado',
+  'infinitepay_nao_conectado',
+  'compra_pendente',
+  'compra_nao_ativa',
+  'token_em_outra_conta',
+]);
+
 function erroDaResposta(status: number, corpo: unknown): ErroBackend {
   if (status === 429) return new ErroBackend('limite_autenticacao', '', status);
   const campos = typeof corpo === 'object' && corpo !== null ? (corpo as Record<string, unknown>) : {};
   if (status === 403 && campos.erro === 'proibido') return new ErroBackend('permissao_negada', '', status);
-  if (status === 409 && campos.erro === 'conflito' && typeof campos.mensagem === 'string' && campos.mensagem.length <= 500) return new ErroBackend('conflito', campos.mensagem, status);
+  if (
+    (status === 409 || status === 503) &&
+    typeof campos.mensagem === 'string' &&
+    campos.mensagem.length <= 500 &&
+    (campos.erro === 'conflito' || (typeof campos.erro === 'string' && MENSAGENS_PAGAMENTO_CONFLITO.has(campos.erro)))
+  ) {
+    return new ErroBackend('conflito', campos.mensagem, status);
+  }
   const conflito = status === 409 ? [campos.codigo, campos.erro].find((v): v is string => typeof v === 'string' && CODIGOS_CONFLITO.includes(v)) : undefined;
   if (conflito) return new ErroBackend(conflito as CodigoErroBackend, '', status);
   const codigoServidor = [campos.codigo, campos.erro].find((v): v is string => typeof v === 'string' && CODIGOS_CONHECIDOS.includes(v));

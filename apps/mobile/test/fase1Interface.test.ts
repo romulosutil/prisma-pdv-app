@@ -36,6 +36,7 @@ vi.mock('@/componentes/CabecalhoEtapa', () => ({ CabecalhoEtapa: 'CabecalhoEtapa
 vi.mock('@/componentes/Chip', () => ({ Chip: 'Chip' }));
 vi.mock('@/componentes/Dinheiro', () => ({ Dinheiro: 'Dinheiro' }));
 vi.mock('@/componentes/Icone', () => ({ Icone: 'Icone' }));
+vi.mock('@/componentes/Ilustra', () => ({ Ilustra: 'Ilustra' }));
 vi.mock('@/componentes/TelaBase', () => ({ TelaBase: 'TelaBase' }));
 vi.mock('@/componentes/Texto', () => ({ Texto: 'Texto' }));
 vi.mock('@/componentes/Interruptor', () => ({ Interruptor: 'Interruptor' }));
@@ -56,8 +57,9 @@ vi.mock('@/dados/hooks', () => ({
 vi.mock('@/diagnostico/registro', () => ({ registrar: vi.fn(), salvarAgora: vi.fn() }));
 vi.mock('@/util/ferramentasTeste', () => ({ FERRAMENTAS_TESTE: false }));
 vi.mock('@/servicos/provedoresPagamento', () => ({ provedoresPagamento: new Proxy({}, { get: () => ui.provider }) }));
-vi.mock('../src/telas/pagar/useCobranca', () => ({ useCobranca: () => ({ finalizar: vi.fn(), ocupado: false }) }));
+vi.mock('../src/telas/pagar/useCobranca', () => ({ useCobranca: () => ({ finalizar: vi.fn(), ocupado: false, valorCentavos: 1000, dividindo: false, avancar: vi.fn() }) }));
 vi.mock('../src/telas/pagar/PixEstatico', () => ({ PixEstatico: 'PixEstatico' }));
+vi.mock('../src/telas/pagar/PixDinamico', () => ({ PixDinamico: 'PixDinamico' }));
 vi.mock('../src/telas/pagar/CabecalhoPagamento', () => ({ CabecalhoPagamento: 'CabecalhoPagamento' }));
 vi.mock('../src/telas/pagar/FolhaValorParte', () => ({ FolhaValorParte: 'FolhaValorParte' }));
 
@@ -96,7 +98,10 @@ describe('cobrança manual na interface', () => {
     expect(ui.push).toHaveBeenCalledWith({ pathname: '/pagar/pix', params: { valor: '1250', dividir: '1' } });
   });
 
-  it('ignora o provedor em rotas diretas e não inicia simulador', () => {
+  it('abre PixDinamico quando provedor é informado na rota e PixEstatico sem provedor', () => {
+    ui.params = { provedor: 'mercadopago', valor: '1000', dividir: '1' };
+    expect(TelaPix().type).toBe('PixDinamico');
+    ui.params = { valor: '1000', dividir: '1' } as any;
     expect(TelaPix().type).toBe('PixEstatico');
     for (const tela of [TelaTap, TelaTapFalha, TelaPixPago]) {
       const destino = tela();
@@ -106,7 +111,7 @@ describe('cobrança manual na interface', () => {
     expect(ui.provider).not.toHaveBeenCalled();
   });
 
-  it('não oferece conexões nos ajustes mesmo com preferências antigas conectadas', () => {
+  it('oferece acesso a Maquininhas e pagamentos nos ajustes preservando os meios de recebimento', () => {
     const elementosAjustes = elementos(Ajustes());
     const recebimentos = elementosAjustes.filter((e) => e.type === 'TilePagamento');
     expect(recebimentos.map((e) => e.props.titulo)).toEqual(['Pix', 'Cartão', 'Dinheiro']);
@@ -114,13 +119,13 @@ describe('cobrança manual na interface', () => {
     expect(ui.provider).not.toHaveBeenCalled();
   });
 
-  it('não anuncia integrações e recursos avançados nos destaques', () => {
+  it('não anuncia integrações não homologadas nos destaques', () => {
     for (const plano of Object.values(PLANOS)) {
       expect(destaquesDoPlano(plano).join(' ')).not.toMatch(/tap|automátic|fiado|lojas/i);
     }
   });
 
-  it('apresenta somente meios manuais no onboarding, sem conectar provedores', () => {
+  it('apresenta os meios principais e botão de conexão de maquininhas no onboarding', () => {
     const tiles = elementos(Pagamentos()).filter((e) => e.type === 'TilePagamento');
     expect(tiles.map((e) => [e.props.titulo, e.props.estado, e.props.onPress])).toEqual([
       ['Pix', 'sempre_ativo', undefined], ['Cartão', 'sempre_ativo', undefined], ['Dinheiro', 'sempre_ativo', undefined],

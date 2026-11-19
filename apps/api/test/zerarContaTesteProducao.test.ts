@@ -23,8 +23,8 @@ const LOJA_TESTE = 'Loja Teste M4';
 /** Tabelas com FK (direta ou indireta) para contas/lojas: precisam terminar vazias. */
 const TABELAS_DA_CONTA = [
   'contas', 'lojas', 'operadores', 'aparelhos', 'sessoes', 'recuperacoes_aparelho', 'produtos', 'vendas',
-  'itens_venda', 'pagamentos_venda', 'caixas', 'movimentos_caixa', 'auditoria_caixa', 'catalogo_ean_confirmacoes',
-  'mudancas', 'mutacoes_aplicadas', 'assinaturas', 'faturas', 'eventos_cobranca', 'testes_usados',
+  'itens_venda', 'pagamentos_venda', 'detalhes_pagamentos_venda', 'caixas', 'movimentos_caixa', 'auditoria_caixa', 'catalogo_ean_confirmacoes',
+  'mudancas', 'mutacoes_aplicadas', 'assinaturas', 'assinaturas_play', 'faturas', 'eventos_cobranca', 'testes_usados',
   'movimentos_estoque', 'clientes', 'eventos_fiado', 'solicitacoes_suporte', 'usuarios', 'codigos_login', 'entregas_codigo',
   'conexoes_pagamento', 'cobrancas_pagamento', 'eventos_cobranca_pagamento', 'estados_oauth_pagamento',
 ];
@@ -154,6 +154,11 @@ async function semearContaTeste() {
       VALUES ('${gerarId()}', '${cobrancaPix}', '${c.lojaId}', 'criada', '{}', ${agora});
     INSERT INTO estados_oauth_pagamento (id, conta_id, loja_id, operador_id, provedor, estado_hash, criado_em, expira_em)
       VALUES ('${gerarId()}', '${c.contaId}', '${c.lojaId}', '${c.operadorId}', 'mercadopago', 'hash-${gerarId()}', ${agora}, ${agora});
+    INSERT INTO detalhes_pagamentos_venda (pagamento_id, loja_id, confirmacao, maquininha, criado_em)
+      SELECT id, loja_id, 'manual', 'Stone', ${agora} FROM pagamentos_venda WHERE venda_id = '${v.id}' LIMIT 1;
+    INSERT INTO assinaturas_play (id, conta_id, assinatura_id, package_name, product_id, purchase_token_hash, estado_play, expira_em, criado_em, atualizado_em)
+      SELECT '${gerarId()}', conta_id, id, 'br.com.pdv.mobile', 'prisma_pro_mensal', 'hash-play-${gerarId()}', 'SUBSCRIPTION_STATE_ACTIVE', ${agora}, ${agora}, ${agora}
+        FROM assinaturas WHERE conta_id = '${c.contaId}';
   `);
   return c;
 }

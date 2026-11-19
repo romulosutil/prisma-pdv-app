@@ -22,6 +22,8 @@ export interface CampoProps
     | 'editable'
     | 'testID'
     | 'autoFocus'
+    | 'multiline'
+    | 'numberOfLines'
   > {
   rotulo: string;
   erro?: string | null;
@@ -29,10 +31,12 @@ export interface CampoProps
   ajuda?: string;
   /** Conteúdo à direita dentro da caixa (ex.: bandeira do cartão). */
   adorno?: React.ReactNode;
+  fundo?: string;
+  contadorCaracteres?: boolean;
 }
 
 export const Campo = forwardRef<TextInputInstance, CampoProps>(function Campo(
-  { rotulo, erro, ajuda, adorno, onBlur, editable = true, ...entrada },
+  { rotulo, erro, ajuda, adorno, fundo, contadorCaracteres, onBlur, editable = true, multiline, maxLength, value, ...entrada },
   ref,
 ) {
   const [focado, setFocado] = useState(false);
@@ -46,13 +50,23 @@ export const Campo = forwardRef<TextInputInstance, CampoProps>(function Campo(
 
   return (
     <View style={estilos.grupo}>
-      <Texto nativeID={idRotulo} estilo="label" cor={cores.ink2}>
-        {rotulo}
-      </Texto>
-      <View style={[estilos.caixa, { borderColor: corAnel }, !editable && estilos.desabilitado]}>
+      <View style={estilos.cabecalho}>
+        <Texto nativeID={idRotulo} estilo="label" cor={cores.ink2}>
+          {rotulo}
+        </Texto>
+        {contadorCaracteres && maxLength ? (
+          <Texto estilo="legenda" cor={cores.ink3} numerico>
+            {`${(value ?? '').length}/${maxLength}`}
+          </Texto>
+        ) : null}
+      </View>
+      <View style={[estilos.caixa, fundo ? { backgroundColor: fundo } : null, multiline && estilos.caixaMultilinha, { borderColor: corAnel }, !editable && estilos.desabilitado]}>
         <TextInput
           ref={ref}
           {...entrada}
+          value={value}
+          maxLength={maxLength}
+          multiline={multiline}
           editable={editable}
           accessibilityLabel={rotulo}
           accessibilityHint={erro ?? ajuda}
@@ -65,7 +79,7 @@ export const Campo = forwardRef<TextInputInstance, CampoProps>(function Campo(
             setFocado(false);
             onBlur?.(e);
           }}
-          style={[texto.corpoL, estilos.entrada]}
+          style={[texto.corpoL, estilos.entrada, multiline && estilos.entradaMultilinha]}
         />
         {adorno}
       </View>
@@ -84,6 +98,7 @@ export const Campo = forwardRef<TextInputInstance, CampoProps>(function Campo(
 
 const estilos = StyleSheet.create({
   grupo: { gap: 8 },
+  cabecalho: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   caixa: {
     minHeight: 56,
     flexDirection: 'row',
@@ -94,6 +109,8 @@ const estilos = StyleSheet.create({
     borderWidth: 2,
     backgroundColor: cores.surface,
   },
+  caixaMultilinha: { minHeight: 112, alignItems: 'flex-start', paddingVertical: 10 },
   desabilitado: { opacity: 0.5 },
   entrada: { flex: 1, minHeight: 52, color: cores.ink, fontFamily: texto.corpoMedio.fontFamily, outlineWidth: 0 },
+  entradaMultilinha: { minHeight: 92, textAlignVertical: 'top' },
 });

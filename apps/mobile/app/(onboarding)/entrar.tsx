@@ -1,7 +1,7 @@
 import { useNavigation, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
-import type { RecuperacaoAparelho, Vinculo } from '@pdv/shared';
+import { rotuloPapel, type RecuperacaoAparelho, type Vinculo } from '@pdv/shared';
 import { Banner } from '@/componentes/Banner';
 import { Botao } from '@/componentes/Botao';
 import { BotaoIcone } from '@/componentes/BotaoIcone';
@@ -178,8 +178,8 @@ export default function Entrar() {
           {oferta ? <Botao rotulo="Recuperar acesso neste aparelho" variante="secundario" onPress={iniciar} carregando={ocupado || carregandoConta} /> : null}
           {vinculos ? <>
             <Texto estilo="tituloL">Escolha onde trabalhar</Texto>
-            {vinculos.map(v => <Pressable key={v.operadorId} accessibilityRole="radio" accessibilityLabel={`${v.nomeLoja}, ${v.papel}${v.estado === 'convidado' ? ', convite pendente' : ''}`} accessibilityState={{ checked: vinculoId === v.operadorId, disabled: ocupado || carregandoConta }} disabled={ocupado || carregandoConta} onPress={() => setVinculoId(v.operadorId)} style={estilos.opcao}>
-              <Texto estilo="corpo">{vinculoId === v.operadorId ? '● ' : '○ '}{v.nomeLoja} · {v.papel}</Texto>
+            {vinculos.map(v => <Pressable key={v.operadorId} accessibilityRole="radio" accessibilityLabel={`${v.nomeLoja}, ${rotuloPapel(v.papel)}${v.estado === 'convidado' ? ', convite pendente' : ''}`} accessibilityState={{ checked: vinculoId === v.operadorId, disabled: ocupado || carregandoConta }} disabled={ocupado || carregandoConta} onPress={() => setVinculoId(v.operadorId)} style={estilos.opcao}>
+              <Texto estilo="corpo">{vinculoId === v.operadorId ? '● ' : '○ '}{v.nomeLoja} · {rotuloPapel(v.papel)}</Texto>
               <Texto estilo="legenda">{v.estado === 'convidado' ? 'Convite pendente: ao continuar, você aceita participar desta loja.' : 'Acesso autorizado'}</Texto>
             </Pressable>)}
           </> : null}

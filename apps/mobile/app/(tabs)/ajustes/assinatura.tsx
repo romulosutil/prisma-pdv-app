@@ -1,4 +1,4 @@
-import { formatarBRL, formatarData, formatarDataCurta, PLANOS, PLANOS_DISPONIVEIS, valorMensalAssinatura, type PlanoId } from '@pdv/shared';
+import { formatarBRL, formatarData, formatarDataCurta, PLANOS, PLANOS_DISPONIVEIS, valorMensalAssinatura, type ConfiguracaoCobrancaRes, type PlanoId } from '@pdv/shared';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, View } from 'react-native';
@@ -15,6 +15,7 @@ import { useToast } from '@/componentes/Toast';
 import { useAssinatura, useDados } from '@/dados/hooks';
 import { useObservavel } from '@/dados/observavel';
 import { mensagemDeErro } from '@/servicos/backend';
+import { abrirGerenciamentoPlay, iniciarAssinaturaPlay, restaurarComprasPlay } from '@/servicos/playBilling';
 import { cores, raio } from '@/tema';
 import { useFoco } from '@/tema/useFoco';
 import { rotuloBandeira } from '@/util/cartao';
@@ -32,7 +33,16 @@ export default function Assinatura() {
   const desvioDeDias = useObservavel(dados.relogio);
   const [folha, setFolha] = useState<Folha>(null);
   const [planoEscolhido, setPlanoEscolhido] = useState<PlanoId | null>(null);
+  const [configPlay, setConfigPlay] = useState<ConfiguracaoCobrancaRes | null>(null);
   const [ocupado, setOcupado] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+    dados.backend?.obterConfiguracaoCobranca?.()
+      .then((cfg) => { if (ativo) setConfigPlay(cfg); })
+      .catch(() => undefined);
+    return () => { ativo = false; };
+  }, [dados.backend]);
 
   // Quem usa leitor de tela precisa saber quando a situação muda (ex.: o teste acabou e a cobrança falhou).
   const statusAnterior = useRef(assinatura?.status);
@@ -65,13 +75,29 @@ export default function Assinatura() {
     );
   }
 
+  const modoGooglePlay = configPlay?.canal === 'google_play' || (modo === 'http' && assinatura.cartao === null);
+  const packageName = configPlay?.packageName ?? 'br.com.pdv.mobile';
+  const sku = configPlay?.skuProMensal ?? 'prisma_pro_mensal';
   const plano = PLANOS[assinatura.planoId];
   const status = STATUS_VISUAL[assinatura.status];
   const precoDaProxima = valorMensalAssinatura(assinatura);
   const previa = planoEscolhido ? servico.previaTroca(planoEscolhido) : null;
-  const podeTrocar = assinatura.planoId !== 'pro' && (assinatura.status === 'em_teste' || assinatura.status === 'ativa');
-  const podeCancelar = assinatura.status !== 'cancelada' && assinatura.status !== 'sem_assinatura';
+  const podeTrocar = !modoGooglePlay && assinatura.planoId !== 'pro' && (assinatura.status === 'em_teste' || assinatura.status === 'ativa');
+  const podeCancelar = !modoGooglePlay && assinatura.status !== 'cancelada' && assinatura.status !== 'sem_assinatura';
   const fimDoAcesso = assinatura.status === 'em_teste' ? assinatura.testeTerminaEm : assinatura.periodoAtualFim;
+
+  const assinarPlayPro = () =>
+    executar(async () => {
+      const compra = await iniciarAssinaturaPlay({ packageName, sku, contaId: assinatura.contaId });
+      await servico.confirmarCompraGooglePlay(compra);
+    }, 'Assinatura Pro ativada pela Google Play.');
+
+  const restaurarPlay = () =>
+    executar(async () => {
+      const compra = await restaurarComprasPlay({ packageName, sku });
+      if (!compra) throw new Error('Nenhuma assinatura ativa foi encontrada na sua conta Google Play.');
+      await servico.restaurarCompraGooglePlay(compra);
+    }, 'Assinatura restaurada.');
 
   const executar = async (acao: () => Promise<void>, sucesso: string) => {
     setOcupado(true);
@@ -153,27 +179,71 @@ export default function Assinatura() {
       {assinatura.status === 'inadimplente' ? (
         <Banner
           tipo="erro"
-          texto="Não conseguimos cobrar seu cartão. Atualize para continuar vendendo."
-          acao={{ rotulo: 'Atualizar cartão', aoPressionar: () => router.push('/atualizar-cartao') }}
+          texto={
+            modoGooglePlay
+              ? 'Houve uma falha no pagamento pela Google Play. Regularize sua forma de pagamento na Play Store.'
+              : 'Não conseguimos cobrar seu cartão. Atualize para continuar vendendo.'
+          }
+          acao={
+            modoGooglePlay
+              ? { rotulo: 'Abrir Google Play', aoPressionar: () => void abrirGerenciamentoPlay(packageName, sku) }
+              : { rotulo: 'Atualizar cartão', aoPressionar: () => router.push('/atualizar-cartao') }
+          }
         />
       ) : null}
 
-      <Secao titulo="Cartão">
-        <View style={estilos.cartao}>
-          <Icone nome="cartao" />
-          <Texto
-            estilo="corpoMedio"
-            style={estilos.numeroCartao}
-            accessibilityLabel={assinatura.cartao ? `${rotuloBandeira(assinatura.cartao.bandeira)} com final ${assinatura.cartao.ultimos4}` : 'Nenhum cartão cadastrado'}
-          >
-            {assinatura.cartao ? `${rotuloBandeira(assinatura.cartao.bandeira)} •••• ${assinatura.cartao.ultimos4}` : 'Nenhum cartão'}
-          </Texto>
-          <Botao rotulo="Atualizar cartão" variante="secundario" tamanho="S" onPress={() => router.push('/atualizar-cartao')} />
-        </View>
-      </Secao>
+      {modoGooglePlay ? (
+        <Secao titulo="Assinatura na Google Play">
+          <View style={estilos.acoes}>
+            {assinatura.planoId === 'free' || assinatura.status === 'suspensa' || assinatura.status === 'cancelada' ? (
+              <Botao
+                rotulo={`Assinar Plano Pro (${formatarBRL(PLANOS.pro.precoMensalCentavos)}/mês)`}
+                carregando={ocupado}
+                onPress={assinarPlayPro}
+              />
+            ) : (
+              <>
+                <Botao
+                  rotulo="Gerenciar assinatura na Google Play"
+                  variante="secundario"
+                  onPress={() => void abrirGerenciamentoPlay(packageName, sku)}
+                />
+                {dados.backend?.ativarPlanoGratuito ? (
+                  <Botao
+                    rotulo="Voltar para o plano gratuito"
+                    variante="terciario"
+                    carregando={ocupado}
+                    onPress={() => executar(() => servico.ativarPlanoGratuito(), 'Plano alterado para Gratuito.')}
+                  />
+                ) : null}
+              </>
+            )}
+            <Botao
+              rotulo="Restaurar compra"
+              variante="terciario"
+              carregando={ocupado}
+              onPress={restaurarPlay}
+            />
+          </View>
+        </Secao>
+      ) : (
+        <Secao titulo="Cartão">
+          <View style={estilos.cartao}>
+            <Icone nome="cartao" />
+            <Texto
+              estilo="corpoMedio"
+              style={estilos.numeroCartao}
+              accessibilityLabel={assinatura.cartao ? `${rotuloBandeira(assinatura.cartao.bandeira)} com final ${assinatura.cartao.ultimos4}` : 'Nenhum cartão cadastrado'}
+            >
+              {assinatura.cartao ? `${rotuloBandeira(assinatura.cartao.bandeira)} •••• ${assinatura.cartao.ultimos4}` : 'Nenhum cartão'}
+            </Texto>
+            <Botao rotulo="Atualizar cartão" variante="secundario" tamanho="S" onPress={() => router.push('/atualizar-cartao')} />
+          </View>
+        </Secao>
+      )}
 
       <View style={estilos.acoes}>
-        {assinatura.status === 'cancelada' ? (
+        {!modoGooglePlay && assinatura.status === 'cancelada' ? (
           <Botao
             rotulo="Reativar assinatura"
             carregando={ocupado}

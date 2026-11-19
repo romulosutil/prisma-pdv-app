@@ -2447,6 +2447,41 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Retorno da API:** restaurar `pdv-pre-n1-deploy-d393e1e-20261118`, mover `codex/pdv-deploy` para `f2fb3bc` e implantar, apagando antes as linhas das fontes novas em `catalogo_ean` (item 1).
 - **Próximo passo:** usuário gera o AAB 0.1.19 (senhas da chave); conectar o Samsung por cabo USB; desinstalar, instalar e refazer o cadastro; fluxos, venda offline, diagnóstico do toast e bipagem de 5 produtos.
 
+<a id="cp-162-reconstrucao-visual-do-prototipo-v21-balcao-autentico-17112026"></a>
+
+## CP 162 — Reconstrução visual do Protótipo v2.1 (Balcão autêntico e 14 ilustrações 3D) (17/11/2026)
+
+- **Data e etapa:** 17/11/2026, 23h41 (America/Sao_Paulo). Reconstrução visual completa do protótipo após avaliação do usuário sobre o v2.0 (*"Esse design me parece bem inferior"*); corrige o [CP 160](#cp-160-prototipo-interativo-v2-design-system-marca-e-7-jornadas-17112026) preservando o [CP 161](#cp-161-n1-producao-zerada-api-implantada-e-0119-com-atribuicao-18112026) e sem alterar código de produção.
+- **Estado:** protótipo v2.1 construído e validado localmente em web/Node; aguarda revisão e aprovação visual do usuário antes de tocar `apps/mobile`, `packages/shared` ou `apps/api`.
+- **Diagnóstico da regressão do CP 160 corrigido neste marco:** o v2.0 havia perdido a tipografia `Bricolage Grotesque` + `Inter`, trocado as superfícies planas `#F4F2EE` (`16/24dp` sem bordas nem sombras) e botões em pílula `#FFC933` por caixas com borda de painel SaaS, omitido a `BarraInferior` de 5 colunas com `Vender` central flutuante, substituído as 14 ilustrações "aquarela 3D" por vetores chapados e desenhado marca e topo escuros desconexos do Design System Balcão.
+- **Construído:**
+  - `docs/prototipo-v2/ilustracoes.js`: extração fiel das 14 ilustrações originais de `docs/prototipo/Ilustra.dc.html` (`scanner`, `cesta`, `moedas`, `tap`, `pix`, `produto`, `check`, `offline`, `recibo`, `lanterna`, `loja`, `pausa`, `busca`, `grafico`) com prefixação automática de IDs SVG.
+  - `docs/prototipo-v2/estilos.css`: restauração exata dos raios (`8/16/24/999`), escala tipográfica (`Bricolage Grotesque 44/32/24px` + `Inter`, referenciando `@expo-google-fonts` locais), superfícies `#F4F2EE` sem borda, pílulas `999px` em `#FFC933`, `BarraInferior` 5 colunas com FAB `Vender` `-22px`, visor `#0D0B1A` com bokeh/cantoneiras/laser, `NavigationRail` no Tablet (`960px`), Modo Noturno e responsividade F18 (`360×640 + fonte ampliada`).
+  - `docs/prototipo-v2/icones.js`: 56 ícones SVG `24×24` alinhados aos traços de `AppVender`/`AppInicio`/`Main.dc.html`, wordmark `Prisma.` + ícone 3D aquarela nas direções A (`Noite & Manga`) e B (`Solar Balcão`) e monocromático Android 13+.
+  - `docs/prototipo-v2/{telas-core,telas-gestao,workbench}.js` e `index.html`: 26 telas (`J1–J7`), 7 `BottomSheets` (incluindo teclado `Avulso`), tela cheia `#0E7A40` de venda concluída, elevação visual das telas R1–R5 (`Estoque`, `Fiado`, `Relatórios`, `Equipe`) ao padrão Balcão e Studio editorial branco (`#FFFFFF`).
+  - Artefato único autônomo `prototipo-prisma-pdv-v2.html` (`480.665` bytes) com `Bricolage Grotesque 700/800` embutida em base64 e zero `<link>` externos (CSP-safe).
+- **Arquivos:** `docs/prototipo-v2/{ilustracoes.js,estilos.css,icones.js,telas-core.js,telas-gestao.js,workbench.js,index.html}`, `docs/checkpoints-roadmap.md` e `docs/roadmap-app-completo.md`. Produção (`apps/`, `packages/`, `scripts/`) e protótipo histórico (`docs/prototipo/`) intactos.
+- **Validações:** `node --check` nos 5 arquivos JS passou (`0`); smoke-test em Node renderizou todas as 26 telas, 7 sheets, 14 ilustrações sem colisão de ID e 5 vistas sem exceções; trailing whitespace `NONE`; `new Function` validou o JS embutido no artefato único (`ICONS=56`, `ILUSTRAS=14`); `impeccable detect --json` saiu com código `0` em ambos (`[]` em `docs/prototipo-v2/index.html`; `2` avisos apenas informativos `advisory: true` `shape-assembled-illustration` nos SVGs `200×200` do bundle único).
+- **Limitações/pendências:** validação web/Node (sem captura física em Android); nenhum `[ ]` do roadmap marcado `[x]`.
+- **Próximo passo:** aguardar avaliação visual do usuário no protótipo v2.1 para definir direção da marca (`Dir. A` vs `Dir. B`), inclusão de Fiado direto no Checkout (`P3`) e início das ondas W0–W4 após N1–N4.
+
+<a id="cp-163-aprofundamento-do-prototipo-v22-impeccable-ui-ux-pro-max-32-telas-18112026"></a>
+
+## CP 163 — Aprofundamento do Protótipo v2.2 (/impeccable + /ui-ux-pro-max + 32 telas) (18/11/2026)
+
+- **Data e etapa:** 18/11/2026, 00h01 (America/Sao_Paulo). Aprofundamento do protótipo interativo da v2.1 ([CP 162](#cp-162-reconstrucao-visual-do-prototipo-v21-balcao-autentico-17112026)) para v2.2 com `/impeccable` e `/ui-ux-pro-max`, alinhado às decisões de produto dos [CP 159](#cp-159-pacote-escalavel-de-melhorias-de-design-ux-ui-visual-e-branding-17112026) e [CP 161](#cp-161-n1-producao-zerada-api-implantada-e-0119-com-atribuicao-18112026), sem alterar código de produção.
+- **Estado:** construído e validado localmente (web/Node + `impeccable detect`); aguarda avaliação e aprovação visual do usuário antes de tocar `apps/`, `packages/` ou `scripts/`.
+- **Construído:**
+  - `docs/prototipo-v2/icones.js`: marca esculpida em `<=5` `<path>` contínuos por SVG em 3 direções (`noite`, `solar`, `aquarela`), Adaptive Mono Android 13+ em `fill-rule="evenodd"`, wordmark `Prisma.` e 62 ícones stroke-2 (adicionados `qrCode`, `whatsapp`, `desfazer`, `margem`, `linkExterno`, `maquininha`).
+  - `docs/prototipo-v2/estilos.css`: superfície elevada `--surface-elev` (`#FFFFFF` Claro / `#252142` Noturno) para botões/pílulas/chips/inputs em cards noturnos, clamps anti-estouro (`ds-clamp-2`, `ds-truncate`, `is-compact-num`), movimento intencional com `prefers-reduced-motion: reduce`, estilos do gráfico 7d, simulador de máscara Android e `.app-toast-undo-btn`.
+  - `docs/prototipo-v2/{telas-core,telas-gestao,workbench}.js` e `index.html`: expansão de 26 para **32 telas** (`J1–J7`) e 7 `BottomSheets`, adicionando `vender-busca`, `pagar-dividir`, `pagar-tap` (recuperação anti-cobrança dupla + Stone manual), `pagar-pix-pago` (`#0E7A40`), recibo completo com QR/WhatsApp em `sucesso`, `caixa-vendas` (acordeão), `produto-novo` (shimmer + atribuição `ODbL-1.0` tocável `>=44dp` + margem Custo/Venda + fardos `+6/+12/+24`), `relatorios` (gráfico 7d interativo + Top 4) e `caixa-sync` com barra progressiva animada; Toast com `Desfazer`, simulador de máscara (`Squircle`, `Circular`, `Gota`), matriz WCAG (12 pares Claro/Noturno >= `4.5:1`), preservador cirúrgico de scroll e modo `Dados Extremos (Harden)`.
+  - `docs/pacote-melhorias-design.md`: Seção 10 adicionada documentando o aprofundamento v2.2; Seções 1–9 preservadas.
+  - Artefato único autônomo `prototipo-prisma-pdv-v2.html` (`533.598` bytes) com `Bricolage Grotesque 700/800` inline base64 e zero `<link>` ou `<script src>` externos.
+- **Arquivos:** `docs/prototipo-v2/{icones.js,estilos.css,telas-core.js,telas-gestao.js,workbench.js,index.html}` (`ilustracoes.js` preservado com as 14 aquarelas 3D originais), `docs/pacote-melhorias-design.md`, `docs/checkpoints-roadmap.md` e `docs/roadmap-app-completo.md`. Produção e `docs/prototipo/` intactos.
+- **Validações:** `node --check` nos 5 módulos JS passou (`0`); smoke-test VM + simulação interativa em Node validou todas as 32 telas, 7 sheets, 14 ilustrações (`117` IDs únicos), 62 ícones, 3 direções × 3 máscaras Android, 3 viewports (`padrao`, `f18`, `tablet`), `escuro`, `harden`, e fluxos `Desfazer`, `Dividir`, `Tap recovery`, `Pix pago` e `Novo produto`; `TRAILING_WS=NONE`; `new Function` validou o JS embutido no artefato; `impeccable.cmd detect --json` saiu com código `0` e `[]` (zero achados e zero avisos) tanto em `docs/prototipo-v2/index.html` quanto em `prototipo-prisma-pdv-v2.html`.
+- **Limitações/pendências:** validação web/Node (sem captura física em Android); nenhum `[ ]` marcado `[x]` no roadmap.
+- **Próximo passo:** aguardar aprovação visual do usuário sobre a direção da marca (`Dir. A`, `Dir. B` ou `Dir. C`), Fiado direto no Checkout (`P3`) e início das ondas `W0–W4` após `N1–N4`.
+
 <a id="cp-164-n2-servidor-do-pix-mercado-pago-construido-e-testado-com-provedor-simulado-18112026"></a>
 
 ## CP 164 — N2: servidor do Pix Mercado Pago construído e testado com provedor simulado (18/11/2026)
@@ -2571,3 +2606,112 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
   3. O OAuth precisa de um endereço https público: um túnel para a API local ou um deploy de homologação, este só com autorização.
   4. Depois disso, rodar a homologação.
   5. As telas esperam o pacote de design.
+
+<a id="cp-166-mvp-redefinido-como-play-aberta-e-prompts-reduzidos-a-tres-19112026"></a>
+
+## CP 166 — MVP redefinido como Play aberta e prompts reduzidos a três (19/11/2026)
+
+- **Data:** 19/11/2026, 00h26, America/Sao_Paulo. Continua o [CP 165](#cp-165-n2-conectar-com-mercado-pago-oauth-no-servidor-e-gateways-do-lojista-18112026).
+- **Decisão do usuário:** o MVP é o app **publicado na Google Play e aberto a todos**, com 3 lojistas ajudando a melhorar. Exige as funções de PDV prometidas, os pagamentos integrados do lojista e a **cobrança da assinatura no app**. A cobrança pode estrear em modo gratuito por configuração e ser ligada depois. Execução por um Opus orquestrador com vários subagentes.
+- **Construído:** [prompts-sessoes-entrega.md](prompts-sessoes-entrega.md) reescrito com 3 prompts:
+  1. **Produto completo:** direção visual, InfinitePay, Play Billing com modo gratuito, manuais identificados, integração do design, telas de pagamento e paywall, versão, deploy e pagamentos de R$ 1,00 no aparelho.
+  2. **Publicar na Play:** regra do teste fechado, ficha, assinatura com testador de licença e lançamento gradual.
+  3. **Rodada do MVP:** repetível, com monitoramento, correções, ligar a cobrança e aceite.
+  As regras caíram para 6. P1 (Play Billing) e P2 (publicação aberta) passam a fazer parte do MVP. A regra "não mexer em telas até o pacote de design estar integrado" vira a ordem das ondas do prompt 1.
+- **Atenção:** se a conta da Play for pessoal e criada depois de 13/11/2023, a produção pode exigir teste fechado com 12 testadores por 14 dias. O prompt 2 confere a regra atual antes de orientar.
+- **Limites:** somente documentação, sem código, deploy ou ação em aparelho. As alterações sem commit da sessão de design (CPs 162 e 163 e a linha de F18 no roadmap) foram preservadas.
+- **Complemento no mesmo dia (Console lido pelo agente no Chrome do usuário e respostas do usuário):** conta da Play **pessoal**, criada em 29/10/2026, sem apps, com perfil para pagamentos sem forma de recebimento; status de comerciante e registro do pacote pendentes. Isso exige **teste fechado com 12 testadores por 14 dias**, e o usuário vai juntar 12 conhecidos. O teste fechado passou para o **início do prompt 1**, com o AAB atual. Decisões: design **B · Solar Balcão**; fiado no checkout (P3) no backlog; comerciante com o CNPJ do usuário, se aceito na conta pessoal, senão só Brasil; cobrança **Free + Pago**, estreando gratuita, com as regras ainda em definição; Mercado Pago e InfinitePay integrados, Point só se for Smart ou Pro, Stone e outras manuais identificadas.
+- **Próximo passo:** sessão nova em Opus 5.5 com o prompt 1, começando pelo app e pelo teste fechado no Console.
+
+<a id="cp-167-etapa-0-ativos-da-play-store-roteiro-de-teste-fechado-e-auditoria-de-lacunas-19112026"></a>
+
+## CP 167 — Etapa 0: ativos da Play Store, roteiro de teste fechado e auditoria de lacunas (19/11/2026)
+
+- **Data e etapa:** 19/11/2026, 01h26 (America/Sao_Paulo). Etapa 0 do Prompt 1 (`docs/prompts-sessoes-entrega.md`), continua o [CP 166](#cp-166-mvp-redefinido-como-play-aberta-e-prompts-reduzidos-a-tres-19112026).
+- **Decisões confirmadas pelo usuário nesta sessão:**
+  1. **Etapa 0 (AAB inicial):** gerar agora o AAB `0.1.19` (`versionCode 20`, com o usuário digitando a senha do keystore no terminal) para enviar ao Teste Fechado, mantendo `packages/shared` e `apps/mobile` limpos na `0.1.19` até a geração desse AAB.
+  2. **Etapa 1b (Free + Pago):** deixar limites e preço configuráveis no catálogo `PLANOS` (`packages/shared/src/planos.ts`), com **Free como padrão para todos** e **cobrança desligada por configuração no servidor** (`modo gratuito` como padrão).
+  3. **Etapa 1c (Maquininhas e pagamentos):** aceitar cartão, Pix e tudo que for padrão de InfinitePay, Mercado Pago e Stone (Mercado Pago Pix + suporte opcional a Point Smart/Pro; InfinitePay Checkout Integrado com `payment_check` e estorno/InfiniteTap manuais identificados; Stone e outras maquininhas como confirmação manual identificada com o motivo documental).
+- **Construído (sem alterar `packages/shared`, `apps/api` nem `apps/mobile` para preservar o build `0.1.19`):**
+  - `scripts/gerar-assets-solar-balcao.mjs`: gerador reproduzível dos ativos da marca **B · Solar Balcão** (com flag `--apenas-play-store` para não tocar `apps/mobile/assets/` antes do AAB `0.1.19`).
+  - `builds/play-store/` (ignorado pelo git): `icon-play-512.png` (`512×512` RGB opaco), `feature-graphic-1024x500.png` (`1024×500` RGB opaco) e duas capturas de telefone (`captura-01-inicio.png`, `captura-02-vender.png`, `780×1688` RGB).
+  - [Roteiro completo de Teste Fechado no Play Console e Auditoria de Lacunas](play-console-teste-fechado.md): guia passo a passo para criação do app (`br.com.pdv.mobile`), verificação de desenvolvedor, ficha mínima, segurança dos dados, classificação, envio do AAB `0.1.19`, lista de testadores fora do repositório, mensagem curta com link de opt-in e inventário das lacunas em cadastro, primeira venda, caixa, estoque, fiado, equipe, lojas, relatórios, suporte e assinatura.
+- **Validações:**
+  - **Produção externa (`https://aladdin-pdv-api.jicnzg.easypanel.host`):** `node scripts/verificar-operacao.mjs` **7/7 PASS** (`/saude` 200 com `x-pdv-agora`, `/privacidade`, `/exclusao-de-conta` e `/termos` 200 HTML com `contato@prumo.services`, `/suporte/*` 401, `/dev/*` 404); `/auth/cadastro/configuracao` respondeu `{"versaoContrato":1,"verificacaoEmail":true,"verificacaoAntecipada":true}`.
+  - **Cópia curta `C:/p`:** sincronizada sem divergência de arquivos contra `apps/mobile/{app,src}` e `packages/shared/src`.
+  - **Ativos Play Store:** dimensões e modo RGB (sem transparência) verificados por Python PIL e inspeção visual direta de `icon-play-512.png` e `feature-graphic-1024x500.png`.
+- **Pendências da Etapa 0 (dependem da ação do usuário):**
+  - Gerar `builds/pdv-producao-0.1.19-aab.aab` (`pwsh scripts/build-android.ps1 -Perfil producao -Aab -Keystore ... -Alias ...`), criar o app no Play Console, publicar na faixa de Teste Fechado, digitar os 12+ e-mails dos testadores no Console e enviar a mensagem de opt-in.
+  - Informar a **data em que o 12º testador entrar** para registrar aqui e calcular a data prevista (+14 dias corridos) para pedir acesso à produção.
+- **Próximo passo:** usuário gera o AAB `0.1.19` e inicia o Teste Fechado; assim que o AAB estiver gerado (ou liberado pelo usuário para modificar o código), iniciar em paralelo a **Etapa 1** (`1a` InfinitePay + Point/Manual no Sync, `1b` Google Play Billing Free + Pago no servidor e pacotes).
+
+<a id="cp-168-etapa-1-infinitepay-google-play-billing-e-manuais-no-servidor-19112026"></a>
+
+## CP 168 — Etapa 1: InfinitePay Checkout Integrado, Google Play Billing (Free + Pago) e pagamentos manuais identificados no shared e na API (19/11/2026)
+
+- **Data e etapa:** 19/11/2026, 02h10 (America/Sao_Paulo). Etapas 1a, 1b e 1c do Prompt 1 (`docs/prompts-sessoes-entrega.md`), continua o [CP 167](#cp-167-etapa-0-ativos-da-play-store-roteiro-de-teste-fechado-e-auditoria-de-lacunas-19112026) no branch `codex/pdv-homologacao-real` (sem commit ainda).
+- **O que foi construído:**
+  - **`@pdv/shared` (`packages/shared/src/`):**
+    - `rotulos.ts` + exportação em `index.ts`: rótulos legíveis (`rotuloPapel`, `ROTULOS_TIPO_MOVIMENTO_CAIXA`, `rotuloTipoMovimentoCaixa`, `CATEGORIAS_MOVIMENTO_CAIXA`, `rotuloCategoriaMovimento`, `codigoCurto`, `MOTIVOS_CONFIRMACAO_MANUAL`).
+    - `tokens.ts`: arquitetura de 3 camadas (**B · Solar Balcão**, `primitivos`, `semanticos` `claro`/`escuro`, `espacoTokens`, `layoutTokens`, `movimentoTokens`, `bordaTokens`, `opacidadeTokens`, `camadaTokens`, `janelaTokens`), `ink3: '#5C5973'`, estilo `codigo` e `maxScale` por estilo mantendo exportações legadas.
+    - `planos.ts`, `assinatura.ts`, `licenca.ts`: planos configuráveis **Free + Pago** (`PLANOS_DISPONIVEIS = ['free', 'pro']`, `PLANO_PADRAO = 'free'`, `Free` gratuito 500 produtos / 1 aparelho / 1 operador / 1 loja / 90 dias sem limite de vendas e `Pro` a R$ 49,90 configurável via `configurarPlano`/`restaurarPlanosPadrao`).
+    - `capacidades.ts` e `contrato.ts`: `PAGAMENTOS_INTEGRADOS_HABILITADOS = true`, `ProvedorPagamentoSchema` incluindo `'stone'` e `'outro'`, `ConfirmacaoPagamentoSchema` (`'manual' | 'integrado' | 'aparelho'`), metadados opcionais (`confirmacao`, `identificadorExterno`, `maquininha`) em `PagamentoVendaSchema`, schemas da InfinitePay (`ConectarInfinitePayReqSchema`, `ConexaoInfinitePaySchema`, suporte em `CriarCobrancaPixReqSchema`/`CobrancaPixSchema`) e schemas de Play Billing (`ConfirmarCompraPlayReqSchema`, `RestaurarCompraPlayReqSchema`, `ConfiguracaoCobrancaResSchema`).
+  - **`@pdv/api` (`apps/api/src/` e `apps/api/drizzle/`):**
+    - `db/schema.ts` e migração `drizzle/0015_remarkable_korvac.sql` (+ `scripts/zerar-conta-teste-producao.sql`): tabelas `detalhes_pagamentos_venda` e `assinaturas_play`, além de suporte a `infinitepay`, `stone`, `outro` e campos de link Checkout/NSU/slug.
+    - **Etapa 1a (InfinitePay):** `pagamentos/infinitePay.ts`, `servicos/cobrancasInfinitePay.ts` e rotas `GET/PUT/DELETE /pagamentos/infinitepay/conexao`, criação idempotente / polling / cancelamento unificados em `/pagamentos/cobrancas*`, webhook `POST /webhooks/pdv-infinitepay/:conexaoPublicaId` que **nunca confia no payload recebido** e consulta sempre `POST /payment_check` no servidor, além da conciliação em `servicos/cobrancasPix.ts`.
+    - **Etapa 1b (Google Play Billing):** `pagamentos/googlePlayBilling.ts`, `servicos/assinaturaPlay.ts`, `configuracao.ts` (`BILLING_PROVIDER` aceitando `'google_play'` inclusive em produção, com `'disabled'` como padrão sem alterar binário), rotas públicas `GET /assinatura/configuracao` e `POST /webhooks/pdv-google-play` (RTDN com ordenação por `eventTimeMillis` e idempotência), rotas privadas `POST /assinatura/google-play/confirmar` (validando e enviando acknowledge dentro de 3 dias), `/restaurar` e `/gratuito`, e criação inicial no plano `Free` quando `BILLING_PROVIDER=google_play` em `rotas/conta.ts`.
+    - **Etapa 1c (`servicos/sync.ts`):** aceitação de pagamentos manuais identificados (`null`, `stone`, `outro` ou `confirmacao: 'manual'`, fora Tap), InfiniteTap confirmado no aparelho (`confirmacao: 'aparelho'` com `identificadorExterno`), e cobranças integradas validadas do Mercado Pago e InfinitePay, com persistência e round-trip de metadados em `detalhes_pagamentos_venda`.
+- **Validações locais e resultados (todos em simulação/PGlite, sem deploy nem chamadas externas reais):**
+  - `npm run typecheck --workspace=@pdv/shared` e `npm test --workspace=@pdv/shared`: **PASS**, 20 arquivos / 184 testes.
+  - `npm run db:generate --workspace=@pdv/api`: **PASS**, migração `0015_remarkable_korvac.sql` gerada (35 tabelas no snapshot).
+  - `npm run typecheck --workspace=@pdv/api` e `npm test --workspace=@pdv/api` (incluindo novas suítes `test/pagamentosInfinitePay.test.ts`, `test/assinaturaGooglePlay.test.ts` e expansão de `test/syncPagamentosManuais.test.ts`, com `vitest.config.ts` em `testTimeout: 15000` para suportar PGlite com 16 migrações em paralelo): **PASS**, **60/60 arquivos, 735/735 testes aprovados**.
+- **Limitações / pendências:**
+  - InfinitePay Checkout/`payment_check`, Google Play Developer API (`subscriptionsv2`) e RTDN ainda foram testados apenas contra provedores simulados locais; validação externa com R$ 1,00 real, licenças Google Play e deploy autorizado ficam após a Etapa 2/3.
+  - Interface mobile e estilos das páginas públicas (Etapa 2) ainda não integrados.
+- **Próximo passo:** executar a **Etapa 2** (`paginasPublicas.ts` + pacote visual **B · Solar Balcão**, correções F18/Etapa 0 e novas telas de maquininhas, Pix/Cartão MP & InfinitePay e assinatura Google Play Billing em `apps/mobile`).
+
+<a id="cp-169-etapa-2-design-solar-balcao-maquininhas-pagamentos-e-play-billing-no-mobile-19112026"></a>
+
+## CP 169 — Etapa 2: Design B · Solar Balcão, correções F18 e telas de maquininhas, pagamentos e Google Play Billing no mobile (19/11/2026)
+
+- **Data e etapa:** 19/11/2026, 02h32 (America/Sao_Paulo). Etapa 2 do Prompt 1 (`docs/prompts-sessoes-entrega.md`), continua o [CP 168](#cp-168-etapa-1-infinitepay-google-play-billing-e-manuais-no-servidor-19112026) no branch `codex/pdv-homologacao-real` (sem commit ainda).
+- **O que foi construído:**
+  - **Onda W0 (Ativos e páginas públicas):** `scripts/gerar-assets-solar-balcao.mjs` executado gerando os ícones/splash **B · Solar Balcão** em `apps/mobile/assets/*.png`; `apps/api/src/rotas/paginasPublicas.ts` estilizado com a paleta Solar Balcão (`#F4F2EE`, `#FFFFFF`, `#14112B` e `@media (prefers-color-scheme: dark)`).
+  - **Onda W1–W2 (Tokens, átomos e F18 `360dp + fontScale 2.0`):** `apps/mobile/src/tema/index.ts`, `Texto.tsx`, `TelaBase.tsx`, `BarraInferior.tsx`, `TecladoNumerico.tsx`, `Scanner.tsx`, `Banner.tsx`, `StatusPill.tsx`, `Campo.tsx`, `LinhaLista.tsx`; novos componentes `Cartao.tsx`, `CartaoSelecao.tsx`, `EstadoVazio.tsx`, `CodigoCurto.tsx` e `Divisor.tsx`; correções de responsividade/contraste/labels nas telas operacionais e onboarding (`criar-conta`, `entrar`, `pagamentos`, `planos`, `(tabs)/index`, `ajustes/index`, `ajustes/equipe`, `MovimentoDeCaixa`, `FecharCaixa`, `TurnosCaixa`, `DetalheVenda`, `Lojas`, `TelaDinheiro`, `TelaSucesso`).
+  - **Onda W3–W4 (Maquininhas, pagamentos integrados/manuais e Play Billing UI):**
+    - `apps/mobile/app/ajustes/maquininhas.tsx` e integração com `backend.ts`/`backendHttp.ts`: conexão OAuth Mercado Pago, handle InfinitePay e orientação explícita de Stone/Point/manuais.
+    - `apps/mobile/src/telas/pagar/{TelaPix,PixDinamico,PixEstatico,TelaPixPago,TelaCartao,rotulos}.tsx` e persistência em `dados/{tipos,vendas,carrinhoDuravel,sqlite/checkoutSqlite}.ts`: Pix dinâmico MP/InfinitePay com QR e polling a cada 3s, checkout integrado InfinitePay para cartão/Pix e confirmação manual identificada (`stone`, `outro`, `InfiniteTap`) com NSU/motivo documental.
+    - `apps/mobile/src/servicos/playBilling.ts` e atualização de `servicos/assinatura.ts`, `util/planos.ts`, `app/(onboarding)/planos.tsx`, `app/(tabs)/ajustes/assinatura.tsx` e `app/bloqueio.tsx`: planos Free + Pro com suporte a Google Play Billing, botão "Restaurar compra" e preservação de leitura/exportação em `suspensa`.
+- **Validações locais (todos em simulação/testes automatizados, sem Android físico nem chamadas externas reais):**
+  - `npx --workspace=@pdv/api vitest run test/paginasPublicas.test.ts`: **PASS**, 6/6 testes.
+  - `npm run typecheck --workspaces`: **PASS** nos 3 workspaces (`@pdv/api`, `@pdv/mobile`, `@pdv/shared`).
+  - `npm test --workspace=@pdv/mobile` (incluindo nova suíte `test/solarBalcaoEtapa2.test.ts` e atualização de `fase1Interface.test.ts`, `cupons.test.ts`, `util.test.ts`): **PASS**, **82/82 arquivos, 668/668 testes aprovados**.
+- **Limitações / pendências:**
+  - Falta gerar a versão `0.1.20` (`versionCode 21`), rodar a regressão conjunta nos 3 workspaces, sincronizar `C:/p`, commitar/enviar ao CI (Etapa 3) e validar em aparelho Android físico (F18 real, R$ 1,00 MP/InfinitePay, Play Billing com testador de licença).
+- **Próximo passo:** executar a **Etapa 3** (`apps/mobile/app.json` em `0.1.20` / `21`, espelhamento `C:/p`, regressão completa dos 3 workspaces, `CP 170`, commit, `git push` e acompanhamento do CI).
+
+<a id="cp-170-etapa-3-versao-0120-regressao-completa-e-preparo-ci-19112026"></a>
+
+## CP 170 — Etapa 3: versão 0.1.20 (versionCode 21), sincronização de C:/p e regressão completa nos três workspaces (19/11/2026)
+
+- **Data e etapa:** 19/11/2026, 02h39 (America/Sao_Paulo). Etapa 3 do Prompt 1 (`docs/prompts-sessoes-entrega.md`), continua o [CP 169](#cp-169-etapa-2-design-solar-balcao-maquininhas-pagamentos-e-play-billing-no-mobile-19112026) no branch `codex/pdv-homologacao-real`.
+- **O que foi construído:**
+  - `apps/mobile/app.json`: versão elevada para `"0.1.20"` (`versionCode: 21`).
+  - `apps/api/vitest.config.ts`: ajuste de `testTimeout` e `hookTimeout` para `30_000` para suportar PGlite com 16 migrações abrindo/fechando banco em disco durante a execução paralela (`test/limitesAuth.test.ts`).
+  - Cópia curta `C:/p`: sincronizada e conferida por SHA256 contra o repositório (`303` arquivos em `apps/mobile/{app,src,assets,config}` e `packages/shared/src` + `6` arquivos de configuração, sem obsoletos ou divergências).
+- **Validações locais completas executadas após a edição final (ambiente local simulado/SQLite/PGlite, sem deploy, AAB ou dispositivo físico):**
+  - `npm run typecheck --workspaces`: **PASS** nos 3 workspaces (`@pdv/api`, `@pdv/mobile`, `@pdv/shared`).
+  - `npm test --workspace=@pdv/shared`: **PASS**, **20/20 arquivos, 184/184 testes**.
+  - `npm test --workspace=@pdv/api`: **PASS**, **60/60 arquivos, 735/735 testes**.
+  - `npm test --workspace=@pdv/mobile`: **PASS**, **82/82 arquivos, 668/668 testes**.
+  - `node --test scripts/test/*.test.mjs`: **PASS**, **9/9 testes** (`0` falhos, `0` ignorados).
+  - `python -B -m unittest discover -s scripts/test -p "test_*.py"`: **PASS**, **57/57 testes**.
+  - `node scripts/homologar-local.mjs`: **OK** contra API local descartável (`Equipe F08` 37 PASS/1 SKIP, `Equipe F13` 25 PASS/1 SKIP, `Equipe troca de aparelho` 23 PASS/1 SKIP, `Gestão F14` 162 PASS/4 SKIP; `0` FAIL / `0` INCONCLUSIVO; SKIPs referentes aos limites conhecidos já registrados).
+  - `git diff --check`: **PASS**.
+- **Limitações / pendências (dependem de ação/autorização do usuário ou execução externa):**
+  - CI remoto no GitHub Actions (`PDV CI and Deploy` em PostgreSQL 17 e container Docker) será disparado logo após o commit/push deste lote.
+  - Deploy da API com a migração `0015_remarkable_korvac.sql` em homologação e produção (exige autorização do usuário e conferência de backup prévio).
+  - Geração do AAB de produção `0.1.20` (`versionCode 21`) com a senha do keystore digitada pelo usuário no terminal (`scripts/build-android.ps1 -Perfil producao -Aab`).
+  - Conexão do aparelho Android via USB e autorização para testes reais de R$ 1,00 (Mercado Pago OAuth + Pix, InfinitePay Checkout/InfiniteTap, Stone manual identificado) e conferência visual Solar Balcão / F18 no aparelho.
+  - Registro da data de entrada do 12º testador no Teste Fechado no Play Console (para contabilizar os 14 dias antes do Prompt 2).
+- **Próximo passo:** gravar commit no branch `codex/pdv-homologacao-real`, executar `git push`, rodar e acompanhar o CI no GitHub Actions (`PDV CI and Deploy`) e aguardar autorizações/ações do usuário para deploy, AAB `0.1.20` e testes reais no aparelho.

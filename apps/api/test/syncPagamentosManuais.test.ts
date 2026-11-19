@@ -135,3 +135,85 @@ it('preserva prioridades anteriores ao corte sem escrita', async () => {
   expect(res.corpo.rejeitadas).toEqual(casos.map(([m, motivo]) => ({ id: m.id, motivo })));
   expect(await snapshot()).toEqual(antes);
 });
+
+it('aceita confirmação manual identificada (Stone/Outra/MP/IP) e InfiniteTap confirmado no aparelho, preservando round-trip', async () => {
+  const conta = await contaEmTeste(amb, 'pro');
+  const vStone = venda(conta, {
+    pagamentos: [{
+      id: gerarId(),
+      meio: 'cartao_credito',
+      provedor: 'stone',
+      valorCentavos: 700,
+      trocoCentavos: 0,
+      confirmacao: 'manual',
+      identificadorExterno: 'NSU-STONE-99',
+      maquininha: 'Stone T3',
+    }],
+  });
+  const vTap = venda(conta, {
+    pagamentos: [{
+      id: gerarId(),
+      meio: 'tap',
+      provedor: 'infinitepay',
+      valorCentavos: 700,
+      trocoCentavos: 0,
+      confirmacao: 'aparelho',
+      identificadorExterno: 'NSU-TAP-42',
+      maquininha: 'InfiniteTap',
+    }],
+  });
+  const vTapSemNsu = venda(conta, {
+    pagamentos: [{
+      id: gerarId(),
+      meio: 'tap',
+      provedor: 'infinitepay',
+      valorCentavos: 700,
+      trocoCentavos: 0,
+      confirmacao: 'aparelho',
+    }],
+  });
+  const vManualMp = venda(conta, {
+    pagamentos: [{
+      id: gerarId(),
+      meio: 'cartao_debito',
+      provedor: 'mercadopago',
+      valorCentavos: 700,
+      trocoCentavos: 0,
+      confirmacao: 'manual',
+      maquininha: 'Point Pro 2',
+    }],
+  });
+
+  const mStone = mv(vStone);
+  const mTap = mv(vTap);
+  const mTapSemNsu = mv(vTapSemNsu);
+  const mManualMp = mv(vManualMp);
+
+  const res = await enviar(amb, conta, [mStone, mTap, mTapSemNsu, mManualMp]);
+  expect(res.corpo.aceitas).toEqual([mStone.id, mTap.id, mManualMp.id]);
+  expect(res.corpo.rejeitadas).toEqual([{ id: mTapSemNsu.id, motivo: 'pagamento_indisponivel' }]);
+
+  const pull = await enviarOriginal(amb, conta, []);
+  expect(pull.status).toBe(200);
+  const resPull = await amb.app.inject({
+    method: 'GET',
+    url: '/sync/pull?desde=0',
+    headers: { authorization: `Bearer ${conta.token}` },
+  });
+  const mudancasVenda = resPull.json().mudancas.filter((m: any) => m.entidade === 'venda');
+  const pullStone = mudancasVenda.find((m: any) => m.dados.id === vStone.id);
+  const pullTap = mudancasVenda.find((m: any) => m.dados.id === vTap.id);
+  expect(pullStone.dados.pagamentos[0]).toMatchObject({
+    provedor: 'stone',
+    confirmacao: 'manual',
+    identificadorExterno: 'NSU-STONE-99',
+    maquininha: 'Stone T3',
+  });
+  expect(pullTap.dados.pagamentos[0]).toMatchObject({
+    meio: 'tap',
+    provedor: 'infinitepay',
+    confirmacao: 'aparelho',
+    identificadorExterno: 'NSU-TAP-42',
+    maquininha: 'InfiniteTap',
+  });
+});

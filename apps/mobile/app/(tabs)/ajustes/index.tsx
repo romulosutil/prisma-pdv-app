@@ -1,6 +1,6 @@
 import { PLANOS } from '@pdv/shared';
 import Constants from 'expo-constants';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { DevSettings, Platform, StyleSheet, View } from 'react-native';
 import { Botao } from '@/componentes/Botao';
 import { Icone } from '@/componentes/Icone';
@@ -77,9 +77,18 @@ export default function Ajustes() {
 
       <Secao titulo="Recebimentos">
         <View style={estilos.lista}>
-          <TilePagamento titulo="Pix" legenda="Pela sua chave, com confirmação manual" icone="pix" fundo={cores.bg} cor={cores.ink} estado="sempre_ativo" />
-          <TilePagamento titulo="Cartão" legenda="Registro manual da maquininha" icone="cartao" fundo={cores.bg} cor={cores.ink} estado="sempre_ativo" />
+          <TilePagamento titulo="Pix" legenda="Pela sua chave, ou automático via MP/InfinitePay" icone="pix" fundo={cores.bg} cor={cores.ink} estado="sempre_ativo" />
+          <TilePagamento titulo="Cartão" legenda="InfinitePay, Mercado Pago, Stone ou registro manual" icone="cartao" fundo={cores.bg} cor={cores.ink} estado="sempre_ativo" />
           <TilePagamento titulo="Dinheiro" legenda="Com calculadora de troco" icone="dinheiro" fundo={cores.bg} cor={cores.ink} estado="sempre_ativo" />
+          {dono ? (
+            <Botao
+              rotulo="Maquininhas e pagamentos"
+              variante="terciario"
+              tamanho="M"
+              larguraTotal
+              onPress={() => router.push('/ajustes/maquininhas' as Href)}
+            />
+          ) : null}
         </View>
       </Secao>
 

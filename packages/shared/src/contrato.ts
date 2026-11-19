@@ -15,7 +15,8 @@ const CentavosNaoNegativosSchema = z.number().int().nonnegative();
 export const PlanoIdSchema = z.enum(PLANOS_ORDEM);
 export const UnidadeSchema = z.enum(['un', 'kg']);
 export const MeioPagamentoSchema = z.enum(['dinheiro', 'pix', 'cartao_credito', 'cartao_debito', 'tap']);
-export const ProvedorPagamentoSchema = z.enum(['infinitepay', 'mercadopago']);
+export const ProvedorPagamentoSchema = z.enum(['infinitepay', 'mercadopago', 'stone', 'outro']);
+export const ConfirmacaoPagamentoSchema = z.enum(['manual', 'integrado', 'aparelho']);
 
 // ---------- Catálogo ----------
 
@@ -107,6 +108,9 @@ export const PagamentoVendaSchema = z.object({
   provedor: ProvedorPagamentoSchema.nullable(),
   valorCentavos: CentavosNaoNegativosSchema,
   trocoCentavos: CentavosNaoNegativosSchema,
+  confirmacao: ConfirmacaoPagamentoSchema.optional(),
+  identificadorExterno: z.string().trim().min(1).max(128).nullable().optional(),
+  maquininha: z.string().trim().min(1).max(80).nullable().optional(),
 });
 export type PagamentoVenda = z.infer<typeof PagamentoVendaSchema>;
 
@@ -334,7 +338,39 @@ export type TrocarPlanoReq = z.infer<typeof TrocarPlanoReqSchema>;
 export const AtualizarCartaoReqSchema = z.object({ tokenCartao: z.string().min(1) });
 export type AtualizarCartaoReq = z.infer<typeof AtualizarCartaoReqSchema>;
 
-// ---------- Pagamentos integrados: Pix do Mercado Pago (N2) ----------
+export const ESTADOS_ASSINATURA_PLAY = [
+  'SUBSCRIPTION_STATE_PENDING',
+  'SUBSCRIPTION_STATE_ACTIVE',
+  'SUBSCRIPTION_STATE_IN_GRACE_PERIOD',
+  'SUBSCRIPTION_STATE_ON_HOLD',
+  'SUBSCRIPTION_STATE_PAUSED',
+  'SUBSCRIPTION_STATE_CANCELED',
+  'SUBSCRIPTION_STATE_EXPIRED',
+] as const;
+export const EstadoAssinaturaPlaySchema = z.enum(ESTADOS_ASSINATURA_PLAY);
+export type EstadoAssinaturaPlay = z.infer<typeof EstadoAssinaturaPlaySchema>;
+
+export const ConfirmarCompraPlayReqSchema = z.object({
+  planoId: PlanoIdSchema.optional(),
+  productId: z.string().trim().min(1).max(120),
+  purchaseToken: z.string().trim().min(10).max(2000),
+  packageName: z.string().trim().min(3).max(120).optional(),
+}).strict();
+export type ConfirmarCompraPlayReq = z.infer<typeof ConfirmarCompraPlayReqSchema>;
+
+export const RestaurarCompraPlayReqSchema = ConfirmarCompraPlayReqSchema;
+export type RestaurarCompraPlayReq = ConfirmarCompraPlayReq;
+
+export const ConfiguracaoCobrancaResSchema = z.object({
+  modoGratuito: z.boolean(),
+  canal: z.enum(['disabled', 'mock', 'google_play']),
+  planoPadrao: PlanoIdSchema,
+  packageName: z.string(),
+  skuProMensal: z.string(),
+}).strict();
+export type ConfiguracaoCobrancaRes = z.infer<typeof ConfiguracaoCobrancaResSchema>;
+
+// ---------- Pagamentos integrados: Mercado Pago e InfinitePay ----------
 
 /**
  * `criando` → (`erro_provedor` ↔ nova tentativa) → `aguardando` → `paga` | `divergente` | `expirada` | `cancelada`.
@@ -376,6 +412,9 @@ export const CriarCobrancaPixReqSchema = z.object({
   vendaId: IdSchema,
   pagamentoId: IdSchema,
   valorCentavos: z.number().int().positive().max(100_000_000),
+  provedor: z.enum(['mercadopago', 'infinitepay']).optional(),
+  meio: z.enum(['pix', 'cartao_credito', 'cartao_debito']).optional(),
+  descricao: z.string().trim().min(1).max(120).optional(),
 }).strict();
 export type CriarCobrancaPixReq = z.infer<typeof CriarCobrancaPixReqSchema>;
 
@@ -394,9 +433,29 @@ export const CobrancaPixSchema = z.object({
   alerta: z.string().nullable(),
   criadaEm: DataIsoSchema,
   atualizadaEm: DataIsoSchema,
+  provedor: z.enum(['mercadopago', 'infinitepay']).optional(),
+  meio: z.enum(['pix', 'cartao_credito', 'cartao_debito']).optional(),
+  checkoutUrl: z.string().nullable().optional(),
 }).strict();
 export type CobrancaPix = z.infer<typeof CobrancaPixSchema>;
 export const CobrancasPixSchema = z.array(CobrancaPixSchema);
+
+/** Conexão do Checkout Integrado da InfinitePay (handle / API key opcional do lojista). */
+export const ConectarInfinitePayReqSchema = z.object({
+  handle: z.string().trim().min(2).max(80).regex(/^[A-Za-z0-9._-]+$/),
+  apiKey: z.string().trim().min(8).max(500).regex(/^\S+$/).optional(),
+}).strict();
+export type ConectarInfinitePayReq = z.infer<typeof ConectarInfinitePayReqSchema>;
+
+export const ConexaoInfinitePaySchema = z.object({
+  conectada: z.boolean(),
+  handle: z.string().nullable(),
+  temApiKey: z.boolean(),
+  webhookPath: z.string().nullable(),
+  conectadaEm: DataIsoSchema.nullable(),
+  atualizadaEm: DataIsoSchema.nullable(),
+}).strict();
+export type ConexaoInfinitePay = z.infer<typeof ConexaoInfinitePaySchema>;
 
 // ---------- Sincronização ----------
 

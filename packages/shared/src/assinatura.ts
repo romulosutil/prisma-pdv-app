@@ -117,6 +117,16 @@ export function criarAcessoLiberado(p: { id: string; contaId: string; agora: Dat
   };
 }
 
+/** Plano gratuito (Free) ativo sem cartão e sem limite de vendas. */
+export function criarAssinaturaGratuita(p: { id: string; contaId: string; agora: Date }): Assinatura {
+  return {
+    id: p.id, contaId: p.contaId, planoId: 'free', status: 'ativa', criadaEm: p.agora,
+    testeTerminaEm: p.agora, periodoAtualInicio: p.agora, periodoAtualFim: adicionarMeses(p.agora, 120),
+    acessoAte: null, inadimplenteDesde: null, tentativasFalhas: 0, proximaTentativaEm: null,
+    canceladaEm: null, planoAgendado: null, cartao: null,
+  };
+}
+
 export function valorMensalAssinatura(a: Pick<Assinatura, 'planoId' | 'planoAgendado' | 'cupom'>): Centavos {
   return aplicarDesconto(preco(a.planoAgendado ?? a.planoId), a.cupom);
 }
@@ -286,6 +296,7 @@ export function avaliar(a: Assinatura, agora: Date): Assinatura {
 /** O que cobrar agora. Na renovação vale o preço do plano agendado, se houver downgrade. */
 export function cobrancaDevida(a: Assinatura, agora: Date): CobrancaDevida | null {
   const valorCentavos = valorMensalAssinatura(a);
+  if (valorCentavos <= 0 || a.planoId === 'free') return null;
   switch (a.status) {
     case 'em_teste':
       return agora >= a.testeTerminaEm ? { tipo: 'primeira', valorCentavos } : null;

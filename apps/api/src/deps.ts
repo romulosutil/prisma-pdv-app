@@ -5,11 +5,17 @@ import type { EmissaoCodigo } from './email/tiposEntrega';
 import type { CifradorPagamentos } from './pagamentos/cifrador';
 import type { ProvedorMercadoPago } from './pagamentos/mercadoPago';
 import type { ConfiguracaoOAuthMercadoPago } from './configuracao';
+import type { ProvedorInfinitePay } from './pagamentos/infinitePay';
+import type { VerificadorGooglePlay } from './pagamentos/googlePlayBilling';
 
 /** Pagamentos integrados (N2). Sem `cifrador` (chave ausente), as rotas respondem 503 `pagamentos_indisponiveis`. */
 export interface ConfigPagamentos {
   cifrador: CifradorPagamentos | null;
   mercadoPago: ProvedorMercadoPago;
+  /** Provedor InfinitePay (Checkout Integrado + payment_check). */
+  infinitePay?: ProvedorInfinitePay;
+  /** URL pública base da API, usada ao montar `webhook_url` no Checkout da InfinitePay. */
+  urlPublicaApi?: string | null;
   /** `payer.email` da order; sem ele a cobrança não é criada (503 `pagador_nao_configurado`). */
   pagadorEmail: string | null;
   /** Só em homologação com a conta de teste (`APRO`). Nunca configurado em produção. */
@@ -20,12 +26,22 @@ export interface ConfigPagamentos {
   oauth?: ConfiguracaoOAuthMercadoPago | null;
 }
 
+export interface ConfigGooglePlay {
+  verificador?: VerificadorGooglePlay;
+  packageName?: string;
+  skuProMensal?: string;
+  webhookToken?: string | null;
+}
+
 export interface Deps {
   db: Db;
   relogio: Relogio;
   billing: BillingProvider;
+  /** Seleciona o provedor ativo de assinatura no servidor; padrão `'disabled'` quando `cobrancaDesativada=true`. */
+  billingProvider?: 'disabled' | 'mock' | 'google_play';
   /** Concede acesso sem assinatura paga; não habilita mock em produção. */
   cobrancaDesativada?: boolean;
+  googlePlay?: ConfigGooglePlay;
   emissaoCodigo?: EmissaoCodigo;
   /** Fontes externas do catálogo por EAN, na ordem de consulta (o catálogo próprio vem sempre antes). */
   fontesEan: FonteEan[];

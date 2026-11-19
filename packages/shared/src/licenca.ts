@@ -33,7 +33,7 @@ function validaAteDe(a: Assinatura, agora: Date): Date {
       return adicionarDias(agora, OFFLINE_MAX_DIAS);
     case 'em_teste':
     case 'ativa':
-      return adicionarDias(a.periodoAtualFim, CARENCIA_INADIMPLENCIA_DIAS);
+      return a.planoId === 'free' ? adicionarDias(agora, OFFLINE_MAX_DIAS) : adicionarDias(a.periodoAtualFim, CARENCIA_INADIMPLENCIA_DIAS);
     case 'inadimplente':
       return adicionarDias(a.inadimplenteDesde ?? agora, CARENCIA_INADIMPLENCIA_DIAS);
     case 'cancelada':

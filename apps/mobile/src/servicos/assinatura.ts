@@ -8,9 +8,11 @@ import {
   type Assinatura,
   type AssinaturaRes,
   type Centavos,
+  type ConfirmarCompraPlayReq,
   type Licenca,
   type PlanoId,
   type Relogio,
+  type RestaurarCompraPlayReq,
 } from '@pdv/shared';
 import type { Armazenamento } from '@/dados/armazenamento';
 import { ErroAlteracaoBloqueada } from '@/dados/armazenamentoEscopo';
@@ -102,6 +104,27 @@ export class AssinaturaServico extends Observavel<EstadoAssinatura> {
 
   async atualizarCartao(tokenCartao: string): Promise<void> {
     await this.alterar(() => this.backend.atualizarCartao(tokenCartao));
+  }
+
+  async confirmarCompraGooglePlay(req: ConfirmarCompraPlayReq): Promise<void> {
+    if (!this.backend.confirmarCompraGooglePlay) {
+      throw new ErroBackend('conflito', 'Compra pela Google Play indisponível neste modo.');
+    }
+    await this.alterar(() => this.backend.confirmarCompraGooglePlay!(req));
+  }
+
+  async restaurarCompraGooglePlay(req: RestaurarCompraPlayReq): Promise<void> {
+    if (!this.backend.restaurarCompraGooglePlay) {
+      throw new ErroBackend('conflito', 'Restauração pela Google Play indisponível neste modo.');
+    }
+    await this.alterar(() => this.backend.restaurarCompraGooglePlay!(req));
+  }
+
+  async ativarPlanoGratuito(): Promise<void> {
+    if (!this.backend.ativarPlanoGratuito) {
+      throw new ErroBackend('conflito', 'Troca para o plano gratuito indisponível neste modo.');
+    }
+    await this.alterar(() => this.backend.ativarPlanoGratuito!());
   }
 
   /** O que a troca para `planoId` vai fazer, para mostrar antes de confirmar. `null` se não houver troca possível. */

@@ -16,6 +16,7 @@ import { gerarBrCodeEstatico } from '@/util/brcode';
 import { CabecalhoPagamento } from './CabecalhoPagamento';
 import { CartaoQr } from './CartaoQr';
 import { useChavePix } from './chavePix';
+import { useMeiosDisponiveis } from './meiosDisponiveis';
 import { useCobranca } from './useCobranca';
 
 const TIPOS_DE_CHAVE: Record<string, string> = {
@@ -26,12 +27,13 @@ const TIPOS_DE_CHAVE: Record<string, string> = {
   aleatoria: 'chave aleatória',
 };
 
-/** Pix pela chave do lojista (plano Essencial ou sem provedor): o QR é gerado aqui e quem confirma é o operador. */
+/** Pix pela chave do lojista ou atalho para Pix dinâmico dos provedores conectados. */
 export function PixEstatico() {
   const router = useRouter();
   const toast = useToast();
   const { nomeLoja } = useConta();
-  const { valorCentavos, receber, ocupado } = useCobranca();
+  const { valorCentavos, receber, ocupado, parametros } = useCobranca();
+  const { comProvedor, conectados } = useMeiosDisponiveis();
   const { carregada, chave, salvar, erro: erroChave, recarregar } = useChavePix();
   const [trocando, setTrocando] = useState(false);
 
@@ -39,6 +41,21 @@ export function PixEstatico() {
     () => (chave ? gerarBrCodeEstatico({ chave: chave.chave, valorCentavos, nomeRecebedor: nomeLoja, cidade: 'BRASIL' }) : null),
     [chave, valorCentavos, nomeLoja],
   );
+
+  const atalhosIntegrados = comProvedor ? (
+    <View style={estilos.integrados}>
+      {conectados.map((p) => (
+        <Botao
+          key={p.id}
+          rotulo={`Pix automático · ${p.nome}`}
+          variante="secundario"
+          tamanho="M"
+          larguraTotal
+          onPress={() => router.replace({ pathname: '/pagar/pix', params: parametros({ provedor: p.id }) })}
+        />
+      ))}
+    </View>
+  ) : null;
 
   const copiar = async () => {
     if (!codigo) return;
@@ -67,6 +84,7 @@ export function PixEstatico() {
     return (
       <TelaBase rolavel>
         {cabecalho}
+        {atalhosIntegrados}
         <FormularioDaChave
           chaveAtual={chave?.chave}
           onSalvar={async (texto) => {
@@ -84,6 +102,7 @@ export function PixEstatico() {
     <TelaBase rolavel>
       {cabecalho}
       <View style={estilos.conteudo}>
+        {atalhosIntegrados}
         <Banner tipo="atencao" texto="O app não vê este Pix. Só toque em “Recebi o Pix” depois de ver o valor na sua conta." />
         <CartaoQr codigo={codigo} valorCentavos={valorCentavos} />
         <View style={estilos.valor}>
@@ -152,6 +171,7 @@ function FormularioDaChave({ chaveAtual, onSalvar, onCancelar }: FormularioDaCha
 }
 
 const estilos = StyleSheet.create({
+  integrados: { gap: 8, marginBottom: 8 },
   conteudo: { gap: 16, paddingTop: 4, paddingBottom: 16 },
   icone: { width: 32, height: 32, borderRadius: raio.sm, alignItems: 'center', justifyContent: 'center', backgroundColor: cores.surface },
   valor: { alignItems: 'center', gap: 6 },

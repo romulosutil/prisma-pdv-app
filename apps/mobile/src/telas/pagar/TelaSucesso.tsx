@@ -1,7 +1,7 @@
 import { formatarBRL, somar, type Venda } from '@pdv/shared';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { AccessibilityInfo, BackHandler, Platform, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, BackHandler, Platform, Share, StyleSheet, View } from 'react-native';
 import { Botao } from '@/componentes/Botao';
 import { Dinheiro } from '@/componentes/Dinheiro';
 import { Icone } from '@/componentes/Icone';
@@ -105,6 +105,25 @@ export function TelaSucesso() {
           larguraTotal
           accessibilityHint={reciboAberto ? undefined : 'Mostra os itens e as formas de pagamento'}
           onPress={() => setReciboAberto((aberto) => !aberto)}
+        />
+        <Botao
+          rotulo="Compartilhar comprovante"
+          variante="secundario"
+          tamanho="M"
+          larguraTotal
+          onPress={() => {
+            const linhas = [
+              `${nomeLoja} · ${numeroDe(venda)}`,
+              formatarDataHora(venda.criadaEm),
+              ...venda.itens.map((item) => `${quantidade(item)} ${item.descricao}: ${formatarBRL(item.totalCentavos)}`),
+              `Total: ${formatarBRL(venda.totalCentavos)}`,
+              ...venda.pagamentos.map((p) => `${p.trocoCentavos > 0 ? 'Dinheiro recebido' : rotuloDaParcela(p)}: ${formatarBRL(p.valorCentavos + p.trocoCentavos)}`),
+              ...(troco > 0 ? [`Troco: ${formatarBRL(troco)}`] : []),
+            ];
+            void Share.share({ message: linhas.join('\n') }).catch(() => {
+              toast.mostrar('Não foi possível abrir o compartilhamento.', { tipo: 'erro' });
+            });
+          }}
         />
 
         {reciboAberto ? (

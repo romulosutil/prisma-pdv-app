@@ -1,8 +1,35 @@
-import { cores, espaco, margemTela, raio, tipografia, toqueMinimo, type EstiloTipografia } from '@pdv/shared';
+import {
+  bordaTokens,
+  cores,
+  espaco,
+  espacoTokens,
+  layoutTokens,
+  margemTela,
+  movimentoTokens,
+  primitivos,
+  raio,
+  semanticos,
+  tipografia,
+  toqueMinimo,
+  type EstiloTipografia,
+} from '@pdv/shared';
 import type { TextStyle } from 'react-native';
 import { nomeDaFonte } from './fontes';
 
-export { cores, espaco, margemTela, raio, tipografia, toqueMinimo };
+export {
+  bordaTokens,
+  cores,
+  espaco,
+  espacoTokens,
+  layoutTokens,
+  margemTela,
+  movimentoTokens,
+  primitivos,
+  raio,
+  semanticos,
+  tipografia,
+  toqueMinimo,
+};
 export { FONTES_PARA_CARREGAR } from './fontes';
 
 export type NomeEstilo = keyof typeof tipografia;
@@ -27,6 +54,7 @@ export const texto: Record<NomeEstilo, TextStyle> = {
   corpoMedio: estiloDeTexto(tipografia.corpoMedio),
   label: estiloDeTexto(tipografia.label),
   legenda: estiloDeTexto(tipografia.legenda),
+  codigo: estiloDeTexto(tipografia.codigo),
 };
 
 /** Texto de botão e rótulos que o design system define fora da tabela de tipografia. */

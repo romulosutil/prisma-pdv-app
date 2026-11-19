@@ -13,20 +13,29 @@ export interface TelaBaseProps {
   bordas?: readonly Edge[];
   /** Sem a margem lateral de 20 (ex.: câmera, listas de ponta a ponta). */
   semMargem?: boolean;
+  /** Ritmo vertical padrão de espaçamento entre blocos. */
+  espacamento?: 'compacto' | 'padrao' | 'secoes';
   style?: StyleProp<ViewStyle>;
   testID?: string;
 }
 
+const GAP_ESPACAMENTO = {
+  compacto: 12,
+  padrao: 16,
+  secoes: 24,
+} as const;
+
 /** Tela com fundo branco, safe area e margem lateral de 20. */
-export function TelaBase({ children, rolavel, rodape, bordas = ['top', 'bottom', 'left', 'right'], semMargem, style, testID }: TelaBaseProps) {
+export function TelaBase({ children, rolavel, rodape, bordas = ['top', 'bottom', 'left', 'right'], semMargem, espacamento, style, testID }: TelaBaseProps) {
   const margem = semMargem ? null : estilos.margem;
+  const gapEstilo = espacamento ? { gap: GAP_ESPACAMENTO[espacamento] } : null;
   return (
     <SafeAreaView edges={bordas} style={estilos.raiz} testID={testID}>
       <KeyboardAvoidingView style={estilos.corpo} behavior="padding">
       {rolavel ? (
         <ScrollView
           style={estilos.corpo}
-          contentContainerStyle={[estilos.rolagem, margem, style]}
+          contentContainerStyle={[estilos.rolagem, estilos.limitarLargura, margem, gapEstilo, style]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
@@ -34,9 +43,9 @@ export function TelaBase({ children, rolavel, rodape, bordas = ['top', 'bottom',
           {children}
         </ScrollView>
       ) : (
-        <View style={[estilos.corpo, margem, style]}>{children}</View>
+        <View style={[estilos.corpo, estilos.limitarLargura, margem, gapEstilo, style]}>{children}</View>
       )}
-      {rodape ? <View style={[estilos.rodape, margem]}>{rodape}</View> : null}
+      {rodape ? <View style={[estilos.rodape, estilos.limitarLargura, margem]}>{rodape}</View> : null}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -45,6 +54,7 @@ export function TelaBase({ children, rolavel, rodape, bordas = ['top', 'bottom',
 const estilos = StyleSheet.create({
   raiz: { flex: 1, backgroundColor: cores.bg },
   corpo: { flex: 1 },
+  limitarLargura: { width: '100%', maxWidth: 640, alignSelf: 'center' },
   margem: { paddingHorizontal: margemTela },
   rolagem: { flexGrow: 1, paddingTop: 12, paddingBottom: 24 },
   rodape: { paddingTop: 12, paddingBottom: 16, gap: 8 },

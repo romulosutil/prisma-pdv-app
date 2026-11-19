@@ -24,7 +24,10 @@ describe('cupom no app demo', () => {
   it('oferta única e desconto sobrevivem reinício, renovação e reativação', async () => {
     const { amb, backend, servico, token } = await montar();
     const cobrar = vi.spyOn(MockBillingProvider.prototype, 'cobrar');
-    expect((await backend.listarPlanos()).map((p) => [p.id, p.precoMensalCentavos])).toEqual([['pro', 4990]]);
+    expect((await backend.listarPlanos()).map((p) => [p.id, p.precoMensalCentavos])).toEqual([
+      ['free', 0],
+      ['pro', 4990],
+    ]);
     await servico.iniciarTeste('pro', token(CARTOES_TESTE.aprova.numero), ' vitalicio50 ');
     expect(servico.obter().assinatura?.cupom).toEqual({ codigo: 'VITALICIO50', percentualDesconto: 50, duracao: 'vitalicio' });
     expect(cobrar).not.toHaveBeenCalled();

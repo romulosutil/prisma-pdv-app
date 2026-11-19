@@ -233,13 +233,15 @@ export function Scanner({ onLer, pausado = false, onFechar, titulo = 'Leitor ati
                 ? 'Leitor em pausa'
                 : semCamera
                   ? 'Câmera desligada. Digite o código para continuar.'
-                  : `${titulo}. Aponte para um código por vez e confira o produto lido. A moldura é uma orientação visual.`
+                  : cameraNoAparelho && permissao === null
+                    ? 'Iniciando câmera…'
+                    : `${titulo}. Aponte para um código por vez e confira o produto lido. A moldura é uma orientação visual.`
             }
             style={estilos.chipEstado}
           >
-            <View style={[estilos.ponto, { backgroundColor: pausado || semCamera ? CINZA_PAUSA : VERDE_ATIVO }]} />
+            <View style={[estilos.ponto, { backgroundColor: pausado || semCamera ? CINZA_PAUSA : cameraNoAparelho && permissao === null ? cores.manga : VERDE_ATIVO }]} />
             <Texto cor={cores.bg} style={textoBotao.S}>
-              {pausado ? 'Leitor em pausa' : semCamera ? 'Câmera desligada' : titulo}
+              {pausado ? 'Leitor em pausa' : semCamera ? 'Câmera desligada' : cameraNoAparelho && permissao === null ? 'Iniciando câmera…' : titulo}
             </Texto>
           </View>
           {lanterna && cameraLiberada ? (

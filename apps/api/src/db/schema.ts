@@ -242,11 +242,21 @@ export const pagamentosVenda = pgTable('pagamentos_venda', {
     .references(() => lojas.id),
   posicao: integer('posicao').notNull(),
   meio: text('meio', { enum: ['dinheiro', 'pix', 'cartao_credito', 'cartao_debito', 'tap'] }).notNull(),
-  provedor: text('provedor', { enum: ['infinitepay', 'mercadopago'] }),
+  provedor: text('provedor', { enum: ['infinitepay', 'mercadopago', 'stone', 'outro'] }),
   valorCentavos: inteiro('valor_centavos').notNull(),
   trocoCentavos: inteiro('troco_centavos').notNull(),
   criadoEm: criadoEm(),
 });
+
+/** Metadados opcionais de confirmação manual/aparelho (Stone, InfiniteTap, etc.). */
+export const detalhesPagamentosVenda = pgTable('detalhes_pagamentos_venda', {
+  pagamentoId: uuid('pagamento_id').primaryKey().references(() => pagamentosVenda.id),
+  lojaId: uuid('loja_id').notNull().references(() => lojas.id),
+  confirmacao: text('confirmacao', { enum: ['manual', 'integrado', 'aparelho'] }).notNull(),
+  identificadorExterno: text('identificador_externo'),
+  maquininha: text('maquininha'),
+  criadoEm: criadoEm(),
+}, (t) => [index('detalhes_pagamentos_venda_loja_idx').on(t.lojaId)]);
 
 export const caixas = pgTable(
   'caixas',
@@ -499,6 +509,7 @@ export interface PedidoPixGravado {
   expiracao: string;
   pagadorEmail: string;
   pagadorPrimeiroNome: string | null;
+  descricao?: string;
 }
 
 /** Credencial do próprio lojista no provedor, por loja. Desligar apaga a credencial e mantém o histórico. */
@@ -506,9 +517,11 @@ export const conexoesPagamento = pgTable('conexoes_pagamento', {
   id: uuid('id').primaryKey(),
   contaId: uuid('conta_id').notNull().references(() => contas.id),
   lojaId: uuid('loja_id').notNull().references(() => lojas.id),
-  provedor: text('provedor', { enum: ['mercadopago'] }).notNull(),
-  /** Identificador aleatório usado na URL do webhook; não é segredo (a proteção é a assinatura HMAC). */
+  provedor: text('provedor', { enum: ['mercadopago', 'infinitepay'] }).notNull(),
+  /** Identificador aleatório usado na URL do webhook; não é segredo (a proteção é a assinatura HMAC ou consulta no servidor). */
   publicoId: text('publico_id').notNull().unique(),
+  /** Handle (InfiniteTag) do lojista na InfinitePay, quando aplicável. */
+  handle: text('handle'),
   tokenEnvelope: jsonb('token_envelope').$type<EnvelopePagamento>(),
   segredoWebhookEnvelope: jsonb('segredo_webhook_envelope').$type<EnvelopePagamento>(),
   contaProvedorId: text('conta_provedor_id'),
@@ -564,7 +577,7 @@ export const estadosOauthPagamento = pgTable('estados_oauth_pagamento', {
   resultado: text('resultado'),
 }, (t) => [index('estados_oauth_pagamento_loja_idx').on(t.lojaId)]);
 
-/** Cobrança Pix criada pela nossa integração. O `id` é o id do pagamento da venda (gerado no aparelho). */
+/** Cobrança integrada criada pelo servidor (Mercado Pago Pix ou InfinitePay Checkout). O `id` é o id do pagamento da venda. */
 export const cobrancasPagamento = pgTable('cobrancas_pagamento', {
   id: uuid('id').primaryKey(),
   contaId: uuid('conta_id').notNull().references(() => contas.id),
@@ -574,13 +587,16 @@ export const cobrancasPagamento = pgTable('cobrancas_pagamento', {
   vendaId: uuid('venda_id').notNull(),
   operadorId: uuid('operador_id').notNull(),
   aparelhoId: uuid('aparelho_id').notNull(),
-  provedor: text('provedor', { enum: ['mercadopago'] }).notNull(),
-  meio: text('meio', { enum: ['pix'] }).notNull(),
+  provedor: text('provedor', { enum: ['mercadopago', 'infinitepay'] }).notNull(),
+  meio: text('meio', { enum: ['pix', 'cartao_credito', 'cartao_debito'] }).notNull(),
   valorCentavos: inteiro('valor_centavos').notNull(),
   estado: text('estado', { enum: ESTADOS_COBRANCA_PIX }).notNull(),
   chaveIdempotencia: text('chave_idempotencia').notNull().unique(),
   pedido: jsonb('pedido').$type<PedidoPixGravado>().notNull(),
   pedidoProvedorId: text('pedido_provedor_id').unique(),
+  checkoutUrl: text('checkout_url'),
+  transacaoProvedorId: text('transacao_provedor_id'),
+  slugProvedor: text('slug_provedor'),
   statusProvedor: text('status_provedor'),
   detalheProvedor: text('detalhe_provedor'),
   valorPagoCentavos: inteiro('valor_pago_centavos'),
@@ -621,3 +637,27 @@ export const eventosCobrancaPagamento = pgTable('eventos_cobranca_pagamento', {
   dados: jsonb('dados').$type<Record<string, unknown>>().notNull(),
   criadoEm: criadoEm(),
 }, (t) => [index('eventos_cobranca_pagamento_cobranca_idx').on(t.cobrancaId)]);
+
+/** Assinaturas vinculadas à Google Play Billing (PurchaseToken cifrado por hash). */
+export const assinaturasPlay = pgTable('assinaturas_play', {
+  id: uuid('id').primaryKey(),
+  contaId: uuid('conta_id').notNull().references(() => contas.id),
+  assinaturaId: uuid('assinatura_id').notNull().references(() => assinaturas.id),
+  packageName: text('package_name').notNull(),
+  productId: text('product_id').notNull(),
+  purchaseTokenHash: text('purchase_token_hash').notNull().unique(),
+  orderId: text('order_id'),
+  estadoPlay: text('estado_play').notNull(),
+  acknowledgedEm: instante('acknowledged_em'),
+  emTesteGratis: boolean('em_teste_gratis').notNull().default(false),
+  autoRenewEnabled: boolean('auto_renew_enabled').notNull().default(true),
+  inicioEm: instante('inicio_em'),
+  expiraEm: instante('expira_em').notNull(),
+  ultimaNotificacaoEm: instante('ultima_notificacao_em'),
+  ultimoEventoOrdem: bigint('ultimo_evento_ordem', { mode: 'number' }).notNull().default(0),
+  criadoEm: criadoEm(),
+  atualizadoEm: atualizadoEm(),
+}, (t) => [
+  index('assinaturas_play_conta_idx').on(t.contaId),
+  index('assinaturas_play_assinatura_idx').on(t.assinaturaId),
+]);

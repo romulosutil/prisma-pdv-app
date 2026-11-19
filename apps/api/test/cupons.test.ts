@@ -21,10 +21,10 @@ async function contratar(numero: string = NUMEROS.aprova) {
 }
 
 describe('cupons da assinatura', () => {
-  it('publica um único plano de R$ 49,90', async () => {
+  it('publica os planos Free e Pro (R$ 49,90)', async () => {
     const res = await chamar(amb, 'GET', '/planos');
     expect(res.status).toBe(200);
-    expect(res.corpo.map((p: any) => [p.id, p.precoMensalCentavos])).toEqual([['pro', 4990]]);
+    expect(res.corpo.map((p: any) => [p.id, p.precoMensalCentavos])).toEqual([['free', 0], ['pro', 4990]]);
   });
   it('rejeita desconhecido antes de verificar cartão, sem consumir teste', async () => {
     const conta = await criarConta(amb);

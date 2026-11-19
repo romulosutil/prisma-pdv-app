@@ -3,7 +3,17 @@ import { cores, legendaForte } from '@/tema';
 import { Icone, type NomeIcone } from './Icone';
 import { Texto } from './Texto';
 
-export type TipoStatus = 'pago' | 'pendente' | 'offline' | 'sincronizando' | 'cancelado';
+export type TipoStatus =
+  | 'pago'
+  | 'pendente'
+  | 'offline'
+  | 'sincronizando'
+  | 'cancelado'
+  | 'aberto'
+  | 'encerrado'
+  | 'vencido'
+  | 'atencao'
+  | 'inativo';
 
 const ESTILO: Record<TipoStatus, { fundo: string; cor: string; icone: NomeIcone; texto: string }> = {
   pago: { fundo: cores.folhaSoft, cor: cores.folha, icone: 'check', texto: 'Pago' },
@@ -11,6 +21,11 @@ const ESTILO: Record<TipoStatus, { fundo: string; cor: string; icone: NomeIcone;
   offline: { fundo: cores.ambarSoft, cor: cores.ambar, icone: 'offline', texto: 'Offline' },
   sincronizando: { fundo: cores.anilSoft, cor: cores.anil, icone: 'sincronizar', texto: 'Sincronizando' },
   cancelado: { fundo: cores.pitangaSoft, cor: cores.pitanga, icone: 'fechar', texto: 'Cancelado' },
+  aberto: { fundo: cores.folhaSoft, cor: cores.folha, icone: 'check', texto: 'Aberto' },
+  encerrado: { fundo: cores.surface2, cor: cores.ink2, icone: 'check', texto: 'Encerrado' },
+  vencido: { fundo: cores.pitangaSoft, cor: cores.pitanga, icone: 'alerta', texto: 'Vencido' },
+  atencao: { fundo: cores.ambarSoft, cor: cores.ambar, icone: 'alerta', texto: 'Atenção' },
+  inativo: { fundo: cores.surface2, cor: cores.ink3, icone: 'fechar', texto: 'Inativo' },
 };
 
 export interface StatusPillProps {

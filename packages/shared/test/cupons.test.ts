@@ -5,8 +5,8 @@ const agora = new Date('2026-10-30T12:00:00Z');
 const teste = (codigoCupom?: string) => iniciarTeste({ id: 'a', contaId: 'c', planoId: 'pro', agora, codigoCupom, cartao: { bandeira: 'visa', ultimos4: '4242', fingerprint: 'fp' } });
 
 describe('oferta única e cupons', () => {
-  it('oferece somente Pro por R$ 49,90', () => {
-    expect(PLANOS_DISPONIVEIS.map((id) => [id, PLANOS[id].precoMensalCentavos])).toEqual([['pro', 4990]]);
+  it('oferece Free gratuito e Pro por R$ 49,90', () => {
+    expect(PLANOS_DISPONIVEIS.map((id) => [id, PLANOS[id].precoMensalCentavos])).toEqual([['free', 0], ['pro', 4990]]);
   });
   it('normaliza o cupom e preserva sete dias sem cobrança', () => {
     const a = teste(' vitalicio50 ');

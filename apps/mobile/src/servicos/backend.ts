@@ -3,16 +3,37 @@ import type { z } from 'zod';
 import type { PerfilResSchema, AparelhosResSchema } from '@pdv/shared';
 import type {
   AssinaturaRes,
-  IniciarRecuperacaoReq, ConfirmarRecuperacaoReq, RecuperacaoAparelho,
+  Caixa,
+  CobrancaPix,
+  ConectarInfinitePayReq,
+  ConectarMercadoPagoReq,
+  ConexaoInfinitePay,
+  ConexaoMercadoPago,
+  ConfiguracaoCobrancaRes,
+  ConfirmarCompraPlayReq,
+  ConvidarReq,
+  AlterarVinculoReq,
   CriarAssinaturaReq,
+  CriarCobrancaPixReq,
   CriarContaReq,
+  InicioOAuthMercadoPago,
+  IniciarRecuperacaoReq,
+  ConfirmarRecuperacaoReq,
+  RecuperacaoAparelho,
   LoginReq,
+  PainelCaixas,
+  ReservarCaixaReqSchema,
+  OperacaoCaixaReqSchema,
+  AutorizarTransferenciaReqSchema,
+  TrocarAparelhoCaixaReqSchema,
   Plano,
   PlanoId,
+  RestaurarCompraPlayReq,
   Sessao,
-  SyncPushReq, SyncPushRes, SyncPullRes,
-  Vinculo, ConvidarReq, AlterarVinculoReq,
-  Caixa, PainelCaixas, ReservarCaixaReqSchema, OperacaoCaixaReqSchema, AutorizarTransferenciaReqSchema, TrocarAparelhoCaixaReqSchema,
+  SyncPushReq,
+  SyncPushRes,
+  SyncPullRes,
+  Vinculo,
 } from '@pdv/shared';
 
 export type CodigoErroBackend =
@@ -132,4 +153,18 @@ export interface Backend {
   cancelarAssinatura(): Promise<AssinaturaRes>;
   reativarAssinatura(planoId: PlanoId): Promise<AssinaturaRes>;
   atualizarCartao(tokenCartao: string): Promise<AssinaturaRes>;
+  obterConfiguracaoCobranca?(): Promise<ConfiguracaoCobrancaRes>;
+  confirmarCompraGooglePlay?(req: ConfirmarCompraPlayReq): Promise<AssinaturaRes>;
+  restaurarCompraGooglePlay?(req: RestaurarCompraPlayReq): Promise<AssinaturaRes>;
+  ativarPlanoGratuito?(): Promise<AssinaturaRes>;
+  obterConexaoMercadoPago?(): Promise<ConexaoMercadoPago>;
+  conectarMercadoPago?(req: ConectarMercadoPagoReq): Promise<ConexaoMercadoPago>;
+  desconectarMercadoPago?(): Promise<void>;
+  iniciarOAuthMercadoPago?(): Promise<InicioOAuthMercadoPago>;
+  obterConexaoInfinitePay?(): Promise<ConexaoInfinitePay>;
+  conectarInfinitePay?(req: ConectarInfinitePayReq): Promise<ConexaoInfinitePay>;
+  desconectarInfinitePay?(): Promise<void>;
+  criarCobrancaIntegrada?(req: CriarCobrancaPixReq): Promise<CobrancaPix>;
+  acompanharCobrancaIntegrada?(id: string): Promise<CobrancaPix>;
+  cancelarCobrancaIntegrada?(id: string): Promise<CobrancaPix>;
 }

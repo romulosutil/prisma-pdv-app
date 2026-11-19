@@ -1,8 +1,14 @@
+import {
+  GOOGLE_PLAY_PACOTE_PADRAO,
+  GOOGLE_PLAY_SKU_PRO_PADRAO,
+  type CredencialContaServicoGoogle,
+} from './pagamentos/googlePlayBilling';
+
 export interface Configuracao {
   ambiente: 'development' | 'test' | 'production';
   porta: number;
   databaseUrl: string | undefined;
-  billingProvider: 'mock' | 'disabled';
+  billingProvider: 'mock' | 'disabled' | 'google_play';
 }
 
 /** Valida as variáveis antes de abrir conexões ou iniciar serviços. */
@@ -32,10 +38,10 @@ export function validarConfiguracao(env: NodeJS.ProcessEnv): Configuracao {
   }
 
   const billingProvider = env.BILLING_PROVIDER ?? 'disabled';
-  if (billingProvider !== 'mock' && billingProvider !== 'disabled') {
+  if (billingProvider !== 'mock' && billingProvider !== 'disabled' && billingProvider !== 'google_play') {
     throw new Error('BILLING_PROVIDER não é suportado.');
   }
-  if (ambiente === 'production' && billingProvider !== 'disabled') {
+  if (ambiente === 'production' && billingProvider === 'mock') {
     throw new Error('Nenhum provedor de cobrança disponível é permitido em produção.');
   }
 
@@ -107,4 +113,55 @@ export function lerConfiguracaoOAuthMercadoPago(env: NodeJS.ProcessEnv): Configu
   const testToken = booleano(env.PDV_MP_OAUTH_TEST_TOKEN, 'PDV_MP_OAUTH_TEST_TOKEN', false);
   if (testToken && (env.NODE_ENV ?? 'development') === 'production') throw new Error('PDV_MP_OAUTH_TEST_TOKEN não é permitido em produção.');
   return { clientId, clientSecret, redirectUri, webhookSegredo, pkce, testToken };
+}
+
+export function lerUrlPublicaApi(env: NodeJS.ProcessEnv): string | null {
+  const raw = env.PDV_API_PUBLIC_URL?.trim();
+  if (!raw) return null;
+  let url: URL;
+  try { url = new URL(raw); } catch { throw new Error('PDV_API_PUBLIC_URL deve ser uma URL válida.'); }
+  const ambiente = env.NODE_ENV ?? 'development';
+  if (ambiente === 'production' && url.protocol !== 'https:') {
+    throw new Error('PDV_API_PUBLIC_URL deve usar https em produção.');
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    throw new Error('PDV_API_PUBLIC_URL deve usar http ou https.');
+  }
+  return url.toString().replace(/\/+$/, '');
+}
+
+export interface ConfiguracaoGooglePlay {
+  packageName: string;
+  skuProMensal: string;
+  webhookToken: string | null;
+  credencial: CredencialContaServicoGoogle | null;
+}
+
+export function lerConfiguracaoGooglePlay(env: NodeJS.ProcessEnv): ConfiguracaoGooglePlay {
+  const packageName = env.PDV_PLAY_PACKAGE_NAME?.trim() || GOOGLE_PLAY_PACOTE_PADRAO;
+  const skuProMensal = env.PDV_PLAY_SKU_PRO?.trim() || GOOGLE_PLAY_SKU_PRO_PADRAO;
+  const webhookToken = env.PDV_PLAY_WEBHOOK_TOKEN?.trim() || null;
+
+  let credencial: CredencialContaServicoGoogle | null = null;
+  const jsonBruto = env.PDV_PLAY_SERVICE_ACCOUNT_JSON?.trim();
+  if (jsonBruto) {
+    let parsed: { client_email?: unknown; private_key?: unknown };
+    try {
+      parsed = JSON.parse(jsonBruto) as { client_email?: unknown; private_key?: unknown };
+    } catch {
+      throw new Error('PDV_PLAY_SERVICE_ACCOUNT_JSON deve ser um JSON válido.');
+    }
+    if (typeof parsed.client_email !== 'string' || typeof parsed.private_key !== 'string' || !parsed.client_email || !parsed.private_key) {
+      throw new Error('PDV_PLAY_SERVICE_ACCOUNT_JSON deve conter client_email e private_key.');
+    }
+    credencial = { clientEmail: parsed.client_email, privateKey: parsed.private_key.replace(/\\n/g, '\n') };
+  } else {
+    const email = env.PDV_PLAY_SERVICE_ACCOUNT_EMAIL?.trim();
+    const key = env.PDV_PLAY_PRIVATE_KEY?.trim();
+    if (email && key) {
+      credencial = { clientEmail: email, privateKey: key.replace(/\\n/g, '\n') };
+    }
+  }
+
+  return { packageName, skuProMensal, webhookToken, credencial };
 }

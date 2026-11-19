@@ -36,7 +36,7 @@ describe('saúde e catálogo', () => {
     const res = await chamar(amb, 'GET', '/planos');
     expect(res.status).toBe(200);
     expect(res.corpo.map((p: { id: string }) => p.id)).toEqual([...PLANOS_DISPONIVEIS]);
-    expect(res.corpo[0].precoMensalCentavos).toBe(4990);
+    expect(res.corpo.map((p: { precoMensalCentavos: number }) => p.precoMensalCentavos)).toEqual([0, 4990]);
   });
 
   it('rota inexistente devolve erro em português', async () => {

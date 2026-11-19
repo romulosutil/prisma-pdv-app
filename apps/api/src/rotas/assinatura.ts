@@ -6,8 +6,11 @@ import {
   avaliar,
   calcularProrata,
   cancelar,
+  ConfiguracaoCobrancaResSchema,
+  ConfirmarCompraPlayReqSchema,
   CriarAssinaturaReqSchema,
   AtualizarCartaoReqSchema,
+  RestaurarCompraPlayReqSchema,
   TrocarPlanoReqSchema,
   gerarId,
   iniciarTeste,
@@ -29,7 +32,15 @@ import { contas, testesUsados } from '../db/schema';
 import type { Deps } from '../deps';
 import { autorizacaoAtual, exigirDono } from '../auth';
 import { ErroApi } from '../erros';
+import { ErroGooglePlay } from '../pagamentos/googlePlayBilling';
 import { carregarAssinatura, registrarEvento, salvarAssinatura } from '../servicos/assinatura';
+import {
+  ambienteGooglePlay,
+  ativarPlanoGratuito,
+  configuracaoCobrancaAtual,
+  confirmarCompraGooglePlay,
+  processarRtdnGooglePlay,
+} from '../servicos/assinaturaPlay';
 import { chaveAvulsa, cobrarFatura, descricaoDaFatura, type TipoFatura } from '../servicos/cobranca';
 
 type CartaoVerificado = Extract<ResultadoVerificacao, { ok: true }>;
@@ -45,7 +56,44 @@ export function rotasPlanos(app: FastifyInstance): void {
   app.get('/planos', async () => PLANOS_DISPONIVEIS.map((id) => PLANOS[id]));
 }
 
-export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing, cobrancaDesativada }: Deps): void {
+export function rotasAssinaturaPublicas(app: FastifyInstance, deps: Deps): void {
+  app.get('/assinatura/configuracao', async () =>
+    ConfiguracaoCobrancaResSchema.parse(configuracaoCobrancaAtual({
+      cobrancaDesativada: deps.cobrancaDesativada,
+      billingProvider: deps.billingProvider,
+      googlePlayPackageName: deps.googlePlay?.packageName,
+      googlePlaySkuPro: deps.googlePlay?.skuProMensal,
+    })));
+
+  app.post('/webhooks/pdv-google-play', async (request, reply) => {
+    const tokenEsperado = deps.googlePlay?.webhookToken;
+    if (tokenEsperado) {
+      const consulta = request.query as { token?: unknown } | undefined;
+      const auth = request.headers.authorization;
+      const bearer = typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7).trim() : undefined;
+      const recebido = typeof consulta?.token === 'string' ? consulta.token : bearer;
+      if (recebido !== tokenEsperado) {
+        throw new ErroApi(401, 'token_webhook_invalido', 'Autorização do webhook inválida.');
+      }
+    }
+    try {
+      const resultado = await processarRtdnGooglePlay(ambienteGooglePlay(deps), request.body);
+      return reply.status(200).send({ recebido: true, ...resultado });
+    } catch (erro) {
+      if (erro instanceof ErroGooglePlay) {
+        if (erro.tipo === 'nao_configurado') {
+          throw new ErroApi(503, 'google_play_nao_configurado', 'Integração com a Google Play não configurada neste servidor.');
+        }
+        throw new ErroApi(502, 'google_play_indisponivel', 'Não foi possível consultar a Google Play agora.');
+      }
+      throw erro;
+    }
+  });
+}
+
+export function rotasAssinatura(app: FastifyInstance, deps: Deps): void {
+  const { db, relogio, billing, cobrancaDesativada } = deps;
+  const dono = { preHandler: exigirDono(db, relogio) };
   const permitirCobranca = [exigirDono(db, relogio), async (request: import('fastify').FastifyRequest) => {
     const { assinatura } = await carregarAssinatura(db, request.sessao.contaId, relogio.agora());
     if (cobrancaDesativada || assinatura.status === 'liberada') {
@@ -238,4 +286,23 @@ export function rotasAssinatura(app: FastifyInstance, { db, relogio, billing, co
     await registrarEvento(db, nova, 'reativada', { planoId, valorCentavos }, agora);
     return resposta(nova, agora);
   });
+
+  app.post('/assinatura/google-play/confirmar', dono, async (request) => {
+    const req = ConfirmarCompraPlayReqSchema.parse(request.body);
+    return AssinaturaResSchema.parse(
+      await confirmarCompraGooglePlay(ambienteGooglePlay(deps), request.sessao.contaId, req, { exigirComprado: true }),
+    );
+  });
+
+  app.post('/assinatura/google-play/restaurar', dono, async (request) => {
+    const req = RestaurarCompraPlayReqSchema.parse(request.body);
+    return AssinaturaResSchema.parse(
+      await confirmarCompraGooglePlay(ambienteGooglePlay(deps), request.sessao.contaId, req, { exigirComprado: true }),
+    );
+  });
+
+  app.post('/assinatura/gratuito', dono, async (request) =>
+    AssinaturaResSchema.parse(
+      await ativarPlanoGratuito(db, request.sessao.contaId, relogio, Boolean(cobrancaDesativada)),
+    ));
 }

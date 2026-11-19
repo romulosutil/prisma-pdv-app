@@ -115,9 +115,9 @@ BEGIN
   LOCK TABLE drizzle.__drizzle_migrations, public.catalogo_ean,
     public.contas, public.lojas, public.usuarios, public.operadores, public.aparelhos, public.sessoes,
     public.codigos_login, public.entregas_codigo, public.recuperacoes_aparelho,
-    public.produtos, public.vendas, public.itens_venda, public.pagamentos_venda, public.caixas,
+    public.produtos, public.vendas, public.itens_venda, public.detalhes_pagamentos_venda, public.pagamentos_venda, public.caixas,
     public.movimentos_caixa, public.auditoria_caixa, public.catalogo_ean_confirmacoes,
-    public.mudancas, public.mutacoes_aplicadas, public.assinaturas, public.faturas,
+    public.mudancas, public.mutacoes_aplicadas, public.assinaturas_play, public.assinaturas, public.faturas,
     public.eventos_cobranca, public.testes_usados, public.movimentos_estoque, public.clientes,
     public.eventos_fiado, public.solicitacoes_suporte,
     public.conexoes_pagamento, public.cobrancas_pagamento, public.eventos_cobranca_pagamento,
@@ -193,6 +193,7 @@ BEGIN
   DELETE FROM public.auditoria_caixa WHERE loja_id = ANY (v_lojas);
   DELETE FROM public.movimentos_caixa WHERE loja_id = ANY (v_lojas);
   DELETE FROM public.itens_venda WHERE loja_id = ANY (v_lojas);
+  DELETE FROM public.detalhes_pagamentos_venda WHERE loja_id = ANY (v_lojas);
   DELETE FROM public.pagamentos_venda WHERE loja_id = ANY (v_lojas);
   DELETE FROM public.vendas WHERE loja_id = ANY (v_lojas);
   DELETE FROM public.caixas WHERE loja_id = ANY (v_lojas);
@@ -213,6 +214,7 @@ BEGIN
 
   DELETE FROM public.eventos_cobranca WHERE conta_id = v_conta;
   DELETE FROM public.faturas WHERE conta_id = v_conta;
+  DELETE FROM public.assinaturas_play WHERE conta_id = v_conta;
   DELETE FROM public.assinaturas WHERE conta_id = v_conta;
   DELETE FROM public.testes_usados WHERE conta_id = v_conta;
 
@@ -223,9 +225,9 @@ BEGIN
   -- Havia 1 conta só: toda tabela com FK para contas/lojas precisa estar vazia no banco inteiro.
   FOREACH tabela IN ARRAY ARRAY[
     'contas', 'lojas', 'operadores', 'aparelhos', 'sessoes', 'recuperacoes_aparelho',
-    'produtos', 'vendas', 'itens_venda', 'pagamentos_venda', 'caixas', 'movimentos_caixa',
+    'produtos', 'vendas', 'itens_venda', 'detalhes_pagamentos_venda', 'pagamentos_venda', 'caixas', 'movimentos_caixa',
     'auditoria_caixa', 'catalogo_ean_confirmacoes', 'mudancas', 'mutacoes_aplicadas',
-    'assinaturas', 'faturas', 'eventos_cobranca', 'testes_usados', 'movimentos_estoque',
+    'assinaturas_play', 'assinaturas', 'faturas', 'eventos_cobranca', 'testes_usados', 'movimentos_estoque',
     'clientes', 'eventos_fiado', 'solicitacoes_suporte',
     'conexoes_pagamento', 'cobrancas_pagamento', 'eventos_cobranca_pagamento', 'estados_oauth_pagamento'
   ] LOOP

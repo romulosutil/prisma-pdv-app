@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { exigirSessao } from './auth';
 import type { Deps } from './deps';
 import { ErroApi } from './erros';
-import { rotasAssinatura, rotasPlanos } from './rotas/assinatura';
+import { rotasAssinatura, rotasAssinaturaPublicas, rotasPlanos } from './rotas/assinatura';
 import { rotasCatalogo } from './rotas/catalogo';
 import { rotasConta, rotasContaProtegidas } from './rotas/conta';
 import { rotasDev } from './rotas/dev';
@@ -46,7 +46,9 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
     db: config.db,
     relogio: config.relogio,
     billing: config.billing,
+    billingProvider: config.billingProvider,
     cobrancaDesativada: config.cobrancaDesativada,
+    googlePlay: config.googlePlay,
     emissaoCodigo: config.emissaoCodigo ?? { modo: 'desenvolvimento' },
     fontesEan: config.fontesEan,
     orcamentoEanMs: config.orcamentoEanMs,
@@ -101,6 +103,7 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
   });
   rotasPaginasPublicas(app);
   rotasPlanos(app);
+  rotasAssinaturaPublicas(app, deps);
   rotasConta(app, deps);
   rotasCadastro(app, deps);
   rotasRecuperacao(app, deps);

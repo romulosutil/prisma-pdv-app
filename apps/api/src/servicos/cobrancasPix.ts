@@ -11,6 +11,8 @@ import { ErroApi } from '../erros';
 import { assinaturaValida } from '../pagamentos/assinaturaWebhook';
 import { ErroCifraPagamentos } from '../pagamentos/cifrador';
 import { ErroProvedorMp, EXPIRACAO_PIX, EXPIRACAO_PIX_MS, type FalhaProvedor, type PedidoMercadoPago } from '../pagamentos/mercadoPago';
+import { criarProvedorInfinitePay, type ProvedorInfinitePay } from '../pagamentos/infinitePay';
+import { consultarInfinitePayNoProvedor, serializarCobrancaInfinitePay } from './cobrancasInfinitePay';
 
 /**
  * Pix do Mercado Pago (N2). Regras:
@@ -51,6 +53,8 @@ export interface AmbientePix extends AmbienteConexao {
   pagadorEmail: string | null;
   pagadorPrimeiroNome: string | null;
   consultaMinimaMs: number;
+  infinitePay?: ProvedorInfinitePay;
+  urlPublicaApi?: string | null;
 }
 
 export function ambientePix(deps: Pick<Deps, 'db' | 'relogio' | 'pagamentos'>): AmbientePix {
@@ -65,6 +69,8 @@ export function ambientePix(deps: Pick<Deps, 'db' | 'relogio' | 'pagamentos'>): 
     pagadorPrimeiroNome: p.pagadorPrimeiroNome ?? null,
     consultaMinimaMs: p.consultaMinimaMs ?? CONSULTA_MINIMA_MS,
     oauth: p.oauth ?? null,
+    infinitePay: p.infinitePay,
+    urlPublicaApi: p.urlPublicaApi ?? null,
   };
 }
 
@@ -429,8 +435,10 @@ export async function listarCobrancasPix(db: Db, lojaId: string, estado?: Estado
   const linhas = await db.select().from(cobrancasPagamento)
     .where(and(eq(cobrancasPagamento.lojaId, lojaId), estado ? eq(cobrancasPagamento.estado, estado) : undefined))
     .orderBy(desc(cobrancasPagamento.criadoEm), asc(cobrancasPagamento.id)).limit(200);
-  // A lista do dono não carrega QR.
-  return linhas.map((c) => ({ ...serializarCobranca(c), pix: null }));
+  // A lista do dono não carrega QR nem checkoutUrl.
+  return linhas.map((c) => c.provedor === 'infinitepay'
+    ? { ...serializarCobrancaInfinitePay(c), pix: null, checkoutUrl: null }
+    : { ...serializarCobranca(c), pix: null });
 }
 
 // ---------- Webhook ----------
@@ -546,14 +554,33 @@ export async function conciliarCobrancasPix(amb: AmbientePix, opcoes: { devePara
         .returning();
       if (!travada) continue;
       resumo.consultadas += 1;
-      const { cobranca, falha } = await consultarNoProvedor(amb, travada, 'conciliacao');
-      if (falha) {
-        resumo.falhas += 1;
-        if (falha === 'limite') lojasEmEspera.add(c.lojaId);
-        continue;
+      const antes = travada.estado;
+      let depois: EstadoCobrancaPix;
+      if (travada.provedor === 'infinitepay') {
+        const resInf = await consultarInfinitePayNoProvedor({
+          db: amb.db,
+          relogio: amb.relogio,
+          cifrador: amb.cifrador,
+          provedor: amb.infinitePay ?? criarProvedorInfinitePay(),
+          urlPublicaApi: amb.urlPublicaApi ?? null,
+          consultaMinimaMs: amb.consultaMinimaMs,
+        }, travada, 'conciliacao');
+        if (resInf.falhou) {
+          resumo.falhas += 1;
+          continue;
+        }
+        depois = resInf.cobranca.estado;
+      } else {
+        const { cobranca, falha } = await consultarNoProvedor(amb, travada, 'conciliacao');
+        if (falha) {
+          resumo.falhas += 1;
+          if (falha === 'limite') lojasEmEspera.add(c.lojaId);
+          continue;
+        }
+        depois = cobranca.estado;
       }
-      if (cobranca.estado !== travada.estado) {
-        if (cobranca.estado === 'paga' || cobranca.estado === 'paga_tardia') resumo.confirmadas += 1;
+      if (depois !== antes) {
+        if (depois === 'paga' || depois === 'paga_tardia') resumo.confirmadas += 1;
         else resumo.encerradas += 1;
       }
     } catch {

@@ -90,8 +90,19 @@ export default function Inicio() {
         </View>
       </View>
 
-      <Botao rotulo="Vender" icone="codigoBarras" onPress={abrirVenda} accessibilityHint="Abre o leitor de código de barras" />
-      {!caixa ? <Botao rotulo="Abrir caixa" icone="caixa" variante="secundario" onPress={() => router.push('/caixa/abrir')} /> : null}
+      <View style={estilos.turnoCard}>
+        <View style={estilos.turnoTopo}>
+          <Texto estilo="label" cor={cores.ink2}>
+            {caixa ? 'Turno aberto neste aparelho' : 'Caixa fechado'}
+          </Texto>
+          <StatusPill tipo={caixa ? 'aberto' : 'inativo'} texto={caixa ? 'Em operação' : 'Fechado'} />
+        </View>
+        {!caixa ? (
+          <Botao rotulo="Abrir caixa" icone="caixa" variante="secundario" onPress={() => router.push('/caixa/abrir')} />
+        ) : (
+          <Botao rotulo="Ver gaveta e movimentos" icone="caixa" variante="terciario" tamanho="M" larguraTotal onPress={() => router.push('/caixa')} />
+        )}
+      </View>
 
       <View style={estilos.atalhos}>
         <Atalho icone="fecharCaixa" rotulo={caixa ? 'Fechar caixa' : 'Meu caixa'} onPress={() => router.push('/caixa')} />
@@ -107,6 +118,16 @@ export default function Inicio() {
           </Texto>
           <Botao rotulo="Ver todas" variante="ghost" tamanho="S" onPress={() => router.push('/caixa')} />
         </View>
+        {vendas.length === 0 ? (
+          <View style={estilos.vazio}>
+            <Texto estilo="corpoMedio" cor={cores.ink2}>
+              Nenhuma venda registrada hoje
+            </Texto>
+            <Texto estilo="legenda" cor={cores.ink3}>
+              Toque em Vender na barra abaixo para começar a passar produtos.
+            </Texto>
+          </View>
+        ) : null}
         {vendas.slice(0, 3).map((venda, i, lista) => {
           const meio = venda.pagamentos[0]?.meio ?? 'dinheiro';
           const hora = formatarHora(new Date(venda.criadaEm));
@@ -116,6 +137,7 @@ export default function Inicio() {
               key={venda.id}
               titulo={`${numero} · ${rotuloDoMeio(meio)}`}
               subtitulo={hora}
+              onPress={() => router.push({ pathname: '/caixa/venda/[id]', params: { id: venda.id } })}
               rotuloAcessivel={`Venda ${numero.slice(1)}, ${rotuloDoMeio(meio)}, ${hora}, ${falarDinheiro(venda.totalCentavos)}, ${venda.status === 'concluida' ? 'paga' : 'cancelada'}`}
               miniatura={<Icone nome={iconeDoMeio(meio)} tamanho={22} />}
               divisor={i < lista.length - 1}
@@ -171,6 +193,9 @@ const estilos = StyleSheet.create({
   cabecalho: { gap: 4 },
   conexao: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   resumo: { gap: 16, padding: 20, borderRadius: raio.lg, backgroundColor: cores.surface },
+  turnoCard: { gap: 12, padding: 16, borderRadius: raio.md, backgroundColor: cores.surface },
+  turnoTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  vazio: { padding: 16, borderRadius: raio.md, backgroundColor: cores.surface, gap: 4 },
   totais: { gap: 4 },
   meios: { gap: 10 },
   linhaMeio: { flexDirection: 'row', alignItems: 'center', gap: 12 },

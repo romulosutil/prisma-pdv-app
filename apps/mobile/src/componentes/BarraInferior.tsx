@@ -15,15 +15,16 @@ const ABAS: Record<string, { rotulo: string; icone: NomeIcone }> = {
 };
 
 const ALTURA_BARRA = 88;
-const COLUNA_CENTRAL = 128;
-const LIMITE_FONTE = 1.4;
+const LIMITE_FONTE = 1.3;
 /** A partir daqui os rótulos descem para não encostar na base do botão Vender (elevado 22). */
 const FONTE_AMPLIADA = 1.15;
 
 /** Barra inferior: Início, Produtos | Vender | Caixa, Ajustes. O Vender abre a rota `/vender`, fora das abas. */
 export function BarraInferior({ state, emitter, navigateToTab, insets }: BottomTabBarProps) {
-  const { fontScale } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
   const ampliada = fontScale > FONTE_AMPLIADA;
+  const compacta = width < 380;
+  const larguraCentral = compacta ? 108 : 128;
   const rotaAtiva = state.routes[state.index]?.name;
 
   const abas = state.routes
@@ -52,8 +53,8 @@ export function BarraInferior({ state, emitter, navigateToTab, insets }: BottomT
       style={[estilos.barra, { minHeight: ALTURA_BARRA + insets.bottom, paddingBottom: insets.bottom }]}
     >
       <View style={estilos.lateral}>{abas.slice(0, 2)}</View>
-      <View style={estilos.central}>
-        <Vender />
+      <View style={[estilos.central, { width: larguraCentral }]}>
+        <Vender compacta={compacta} />
       </View>
       <View style={estilos.lateral}>{abas.slice(2)}</View>
     </View>
@@ -100,7 +101,7 @@ function Aba({
   );
 }
 
-function Vender() {
+function Vender({ compacta }: { compacta: boolean }) {
   const abrirVenda = useAbrirVenda();
   const { aoFocar, aoDesfocar, focado } = useFoco(3);
   return (
@@ -116,6 +117,7 @@ function Vender() {
       onBlur={aoDesfocar}
       style={({ pressed }) => [
         estilos.vender,
+        { minWidth: compacta ? 92 : 104, paddingHorizontal: compacta ? 10 : 14 },
         sombras.vender,
         { backgroundColor: pressed ? cores.mangaStrong : cores.manga },
         focado && estilos.venderFocado,
@@ -138,24 +140,21 @@ const estilos = StyleSheet.create({
     borderTopColor: cores.line,
     backgroundColor: cores.bg,
   },
-  // Duas abas de cada lado: as laterais dividem o espaço que sobra e a central mantém 128.
+  // Duas abas de cada lado: as laterais dividem o espaço que sobra e a central se adapta em 360dp.
   lateral: { flex: 2, flexDirection: 'row' },
-  central: { width: COLUNA_CENTRAL, alignItems: 'center' },
+  central: { alignItems: 'center' },
   aba: { flex: 1, minWidth: 48, minHeight: 56, alignItems: 'center', gap: 2 },
   abaAmpliada: { paddingTop: 10 },
-  // Rótulo mais largo que a coluna (margens negativas) para nunca cortar em fonte ampliada.
-  rotuloLargo: { alignSelf: 'stretch', marginHorizontal: -16, alignItems: 'center' },
+  rotuloLargo: { alignSelf: 'stretch', paddingHorizontal: 2, alignItems: 'center' },
   rotuloAba: { textAlign: 'center' },
   ponto: { width: 6, height: 6, borderRadius: 3 },
   vender: {
-    minWidth: 104,
     minHeight: 56,
     marginTop: -22,
-    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     borderWidth: 4,
     borderColor: cores.bg,
     borderRadius: 999,

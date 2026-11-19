@@ -46,6 +46,7 @@ describe('configuração da API', () => {
 
   it('produção sem seleção de gateway não simula verificação, cobrança ou estorno', async () => {
     expect(validarConfiguracao(producao).billingProvider).toBe('disabled');
+    expect(validarConfiguracao({ ...producao, BILLING_PROVIDER: 'google_play' }).billingProvider).toBe('google_play');
     const billing = criarBilling();
     await expect(billing.verificarCartao('qualquer-token')).rejects.toMatchObject({ codigo: 'cobranca_desativada' });
     await expect(billing.cobrar({ clienteRef: 'cliente', valorCentavos: 100, descricao: 'Teste', chaveIdempotencia: 'pedido' })).rejects.toMatchObject({ codigo: 'cobranca_desativada' });

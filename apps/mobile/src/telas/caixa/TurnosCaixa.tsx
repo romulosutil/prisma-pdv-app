@@ -2,7 +2,7 @@ import { ListaPaginada } from '@/componentes/ListaPaginada';
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { formatarBRL, ROTULOS_MOVIMENTO, type PainelCaixas } from '@pdv/shared';
+import { codigoCurto, formatarBRL, rotuloCategoriaMovimento, rotuloTipoMovimentoCaixa, type PainelCaixas } from '@pdv/shared';
 import { Botao } from '@/componentes/Botao';
 import { Campo } from '@/componentes/Campo';
 import { Confirmacao } from '@/componentes/Confirmacao';
@@ -59,14 +59,14 @@ export function TurnosCaixa() {
     <ListaPaginada itens={linhas} renderizar={l => <View key={l.caixa.id} style={{ gap: 8, paddingVertical: 12 }}>
       <Texto estilo="tituloM">{`${l.nomeOperador} · ${l.caixa.fechamento ? 'Encerrado' : 'Aberto'}${selecionado === l.caixa.id ? ' · Selecionado' : ''}`}</Texto>
       <Texto estilo="corpo">{`Esperado: ${formatarBRL(l.saldoCentavos)}${l.caixa.fechamento ? ` · Contado: ${formatarBRL(l.caixa.fechamento.contadoCentavos)} · Diferença: ${formatarBRL(l.caixa.fechamento.contadoCentavos - l.caixa.fechamento.esperadoCentavos)}` : ''}`}</Texto>
-      <Texto estilo="legenda" selectable>{`Turno: ${l.caixa.id}`}</Texto>
+      <Texto estilo="legenda" selectable>{`Código ${codigoCurto(l.caixa.id)} · Turno: ${l.caixa.id}`}</Texto>
       {!l.caixa.versaoContrato ? <Texto estilo="legenda">Histórico legado: autoria adicional não comprovada permanece sem atribuição.</Texto> : null}
       <Botao rotulo={`Selecionar turno de ${l.nomeOperador}`} tamanho="M" variante="terciario" onPress={() => selecionar(l.caixa.id)} desabilitado={ocupado} />
     </View>} />
     {linha && caixa ? <View style={{ gap: 12 }}>
       <Texto estilo="tituloM">{`Turno de ${linha.nomeOperador}`}</Texto>
       <Botao rotulo="Copiar identificador do turno" variante="terciario" onPress={() => { void Clipboard.setStringAsync(caixa.id).catch(() => setMensagem('Não foi possível copiar. Use o identificador exibido acima.')); }} />
-      <ListaPaginada itens={caixa.movimentos} renderizar={m => <Texto key={m.id} estilo="corpo" selectable>{`${ROTULOS_MOVIMENTO[m.tipo]} · ${formatarBRL(m.valorCentavos)} · ${m.categoria ?? 'Legado'} · ${m.destino ?? ''} · ${m.motivo ?? ''}\nEvento: ${m.id}\nAutor: ${m.autorOperadorId ?? 'Não comprovado no legado'} · Responsável: ${m.responsavelOperadorId ?? caixa.operadorId}${m.aprovadorId ? ` · Aprovador: ${m.aprovadorId}` : ''}${m.originalId ? ` · Original: ${m.originalId}` : ''}`}</Texto>} />
+      <ListaPaginada itens={caixa.movimentos} renderizar={m => <Texto key={m.id} estilo="corpo" selectable>{`${rotuloTipoMovimentoCaixa(m.tipo)} · ${formatarBRL(m.valorCentavos)} · ${m.categoria ? rotuloCategoriaMovimento(m.categoria) : 'Legado'} · ${m.destino ?? ''} · ${m.motivo ?? ''}\nEvento: ${codigoCurto(m.id)} (${m.id})\nAutor: ${m.autorOperadorId ?? 'Não comprovado no legado'} · Responsável: ${m.responsavelOperadorId ?? caixa.operadorId}${m.aprovadorId ? ` · Aprovador: ${m.aprovadorId}` : ''}${m.originalId ? ` · Original: ${m.originalId}` : ''}`}</Texto>} />
       <ListaPaginada itens={linha.auditoria} renderizar={a => <Texto key={a.id} estilo="legenda">{`${a.tipo} · ${a.em} · Autor: ${a.autorOperadorId} · ${String(a.dados.motivo ?? '')}`}</Texto>} />
       {caixa.fechamento ? <>
         <Texto estilo="corpo">{`Recolhido: ${formatarBRL(caixa.fechamento.recolhidoCentavos ?? 0)} · Troco preservado: ${formatarBRL(caixa.fechamento.trocoRestanteCentavos ?? 0)}`}</Texto>

@@ -1,8 +1,9 @@
-import { formatarBRL, PLANOS, planoMinimoPara, type Centavos } from '@pdv/shared';
+import { CATEGORIAS_MOVIMENTO_CAIXA, formatarBRL, PLANOS, planoMinimoPara, type Centavos } from '@pdv/shared';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Banner } from '@/componentes/Banner';
+import { Botao } from '@/componentes/Botao';
 import { Campo } from '@/componentes/Campo';
 import { TelaBase } from '@/componentes/TelaBase';
 import { Texto } from '@/componentes/Texto';
@@ -117,6 +118,17 @@ export function MovimentoDeCaixa() {
       }}
       erro={erro}
       depois={<View style={{ gap: 12 }}>
+        <View style={estilos.categorias}>
+          {CATEGORIAS_MOVIMENTO_CAIXA.map((cat) => (
+            <Botao
+              key={cat.codigo}
+              rotulo={cat.rotulo}
+              variante={categoria === cat.codigo ? 'primario' : 'terciario'}
+              tamanho="S"
+              onPress={() => setCategoria(cat.codigo)}
+            />
+          ))}
+        </View>
         <Campo rotulo="Categoria" value={categoria} onChangeText={setCategoria} maxLength={100} />
         <Campo rotulo={tipo === 'suprimento' ? 'Origem do dinheiro' : 'Destino e responsável pelo recebimento'} value={destino} onChangeText={setDestino} maxLength={150} />
         <Campo rotulo="Motivo" value={motivo} onChangeText={setMotivo} maxLength={500} placeholder={tipo === 'sangria' ? 'Ex.: recolhimento para o cofre' : 'Ex.: reforço de troco'} />
@@ -130,4 +142,5 @@ export function MovimentoDeCaixa() {
 const estilos = StyleSheet.create({
   bloqueio: { gap: 16, paddingTop: 16 },
   esperado: { paddingHorizontal: 16, borderRadius: raio.md, backgroundColor: cores.surface },
+  categorias: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

@@ -14,8 +14,7 @@ import { CabecalhoTela } from '@/componentes/CabecalhoTela';
 import { Confirmacao } from '@/componentes/Confirmacao';
 import { useVoltar } from '@/util/useVoltar';
 import { falarDinheiro } from '@/util/dinheiroFalado';
-import { rotuloDoMeio } from '@/util/meios';
-import { PROVEDORES } from '@/util/provedores';
+import { rotuloDaParcela } from '@/telas/pagar/rotulos';
 import { formatarHora } from '@/util/tempo';
 import { formatarQuantidade } from './logica';
 import { LinhaValor } from './LinhaValor';
@@ -112,11 +111,14 @@ export function DetalheVenda() {
         </Texto>
         <View style={estilos.cartao}>
           {venda.pagamentos.flatMap((pagamento, i) => {
-            const provedor = PROVEDORES.find((p) => p.id === pagamento.provedor)?.nome;
+            const detalhes = [
+              pagamento.confirmacao === 'manual' ? 'Confirmação manual' : pagamento.confirmacao === 'aparelho' ? 'Confirmado na maquininha' : null,
+              pagamento.identificadorExterno ? `NSU/Comprovante: ${pagamento.identificadorExterno}` : null,
+            ].filter(Boolean).join(' · ');
             const linhas = [
               <LinhaValor
                 key={pagamento.id}
-                rotulo={`${rotuloDoMeio(pagamento.meio)}${provedor ? ` · ${provedor}` : ''}`}
+                rotulo={`${rotuloDaParcela(pagamento)}${detalhes ? ` (${detalhes})` : ''}`}
                 centavos={pagamento.valorCentavos}
                 divisor={i > 0}
               />,

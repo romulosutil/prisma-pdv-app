@@ -6,6 +6,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      deploy_producao:
+        description: 'Promover commit validado para codex/pdv-deploy e acionar deploy em producao'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -73,7 +79,7 @@ jobs:
   deploy:
     name: Deploy validated main
     needs: validate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.deploy_producao == true)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

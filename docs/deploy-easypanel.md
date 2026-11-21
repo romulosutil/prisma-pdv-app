@@ -29,9 +29,25 @@ SMTP_PASSWORD=<API_KEY_RESEND>
 SMTP_FROM=acesso@prumo.services
 EMAIL_CODIGO_KEY_ID=producao-v1
 EMAIL_CODIGO_KEYS={"producao-v1":"<32_BYTES_ALEATORIOS_EM_BASE64>"}
+# Pagamentos integrados (migrações 0013–0015; sem elas, rotas de pagamento respondem 503 sem impedir a partida)
+PDV_API_PUBLIC_URL=https://aladdin-pdv-api.jicnzg.easypanel.host
+PDV_PAGAMENTOS_CHAVE=<32_BYTES_ALEATORIOS_EM_BASE64>
+PDV_MP_PAYER_EMAIL=<EMAIL_PADRAO_PAGADOR_PIX>
+PDV_MP_CLIENT_ID=<CLIENT_ID_APP_MERCADO_PAGO>
+PDV_MP_CLIENT_SECRET=<CLIENT_SECRET_APP_MERCADO_PAGO>
+PDV_MP_REDIRECT_URI=https://aladdin-pdv-api.jicnzg.easypanel.host/pagamentos/mercadopago/oauth/retorno
+PDV_MP_WEBHOOK_SECRET=<SEGREDO_WEBHOOK_APP_MERCADO_PAGO>
+PDV_MP_OAUTH_PKCE=true
+# Google Play Billing (trocar BILLING_PROVIDER=google_play quando ativar a assinatura sem novo binário)
+PDV_PLAY_PACKAGE_NAME=br.com.pdv.mobile
+PDV_PLAY_SKU_PRO=prisma_pro_mensal
+PDV_PLAY_WEBHOOK_TOKEN=<TOKEN_PUBSUB_RTDN_GOOGLE_PLAY>
+PDV_PLAY_SERVICE_ACCOUNT_JSON=<JSON_CONTA_SERVICO_ANDROID_PUBLISHER>
 ```
 
-Não definir JOBS=off: isso também desliga envio de códigos. Com billing disabled, só o worker de e-mail é agendado. Preservar a chave de cifra entre deploys; ela é independente da API key e necessária para mensagens pendentes. O ambiente production exige PostgreSQL e SMTP válidos e não publica /dev, não usa relógio controlável e não devolve OTP em respostas.
+Não definir JOBS=off: isso também desliga envio de códigos. Com `BILLING_PROVIDER=disabled`, só o worker de e-mail e a conciliação de pagamentos são agendados (quando configurados); trocar `BILLING_PROVIDER` para `google_play` ativa o modo Free + Pro pela Play Store sem novo binário. Preservar a chave de cifra entre deploys; ela é independente da API key e necessária para mensagens pendentes e credenciais de pagamento cifradas. O ambiente production exige PostgreSQL e SMTP válidos e não publica /dev, não usa relógio controlável e não devolve OTP em respostas.
+
+**Migrações `0013`–`0015` (pagamentos integrados e Play Billing):** antes de ligar pagamentos reais dos lojistas ou assinatura paga em produção, configurar `PDV_PAGAMENTOS_CHAVE`, `PDV_MP_PAYER_EMAIL`, as credenciais OAuth/Webhook do Mercado Pago e, para Play Billing, `PDV_PLAY_WEBHOOK_TOKEN` e `PDV_PLAY_SERVICE_ACCOUNT_JSON` (ou `PDV_PLAY_SERVICE_ACCOUNT_EMAIL` + `PDV_PLAY_PRIVATE_KEY`) diretamente no painel do EasyPanel. Sem essas variáveis opcionais, a API sobe normalmente: `GET /assinatura/configuracao` responde `200` com `canal: "disabled"` / `modoGratuito: true`, enquanto as rotas protegidas de pagamento respondem `503`.
 
 Novas contas ganham assinatura `liberada`, sem cartão, gateway ou faturas. Não é pagamento aprovado nem teste grátis. A sincronização renova a licença offline por sete dias. A gratuidade não se converte em assinatura paga ao mudar a configuração; contas liberadas não podem ser cobradas pelos endpoints atuais. Futura migração exige implementação específica e consentimento. O catálogo e recursos preexistentes não representam homologação de integrações de pagamento.
 
@@ -39,7 +55,7 @@ Novas contas ganham assinatura `liberada`, sem cartão, gateway ou faturas. Não
 
 `.github/workflows/pdv.yml` roda em PR para main e push main: npmci, tipos, testes shared/API/mobile em série com um worker, API com PostgreSQL descartável `pdv_test`, e build da imagem.
 
-Após sucesso de um push main, o job de deploy promove o SHA testado para `codex/pdv-deploy` sem force push e chama o webhook secreto do EasyPanel. Isso impede o serviço de buscar uma main mais nova que ainda não passou na validação. PRs e workflow_dispatch somente validam. Falta de segredo, URL sem HTTPS, promoção recusada ou respostaHTTP de erro falham o job.
+Após sucesso de um push main, ou quando `workflow_dispatch` é disparado explicitamente com `deploy_producao=true`, o job de deploy promove o SHA testado para `codex/pdv-deploy` sem force push e chama o webhook secreto do EasyPanel. Isso impede o serviço de buscar código que ainda não passou na validação em PostgreSQL 17. PRs e `workflow_dispatch` com padrão `deploy_producao=false` somente validam. Falta de segredo, URL sem HTTPS, promoção recusada ou resposta HTTP de erro falham o job.
 
 Configurar `EASYPANEL_DEPLOY_URL` em GitHub → Settings → Secrets and variables → Actions, com o Deployment Trigger URL do serviço pdv-api por HTTPS. O token desse endereço autoriza deploy: não compartilhar nem versionar. O GITHUB_TOKEN recebe contents:write apenas no job de promoção. A Actions precisa ter permissão para atualizar a branch de entrega; caso a política da organização negue, um administrador deve ajustar essa permissão.
 

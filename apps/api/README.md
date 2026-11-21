@@ -23,13 +23,17 @@ As migrações em `drizzle/` são aplicadas na inicialização.
 | `PORT` | Porta HTTP (padrão 3333). |
 | `DATABASE_URL` | Postgres (postgres.js). Sem ela, usa PGlite em `.data/pglite`. Obrigatória com `NODE_ENV=production`. |
 | `NODE_ENV=production` | Não registra `/dev/*`, desliga o CORS e não devolve o código de login na resposta. |
-| `BILLING_PROVIDER` | `mock` por padrão, recusado em produção. `disabled` concede acesso sem cobrança, cartão ou faturas; é o modo de produção inicial. Novos gateways entram em `src/billing.ts`. |
-| `JOBS=off` | Não agenda o job de cobrança (que roda a cada hora) nem a conciliação do Pix. |
-| `PDV_PAGAMENTOS_CHAVE` | Base64 de 32 bytes (AES-256-GCM) que cifra a credencial do Mercado Pago de cada loja. Ausente: a API sobe e as rotas de pagamento respondem 503 `pagamentos_indisponiveis`. Formato inválido impede a partida. |
+| `BILLING_PROVIDER` | `mock` por padrão (recusado em produção). `disabled` concede acesso gratuito sem cobrança (padrão inicial em produção). `google_play` ativa a assinatura Free + Pro pela Google Play Billing sem novo binário. |
+| `JOBS=off` | Não agenda o job de cobrança (que roda a cada hora) nem a conciliação de pagamentos. |
+| `PDV_API_PUBLIC_URL` | Origem HTTPS pública desta API (usada como `redirect_url` no Checkout Integrado da InfinitePay). |
+| `PDV_PAGAMENTOS_CHAVE` | Base64 de 32 bytes (AES-256-GCM) que cifra as credenciais de pagamento de cada loja. Ausente: a API sobe e as rotas de pagamento respondem 503 `pagamentos_indisponiveis`. Formato inválido impede a partida. |
 | `PDV_MP_CLIENT_ID`, `PDV_MP_CLIENT_SECRET`, `PDV_MP_REDIRECT_URI` | Aplicação da plataforma para o OAuth do Mercado Pago. Juntas ou nenhuma; sem elas, as rotas de OAuth respondem 503 `oauth_indisponivel` e o modo token continua. |
 | `PDV_MP_WEBHOOK_SECRET` | Assinatura secreta do webhook da aplicação da plataforma (`POST /webhooks/pdv-mercadopago`). |
 | `PDV_MP_OAUTH_PKCE`, `PDV_MP_OAUTH_TEST_TOKEN` | PKCE (padrão `true`, igual ao painel) e credenciais de teste na troca (só fora de produção). |
-| `PDV_MP_PAYER_EMAIL` | E-mail enviado como `payer.email` nas orders Pix (o PDV não coleta e-mail do cliente). Ausente: a cobrança responde 503 `pagador_nao_configurado`. Valor pendente de decisão do usuário. |
+| `PDV_MP_PAYER_EMAIL` | E-mail enviado como `payer.email` nas orders Pix (o PDV não coleta e-mail do cliente). Ausente: a cobrança responde 503 `pagador_nao_configurado`. |
+| `PDV_PLAY_PACKAGE_NAME`, `PDV_PLAY_SKU_PRO` | Pacote Android (padrão `br.com.pdv.mobile`) e SKU do plano Pro (padrão `prisma_pro_mensal`) na Google Play. |
+| `PDV_PLAY_WEBHOOK_TOKEN` | Token compartilhado para autenticar notificações Pub/Sub RTDN em `POST /webhooks/pdv-google-play` (query `token` ou `Authorization: Bearer`). |
+| `PDV_PLAY_SERVICE_ACCOUNT_JSON` | JSON da conta de serviço Google Play Developer API (`client_email` e `private_key`). Alternativamente, informar `PDV_PLAY_SERVICE_ACCOUNT_EMAIL` e `PDV_PLAY_PRIVATE_KEY` separados. |
 
 Fora de produção o relógio do servidor anda em tempo real e pode ser avançado por `POST /dev/relogio/avancar`.
 
@@ -56,6 +60,11 @@ Erros: `{ "erro": "codigo_estavel", "mensagem": "Texto em português" }`. Rotas 
 | `PUT /assinatura/cartao` (auth) | Verifica e troca o cartão; inadimplente ou suspensa cobra na hora e reativa. |
 | `POST /assinatura/cancelar` (auth) | Cancela; o acesso vai até o fim do teste ou do período pago. |
 | `POST /assinatura/reativar` (auth) | `{ planoId }`: reassina. Fora do teste e do período pago, cobra antes de liberar. |
+| `GET /assinatura/configuracao` | Público: informa se o modo gratuito está ativo, o canal (`disabled` / `google_play`), `planoPadrao`, `packageName` e `skuProMensal`. |
+| `POST /assinatura/google-play/confirmar` (auth, dono) | Valida `purchaseToken` na Google Play (`subscriptionsv2`), confirma (`acknowledge` em até 3 dias) e ativa a licença Pro. |
+| `POST /assinatura/google-play/restaurar` (auth, dono) | Restaura assinatura ativa existente na conta Google Play do aparelho para a loja atual. |
+| `POST /assinatura/google-play/gratuito` (auth, dono) | Coloca a conta no plano `Free` quando `BILLING_PROVIDER=google_play` (ou retorna o acesso liberado no modo gratuito). |
+| `POST /webhooks/pdv-google-play` | Público (autenticado por `PDV_PLAY_WEBHOOK_TOKEN`): recebe RTDN do Google Cloud Pub/Sub, ordena por `eventTimeMillis` e reconcilia estado da assinatura. |
 | `POST /sync/push` (auth) | Mutações da outbox, idempotente pelo `id`. Rejeições: `limite_plano`, `assinatura_suspensa` (venda nova), `venda_imutavel`, `caixa_fechada`, `loja_invalida`, `nao_encontrado`, `exclusao_nao_permitida`. |
 | `GET /sync/pull?desde=<cursor>` (auth) | Até 500 mudanças depois do cursor. Repetir com o cursor devolvido enquanto vierem 500. |
 | `POST /dev/relogio/avancar` | `{ dias }`. Só fora de produção. |
@@ -66,11 +75,13 @@ Erros: `{ "erro": "codigo_estavel", "mensagem": "Texto em português" }`. Rotas 
 | `GET /pagamentos/mercadopago/oauth/retorno` | Público: conclui o OAuth e devolve uma página mínima, sem segredos. |
 | `POST /webhooks/pdv-mercadopago` | Público, assinado com `PDV_MP_WEBHOOK_SECRET`: avisos das conexões OAuth; confirma pela consulta com o token da loja dona da cobrança. |
 | `GET/PUT/DELETE /pagamentos/mercadopago/conexao` (auth, dono) | Estado, conexão/troca (`{ accessToken, segredoWebhook? }`, cifrados; nunca devolvidos) e desligamento (apaga a credencial, mantém o histórico). Devolve o `webhookPath`. |
-| `POST /pagamentos/cobrancas` (auth, `vender`) | `{ vendaId, pagamentoId, valorCentavos }`: cria a order Pix (idempotente pelo `pagamentoId`; outros dados → 409 `cobranca_conflitante`). |
-| `GET /pagamentos/cobrancas/:id` (auth, `vender`) | Estado e QR; consulta o Mercado Pago no máximo a cada 3 s. |
-| `POST /pagamentos/cobrancas/:id/cancelar` (auth, `vender`) | Venda abandonada: cancela a order; se já foi paga, devolve `paga`. |
+| `GET/PUT/DELETE /pagamentos/infinitepay/conexao` (auth, dono) | Estado, conexão/troca (`{ handle }`) e desligamento da InfinitePay Checkout Integrado da loja. Devolve o `webhookPath`. |
+| `POST /pagamentos/cobrancas` (auth, `vender`) | `{ vendaId, pagamentoId, valorCentavos, provedor?, meio? }`: cria cobrança Pix (Mercado Pago) ou link de Checkout Integrado (InfinitePay), idempotente pelo `pagamentoId`. |
+| `GET /pagamentos/cobrancas/:id` (auth, `vender`) | Estado e QR/link; consulta o provedor no máximo a cada 3 s. |
+| `POST /pagamentos/cobrancas/:id/cancelar` (auth, `vender`) | Venda abandonada: cancela a cobrança; se já foi paga, devolve `paga`. |
 | `GET /pagamentos/cobrancas?estado=` (auth, dono) | Lista para o dono (ex.: `divergente`, `paga_tardia`). |
 | `POST /webhooks/pdv-mercadopago/:conexaoPublicaId` | Público, autenticado pelo `x-signature` (HMAC). Só dispara a consulta da order. |
+| `POST /webhooks/pdv-infinitepay/:conexaoPublicaId` | Público: recebe aviso da InfinitePay e sempre confirma o pagamento via `POST /payment_check` no servidor antes de liberar. |
 
 ### Sincronização
 
@@ -105,6 +116,6 @@ R1 autoriza o push por operação e filtra o pull no servidor: funcionário sem 
 
 Migração aditiva `0011_condemned_unus.sql`. Retenção de protocolos concluídos há mais de 90 dias no startup e diariamente com jobs ativos, com drain no shutdown. Abertos/em análise preservados. [Procedimento de atendimento, retenção, monitoramento, backup e retorno compatível](../../docs/operacao-backup-suporte.md). Implantação externa e responsável pelo atendimento ainda exigem registro de homologação.
 
-### Pix do Mercado Pago (N2, validação local com provedor simulado)
+### Pagamentos integrados, manuais e Google Play Billing (migrações `0013`–`0015`)
 
-Credencial do próprio lojista, cifrada; confirmação sempre por `GET /v1/orders/{id}`; máquina de estados monotônica; venda com `pix`/`mercadopago` só é aceita no sync com a cobrança `paga`, sem alerta de estorno, da mesma loja, venda e valor (`pagamento_nao_confirmado` caso contrário). Migrações aditivas `0013_light_annihilus.sql` e `0014_productive_elektra.sql` (OAuth: `estados_oauth_pagamento` e colunas de token em `conexoes_pagamento`). Desenho, estados, configuração do webhook e pendências: [N2](../../docs/n2-pix-mercadopago.md).
+Credencial do próprio lojista, cifrada; confirmação sempre por consulta ao provedor (`GET /v1/orders/{id}` no Mercado Pago e `POST /payment_check` na InfinitePay); máquina de estados monotônica; venda com `pix`/`mercadopago` ou checkout `infinitepay` só é aceita no sync com a cobrança `paga`, sem alerta de estorno, da mesma loja, venda e valor (`pagamento_nao_confirmado` caso contrário). Pagamentos manuais identificados (`stone`, `outro` ou `confirmacao: 'manual'`) e `InfiniteTap` (`confirmacao: 'aparelho'` com `identificadorExterno`) gravam auditoria em `detalhes_pagamentos_venda`. Migrações aditivas `0013_light_annihilus.sql`, `0014_productive_elektra.sql` (OAuth: `estados_oauth_pagamento` e colunas de token em `conexoes_pagamento`) e `0015_remarkable_korvac.sql` (InfinitePay, `detalhes_pagamentos_venda` e `assinaturas_play` para Google Play Billing). Desenho, estados, configuração do webhook e pendências: [N2](../../docs/n2-pix-mercadopago.md).

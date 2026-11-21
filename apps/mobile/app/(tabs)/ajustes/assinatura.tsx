@@ -20,7 +20,6 @@ import { cores, raio } from '@/tema';
 import { useFoco } from '@/tema/useFoco';
 import { rotuloBandeira } from '@/util/cartao';
 import { falarDinheiro } from '@/util/dinheiroFalado';
-import { FERRAMENTAS_TESTE } from '@/util/ferramentasTeste';
 import { STATUS_VISUAL } from '@/util/statusAssinatura';
 
 type Folha = 'trocar' | 'cancelar' | null;
@@ -263,7 +262,7 @@ export default function Assinatura() {
         {podeCancelar ? <Botao rotulo="Cancelar assinatura" variante="perigo" onPress={() => setFolha('cancelar')} /> : null}
       </View>
 
-      {FERRAMENTAS_TESTE && modo === 'demo' ? (
+      {process.env.EXPO_PUBLIC_AMBIENTE === 'demo' && (__DEV__ || process.env.EXPO_PUBLIC_FERRAMENTAS_TESTE === '1') && modo === 'demo' ? (
         <Secao titulo="Relógio de teste">
           <View style={estilos.relogio}>
             <Texto estilo="corpoMedio" numerico>

@@ -2715,3 +2715,35 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
   - Conexão do aparelho Android via USB e autorização para testes reais de R$ 1,00 (Mercado Pago OAuth + Pix, InfinitePay Checkout/InfiniteTap, Stone manual identificado) e conferência visual Solar Balcão / F18 no aparelho.
   - Registro da data de entrada do 12º testador no Teste Fechado no Play Console (para contabilizar os 14 dias antes do Prompt 2).
 - **Próximo passo:** gravar commit no branch `codex/pdv-homologacao-real`, executar `git push`, rodar e acompanhar o CI no GitHub Actions (`PDV CI and Deploy`) e aguardar autorizações/ações do usuário para deploy, AAB `0.1.20` e testes reais no aparelho.
+
+<a id="cp-171-modulo-nativo-play-billing-0121-e-deploy-producao-20112026"></a>
+
+## CP 171 — Módulo nativo Play Billing (`PdvPlayBilling`), correção do bundle `0.1.21` e preparo de deploy em produção (20/11/2026)
+
+- **Data e etapa:** 20–21/11/2026, 23h59–00h05 (America/Sao_Paulo). Blocos 1 e 2 pendentes do MVP (R7 módulo nativo Android Play Billing, decisões Free + Pago / Point, documentação `0013`–`0015`, build `0.1.21` e deploy autorizado após CI); continua o [CP 170](#cp-170-etapa-3-versao-0120-regressao-completa-e-preparo-ci-19112026) no branch `codex/pdv-homologacao-real`.
+- **Decisões confirmadas pelo usuário (20/11/2026):**
+  - **Modelo Free + Pago:** mantida a grade atual em `packages/shared/src/planos.ts` (`Free` gratuito com 500 produtos, 1 aparelho, 1 operador, 1 loja e 90 dias de visualização do histórico; `Pro` a R\$ 49,90/mês ilimitado, sempre configurável).
+  - **Mercado Pago Point Smart/Pro:** não integrar Point API no MVP (manter MP Pix + InfinitePay + manuais identificados).
+  - **Deploy remoto:** autorizado backup/promoção/deploy em homologação e produção após CI verde.
+- **Estado:** código e build `0.1.21` (`versionCode 22`) construídos e validados localmente (Kotlin + Billing 7.1.1 + R8 + verificação estática do bundle); CI e deploy remoto em produção sendo acionados em seguida.
+- **Construído:**
+  - **Módulo nativo Play Billing (`R7`):**
+    - `apps/mobile/config/withPdvPlayBilling.js`: plugin de configuração Expo (`withAppBuildGradle`, `withAndroidManifest`, `withMainApplication`, `withDangerousMod`) que injeta de forma idempotente `com.android.billingclient:billing:7.1.1`, `<uses-permission android:name="com.android.vending.BILLING" />`, `PdvPlayBillingPackage` no `MainApplication.kt` e gera `PdvPlayBillingPackage.kt` + `PdvPlayBillingModule.kt` no pacote fixo `br.com.pdv.mobile.billing` (`comprarAssinatura`, `consultarComprasAssinatura`, `PendingPurchasesParams`, `ProductType.SUBS`, `setObfuscatedAccountId`, tratamento de fila de conexão, `USER_CANCELED`, `PENDING` e `invalidate`).
+    - `apps/mobile/app.json`: versão elevada para `"0.1.21"` (`versionCode: 22`), inclusão de `"./config/withPdvPlayBilling"` e regras ProGuard (`-keep class com.android.billingclient.** { *; }` e `-keep class br.com.pdv.mobile.billing.** { *; }`).
+    - `apps/mobile/test/playBillingNativoPlugin.test.ts`: 6 testes cobrindo idempotência de Gradle/Manifest/MainApplication, geração Kotlin, configuração do `app.json` e resolução automática de `NativeModules.PdvPlayBilling` em `playBilling.ts`.
+  - **Correção de isolamento do bundle de release (achado no primeiro build da `0.1.21`):**
+    - O `scripts/verificar-release-mobile.mjs` reprovou `"Simular pagamento recebido"` no `.hbc` porque `PixDinamico.tsx` (introduzido em `37761b6`) e `assinatura.tsx` referenciavam a constante importada `FERRAMENTAS_TESTE` em vez da condição literal inline que o Metro elimina no release conectado.
+    - `apps/mobile/src/telas/pagar/PixDinamico.tsx`, `apps/mobile/app/(tabs)/ajustes/assinatura.tsx` e `apps/mobile/test/flagFerramentasTeste.test.ts`: substituídos pelo padrão inline `process.env.EXPO_PUBLIC_AMBIENTE === 'demo' && (__DEV__ || process.env.EXPO_PUBLIC_FERRAMENTAS_TESTE === '1')` e cobertos na suíte de guarda.
+  - **Documentação `0013`–`0015` e workflow de deploy:**
+    - `apps/api/README.md` e `docs/deploy-easypanel.md`: documentados apenas os nomes/placeholders das novas variáveis (`PDV_API_PUBLIC_URL`, `BILLING_PROVIDER=google_play`, `PDV_PLAY_*`) e rotas de InfinitePay e Google Play Billing (zero segredos no repositório).
+    - `.github/workflows/pdv.yml`: adicionado input booleano opcional `deploy_producao` (padrão `false`) ao `workflow_dispatch` para promover o commit validado no PostgreSQL 17 para `codex/pdv-deploy` e acionar `EASYPANEL_DEPLOY_URL` somente quando autorizado.
+- **Validações executadas e resultados:**
+  - **CI remoto da `0.1.20` (`37761b6`):** `PDV CI and Deploy` run `44466931786` (`workflow_dispatch`, `2026-11-19T05:41:51Z`) concluído com **success**.
+  - **Validações locais (`typecheck`, shared, API, scripts, Python driver e HTTP local):** `typecheck` (3 workspaces) **PASS**; `@pdv/shared` **20/20 arquivos, 184/184 testes PASS**; `@pdv/api` **60/60 arquivos, 735/735 testes PASS**; `scripts/test/*.test.mjs` **9/9 PASS**; `scripts/test/test_*.py` **57/57 PASS**; `node scripts/homologar-local.mjs` **OK** (`Equipe F08` 37 PASS/1 SKIP, `Equipe F13` 25 PASS/1 SKIP, `Equipe troca de aparelho` 23 PASS/1 SKIP, `Gestão F14` 162 PASS/4 SKIP).
+  - **Suíte `@pdv/mobile` após a última edição (`PixDinamico.tsx` / `assinatura.tsx` / `flagFerramentasTeste.test.ts` / `withPdvPlayBilling.js`):** **83/83 arquivos, 676/676 testes PASS** (em `--maxWorkers=1`).
+  - **Build Android conectado `0.1.21` (`pwsh scripts/build-android.ps1 -Perfil homologacao`):** `BUILD SUCCESSFUL in 6m 2s` sem avisos nos arquivos Kotlin de billing; APK `builds/pdv-homologacao-0.1.21.apk` (SHA256 `a22f006daf5b6f3d5dcb40b12b3d1e2a48a8a9e2c26ef61e6047fe0cf9644898`), `versionCode='22'`, `versionName='0.1.21'`, `sdkVersion:'24'`, `targetSdkVersion:'36'`, `uses-permission: name='com.android.vending.BILLING'`, assinatura v2 verificada, R8 mapping preservando `br.com.pdv.mobile.billing.PdvPlayBillingModule`; `scripts/verificar-release-mobile.mjs` **PASS** (`1899` fontes, `4.372.724` bytes, SHA256 `1d67b0e1b42f550df9d0a72a6fbb247c81a29c340c021282f667c5509c5df502`); confirmação no `.hbc` de ausência de `"Simular pagamento recebido"` e `"Relógio de teste"`.
+- **Limitações / pendências:**
+  - `EASYPANEL_DEPLOY_URL` aciona `pdv-api` (produção); `pdv-api-homologacao` tem `autoDeploy: false` e depende de acionamento no painel EasyPanel ou verificação após este lote.
+  - Fluxo nativo real da Play Billing (`comprarAssinatura` / `consultarComprasAssinatura`) ainda não foi exercitado contra a Google Play Store real (aguarda AAB `0.1.21` no Console com produto/testador de licença).
+  - Permanecem pendentes as etapas 3 e 4 do MVP (homologação física por USB, R\$ 1,00 MP/InfinitePay, Console e Teste Fechado 12 testadores / 14 dias).
+- **Próximo passo:** commitar, enviar ao remoto, disparar CI + deploy autorizado de produção (`deploy_producao=true`), validar externamente produção/homologação e atualizar este registro com o run e os resultados HTTP externos.

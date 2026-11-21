@@ -6,7 +6,14 @@ import { describe, expect, it } from 'vitest';
 // A condição das ferramentas de teste fica escrita por extenso nestes arquivos para o Metro eliminar o
 // diagnóstico do bundle de produção. Se uma cópia divergir da flag, o diagnóstico pode vazar para produção.
 const CONDICAO = "__DEV__ || process.env.EXPO_PUBLIC_FERRAMENTAS_TESTE === '1'";
-const ARQUIVOS = ['src/util/ferramentasTeste.ts', 'app/_layout.tsx', 'app/(tabs)/index.tsx', 'app/(tabs)/ajustes/index.tsx'];
+const ARQUIVOS = [
+  'src/util/ferramentasTeste.ts',
+  'app/_layout.tsx',
+  'app/(tabs)/index.tsx',
+  'app/(tabs)/ajustes/index.tsx',
+  'app/(tabs)/ajustes/assinatura.tsx',
+  'src/telas/pagar/PixDinamico.tsx',
+];
 
 const ler = (relativo: string) => readFileSync(fileURLToPath(new URL(`../${relativo}`, import.meta.url)), 'utf8');
 

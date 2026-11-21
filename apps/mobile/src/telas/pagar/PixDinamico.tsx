@@ -15,7 +15,6 @@ import { registrar } from '@/diagnostico/registro';
 import { mensagemDeErro } from '@/servicos/backend';
 import { provedoresPagamento, type CobrancaPix as CobrancaDemo, type SituacaoPix } from '@/servicos/provedoresPagamento';
 import { cores, textoMonograma } from '@/tema';
-import { FERRAMENTAS_TESTE } from '@/util/ferramentasTeste';
 import { PROVEDORES } from '@/util/provedores';
 import { CabecalhoPagamento } from './CabecalhoPagamento';
 import { CartaoQr } from './CartaoQr';
@@ -350,7 +349,7 @@ function PixDinamicoDemo({
         )}
 
         <Botao rotulo="Cancelar cobrança" variante="ghost" tamanho="M" larguraTotal onPress={() => router.back()} />
-        {FERRAMENTAS_TESTE ? (
+        {process.env.EXPO_PUBLIC_AMBIENTE === 'demo' && (__DEV__ || process.env.EXPO_PUBLIC_FERRAMENTAS_TESTE === '1') ? (
           <Botao
             rotulo="Simular pagamento recebido"
             variante="terciario"

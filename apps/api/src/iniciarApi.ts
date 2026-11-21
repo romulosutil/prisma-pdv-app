@@ -6,6 +6,7 @@ import {
   lerConfiguracaoGooglePlay,
   lerConfiguracaoOAuthMercadoPago,
   lerConfiguracaoPagamentos,
+  lerConfiguracaoRevisorPlay,
   lerUrlPublicaApi,
   validarConfiguracao,
 } from './configuracao';
@@ -36,6 +37,7 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
   // Sem PDV_PAGAMENTOS_CHAVE a API sobe normalmente e as rotas de pagamento respondem 503.
   const configPagamentos = lerConfiguracaoPagamentos(process.env);
   const configGooglePlay = lerConfiguracaoGooglePlay(process.env);
+  const revisorPlay = lerConfiguracaoRevisorPlay(process.env);
   const pagamentos: ConfigPagamentos = {
     cifrador: configPagamentos.chave ? criarCifradorPagamentos(configPagamentos.chave) : null,
     mercadoPago: criarProvedorMercadoPago(),
@@ -96,6 +98,7 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
       fontesEan: fontesEanGratuitas,
       logger: true,
       emissaoCodigo: emissao,
+      revisorPlay,
       pagamentos,
     });
     await app.listen({ port: configuracao.porta, host: '0.0.0.0' });

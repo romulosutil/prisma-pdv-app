@@ -43,6 +43,9 @@ PDV_PLAY_PACKAGE_NAME=br.com.pdv.mobile
 PDV_PLAY_SKU_PRO=prisma_pro_mensal
 PDV_PLAY_WEBHOOK_TOKEN=<TOKEN_PUBSUB_RTDN_GOOGLE_PLAY>
 PDV_PLAY_SERVICE_ACCOUNT_JSON=<JSON_CONTA_SERVICO_ANDROID_PUBLISHER>
+# Revisão Google Play (opcionais e definidas juntas; PIN reutilizável fora do repositório)
+PDV_PLAY_REVIEW_EMAIL=<EMAIL_CONTA_REVISAO_PLAY>
+PDV_PLAY_REVIEW_CODE=<PIN_6_DIGITOS_REVISAO_PLAY>
 ```
 
 Não definir JOBS=off: isso também desliga envio de códigos. Com `BILLING_PROVIDER=disabled`, só o worker de e-mail e a conciliação de pagamentos são agendados (quando configurados); trocar `BILLING_PROVIDER` para `google_play` ativa o modo Free + Pro pela Play Store sem novo binário. Preservar a chave de cifra entre deploys; ela é independente da API key e necessária para mensagens pendentes e credenciais de pagamento cifradas. O ambiente production exige PostgreSQL e SMTP válidos e não publica /dev, não usa relógio controlável e não devolve OTP em respostas.

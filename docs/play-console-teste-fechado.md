@@ -4,18 +4,18 @@ Referência: [CP 167](checkpoints-roadmap.md#cp-167-etapa-0-ativos-da-play-store
 
 > **Regra de segurança:** nenhum segredo, senha do keystore, código de acesso ou e-mail dos testadores entra neste repositório.
 
-## 1. Gerar o AAB 0.1.19 (`versionCode 20`) no seu terminal
+## 1. Gerar o AAB `0.1.22` (`versionCode 23`) no seu terminal
 
-O código atual da `0.1.19` já passou na verificação de operação da API de produção (`verificar-operacao.mjs` 7/7 PASS) e tem a cópia curta `C:/p` sincronizada. Execute no seu terminal PowerShell (onde você digita a senha do keystore diretamente, sem gravar em lugar nenhum):
+O código da `0.1.22` passou nas validações locais, no CI e nos smoke tests externos. Execute no seu terminal PowerShell na raiz do repositório (onde você digita a senha do keystore diretamente, sem gravar em lugar nenhum):
 
 ```powershell
 pwsh scripts/build-android.ps1 -Perfil producao -Aab -Keystore <caminho-fora-do-repo>\pdv-upload.jks -Alias <seu-alias>
 ```
 
 Ao final, confira os arquivos gerados em `builds/`:
-- `builds/pdv-producao-0.1.19-aab.aab` (arquivo único para enviar ao Play Console)
-- `builds/pdv-producao-0.1.19-aab.aab.sha256`
-- `builds/pdv-producao-0.1.19-aab-manifesto.json` (confira `certificadoSha256`, `pacote: br.com.pdv.mobile`, `versionCode: 20`, `targetSdk: 36`)
+- `builds/pdv-producao-0.1.22-aab.aab` (arquivo único para enviar ao Play Console)
+- `builds/pdv-producao-0.1.22-aab.aab.sha256`
+- `builds/pdv-producao-0.1.22-aab-manifesto.json` (confira `certificadoSha256`, `pacote: br.com.pdv.mobile`, `versionCode: 23`, `targetSdk: 36`)
 
 ---
 
@@ -47,8 +47,10 @@ Preencha antes de publicar o teste fechado:
 - **Exclusão de conta:**
   - URL da Web: `https://aladdin-pdv-api.jicnzg.easypanel.host/exclusao-de-conta`
   - Caminho no app: `Ajustes > Suporte e privacidade > Exclusão`
-- **Acesso ao app:** *Todas ou algumas funcionalidades são restritas*
-  - Instruções para revisão: `"Crie uma conta gratuitamente tocando em Começar, informe nome, e-mail, CPF/CNPJ e nome da loja, e digite o código de verificação de 6 dígitos enviado ao e-mail informado. Não há senha fixa."`
+- **Detalhes do login (Acesso ao app):** *Sim* (algumas partes são restritas)
+  - Preencher **Nome**: `Full Pro Review Account`, **Nome de usuário** com o e-mail configurado em `PDV_PLAY_REVIEW_EMAIL`, **Senha** com o PIN fixo de 6 dígitos configurado em `PDV_PLAY_REVIEW_CODE`, e instruções **em inglês** explicando:
+    `"Tap 'Já tenho conta', enter the reviewer email above, tap 'Enviar código', then enter the reusable 6-digit PIN above in the 'Código' field (do not wait for an email) and tap 'Entrar' to access 'Loja Demo Prisma PDV' with full Pro features."`
+  - Marcar a declaração de acesso completo a todos os recursos e conteúdos (inclusive pagos/Pro). *(Nunca registrar e-mail nem PIN reais neste repositório.)*
 - **Anúncios:** *Não, meu app não contém anúncios.*
 - **Classificação de conteúdo:** questionário na categoria *Utilitário, produtividade, comunicação ou outro*; responder **Não** para violência, conteúdo sexual, linguagem imprópria, drogas, jogos de azar e interação livre entre usuários.
 - **Público-alvo:** `18 anos ou mais`.
@@ -80,8 +82,8 @@ Preencha antes de publicar o teste fechado:
 
 ### D. Enviar AAB e montar a faixa de Teste Fechado (*Testar e lançar > Testes > Teste fechado*)
 1. Em **Teste fechado**, crie/edite a faixa (**Países/regiões:** selecionar **Brasil**).
-2. Clique em **Criar nova versão**, envie `builds/pdv-producao-0.1.19-aab.aab`:
-   - **Nome da versão:** `0.1.19 (20)`
+2. Clique em **Criar nova versão**, envie `builds/pdv-producao-0.1.22-aab.aab`:
+   - **Nome da versão:** `0.1.22 (23)`
    - **Notas da versão:** `Versão inicial de teste fechado do Prisma PDV: cadastro, vendas offline, leitor por câmera, caixa por operador e estoque.`
 3. Na aba **Testadores**, crie uma lista de e-mails (ex.: `Teste fechado MVP`), digite manualmente os **e-mails Google (mínimo 12 pessoas)** direto no Console (fora do repositório), salve e marque a lista.
 4. Envie as alterações da faixa para revisão/publicação e, assim que o link aparecer na aba **Testadores**, copie o **link de participação (opt-in)** na Web ou Google Play.

@@ -54,6 +54,7 @@ export async function criarApp(config: ConfigApp): Promise<FastifyInstance> {
     orcamentoEanMs: config.orcamentoEanMs,
     timeoutPorFonteEanMs: config.timeoutPorFonteEanMs,
     cacheNegativoEanMs: config.cacheNegativoEanMs,
+    revisorPlay: config.revisorPlay ?? null,
     pagamentos: config.pagamentos,
   };
   const app = Fastify({ logger: config.logger ?? false });

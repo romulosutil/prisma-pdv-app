@@ -34,6 +34,7 @@ As migrações em `drizzle/` são aplicadas na inicialização.
 | `PDV_PLAY_PACKAGE_NAME`, `PDV_PLAY_SKU_PRO` | Pacote Android (padrão `br.com.pdv.mobile`) e SKU do plano Pro (padrão `prisma_pro_mensal`) na Google Play. |
 | `PDV_PLAY_WEBHOOK_TOKEN` | Token compartilhado para autenticar notificações Pub/Sub RTDN em `POST /webhooks/pdv-google-play` (query `token` ou `Authorization: Bearer`). Obrigatório em produção (responde `503 webhook_nao_configurado` se ausente). |
 | `PDV_PLAY_SERVICE_ACCOUNT_JSON` | JSON da conta de serviço Google Play Developer API (`client_email` e `private_key`). Alternativamente, informar `PDV_PLAY_SERVICE_ACCOUNT_EMAIL` e `PDV_PLAY_PRIVATE_KEY` separados. |
+| `PDV_PLAY_REVIEW_EMAIL`, `PDV_PLAY_REVIEW_CODE` | Opcionais e definidos juntos: e-mail e PIN numérico fixo de 6 dígitos para conta dedicada de revisão da Google Play (sem envio SMTP e sem limite de aparelhos em `/auth/login`). |
 
 Fora de produção o relógio do servidor anda em tempo real e pode ser avançado por `POST /dev/relogio/avancar`.
 

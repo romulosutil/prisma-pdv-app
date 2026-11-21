@@ -26,6 +26,7 @@ import { limitarAuth } from '../servicos/limitesAuth';
 import { normalizarEmail, hashDoCodigo, limiteAuth, verificarCodigoUsuario, consumirCodigoLogin } from '../servicos/codigoLogin';
 import { cancelarEntregaDoCodigo, enfileirarCodigo } from '../email/filaCodigo';
 import { vinculosDoUsuario } from '../servicos/equipe';
+import { garantirContaRevisorPlay } from '../servicos/revisorPlay';
 import { verificarCadastro } from './cadastro';
 
 const CODIGO_VALIDADE_MS = 10 * 60 * 1000;
@@ -33,10 +34,13 @@ const CODIGO_VALIDADE_MS = 10 * 60 * 1000;
 const PedirCodigoReqSchema = z.object({ email: z.email() });
 
 
-export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativada, billingProvider, emissaoCodigo = { modo: 'desenvolvimento' } }: Deps): void {
+export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativada, billingProvider, emissaoCodigo = { modo: 'desenvolvimento' }, revisorPlay }: Deps): void {
   app.post('/contas', async (request, reply) => {
     const req = CriarContaReqSchema.parse(request.body);
     const email = normalizarEmail(req.email);
+    if (revisorPlay && email === revisorPlay.email) {
+      throw new ErroApi(409, 'email_ja_cadastrado', 'Este e-mail já tem acesso. Entre com seu código pessoal.');
+    }
     const agora = relogio.agora();
 
     const sessao = await db.transaction(async (tx) => {
@@ -105,6 +109,10 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
     let codigo: string | null | ErroApi;
     try { codigo = await db.transaction(async (tx) => {
       if (!await limitarAuth(tx, 'emissao_ip', request.ip, relogio)) return limiteAuth();
+      if (revisorPlay && email === revisorPlay.email) {
+        await garantirContaRevisorPlay(tx, email, relogio.agora());
+        return null;
+      }
       if (!await limitarAuth(tx, 'emissao_email', email, relogio)) return limiteAuth();
       const [usuario] = await tx.select().from(usuarios).where(eq(usuarios.email, email)).for('update');
       if (!usuario) return null;
@@ -150,7 +158,7 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
     const req = ConsultarVinculosReqSchema.parse(request.body);
     const resultado = await db.transaction(async tx => {
       if (!await limitarAuth(tx, 'login_ip', request.ip, relogio)) return limiteAuth();
-      const prova = await verificarCodigoUsuario(tx, normalizarEmail(req.email), req.codigo, relogio);
+      const prova = await verificarCodigoUsuario(tx, normalizarEmail(req.email), req.codigo, relogio, revisorPlay);
       if (prova instanceof ErroApi) return prova;
       return vinculosDoUsuario(tx, prova.usuario.id, prova.agora);
     });
@@ -164,7 +172,7 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
 
     const sessao = await db.transaction(async (tx) => {
       if (!await limitarAuth(tx, 'login_ip', request.ip, relogio)) return limiteAuth();
-      const prova = await verificarCodigoUsuario(tx, email, req.codigo, relogio);
+      const prova = await verificarCodigoUsuario(tx, email, req.codigo, relogio, revisorPlay);
       if (prova instanceof ErroApi) return prova;
       const { usuario, pendente } = prova;
       let agora = prova.agora;
@@ -175,7 +183,7 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
       const [conta] = await tx.select().from(contas).where(eq(contas.id, escolhido.contaId)).for('update');
       if (!conta) return new ErroApi(403, 'proibido', 'Vínculo indisponível.');
       agora = relogio.agora();
-      if (pendente.expiraEm <= agora) return new ErroApi(401, 'codigo_invalido', 'Código inválido ou expirado.');
+      if (pendente && pendente.expiraEm <= agora) return new ErroApi(401, 'codigo_invalido', 'Código inválido ou expirado.');
       // A conta serializa alterações de equipe, aceite e sincronização.
       const [operador] = await tx.select().from(operadores).where(and(eq(operadores.id, escolhido.operadorId), eq(operadores.usuarioId, usuario.id)));
       if (!operador || !['ativo', 'convidado'].includes(operador.estado)) return new ErroApi(403, 'proibido', 'Vínculo indisponível.');
@@ -195,18 +203,20 @@ export function rotasConta(app: FastifyInstance, { db, relogio, cobrancaDesativa
       if (aparelho) {
         await tx.update(aparelhos).set({ nome: req.aparelhoNome, ultimoAcessoEm: agora }).where(eq(aparelhos.id, aparelho.id));
       } else {
-        const { assinatura } = await carregarAssinatura(tx, conta.id, agora);
-        const { planoId } = licencaDe(assinatura, agora);
-        const total = await tx.$count(aparelhos, and(eq(aparelhos.contaId, conta.id), isNull(aparelhos.revogadoEm)));
-        if (!dentroDoLimite(planoId, 'aparelhos', total)) {
-          return new ErroApi(409, 'limite_aparelhos', 'O plano atual não permite mais aparelhos. Remova um aparelho ou troque de plano.');
+        if (!prova.revisorPlay) {
+          const { assinatura } = await carregarAssinatura(tx, conta.id, agora);
+          const { planoId } = licencaDe(assinatura, agora);
+          const total = await tx.$count(aparelhos, and(eq(aparelhos.contaId, conta.id), isNull(aparelhos.revogadoEm)));
+          if (!dentroDoLimite(planoId, 'aparelhos', total)) {
+            return new ErroApi(409, 'limite_aparelhos', 'O plano atual não permite mais aparelhos. Remova um aparelho ou troque de plano.');
+          }
         }
         await tx
           .insert(aparelhos)
           .values({ id: req.aparelhoId, contaId: conta.id, lojaId: operador.lojaId, nome: req.aparelhoNome, criadoEm: agora, ultimoAcessoEm: agora });
       }
 
-      await consumirCodigoLogin(tx, pendente.id, agora);
+      if (pendente) await consumirCodigoLogin(tx, pendente.id, agora);
       if (operador.estado === 'convidado') await tx.update(operadores).set({ estado: 'ativo', aceitoEm: agora, atualizadoEm: agora }).where(eq(operadores.id, operador.id));
       return criarSessao(tx, { contaId: conta.id, lojaId: operador.lojaId, operadorId: operador.id, aparelhoId: req.aparelhoId }, agora);
     });

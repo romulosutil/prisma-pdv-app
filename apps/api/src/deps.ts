@@ -4,7 +4,7 @@ import type { FonteEan } from './fontes/fonte';
 import type { EmissaoCodigo } from './email/tiposEntrega';
 import type { CifradorPagamentos } from './pagamentos/cifrador';
 import type { ProvedorMercadoPago } from './pagamentos/mercadoPago';
-import type { ConfiguracaoOAuthMercadoPago } from './configuracao';
+import type { ConfiguracaoOAuthMercadoPago, ConfiguracaoRevisorPlay } from './configuracao';
 import type { ProvedorInfinitePay } from './pagamentos/infinitePay';
 import type { VerificadorGooglePlay } from './pagamentos/googlePlayBilling';
 
@@ -51,5 +51,7 @@ export interface Deps {
   timeoutPorFonteEanMs?: number;
   /** Validade do cache negativo (EAN que nenhuma fonte conhece) em ms; o padrão é 10 min. */
   cacheNegativoEanMs?: number;
+  /** Conta dedicada ao revisor do Google Play com PIN fixo opt-in (`PDV_PLAY_REVIEW_*`). */
+  revisorPlay?: ConfiguracaoRevisorPlay | null;
   pagamentos?: ConfigPagamentos;
 }

@@ -2808,3 +2808,49 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Limitações / pendências:**
   - Permanecem dependentes de ação externa / usuário: geração do AAB `0.1.22` (`versionCode 23`) com a senha do keystore, envio e configuração no Play Console (`6759171071905571011`) com teste fechado de 12 testadores por 14 dias, validação real contra Google Play Billing (`consultarOfertaAssinatura` / compra / `subscriptionsv2`) / RTDN e preenchimento das variáveis operacionais de pagamento/Play (`PDV_PLAY_WEBHOOK_TOKEN`, `PDV_PLAY_SERVICE_ACCOUNT_JSON`, credenciais MP) no EasyPanel antes de ligar `BILLING_PROVIDER=google_play`.
 - **Próximo passo:** o usuário gera o AAB de produção `0.1.22` (`versionCode 23`) no terminal digitando a senha do keystore (`pwsh scripts/build-android.ps1 -Perfil producao -Aab -Keystore <caminho>.jks -Alias <alias>`) e inicia o Teste Fechado no Play Console (`6759171071905571011`) seguindo `docs/play-console-teste-fechado.md`.
+
+<a id="cp-173-aab-producao-0122-gerado-e-verificado-21112026"></a>
+
+## CP 173 — AAB de produção `0.1.22` (`versionCode 23`) gerado e verificado com chave de upload (21/11/2026)
+
+- **Data e etapa:** 21/11/2026, 16h38 (America/Sao_Paulo). R7 / Fase 1 — Geração e verificação local do artefato de distribuição para o Teste Fechado, continua o [CP 172](#cp-172-fase-1-hardening-play-billing-compliance-0122-21112026) sobre o código de `e37e140` (`codex/pdv-homologacao-real`).
+- **Estado:** AAB de produção `0.1.22` (`versionCode 23`) gerado pelo usuário no terminal com chave de upload externa e validado localmente; envio ao Play Console (`6759171071905571011`), Play App Signing, Teste Fechado (12+ testadores / 14 dias), Android físico e validação real na Play Store continuam pendentes.
+- **Construído / gerado pelo usuário (`scripts/build-android.ps1 -Perfil producao -Aab`):**
+  - Artefato para Play Console (em `builds/`, ignorado pelo git): `builds/pdv-producao-0.1.22-aab.aab` (SHA256 `23c01886317876edced65440b5e6341176cd1254f9bbc145f7b84399ecfca70f`).
+  - Manifesto e hashes: `builds/pdv-producao-0.1.22-aab-manifesto.json`, `builds/pdv-producao-0.1.22-aab-metadados.txt`, `builds/pdv-producao-0.1.22-aab-fontes.json`, `builds/pdv-producao-0.1.22-aab-r8-mapping.txt`, `builds/pdv-producao-0.1.22-aab.aab.sha256`.
+  - APK universal derivado para teste local (assinado com chave debug do prebuild; **não** enviar à Play): `builds/pdv-producao-0.1.22-aab-universal.apk` (SHA256 `c2b236ab9c511449d477509bbc537f8a9a7699df7e4ff5426a3e697658ad18ee`).
+- **Validações conferidas nos metadados/verificação do artefato:**
+  - Pacote `br.com.pdv.mobile`, `versionName: 0.1.22`, `versionCode: 23`, `minSdkVersion: 24`, `targetSdkVersion: 36`, `arm64-v8a,armeabi-v7a`, API `https://aladdin-pdv-api.jicnzg.easypanel.host` (`rotaSuportePresente: true`).
+  - Assinatura verificada: `jarsigner=jar verified`, `certificadoSha256: 8B:86:81:63:74:3A:17:7F:7B:4D:10:86:18:7F:0C:FF:23:DF:01:B5:B1:4C:DD:86:CD:AB:E1:A3:E5:E7:D9:40` (nenhuma senha ou chave registrada).
+  - Play Billing no manifesto: `<uses-permission android:name="com.android.vending.BILLING"/>`, `com.google.android.play.billingclient.version=7.1.1`, `ProxyBillingActivity` e `ProxyBillingActivityV2`.
+  - `scripts/verificar-release-mobile.mjs`: **PASS** (`4.362.316` bytes, `1896` fontes, host `aladdin-pdv-api.jicnzg.easypanel.host`, SHA256 do `.hbc` `ea85247e242d7143e08bb74838be5de91ee84c725ccb0baccee92226c5de3950`).
+- **Limitações / pendências:**
+  - Inspeção estática do AAB/bundle não comprova execução em Android físico nem compra/oferta real no Google Play Console.
+  - Faltam: criar o app e registrar `br.com.pdv.mobile` na verificação de desenvolvedor no Console (`6759171071905571011`), preencher Conteúdo do app e Ficha mínima da loja (com os ativos de `builds/play-store/`), enviar `builds/pdv-producao-0.1.22-aab.aab` na faixa **Teste fechado**, cadastrar 12+ testadores, enviar o link de opt-in e registrar a data em que o 12º testador entrar.
+- **Próximo passo:** seguir [play-console-teste-fechado.md](play-console-teste-fechado.md) no Play Console (`6759171071905571011`) para publicar o AAB `0.1.22` (`versionCode 23`) no **Teste fechado** e coletar os 12+ testadores para iniciar os 14 dias corridos.
+
+<a id="cp-174-conta-revisor-play-api-e-validacao-local-21112026"></a>
+
+## CP 174 — Conta dedicada para revisão no Google Play (API-only) implementada e validada localmente (21/11/2026)
+
+- **Data e etapa:** 21/11/2026, 17h11 (America/Sao_Paulo). R7 / Fase 1 — Destravamento de **Detalhes do login** no Google Play Console (`6759171071905571011`) sem reconstruir o AAB `0.1.22` (`versionCode 23`), continua o [CP 173](#cp-173-aab-producao-0122-gerado-e-verificado-21112026).
+- **Decisão e motivação:** ao cadastrar `Prisma PDV` (`br.com.pdv.mobile`) no Console e alcançar **Detalhes do login**, o Google Play exige credenciais reutilizáveis que não expirem nem dependam de criação de conta/e-mail pessoal para acesso completo ao app. Implementado suporte opt-in 100% no servidor para conta dedicada de revisor com PIN estático reutilizável, preservando intacto o AAB `0.1.22` (`versionCode 23`) já gerado.
+- **Estado:** implementado e **validado localmente** no código da API/documentação; aguardando CI remoto em PostgreSQL 17, implantação em produção (`pdv-api`), configuração das variáveis no EasyPanel, validação HTTP externa em produção e preenchimento no Play Console (`6759171071905571011`). Nenhuma credencial ou segredo foi gravado neste repositório.
+- **Construído:**
+  - `apps/api/src/configuracao.ts`: exportados `ConfiguracaoRevisorPlay` e `lerConfiguracaoRevisorPlay(env)`, exigindo `PDV_PLAY_REVIEW_EMAIL` e `PDV_PLAY_REVIEW_CODE` (`^\d{6}$`) definidos juntos (ou ambos ausentes → `null`), com mensagens de erro sem revelar valores.
+  - `apps/api/src/deps.ts`, `apps/api/src/servidor.ts` e `apps/api/src/iniciarApi.ts`: acoplamento da configuração opcional `revisorPlay` ao `Deps` / `criarApp`.
+  - `apps/api/src/servicos/revisorPlay.ts`: criada função idempotente e segura contra corrida `garantirContaRevisorPlay(tx, email, agora)` que provisiona usuário dono `Google Play Reviewer`, loja `Loja Demo Prisma PDV`, documento sintético e assinatura `criarAcessoLiberado` (`planoId: 'pro'`, `status: 'liberada'`).
+  - `apps/api/src/servicos/codigoLogin.ts`: verificação por `timingSafeEqual` exclusiva para `revisorPlay` em `verificarCodigoUsuario`, preservando `falha_email` contra força bruta e mantendo `verificarCodigo` (`POST /auth/recuperacao`) restrito a OTP efêmero.
+  - `apps/api/src/rotas/conta.ts`: bloqueio com `409 email_ja_cadastrado` em `POST /contas` para o e-mail de revisão; `POST /auth/codigo` responde `204` sem enfileirar SMTP, sem gravar linha em `codigos_login` e sem contar limite `emissao_email`; `POST /auth/vinculos` e `POST /auth/login` aceitam o PIN reutilizável com isenção de `limite_aparelhos` exclusivamente para `prova.revisorPlay`.
+  - Documentação (`apps/api/README.md`, `docs/deploy-easypanel.md`, `docs/play-console-teste-fechado.md`): nomes das variáveis (`PDV_PLAY_REVIEW_EMAIL`, `PDV_PLAY_REVIEW_CODE`) e instruções em inglês para o Console referentes ao AAB `0.1.22 (23)`, sem expor credenciais.
+  - Testes (`apps/api/test/configuracao.test.ts` e novo `apps/api/test/revisorPlay.test.ts`): validação da configuração sem vazar segredos, `204` sem fila SMTP em 5 chamadas seguidas, provisionamento automático com licença `pro` liberada, login reutilizável após avanço de dias e em 12 aparelhos distintos (`>10`), bloqueio por 5 erros (`401`), recusa em `POST /auth/recuperacao` (`401`) e `POST /contas` (`409`), e isolamento de contas normais.
+- **Validações executadas após a última edição de código (locais, sem PostgreSQL 17 remoto nem produção externa ainda):**
+  - `npm run typecheck --workspaces`: **PASS** nos 3 workspaces (`@pdv/api`, `@pdv/mobile`, `@pdv/shared`).
+  - `npm test --workspace=@pdv/api -- --maxWorkers=1`: **PASS**, **61/61 arquivos, 744/744 testes** (PGlite em memória).
+  - `npm test --workspace=@pdv/shared -- --maxWorkers=1`: **PASS**, **20/20 arquivos, 184/184 testes**.
+  - `node --test scripts/test/*.test.mjs`: **PASS**, **9/9 testes**.
+  - `python -B -m unittest discover -s scripts/test -p "test_*.py"`: **PASS**, **57/57 testes**.
+  - `git diff --check`: **PASS** (sem erros de formatação).
+- **Limitações / pendências:**
+  - Falta executar o workflow remoto `PDV CI and Deploy` em PostgreSQL 17 (`deploy_producao=true`), adicionar `PDV_PLAY_REVIEW_EMAIL` e `PDV_PLAY_REVIEW_CODE` no painel do EasyPanel (`pdv-api`), validar o fluxo de login do revisor por HTTPS contra `https://aladdin-pdv-api.jicnzg.easypanel.host` (revogando a sessão de teste via `POST /auth/logout`), e preencher as declarações/ficha/release do AAB `0.1.22 (23)` no Play Console (`6759171071905571011`).
+- **Próximo passo:** commitar e enviar para `codex/pdv-homologacao-real`, rodar CI + deploy em produção (`pdv-api`), configurar as variáveis de revisão no EasyPanel, validar por HTTPS e seguir o cadastro do app `Prisma PDV` no Google Play Console.

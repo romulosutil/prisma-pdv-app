@@ -165,3 +165,28 @@ export function lerConfiguracaoGooglePlay(env: NodeJS.ProcessEnv): ConfiguracaoG
 
   return { packageName, skuProMensal, webhookToken, credencial };
 }
+
+export interface ConfiguracaoRevisorPlay {
+  email: string;
+  codigo: string;
+}
+
+/**
+ * Credencial dedicada para revisão do Google Play (PIN reutilizável em ambiente de produção).
+ * As duas variáveis precisam estar definidas juntas; nenhuma = recurso desligado. Mensagens nunca citam valores.
+ */
+export function lerConfiguracaoRevisorPlay(env: NodeJS.ProcessEnv): ConfiguracaoRevisorPlay | null {
+  const email = env.PDV_PLAY_REVIEW_EMAIL?.trim().toLowerCase() || undefined;
+  const codigo = env.PDV_PLAY_REVIEW_CODE?.trim() || undefined;
+  if (!email && !codigo) return null;
+  if (!email || !codigo) {
+    throw new Error('PDV_PLAY_REVIEW_EMAIL e PDV_PLAY_REVIEW_CODE devem ser definidas juntas.');
+  }
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('PDV_PLAY_REVIEW_EMAIL deve ser um e-mail válido.');
+  }
+  if (!/^\d{6}$/.test(codigo)) {
+    throw new Error('PDV_PLAY_REVIEW_CODE deve conter exatamente 6 dígitos numéricos.');
+  }
+  return { email, codigo };
+}

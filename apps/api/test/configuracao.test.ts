@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validarConfiguracao } from '../src/configuracao';
+import { lerConfiguracaoRevisorPlay, validarConfiguracao } from '../src/configuracao';
 import { criarBilling } from '../src/billing';
 
 const producao = { NODE_ENV: 'production', DATABASE_URL: 'postgresql://usuario:senha@localhost/banco', PORT: '3333' };
@@ -51,5 +51,37 @@ describe('configuração da API', () => {
     await expect(billing.verificarCartao('qualquer-token')).rejects.toMatchObject({ codigo: 'cobranca_desativada' });
     await expect(billing.cobrar({ clienteRef: 'cliente', valorCentavos: 100, descricao: 'Teste', chaveIdempotencia: 'pedido' })).rejects.toMatchObject({ codigo: 'cobranca_desativada' });
     await expect(billing.estornar('transacao')).rejects.toMatchObject({ codigo: 'cobranca_desativada' });
+  });
+
+  it('lê e valida PDV_PLAY_REVIEW_EMAIL e PDV_PLAY_REVIEW_CODE sem expor valores', () => {
+    expect(lerConfiguracaoRevisorPlay({})).toBeNull();
+    expect(lerConfiguracaoRevisorPlay({
+      PDV_PLAY_REVIEW_EMAIL: '  Revisor.Play@Exemplo.COM.BR ',
+      PDV_PLAY_REVIEW_CODE: ' 049281 ',
+    })).toEqual({
+      email: 'revisor.play@exemplo.com.br',
+      codigo: '049281',
+    });
+
+    const invalidos: Array<[NodeJS.ProcessEnv, string, string]> = [
+      [{ PDV_PLAY_REVIEW_EMAIL: 'segredo@exemplo.com' }, 'definidas juntas', 'segredo@exemplo.com'],
+      [{ PDV_PLAY_REVIEW_CODE: '654321' }, 'definidas juntas', '654321'],
+      [{ PDV_PLAY_REVIEW_EMAIL: 'invalido-segredo', PDV_PLAY_REVIEW_CODE: '654321' }, 'e-mail válido', 'invalido-segredo'],
+      [{ PDV_PLAY_REVIEW_EMAIL: 'revisor@exemplo.com', PDV_PLAY_REVIEW_CODE: '12345' }, '6 dígitos numéricos', '12345'],
+      [{ PDV_PLAY_REVIEW_EMAIL: 'revisor@exemplo.com', PDV_PLAY_REVIEW_CODE: '12ab56' }, '6 dígitos numéricos', '12ab56'],
+      [{ PDV_PLAY_REVIEW_EMAIL: 'revisor@exemplo.com', PDV_PLAY_REVIEW_CODE: '1234567' }, '6 dígitos numéricos', '1234567'],
+    ];
+
+    for (const [env, trechoEsperado, segredo] of invalidos) {
+      let mensagem = '';
+      try {
+        lerConfiguracaoRevisorPlay(env);
+        throw new Error('configuração inválida aceita');
+      } catch (erro) {
+        mensagem = (erro as Error).message;
+      }
+      expect(mensagem).toContain(trechoEsperado);
+      expect(mensagem).not.toContain(segredo);
+    }
   });
 });

@@ -141,6 +141,23 @@ export function lerRespostaSubscriptionsV2(corpo: unknown): CompraAssinaturaPlay
     ? (item.offerDetails as Record<string, unknown>)
     : null;
   const tags = Array.isArray(offer?.offerTags) ? offer.offerTags.map(String) : [];
+  const orderId = typeof item.latestSuccessfulOrderId === 'string'
+    ? item.latestSuccessfulOrderId
+    : (typeof obj.latestOrderId === 'string' ? obj.latestOrderId : null);
+
+  const offerPhase = item.offerPhase && typeof item.offerPhase === 'object'
+    ? (item.offerPhase as Record<string, unknown>)
+    : null;
+  let emTesteGratis: boolean;
+  if (offerPhase && Object.keys(offerPhase).length > 0) {
+    emTesteGratis = 'freeTrial' in offerPhase && offerPhase.freeTrial !== null && offerPhase.freeTrial !== undefined;
+  } else {
+    const ehRenovacao = Boolean(orderId && orderId.includes('..'));
+    emTesteGratis = !ehRenovacao && (
+      tags.some((t) => /trial|gratis|free/i.test(t))
+      || (typeof offer?.offerId === 'string' && /trial|gratis|free/i.test(offer.offerId))
+    );
+  }
 
   return {
     subscriptionState: obj.subscriptionState as EstadoAssinaturaPlay,
@@ -150,9 +167,9 @@ export function lerRespostaSubscriptionsV2(corpo: unknown): CompraAssinaturaPlay
     startTime: startTime && !Number.isNaN(startTime.getTime()) ? startTime : null,
     expiryTime,
     autoRenewing: autoPlan?.autoRenewEnabled !== false,
-    orderId: typeof obj.latestOrderId === 'string' ? obj.latestOrderId : null,
+    orderId,
     productId: item.productId,
-    emTesteGratis: tags.some((t) => /trial|gratis|free/i.test(t)) || typeof offer?.offerId === 'string',
+    emTesteGratis,
   };
 }
 

@@ -32,7 +32,7 @@ As migrações em `drizzle/` são aplicadas na inicialização.
 | `PDV_MP_OAUTH_PKCE`, `PDV_MP_OAUTH_TEST_TOKEN` | PKCE (padrão `true`, igual ao painel) e credenciais de teste na troca (só fora de produção). |
 | `PDV_MP_PAYER_EMAIL` | E-mail enviado como `payer.email` nas orders Pix (o PDV não coleta e-mail do cliente). Ausente: a cobrança responde 503 `pagador_nao_configurado`. |
 | `PDV_PLAY_PACKAGE_NAME`, `PDV_PLAY_SKU_PRO` | Pacote Android (padrão `br.com.pdv.mobile`) e SKU do plano Pro (padrão `prisma_pro_mensal`) na Google Play. |
-| `PDV_PLAY_WEBHOOK_TOKEN` | Token compartilhado para autenticar notificações Pub/Sub RTDN em `POST /webhooks/pdv-google-play` (query `token` ou `Authorization: Bearer`). |
+| `PDV_PLAY_WEBHOOK_TOKEN` | Token compartilhado para autenticar notificações Pub/Sub RTDN em `POST /webhooks/pdv-google-play` (query `token` ou `Authorization: Bearer`). Obrigatório em produção (responde `503 webhook_nao_configurado` se ausente). |
 | `PDV_PLAY_SERVICE_ACCOUNT_JSON` | JSON da conta de serviço Google Play Developer API (`client_email` e `private_key`). Alternativamente, informar `PDV_PLAY_SERVICE_ACCOUNT_EMAIL` e `PDV_PLAY_PRIVATE_KEY` separados. |
 
 Fora de produção o relógio do servidor anda em tempo real e pode ser avançado por `POST /dev/relogio/avancar`.
@@ -55,16 +55,16 @@ Erros: `{ "erro": "codigo_estavel", "mensagem": "Texto em português" }`. Rotas 
 | `PUT /equipe/:id` (auth, dono) | Altera estado, papel ou permissões; revoga sessões do vínculo e conserva histórico. |
 | `POST /auth/logout` (auth) | Revoga a sessão atual. |
 | `GET /assinatura` (auth) | Assinatura + licença. Conta sem assinatura vem como `sem_assinatura`. |
-| `POST /assinatura` (auth) | Plano + token do cartão; inicia o teste. 402 `cartao_recusado`; 409 `teste_ja_usado` (um por CPF/CNPJ e por cartão), `assinatura_existente`. |
-| `POST /assinatura/trocar-plano` (auth) | Upgrade cobra a prorata e vale na hora; downgrade fica agendado. 402 `pagamento_recusado`. |
-| `PUT /assinatura/cartao` (auth) | Verifica e troca o cartão; inadimplente ou suspensa cobra na hora e reativa. |
-| `POST /assinatura/cancelar` (auth) | Cancela; o acesso vai até o fim do teste ou do período pago. |
-| `POST /assinatura/reativar` (auth) | `{ planoId }`: reassina. Fora do teste e do período pago, cobra antes de liberar. |
+| `POST /assinatura` (auth) | Plano + token do cartão; inicia o teste. 402 `cartao_recusado`; 409 `teste_ja_usado` (um por CPF/CNPJ e por cartão), `assinatura_existente`, `gerenciado_pela_google_play` (quando `BILLING_PROVIDER=google_play`). |
+| `POST /assinatura/trocar-plano` (auth) | Upgrade cobra a prorata e vale na hora; downgrade fica agendado. 402 `pagamento_recusado`; 409 `gerenciado_pela_google_play` no modo Google Play. |
+| `PUT /assinatura/cartao` (auth) | Verifica e troca o cartão; inadimplente ou suspensa cobra na hora e reativa. 409 `gerenciado_pela_google_play` no modo Google Play. |
+| `POST /assinatura/cancelar` (auth) | Cancela; o acesso vai até o fim do teste ou do período pago. 409 `gerenciado_pela_google_play` no modo Google Play. |
+| `POST /assinatura/reativar` (auth) | `{ planoId }`: reassina. Fora do teste e do período pago, cobra antes de liberar. 409 `gerenciado_pela_google_play` no modo Google Play. |
 | `GET /assinatura/configuracao` | Público: informa se o modo gratuito está ativo, o canal (`disabled` / `google_play`), `planoPadrao`, `packageName` e `skuProMensal`. |
 | `POST /assinatura/google-play/confirmar` (auth, dono) | Valida `purchaseToken` na Google Play (`subscriptionsv2`), confirma (`acknowledge` em até 3 dias) e ativa a licença Pro. |
 | `POST /assinatura/google-play/restaurar` (auth, dono) | Restaura assinatura ativa existente na conta Google Play do aparelho para a loja atual. |
-| `POST /assinatura/google-play/gratuito` (auth, dono) | Coloca a conta no plano `Free` quando `BILLING_PROVIDER=google_play` (ou retorna o acesso liberado no modo gratuito). |
-| `POST /webhooks/pdv-google-play` | Público (autenticado por `PDV_PLAY_WEBHOOK_TOKEN`): recebe RTDN do Google Cloud Pub/Sub, ordena por `eventTimeMillis` e reconcilia estado da assinatura. |
+| `POST /assinatura/gratuito` (auth, dono) | Coloca a conta no plano `Free` quando `BILLING_PROVIDER=google_play` (ou retorna o acesso liberado no modo gratuito). |
+| `POST /webhooks/pdv-google-play` | Público (autenticado por `PDV_PLAY_WEBHOOK_TOKEN`; exige o token em produção com `503 webhook_nao_configurado`): recebe RTDN do Google Cloud Pub/Sub, ordena por `eventTimeMillis` e reconcilia estado da assinatura. |
 | `POST /sync/push` (auth) | Mutações da outbox, idempotente pelo `id`. Rejeições: `limite_plano`, `assinatura_suspensa` (venda nova), `venda_imutavel`, `caixa_fechada`, `loja_invalida`, `nao_encontrado`, `exclusao_nao_permitida`. |
 | `GET /sync/pull?desde=<cursor>` (auth) | Até 500 mudanças depois do cursor. Repetir com o cursor devolvido enquanto vierem 500. |
 | `POST /dev/relogio/avancar` | `{ dias }`. Só fora de produção. |

@@ -21,17 +21,17 @@
       "acao": [
         "assert",
         "Suporte e privacidade",
-        "Políticas do piloto"
+        "Políticas e termos"
       ]
     },
     {
       "nome": "Conferir as quatro politicas",
       "acao": [
         "assert",
-        "Suporte do piloto",
+        "Suporte",
         "Privacidade",
         "Retenção e exclusão",
-        "Termos do piloto"
+        "Termos de uso"
       ]
     },
     {
@@ -105,7 +105,7 @@
       "nome": "Conferir ausencia das politicas",
       "acao": [
         "assert_ausente",
-        "Políticas do piloto"
+        "Políticas e termos"
       ]
     }
   ]

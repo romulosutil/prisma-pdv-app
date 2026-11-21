@@ -11,13 +11,28 @@ export interface CartaoPlanoProps {
   plano: Plano;
   selecionado: boolean;
   onPress: () => void;
+  precoFormatado?: string;
+  periodoLabel?: string;
+  detalheOferta?: string | null;
 }
 
 /** Opção de plano do paywall: seleção única, com preço, destaques e a etiqueta "Mais escolhido". */
-export function CartaoPlano({ plano, selecionado, onPress }: CartaoPlanoProps) {
+export function CartaoPlano({
+  plano,
+  selecionado,
+  onPress,
+  precoFormatado,
+  periodoLabel,
+  detalheOferta,
+}: CartaoPlanoProps) {
   const { aoFocar, aoDesfocar, anel } = useFoco(3);
   const destaques = destaquesDoPlano(plano);
-  const rotulo = `${plano.nome}, ${falarDinheiro(plano.precoMensalCentavos)} por mês${plano.maisEscolhido ? ', mais escolhido' : ''}. ${plano.descricaoCurta}. ${destaques.join('. ')}`;
+  const precoExibido = precoFormatado ?? formatarBRL(plano.precoMensalCentavos);
+  const periodoExibido = periodoLabel ?? 'mês';
+  const rotuloPreco = precoFormatado
+    ? `${precoFormatado} por ${periodoExibido}`
+    : `${falarDinheiro(plano.precoMensalCentavos)} por mês`;
+  const rotulo = `${plano.nome}, ${rotuloPreco}${plano.maisEscolhido ? ', mais escolhido' : ''}${detalheOferta ? `, ${detalheOferta}` : ''}. ${plano.descricaoCurta}. ${destaques.join('. ')}`;
   return (
     <Pressable
       accessibilityRole="radio"
@@ -46,13 +61,18 @@ export function CartaoPlano({ plano, selecionado, onPress }: CartaoPlanoProps) {
           <Texto estilo="corpo" cor={cores.ink2}>
             {plano.descricaoCurta}
           </Texto>
+          {detalheOferta ? (
+            <Texto estilo="legenda" cor={cores.folha}>
+              {detalheOferta}
+            </Texto>
+          ) : null}
         </View>
         <View style={estilos.preco}>
           <Texto estilo="tituloL" numerico>
-            {formatarBRL(plano.precoMensalCentavos)}
+            {precoExibido}
           </Texto>
           <Texto estilo="legenda" cor={cores.ink3}>
-            por mês
+            {`por ${periodoExibido}`}
           </Texto>
         </View>
       </View>

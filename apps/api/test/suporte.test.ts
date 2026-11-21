@@ -27,6 +27,8 @@ it('suporte exige sessão, mantém protocolo no replay e rejeita troca de conte�
   expect(await amb.db.select().from(solicitacoesSuporte)).toHaveLength(1);
   expect((await enviarPedido(a.token, { ...pedido(), diagnostico: { token: 'nao-persistir' } })).status).toBe(400);
   expect((await enviarPedido(a.token, { ...pedido(), contaId: b.contaId })).status).toBe(400);
+  expect((await enviarPedido(a.token, { ...pedido(), versaoPoliticas: '2026-11-02' })).status).toBe(200);
+  expect((await enviarPedido(a.token, { ...pedido(), versaoPoliticas: '1999-01-01' })).status).toBe(400);
 });
 
 it('pedido de exclusão preserva conta e dados e a resposta da equipe é consultável', async () => {

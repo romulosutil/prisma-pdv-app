@@ -204,7 +204,7 @@ class FluxosSuporteTest(unittest.TestCase):
         self.assertNotIn(['tap', 'Enviar pedido de análise de exclusão'], acoes)
         self.assertNotIn(['tap', 'Enviar solicitação de suporte'], acoes)
         textos = [t for a in acoes for t in a[1:]]
-        for esperado in ('Suporte do piloto', 'Privacidade', 'Retenção e exclusão', 'Termos do piloto', 'Contato',
+        for esperado in ('Suporte', 'Privacidade', 'Retenção e exclusão', 'Termos de uso', 'Contato',
                          'exclusão não acontece ao tocar em enviar', 'Abrir política de privacidade no site',
                          'Abrir exclusão de conta no site'):
             self.assertIn(esperado, textos)

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   adicionarDias,
   gerarId,
@@ -11,11 +11,13 @@ import type { Conexao } from '../src/db/conexao';
 import * as schema from '../src/db/schema';
 import {
   ErroGooglePlay,
+  lerRespostaSubscriptionsV2,
   type CompraAssinaturaPlay,
   type VerificadorGooglePlay,
 } from '../src/pagamentos/googlePlayBilling';
 import { criarApp } from '../src/servidor';
-import { abrirBanco, INICIO, mutacao, produto, venda } from './ajuda';
+import { abrirBanco, INICIO, mutacao, produto, tokenDoCartao, NUMEROS, venda } from './ajuda';
+import { emissaoTeste } from './emailFixture';
 
 class VerificadorGooglePlaySimulado implements VerificadorGooglePlay {
   compras = new Map<string, CompraAssinaturaPlay>();
@@ -60,19 +62,29 @@ async function iniciarComModo(opcoes: { cobrancaDesativada: boolean; billingProv
       verificador,
       packageName: 'br.com.pdv.mobile',
       skuProMensal: 'prisma_pro_mensal',
-      webhookToken: opcoes.webhookToken ?? 'segredo-rtdn-play',
+      webhookToken: opcoes.webhookToken === undefined ? 'segredo-rtdn-play' : opcoes.webhookToken,
     },
+    ...(process.env.NODE_ENV === 'production' ? { emissaoCodigo: emissaoTeste } : {}),
     fontesEan: [],
   });
 }
 
-afterEach(async () => { if (app) await app.close(); });
+afterEach(async () => {
+  vi.unstubAllEnvs();
+  if (app) await app.close();
+});
 
-async function injetar<T = any>(metodo: 'GET' | 'POST', url: string, opts: { token?: string; corpo?: unknown } = {}) {
+async function injetar<T = any>(
+  metodo: 'GET' | 'POST' | 'PUT',
+  url: string,
+  opts: { token?: string; headers?: Record<string, string>; corpo?: unknown } = {},
+) {
+  const headers: Record<string, string> = { ...(opts.headers ?? {}) };
+  if (opts.token) headers.authorization = `Bearer ${opts.token}`;
   const res = await app.inject({
     method: metodo,
     url,
-    headers: opts.token ? { authorization: `Bearer ${opts.token}` } : {},
+    headers,
     ...(opts.corpo === undefined ? {} : { payload: opts.corpo as object }),
   });
   return { status: res.statusCode, corpo: res.body ? (res.json() as T) : (undefined as T) };
@@ -330,5 +342,178 @@ describe('Google Play Billing e modo gratuito', () => {
     });
     expect(pNovo.status).toBe(200);
     expect(pNovo.corpo.aceitas).toHaveLength(1);
+  });
+
+  it('bloqueia todas as rotas legadas de assinatura com 409 gerenciado_pela_google_play quando BILLING_PROVIDER=google_play', async () => {
+    await iniciarComModo({ cobrancaDesativada: false, billingProvider: 'google_play' });
+    const conta = await criarContaLocal();
+    const tokenCartao = tokenDoCartao(NUMEROS.aprova);
+
+    const chamadasLegadas: Array<['POST' | 'PUT', string, unknown?]> = [
+      ['POST', '/assinatura', { planoId: 'pro', tokenCartao }],
+      ['POST', '/assinatura/trocar-plano', { planoId: 'pro' }],
+      ['PUT', '/assinatura/cartao', { tokenCartao }],
+      ['POST', '/assinatura/cancelar', undefined],
+      ['POST', '/assinatura/reativar', { planoId: 'pro' }],
+    ];
+
+    for (const [metodo, url, corpo] of chamadasLegadas) {
+      const res = await injetar(metodo, url, { token: conta.token, ...(corpo ? { corpo } : {}) });
+      expect(res.status, `${metodo} ${url} no plano Free`).toBe(409);
+      expect(res.corpo.erro).toBe('gerenciado_pela_google_play');
+    }
+
+    // Ativa assinatura Pro pela Play (em teste grátis e depois ativa paga) e garante que rotas legadas seguem bloqueadas.
+    const tokPlay = 'tok-pro-bloqueio-legado';
+    verificador.compras.set(`br.com.pdv.mobile:${tokPlay}`, {
+      subscriptionState: 'SUBSCRIPTION_STATE_ACTIVE',
+      acknowledgementState: 'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED',
+      startTime: INICIO,
+      expiryTime: adicionarDias(INICIO, 7),
+      autoRenewing: true,
+      orderId: 'GPA.7777',
+      productId: 'prisma_pro_mensal',
+      emTesteGratis: true,
+    });
+    expect((await injetar('POST', '/assinatura/google-play/confirmar', {
+      token: conta.token,
+      corpo: { purchaseToken: tokPlay, productId: 'prisma_pro_mensal', packageName: 'br.com.pdv.mobile' },
+    })).status).toBe(200);
+
+    for (const [metodo, url, corpo] of chamadasLegadas) {
+      const res = await injetar(metodo, url, { token: conta.token, ...(corpo ? { corpo } : {}) });
+      expect(res.status, `${metodo} ${url} em Pro em_teste`).toBe(409);
+      expect(res.corpo.erro).toBe('gerenciado_pela_google_play');
+    }
+
+    verificador.compras.set(`br.com.pdv.mobile:${tokPlay}`, {
+      subscriptionState: 'SUBSCRIPTION_STATE_ACTIVE',
+      acknowledgementState: 'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED',
+      startTime: INICIO,
+      expiryTime: adicionarDias(INICIO, 37),
+      autoRenewing: true,
+      orderId: 'GPA.7777..0',
+      productId: 'prisma_pro_mensal',
+      emTesteGratis: false,
+    });
+    expect((await injetar('POST', '/assinatura/google-play/restaurar', {
+      token: conta.token,
+      corpo: { purchaseToken: tokPlay, productId: 'prisma_pro_mensal', packageName: 'br.com.pdv.mobile' },
+    })).status).toBe(200);
+
+    for (const [metodo, url, corpo] of chamadasLegadas) {
+      const res = await injetar(metodo, url, { token: conta.token, ...(corpo ? { corpo } : {}) });
+      expect(res.status, `${metodo} ${url} em Pro ativa`).toBe(409);
+      expect(res.corpo.erro).toBe('gerenciado_pela_google_play');
+    }
+  });
+
+  it('exige PDV_PLAY_WEBHOOK_TOKEN no webhook RTDN em produção (503 se ausente, 401 se inválido, 200 com Bearer válido)', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    await iniciarComModo({ cobrancaDesativada: false, billingProvider: 'google_play', webhookToken: null });
+    const semConfig = await injetar('POST', '/webhooks/pdv-google-play', {
+      corpo: envelopeRtdn({ packageName: 'br.com.pdv.mobile', eventTimeMillis: 1000, testNotification: { version: '1.0' } }),
+    });
+    expect(semConfig.status).toBe(503);
+    expect(semConfig.corpo.erro).toBe('webhook_nao_configurado');
+    await app.close();
+
+    await iniciarComModo({ cobrancaDesativada: false, billingProvider: 'google_play', webhookToken: 'segredo-prod' });
+    const semToken = await injetar('POST', '/webhooks/pdv-google-play', {
+      corpo: envelopeRtdn({ packageName: 'br.com.pdv.mobile', eventTimeMillis: 1000, testNotification: { version: '1.0' } }),
+    });
+    expect(semToken.status).toBe(401);
+    expect(semToken.corpo.erro).toBe('token_webhook_invalido');
+
+    const tokenErrado = await injetar('POST', '/webhooks/pdv-google-play', {
+      headers: { authorization: 'Bearer segredo-errado' },
+      corpo: envelopeRtdn({ packageName: 'br.com.pdv.mobile', eventTimeMillis: 1000, testNotification: { version: '1.0' } }),
+    });
+    expect(tokenErrado.status).toBe(401);
+
+    const tokenValido = await injetar('POST', '/webhooks/pdv-google-play', {
+      headers: { authorization: 'Bearer segredo-prod' },
+      corpo: envelopeRtdn({ packageName: 'br.com.pdv.mobile', eventTimeMillis: 1000, testNotification: { version: '1.0' } }),
+    });
+    expect(tokenValido.status).toBe(200);
+    expect(tokenValido.corpo).toEqual({ recebido: true, processado: true, motivo: 'teste' });
+  });
+
+  it('refina emTesteGratis e latestSuccessfulOrderId em lerRespostaSubscriptionsV2', () => {
+    const base = {
+      subscriptionState: 'SUBSCRIPTION_STATE_ACTIVE',
+      acknowledgementState: 'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED',
+      startTime: '2026-03-10T12:00:00.000Z',
+    };
+
+    const viaOfferPhaseTrial = lerRespostaSubscriptionsV2({
+      ...base,
+      lineItems: [{
+        productId: 'prisma_pro_mensal',
+        expiryTime: '2026-03-17T12:00:00.000Z',
+        latestSuccessfulOrderId: 'GPA.1000',
+        offerDetails: { basePlanId: 'mensal', offerId: 'qualquer-id' },
+        offerPhase: { freeTrial: {} },
+      }],
+    });
+    expect(viaOfferPhaseTrial.emTesteGratis).toBe(true);
+    expect(viaOfferPhaseTrial.orderId).toBe('GPA.1000');
+
+    const introComOfferIdTrial = lerRespostaSubscriptionsV2({
+      ...base,
+      lineItems: [{
+        productId: 'prisma_pro_mensal',
+        expiryTime: '2026-04-10T12:00:00.000Z',
+        latestSuccessfulOrderId: 'GPA.1001',
+        offerDetails: { basePlanId: 'mensal', offerId: 'trial-7d' },
+        offerPhase: { introductoryPrice: {} },
+      }],
+    });
+    expect(introComOfferIdTrial.emTesteGratis).toBe(false);
+
+    const basePrice = lerRespostaSubscriptionsV2({
+      ...base,
+      lineItems: [{
+        productId: 'prisma_pro_mensal',
+        expiryTime: '2026-04-10T12:00:00.000Z',
+        latestSuccessfulOrderId: 'GPA.1002',
+        offerPhase: { basePrice: {} },
+      }],
+    });
+    expect(basePrice.emTesteGratis).toBe(false);
+
+    const promoSemOfferPhase = lerRespostaSubscriptionsV2({
+      ...base,
+      lineItems: [{
+        productId: 'prisma_pro_mensal',
+        expiryTime: '2026-04-10T12:00:00.000Z',
+        latestSuccessfulOrderId: 'GPA.1003',
+        offerDetails: { basePlanId: 'mensal', offerId: 'promo-lancamento', offerTags: ['desconto'] },
+      }],
+    });
+    expect(promoSemOfferPhase.emTesteGratis).toBe(false);
+
+    const trialPorIdSemOfferPhase = lerRespostaSubscriptionsV2({
+      ...base,
+      lineItems: [{
+        productId: 'prisma_pro_mensal',
+        expiryTime: '2026-03-17T12:00:00.000Z',
+        latestSuccessfulOrderId: 'GPA.1111',
+        offerDetails: { basePlanId: 'mensal', offerId: 'teste-gratis-7d' },
+      }],
+    });
+    expect(trialPorIdSemOfferPhase.emTesteGratis).toBe(true);
+    expect(trialPorIdSemOfferPhase.orderId).toBe('GPA.1111');
+
+    const renovacaoMesmoOfferId = lerRespostaSubscriptionsV2({
+      ...base,
+      lineItems: [{
+        productId: 'prisma_pro_mensal',
+        expiryTime: '2026-04-17T12:00:00.000Z',
+        latestSuccessfulOrderId: 'GPA.1111..0',
+        offerDetails: { basePlanId: 'mensal', offerId: 'teste-gratis-7d' },
+      }],
+    });
+    expect(renovacaoMesmoOfferId.emTesteGratis).toBe(false);
   });
 });

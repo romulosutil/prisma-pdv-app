@@ -42,6 +42,7 @@ import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.PendingPurchasesParams
+import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.QueryProductDetailsParams
@@ -161,6 +162,85 @@ class PdvPlayBillingModule(
     promise?.reject(codigo, mensagem)
   }
 
+  private fun selecionarOferta(
+    ofertas: List<ProductDetails.SubscriptionOfferDetails>?,
+  ): ProductDetails.SubscriptionOfferDetails? {
+    if (ofertas.isNullOrEmpty()) return null
+    return ofertas.firstOrNull { oferta ->
+      oferta.pricingPhases.pricingPhaseList.any { it.priceAmountMicros == 0L }
+    } ?: ofertas.firstOrNull { !it.offerId.isNullOrBlank() }
+      ?: ofertas.firstOrNull()
+  }
+
+  @ReactMethod
+  fun consultarOfertaAssinatura(sku: String, promise: Promise) {
+    val skuLimpo = sku.trim()
+    if (skuLimpo.isEmpty()) {
+      promise.reject("E_INVALID_SKU", "Produto de assinatura inválido.")
+      return
+    }
+    conectar(
+      onPronto = { cliente ->
+        val produto = QueryProductDetailsParams.Product.newBuilder()
+          .setProductId(skuLimpo)
+          .setProductType(BillingClient.ProductType.SUBS)
+          .build()
+        val params = QueryProductDetailsParams.newBuilder()
+          .setProductList(listOf(produto))
+          .build()
+        cliente.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
+          if (billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
+            val msg = billingResult.debugMessage.ifBlank {
+              "Não foi possível consultar o plano na Google Play (código \${billingResult.responseCode})."
+            }
+            promise.reject("E_BILLING_ERROR", msg)
+            return@queryProductDetailsAsync
+          }
+          val detalhes = productDetailsList.firstOrNull { it.productId == skuLimpo }
+            ?: productDetailsList.firstOrNull()
+          val oferta = selecionarOferta(detalhes?.subscriptionOfferDetails)
+          val fases = oferta?.pricingPhases?.pricingPhaseList
+          if (detalhes == null || oferta == null || fases.isNullOrEmpty()) {
+            promise.resolve(null)
+            return@queryProductDetailsAsync
+          }
+          val faseRecorrente = fases.lastOrNull {
+            it.recurrenceMode == ProductDetails.RecurrenceMode.INFINITE_RECURRING
+          } ?: fases.lastOrNull { it.priceAmountMicros > 0L } ?: fases.last()
+          val faseGratis = fases.firstOrNull { it.priceAmountMicros == 0L }
+          val faseIntro = fases.firstOrNull { it !== faseRecorrente && it.priceAmountMicros > 0L }
+
+          val mapa = Arguments.createMap().apply {
+            putString("productId", detalhes.productId)
+            putString("titulo", detalhes.name.ifBlank { detalhes.title })
+            putString("basePlanId", oferta.basePlanId)
+            if (oferta.offerId.isNullOrBlank()) putNull("offerId") else putString("offerId", oferta.offerId)
+            putString("offerToken", oferta.offerToken)
+            putString("precoFormatado", faseRecorrente.formattedPrice)
+            putDouble("precoMicros", faseRecorrente.priceAmountMicros.toDouble())
+            putString("moeda", faseRecorrente.priceCurrencyCode)
+            putString("periodoCobranca", faseRecorrente.billingPeriod)
+            putBoolean("temTesteGratis", faseGratis != null)
+            if (faseGratis == null) putNull("periodoTesteGratis") else putString("periodoTesteGratis", faseGratis.billingPeriod)
+            putInt("ciclosTesteGratis", faseGratis?.billingCycleCount ?: 0)
+            if (faseIntro == null) {
+              putNull("precoIntrodutorioFormatado")
+              putNull("periodoIntrodutorio")
+            } else {
+              putString("precoIntrodutorioFormatado", faseIntro.formattedPrice)
+              putString("periodoIntrodutorio", faseIntro.billingPeriod)
+            }
+            putInt("ciclosIntrodutorio", faseIntro?.billingCycleCount ?: 0)
+          }
+          promise.resolve(mapa)
+        }
+      },
+      onErro = { codigo, mensagem ->
+        promise.reject(codigo, mensagem)
+      },
+    )
+  }
+
   @ReactMethod
   fun comprarAssinatura(sku: String, obfAccountId: String?, promise: Promise) {
     val skuLimpo = sku.trim()
@@ -210,8 +290,7 @@ class PdvPlayBillingModule(
             limparCompraERejeitar("E_PRODUCT_NOT_FOUND", "Plano '\$skuLimpo' não encontrado na Google Play.")
             return@queryProductDetailsAsync
           }
-          val ofertas = detalhes.subscriptionOfferDetails
-          val oferta = ofertas?.firstOrNull { !it.offerId.isNullOrBlank() } ?: ofertas?.firstOrNull()
+          val oferta = selecionarOferta(detalhes.subscriptionOfferDetails)
           val offerToken = oferta?.offerToken
           if (offerToken.isNullOrBlank()) {
             limparCompraERejeitar("E_NO_OFFER", "Nenhuma oferta ativa encontrada para o plano '\$skuLimpo'.")

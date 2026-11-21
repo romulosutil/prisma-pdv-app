@@ -51,6 +51,9 @@ it('contato por e-mail e links do site aparecem sem sessão, antes do atendiment
   m.sessao = null; await act(async () => { r = create(React.createElement(Suporte)); });
   const json = JSON.stringify(r.toJSON());
   expect(json).toContain('Para suporte, privacidade ou exclusão de conta, escreva para contato@prumo.services.');
+  expect(json).toContain('Desenvolvedor: Rômulo Sutil');
+  expect(json).toContain('Políticas e termos');
+  expect(json).not.toContain('Políticas do piloto');
   expect(json.indexOf('"Contato"')).toBeLessThan(json.indexOf('Atendimento pessoal'));
   expect(botao('Abrir política de privacidade no site')!.props.variante).toBe('terciario');
   expect(botao('Abrir exclusão de conta no site')!.props.variante).toBe('terciario');

@@ -15,7 +15,14 @@ import { useToast } from '@/componentes/Toast';
 import { useAssinatura, useDados } from '@/dados/hooks';
 import { useObservavel } from '@/dados/observavel';
 import { mensagemDeErro } from '@/servicos/backend';
-import { abrirGerenciamentoPlay, iniciarAssinaturaPlay, restaurarComprasPlay } from '@/servicos/playBilling';
+import {
+  abrirGerenciamentoPlay,
+  consultarOfertaPlay,
+  descreverOfertaPlay,
+  iniciarAssinaturaPlay,
+  restaurarComprasPlay,
+  type OfertaAssinaturaPlay,
+} from '@/servicos/playBilling';
 import { cores, raio } from '@/tema';
 import { useFoco } from '@/tema/useFoco';
 import { rotuloBandeira } from '@/util/cartao';
@@ -33,6 +40,7 @@ export default function Assinatura() {
   const [folha, setFolha] = useState<Folha>(null);
   const [planoEscolhido, setPlanoEscolhido] = useState<PlanoId | null>(null);
   const [configPlay, setConfigPlay] = useState<ConfiguracaoCobrancaRes | null>(null);
+  const [ofertaPlay, setOfertaPlay] = useState<OfertaAssinaturaPlay | null>(null);
   const [ocupado, setOcupado] = useState(false);
 
   useEffect(() => {
@@ -42,6 +50,22 @@ export default function Assinatura() {
       .catch(() => undefined);
     return () => { ativo = false; };
   }, [dados.backend]);
+
+  const modoPlayAtivo = Boolean(
+    assinatura &&
+    assinatura.status !== 'liberada' &&
+    (configPlay?.canal === 'google_play' || (modo === 'http' && assinatura.cartao === null)),
+  );
+  const skuConfig = configPlay?.skuProMensal ?? 'prisma_pro_mensal';
+
+  useEffect(() => {
+    if (!modoPlayAtivo) return;
+    let ativo = true;
+    consultarOfertaPlay({ sku: skuConfig })
+      .then((oferta) => { if (ativo) setOfertaPlay(oferta); })
+      .catch(() => undefined);
+    return () => { ativo = false; };
+  }, [modoPlayAtivo, skuConfig]);
 
   // Quem usa leitor de tela precisa saber quando a situação muda (ex.: o teste acabou e a cobrança falhou).
   const statusAnterior = useRef(assinatura?.status);
@@ -80,6 +104,8 @@ export default function Assinatura() {
   const plano = PLANOS[assinatura.planoId];
   const status = STATUS_VISUAL[assinatura.status];
   const precoDaProxima = valorMensalAssinatura(assinatura);
+  const descricaoPlay = descreverOfertaPlay(ofertaPlay, PLANOS.pro.precoMensalCentavos);
+  const mostrarPrecoPlay = modoGooglePlay && assinatura.planoId === 'pro' && ofertaPlay !== null;
   const previa = planoEscolhido ? servico.previaTroca(planoEscolhido) : null;
   const podeTrocar = !modoGooglePlay && assinatura.planoId !== 'pro' && (assinatura.status === 'em_teste' || assinatura.status === 'ativa');
   const podeCancelar = !modoGooglePlay && assinatura.status !== 'cancelada' && assinatura.status !== 'sem_assinatura';
@@ -112,11 +138,12 @@ export default function Assinatura() {
   };
 
   const linhaDaCobranca = (): string | null => {
+    const valorCobranca = mostrarPrecoPlay ? descricaoPlay.precoFormatado : formatarBRL(precoDaProxima);
     switch (assinatura.status) {
       case 'em_teste':
-        return `Primeira cobrança em ${formatarData(assinatura.testeTerminaEm)}: ${formatarBRL(precoDaProxima)}.`;
+        return `Primeira cobrança em ${formatarData(assinatura.testeTerminaEm)}: ${valorCobranca}.`;
       case 'ativa':
-        return `Próxima cobrança em ${formatarData(assinatura.periodoAtualFim)}: ${formatarBRL(precoDaProxima)}.`;
+        return `Próxima cobrança em ${formatarData(assinatura.periodoAtualFim)}: ${valorCobranca}.`;
       case 'inadimplente':
         return assinatura.proximaTentativaEm ? `Vamos tentar de novo em ${formatarData(assinatura.proximaTentativaEm)}.` : 'Não haverá novas tentativas automáticas.';
       case 'cancelada':
@@ -155,8 +182,19 @@ export default function Assinatura() {
           <Texto estilo="tituloL">{`Plano ${plano.nome}`}</Texto>
           <StatusPill tipo={status.tipo} texto={status.texto} />
         </View>
-        <Texto estilo="corpo" cor={cores.ink2} numerico accessibilityLabel={`${falarDinheiro(precoDaProxima)} por mês`}>
-          {`${formatarBRL(precoDaProxima)} por mês`}
+        <Texto
+          estilo="corpo"
+          cor={cores.ink2}
+          numerico
+          accessibilityLabel={
+            mostrarPrecoPlay
+              ? `${descricaoPlay.precoFormatado} por ${descricaoPlay.periodoLabel}`
+              : `${falarDinheiro(precoDaProxima)} por mês`
+          }
+        >
+          {mostrarPrecoPlay
+            ? `${descricaoPlay.precoFormatado} por ${descricaoPlay.periodoLabel}`
+            : `${formatarBRL(precoDaProxima)} por mês`}
         </Texto>
         {assinatura.cupom ? (
           <Texto estilo="corpoMedio" cor={cores.folha}>
@@ -195,19 +233,16 @@ export default function Assinatura() {
         <Secao titulo="Assinatura na Google Play">
           <View style={estilos.acoes}>
             {assinatura.planoId === 'free' || assinatura.status === 'suspensa' || assinatura.status === 'cancelada' ? (
-              <Botao
-                rotulo={`Assinar Plano Pro (${formatarBRL(PLANOS.pro.precoMensalCentavos)}/mês)`}
-                carregando={ocupado}
-                onPress={assinarPlayPro}
-              />
-            ) : (
               <>
                 <Botao
-                  rotulo="Gerenciar assinatura na Google Play"
-                  variante="secundario"
-                  onPress={() => void abrirGerenciamentoPlay(packageName, sku)}
+                  rotulo={descricaoPlay.rotuloBotaoAssinatura}
+                  carregando={ocupado}
+                  onPress={assinarPlayPro}
                 />
-                {dados.backend?.ativarPlanoGratuito ? (
+                <Texto estilo="legenda" cor={cores.ink3}>
+                  {descricaoPlay.notaCobranca}
+                </Texto>
+                {assinatura.planoId !== 'free' && dados.backend?.ativarPlanoGratuito ? (
                   <Botao
                     rotulo="Voltar para o plano gratuito"
                     variante="terciario"
@@ -215,6 +250,17 @@ export default function Assinatura() {
                     onPress={() => executar(() => servico.ativarPlanoGratuito(), 'Plano alterado para Gratuito.')}
                   />
                 ) : null}
+              </>
+            ) : (
+              <>
+                <Botao
+                  rotulo="Gerenciar assinatura na Google Play"
+                  variante="secundario"
+                  onPress={() => void abrirGerenciamentoPlay(packageName, sku)}
+                />
+                <Texto estilo="legenda" cor={cores.ink3}>
+                  Para cancelar ou alterar a forma de pagamento, gerencie a assinatura diretamente na Google Play.
+                </Texto>
               </>
             )}
             <Botao

@@ -12,7 +12,12 @@ import { useToast } from '@/componentes/Toast';
 import { useAssinatura, useConta, useDados } from '@/dados/hooks';
 import { useRascunho } from '@/nucleo/rascunho';
 import { mensagemDeErro } from '@/servicos/backend';
-import { iniciarAssinaturaPlay } from '@/servicos/playBilling';
+import {
+  consultarOfertaPlay,
+  descreverOfertaPlay,
+  iniciarAssinaturaPlay,
+  type OfertaAssinaturaPlay,
+} from '@/servicos/playBilling';
 import { cores } from '@/tema';
 
 const PLANOS_LOCAIS: Plano[] = PLANOS_DISPONIVEIS.map((id) => PLANOS[id]);
@@ -26,6 +31,7 @@ export default function Planos() {
   const { rascunho, alterar } = useRascunho();
   const [planos, setPlanos] = useState(PLANOS_LOCAIS);
   const [configPlay, setConfigPlay] = useState<ConfiguracaoCobrancaRes | null>(null);
+  const [ofertaPlay, setOfertaPlay] = useState<OfertaAssinaturaPlay | null>(null);
   const [ocupado, setOcupado] = useState(false);
 
   useEffect(() => {
@@ -49,7 +55,23 @@ export default function Planos() {
 
   const escolhido = planos.find((p) => p.id === rascunho.planoId) ?? planos.find((p) => p.id === 'free') ?? planos[0];
   const canalGooglePlay = configPlay?.canal === 'google_play' || dados.backend.modo === 'http';
+  const skuPlay = configPlay?.skuProMensal ?? 'prisma_pro_mensal';
   const ehFree = escolhido?.id === 'free' || (escolhido?.precoMensalCentavos ?? 0) === 0;
+  const planoPro = planos.find((p) => p.id === 'pro') ?? PLANOS.pro;
+  const descricaoPlay = descreverOfertaPlay(ofertaPlay, planoPro.precoMensalCentavos);
+
+  useEffect(() => {
+    if (!canalGooglePlay) return;
+    let ativo = true;
+    consultarOfertaPlay({ sku: skuPlay })
+      .then((oferta) => {
+        if (ativo) setOfertaPlay(oferta);
+      })
+      .catch(() => undefined);
+    return () => {
+      ativo = false;
+    };
+  }, [canalGooglePlay, skuPlay]);
 
   const continuar = async () => {
     if (!escolhido || ocupado) return;
@@ -73,7 +95,7 @@ export default function Planos() {
       try {
         const compra = await iniciarAssinaturaPlay({
           packageName: configPlay?.packageName ?? 'br.com.pdv.mobile',
-          sku: configPlay?.skuProMensal ?? 'prisma_pro_mensal',
+          sku: skuPlay,
           contaId: identidade?.contaId,
         });
         await servico.confirmarCompraGooglePlay(compra);
@@ -99,7 +121,7 @@ export default function Planos() {
               ehFree
                 ? 'Começar no plano gratuito'
                 : canalGooglePlay
-                  ? `Assinar Pro na Google Play (${formatarBRL(escolhido!.precoMensalCentavos)}/mês)`
+                  ? descricaoPlay.rotuloBotaoOnboarding
                   : `Começar ${TESTE_DIAS} dias grátis`
             }
             carregando={ocupado}
@@ -117,7 +139,9 @@ export default function Planos() {
           ) : null}
           {escolhido && !ehFree ? (
             <Texto estilo="legenda" cor={cores.ink3} style={estilos.nota}>
-              {`Inclui ${TESTE_DIAS} dias grátis quando elegível na Google Play. Depois, ${formatarBRL(escolhido.precoMensalCentavos)} por mês. Cancele quando quiser.`}
+              {canalGooglePlay
+                ? descricaoPlay.notaCobranca
+                : `Inclui ${TESTE_DIAS} dias grátis. Depois, ${formatarBRL(escolhido.precoMensalCentavos)} por mês. Cancele quando quiser.`}
             </Texto>
           ) : null}
         </>
@@ -137,14 +161,20 @@ export default function Planos() {
           <Banner tipo="info" texto="A cobrança do plano Pro é processada com segurança pela Google Play Store." />
         ) : null}
         <View accessibilityRole="radiogroup" accessibilityLabel="Planos" style={estilos.lista}>
-          {planos.map((plano) => (
-            <CartaoPlano
-              key={plano.id}
-              plano={plano}
-              selecionado={plano.id === escolhido?.id}
-              onPress={() => alterar({ planoId: plano.id })}
-            />
-          ))}
+          {planos.map((plano) => {
+            const usarOfertaPlay = canalGooglePlay && plano.id === 'pro' && ofertaPlay !== null;
+            return (
+              <CartaoPlano
+                key={plano.id}
+                plano={plano}
+                selecionado={plano.id === escolhido?.id}
+                precoFormatado={usarOfertaPlay ? descricaoPlay.precoFormatado : undefined}
+                periodoLabel={usarOfertaPlay ? descricaoPlay.periodoLabel : undefined}
+                detalheOferta={usarOfertaPlay ? descricaoPlay.detalheOferta : undefined}
+                onPress={() => alterar({ planoId: plano.id })}
+              />
+            );
+          })}
         </View>
       </View>
     </TelaBase>

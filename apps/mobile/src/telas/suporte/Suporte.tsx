@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Linking, Platform, View } from 'react-native';
 import Constants from 'expo-constants';
-import { EMAIL_CONTATO, POLITICAS_PILOTO, VERSAO_POLITICAS, type SolicitacaoSuporte } from '@pdv/shared';
+import { EMAIL_CONTATO, NOME_DESENVOLVEDOR, POLITICAS, VERSAO_POLITICAS, type SolicitacaoSuporte } from '@pdv/shared';
 import { useRouter } from 'expo-router';
 import { Botao } from '@/componentes/Botao';
 import { Campo } from '@/componentes/Campo';
@@ -58,10 +58,11 @@ export function Suporte() {
   }
   return <TelaBase rolavel bordas={['top']} style={{ gap: 20, paddingVertical: 24 }}>
     <CabecalhoTela titulo="Suporte e privacidade" onVoltar={voltar} />
-    <Texto>Políticas do piloto · versão {VERSAO_POLITICAS}</Texto>
-    {POLITICAS_PILOTO.map(p => <View key={p.titulo} style={{ gap: 8 }}><Texto estilo="tituloM" accessibilityRole="header">{p.titulo}</Texto><Texto>{p.texto}</Texto></View>)}
+    <Texto>Políticas e termos · versão {VERSAO_POLITICAS}</Texto>
+    {POLITICAS.map(p => <View key={p.titulo} style={{ gap: 8 }}><Texto estilo="tituloM" accessibilityRole="header">{p.titulo}</Texto><Texto>{p.texto}</Texto></View>)}
     <Texto estilo="tituloM" accessibilityRole="header">Contato</Texto>
     <Texto>{`Para suporte, privacidade ou exclusão de conta, escreva para ${EMAIL_CONTATO}.`}</Texto>
+    <Texto>{`Desenvolvedor: ${NOME_DESENVOLVEDOR}`}</Texto>
     {site ? <>
       <Botao rotulo="Abrir política de privacidade no site" variante="terciario" onPress={() => abrirSite('/privacidade')} />
       <Botao rotulo="Abrir exclusão de conta no site" variante="terciario" onPress={() => abrirSite('/exclusao-de-conta')} />

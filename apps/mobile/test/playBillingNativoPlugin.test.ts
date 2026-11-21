@@ -13,9 +13,14 @@ const rnMock = vi.hoisted(() => ({
 vi.mock('react-native', () => rnMock);
 
 import {
+  consultarOfertaPlay,
+  descreverOfertaPlay,
+  formatarDuracaoOfertaPlay,
+  formatarPeriodoCobrancaPlay,
   iniciarAssinaturaPlay,
   playBillingDisponivel,
   restaurarComprasPlay,
+  type OfertaAssinaturaPlay,
 } from '@/servicos/playBilling';
 
 const require = createRequire(import.meta.url);
@@ -118,15 +123,18 @@ describe('Config plugin e ponte nativa PdvPlayBilling', () => {
     expect(modSrc).toContain('const val NAME = "PdvPlayBilling"');
     expect(modSrc).toContain('fun comprarAssinatura(sku: String, obfAccountId: String?, promise: Promise)');
     expect(modSrc).toContain('fun consultarComprasAssinatura(sku: String, promise: Promise)');
+    expect(modSrc).toContain('fun consultarOfertaAssinatura(sku: String, promise: Promise)');
+    expect(modSrc).toContain('private fun selecionarOferta(');
+    expect(modSrc).toContain('ProductDetails.RecurrenceMode.INFINITE_RECURRING');
     expect(modSrc).toContain('PendingPurchasesParams.newBuilder()');
     expect(modSrc).toContain('BillingClient.ProductType.SUBS');
     expect(modSrc).toContain('setObfuscatedAccountId');
   });
 
-  it('app.json declara o plugin, regras ProGuard da Play Billing e versão 0.1.21 (22)', () => {
+  it('app.json declara o plugin, regras ProGuard da Play Billing e versão 0.1.22 (23)', () => {
     expect(typeof plugin).toBe('function');
-    expect(appJson.expo.version).toBe('0.1.21');
-    expect(appJson.expo.android.versionCode).toBe(22);
+    expect(appJson.expo.version).toBe('0.1.22');
+    expect(appJson.expo.android.versionCode).toBe(23);
     expect(appJson.expo.plugins).toContain('./config/withPdvPlayBilling');
 
     const buildProps = appJson.expo.plugins.find(
@@ -139,6 +147,23 @@ describe('Config plugin e ponte nativa PdvPlayBilling', () => {
   it('playBilling.ts usa NativeModules.PdvPlayBilling automaticamente no Android sem injeção manual', async () => {
     expect(playBillingDisponivel()).toBe(false);
 
+    const ofertaReal: OfertaAssinaturaPlay = {
+      productId: 'prisma_pro_mensal',
+      titulo: 'Prisma Pro Mensal',
+      basePlanId: 'mensal',
+      offerId: 'gratis-7d',
+      offerToken: 'tok-oferta-1',
+      precoFormatado: 'R$ 54,90',
+      precoMicros: 54_900_000,
+      moeda: 'BRL',
+      periodoCobranca: 'P1M',
+      temTesteGratis: true,
+      periodoTesteGratis: 'P7D',
+      ciclosTesteGratis: 1,
+      precoIntrodutorioFormatado: null,
+      periodoIntrodutorio: null,
+      ciclosIntrodutorio: 0,
+    };
     const comprarAssinatura = vi.fn().mockResolvedValue({
       purchaseToken: 'tok-nativo-123456',
       productId: 'prisma_pro_mensal',
@@ -151,7 +176,12 @@ describe('Config plugin e ponte nativa PdvPlayBilling', () => {
         packageName: 'br.com.pdv.mobile',
       },
     ]);
-    rnMock.NativeModules.PdvPlayBilling = { comprarAssinatura, consultarComprasAssinatura };
+    const consultarOfertaAssinatura = vi.fn().mockResolvedValue(ofertaReal);
+    rnMock.NativeModules.PdvPlayBilling = {
+      comprarAssinatura,
+      consultarComprasAssinatura,
+      consultarOfertaAssinatura,
+    };
 
     expect(playBillingDisponivel()).toBe(true);
     await expect(
@@ -168,7 +198,80 @@ describe('Config plugin e ponte nativa PdvPlayBilling', () => {
     ).resolves.toMatchObject({ purchaseToken: 'tok-nativo-123456' });
     expect(consultarComprasAssinatura).toHaveBeenCalledWith('prisma_pro_mensal');
 
+    await expect(consultarOfertaPlay({ sku: 'prisma_pro_mensal' })).resolves.toEqual(ofertaReal);
+    expect(consultarOfertaAssinatura).toHaveBeenCalledWith('prisma_pro_mensal');
+
+    consultarOfertaAssinatura.mockRejectedValueOnce(new Error('offline'));
+    await expect(consultarOfertaPlay({ sku: 'prisma_pro_mensal' })).resolves.toBeNull();
+
     rnMock.Platform.OS = 'ios';
     expect(playBillingDisponivel()).toBe(false);
+    await expect(consultarOfertaPlay({ sku: 'prisma_pro_mensal' })).resolves.toBeNull();
+  });
+
+  it('formata períodos e descreve ofertas reais da Google Play sem prometer teste grátis inexistente', () => {
+    expect(formatarPeriodoCobrancaPlay('P1M')).toBe('mês');
+    expect(formatarPeriodoCobrancaPlay('P3M')).toBe('3 meses');
+    expect(formatarPeriodoCobrancaPlay('P1Y')).toBe('ano');
+    expect(formatarPeriodoCobrancaPlay('P1W')).toBe('semana');
+    expect(formatarDuracaoOfertaPlay('P7D', 1)).toBe('7 dias');
+    expect(formatarDuracaoOfertaPlay('P1W', 1)).toBe('7 dias');
+    expect(formatarDuracaoOfertaPlay('P1M', 3)).toBe('3 meses');
+    expect(formatarDuracaoOfertaPlay(null, 1)).toBeNull();
+
+    const ofertaBase: OfertaAssinaturaPlay = {
+      productId: 'prisma_pro_mensal',
+      titulo: 'Pro',
+      basePlanId: 'mensal',
+      offerId: null,
+      offerToken: 'tok',
+      precoFormatado: 'R$ 59,90',
+      precoMicros: 59_900_000,
+      moeda: 'BRL',
+      periodoCobranca: 'P1M',
+      temTesteGratis: false,
+      periodoTesteGratis: null,
+      ciclosTesteGratis: 0,
+      precoIntrodutorioFormatado: null,
+      periodoIntrodutorio: null,
+      ciclosIntrodutorio: 0,
+    };
+
+    const comTrial = descreverOfertaPlay({
+      ...ofertaBase,
+      offerId: 'trial-7d',
+      temTesteGratis: true,
+      periodoTesteGratis: 'P7D',
+      ciclosTesteGratis: 1,
+    }, 4990);
+    expect(comTrial.precoFormatado).toBe('R$ 59,90');
+    expect(comTrial.rotuloBotaoOnboarding).toBe('Começar 7 dias grátis na Google Play');
+    expect(comTrial.rotuloBotaoAssinatura).toBe('Assinar Pro (7 dias grátis)');
+    expect(comTrial.notaCobranca).toContain('7 dias grátis');
+    expect(comTrial.notaCobranca).toContain('R$ 59,90 por mês');
+
+    const comIntro = descreverOfertaPlay({
+      ...ofertaBase,
+      offerId: 'intro-3m',
+      precoIntrodutorioFormatado: 'R$ 19,90',
+      periodoIntrodutorio: 'P1M',
+      ciclosIntrodutorio: 3,
+    }, 4990);
+    expect(comIntro.detalheOferta).toBe('R$ 19,90 por 3 meses, depois R$ 59,90/mês');
+    expect(comIntro.rotuloBotaoOnboarding).toContain('R$ 19,90');
+    expect(comIntro.notaCobranca).toContain('R$ 19,90 por 3 meses');
+    expect(comIntro.notaCobranca).toContain('R$ 59,90 por mês');
+    expect(comIntro.notaCobranca).not.toContain('grátis');
+
+    const semOfertaPromocional = descreverOfertaPlay(ofertaBase, 4990);
+    expect(semOfertaPromocional.detalheOferta).toBeNull();
+    expect(semOfertaPromocional.rotuloBotaoOnboarding).toBe('Assinar Pro na Google Play (R$ 59,90/mês)');
+    expect(semOfertaPromocional.notaCobranca).toContain('R$ 59,90 por mês');
+    expect(semOfertaPromocional.notaCobranca).not.toContain('grátis');
+
+    const fallback = descreverOfertaPlay(null, 4990);
+    expect(fallback.precoFormatado).toBe('R$ 49,90');
+    expect(fallback.notaCobranca).toContain('Cobrança de referência');
+    expect(fallback.notaCobranca).not.toContain('grátis');
   });
 });

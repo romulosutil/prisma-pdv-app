@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { eq, or } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import {
@@ -45,6 +46,13 @@ import { chaveAvulsa, cobrarFatura, descricaoDaFatura, type TipoFatura } from '.
 
 type CartaoVerificado = Extract<ResultadoVerificacao, { ok: true }>;
 
+function tokensIguais(esperado: string, recebido: string | undefined): boolean {
+  if (!recebido) return false;
+  const a = Buffer.from(esperado, 'utf8');
+  const b = Buffer.from(recebido, 'utf8');
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 function resposta(a: Assinatura, agora: Date): AssinaturaRes {
   return AssinaturaResSchema.parse({
     assinatura: serializarAssinatura(avaliar(a, agora)),
@@ -57,6 +65,8 @@ export function rotasPlanos(app: FastifyInstance): void {
 }
 
 export function rotasAssinaturaPublicas(app: FastifyInstance, deps: Deps): void {
+  const producao = process.env.NODE_ENV === 'production';
+
   app.get('/assinatura/configuracao', async () =>
     ConfiguracaoCobrancaResSchema.parse(configuracaoCobrancaAtual({
       cobrancaDesativada: deps.cobrancaDesativada,
@@ -65,14 +75,17 @@ export function rotasAssinaturaPublicas(app: FastifyInstance, deps: Deps): void 
       googlePlaySkuPro: deps.googlePlay?.skuProMensal,
     })));
 
-  app.post('/webhooks/pdv-google-play', async (request, reply) => {
-    const tokenEsperado = deps.googlePlay?.webhookToken;
+  app.post('/webhooks/pdv-google-play', { logLevel: 'warn' }, async (request, reply) => {
+    const tokenEsperado = deps.googlePlay?.webhookToken?.trim() || null;
+    if (!tokenEsperado && producao) {
+      throw new ErroApi(503, 'webhook_nao_configurado', 'Webhook da Google Play não configurado neste servidor.');
+    }
     if (tokenEsperado) {
       const consulta = request.query as { token?: unknown } | undefined;
       const auth = request.headers.authorization;
       const bearer = typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7).trim() : undefined;
       const recebido = typeof consulta?.token === 'string' ? consulta.token : bearer;
-      if (recebido !== tokenEsperado) {
+      if (!tokensIguais(tokenEsperado, recebido)) {
         throw new ErroApi(401, 'token_webhook_invalido', 'Autorização do webhook inválida.');
       }
     }
@@ -98,6 +111,9 @@ export function rotasAssinatura(app: FastifyInstance, deps: Deps): void {
     const { assinatura } = await carregarAssinatura(db, request.sessao.contaId, relogio.agora());
     if (cobrancaDesativada || assinatura.status === 'liberada') {
       throw new ErroApi(409, 'cobranca_desativada', 'O acesso está liberado sem cobrança de assinatura.');
+    }
+    if (deps.billingProvider === 'google_play') {
+      throw new ErroApi(409, 'gerenciado_pela_google_play', 'A gestão da assinatura é feita diretamente pela Google Play Store.');
     }
   }];
   async function verificarCartao(token: string): Promise<CartaoVerificado> {

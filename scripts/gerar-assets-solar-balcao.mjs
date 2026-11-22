@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync, copyFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { gerarPrintsPlayStore } from './gerar-prints-play-store.mjs';
 
 const RAIZ = resolve(import.meta.dirname, '..');
 const PLAY_DIR = join(RAIZ, 'builds', 'play-store');
@@ -256,7 +257,7 @@ function renderizarHtmlParaPng(navegador, html, destino, largura, altura, transp
   ], { stdio: 'pipe' });
 }
 
-function main() {
+async function main() {
   const apenasPlayStore = process.argv.includes('--apenas-play-store');
   const navegador = encontrarNavegador();
   mkdirSync(PLAY_DIR, { recursive: true });
@@ -268,10 +269,7 @@ function main() {
     renderizarHtmlParaPng(navegador, htmlIconPlay, join(PLAY_DIR, 'icon-play-512.png'), 512, 512, false);
     renderizarHtmlParaPng(navegador, htmlFeatureGraphic(), join(PLAY_DIR, 'feature-graphic-1024x500.png'), 1024, 500, false);
 
-    const cap1 = join(RAIZ, 'docs', 'capturas', 'inicio-barra-vender.png');
-    const cap2 = join(RAIZ, 'docs', 'capturas', 'vender-carrinho.png');
-    if (existsSync(cap1)) copyFileSync(cap1, join(PLAY_DIR, 'captura-01-inicio.png'));
-    if (existsSync(cap2)) copyFileSync(cap2, join(PLAY_DIR, 'captura-02-vender.png'));
+    await gerarPrintsPlayStore({ navegador, playDir: PLAY_DIR });
 
     if (!apenasPlayStore) {
       mkdirSync(ASSETS_DIR, { recursive: true });
@@ -290,4 +288,4 @@ function main() {
   }
 }
 
-main();
+await main();

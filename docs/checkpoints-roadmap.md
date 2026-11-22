@@ -2854,3 +2854,171 @@ Cada novo checkpoint deve conter identificador único, data em America/Sao_Paulo
 - **Limitações / pendências:**
   - Falta executar o workflow remoto `PDV CI and Deploy` em PostgreSQL 17 (`deploy_producao=true`), adicionar `PDV_PLAY_REVIEW_EMAIL` e `PDV_PLAY_REVIEW_CODE` no painel do EasyPanel (`pdv-api`), validar o fluxo de login do revisor por HTTPS contra `https://aladdin-pdv-api.jicnzg.easypanel.host` (revogando a sessão de teste via `POST /auth/logout`), e preencher as declarações/ficha/release do AAB `0.1.22 (23)` no Play Console (`6759171071905571011`).
 - **Próximo passo:** commitar e enviar para `codex/pdv-homologacao-real`, rodar CI + deploy em produção (`pdv-api`), configurar as variáveis de revisão no EasyPanel, validar por HTTPS e seguir o cadastro do app `Prisma PDV` no Google Play Console.
+
+<a id="cp-175-revisor-play-em-producao-ci-e-validacao-externa-21112026"></a>
+
+## CP 175 — Conta de revisão Google Play implantada em produção (`pdv-api`) e validada por HTTPS (21/11/2026)
+
+- **Data e etapa:** 21/11/2026, 17h22 (America/Sao_Paulo). R7 / Fase 1 — CI, implantação e validação externa da conta de revisão em produção, continua o [CP 174](#cp-174-conta-revisor-play-api-e-validacao-local-21112026).
+- **Estado:** commit `f689089` aprovado no CI remoto em PostgreSQL 17, promovido para `codex/pdv-deploy`, implantado em produção (`pdv-api` com `PDV_PLAY_REVIEW_EMAIL` e `PDV_PLAY_REVIEW_CODE` configuradas no EasyPanel) e validado por HTTPS contra `https://aladdin-pdv-api.jicnzg.easypanel.host`. Preenchimento no Google Play Console (`6759171071905571011`), Teste Fechado e Android físico seguem para o próximo lote.
+- **CI remoto e implantação (`f689089`):**
+  - **GitHub Actions (`PDV CI and Deploy`):** execução [`44945141630`](https://github.com/romulosutil/prisma-pdv-app/actions/runs/44945141630) (`workflow_dispatch`, `deploy_producao=true`, branch `codex/pdv-homologacao-real`, commit `f689089`) concluída com **success**: `Types, tests and container` (`5m56s`, PostgreSQL 17, shared, API, mobile, ferramentas operacionais, driver Python, homologação HTTP e imagem Docker) + `Deploy validated main` (`8s`, promovendo `f689089` para `origin/codex/pdv-deploy` e acionando webhook EasyPanel).
+  - **EasyPanel (`http://31.97.170.105:3000/projects/aladdin`, serviço `pdv-api`):** preservadas as 14 variáveis de ambiente existentes e adicionadas `PDV_PLAY_REVIEW_EMAIL` e `PDV_PLAY_REVIEW_CODE` no painel (sem gravar valores no repositório); nova implantação concluída com **Success** e serviço ativo/saudável (`/saude` 200).
+- **Validações externas executadas em produção (`https://aladdin-pdv-api.jicnzg.easypanel.host`):**
+  - `node scripts/verificar-operacao.mjs https://aladdin-pdv-api.jicnzg.easypanel.host builds/operacao-producao-cp174.json`: **PASS**, **7/7** (`/saude` 200 com `x-pdv-agora`, `/dev/relogio/avancar` 404, `/suporte/solicitacoes` e `/suporte/exportacao` 401, `/privacidade`, `/exclusao-de-conta` e `/termos` 200).
+  - Teste funcional HTTPS da conta configurada em `PDV_PLAY_REVIEW_*`: `POST /auth/codigo` → **204**; `POST /auth/vinculos` → **200** (`Loja Demo Prisma PDV`, `papel: dono`); `POST /auth/login` → **200**; `GET /assinatura` → **200** (`assinatura.status: liberada`, `planoId: pro`, `licenca.planoId: pro`); `POST /auth/logout` → **204** (sessão de verificação imediatamente revogada). Nenhum segredo ou código registrado.
+- **Limitações / pendências:**
+  - Falta concluir **Detalhes do login**, declarações (**Conteúdo do app**), **Ficha principal da loja** e envio do AAB `0.1.22` (`versionCode 23`, `builds/pdv-producao-0.1.22-aab.aab`) na faixa **Teste fechado** do Google Play Console (`6759171071905571011`), além de inserir os 12+ testadores por 14 dias.
+- **Próximo passo:** iniciar o preenchimento do cadastro e envio do AAB `0.1.22 (23)` no Google Play Console (`6759171071905571011`).
+
+<a id="cp-176-play-console-declaracoes-salvas-e-upload-manual-pendente-21112026"></a>
+
+## CP 176 — Declarações preenchidas no Google Play Console (`6759171071905571011`); upload de imagens e AAB pendente no navegador (21/11/2026)
+
+- **Data e etapa:** 21/11/2026, 17h53 (America/Sao_Paulo). R7 / Fase 1 — Configuração de conteúdo, ficha e Teste Fechado do app `Prisma PDV` (`br.com.pdv.mobile`) no Google Play Console, continua o [CP 175](#cp-175-revisor-play-em-producao-ci-e-validacao-externa-21112026).
+- **Estado:** progresso **parcial externo no Play Console** (com sessão autenticada do usuário no painel do navegador). Declarações de conteúdo e dados de categoria/contato foram preenchidas pelo agente; a **Ficha principal da loja** pausou no upload das imagens por bloqueio de segurança do envio automatizado de arquivos em página autenticada (`play.google.com`), restando o upload direto pelo usuário das imagens (`builds/play-store/`) e do AAB `0.1.22` (`versionCode 23`) em **Teste fechado**, além do cadastro dos 12+ testadores e envio para revisão.
+- **Registrado no Google Play Console (`https://play.google.com`, `Prisma PDV` / `br.com.pdv.mobile`, relato do subagente `60ae3800-d443-4349-83d6-2ff2b20896a4`):**
+  - **Termine de configurar seu app (10 de 11 concluídas segundo painel do subagente):** **Política de privacidade**, **Detalhes do login** (`Sim`, `Full Pro Review Account`, `PDV_PLAY_REVIEW_EMAIL` / `PDV_PLAY_REVIEW_CODE`, instruções em inglês e declaração de acesso completo sem registrar segredos no repo), **Anúncios** (`Não`), **Classificação do conteúdo (IARC)** (`contato@prumo.services`, `Sim` para compra de artigos digitais por conta da assinatura Pro via Play Billing e `Não` para itens aleatórios/demais), **Público-alvo e conteúdo** (`Maiores de 18 anos`), **Apps governamentais** (`Não`), **Recursos financeiros** (`Não oferece`), **ID de publicidade** (`Não`), **Apps de saúde** (`Não`), **Segurança dos dados** (criptografia em trânsito, sem compartilhamento com terceiros, URL de exclusão `https://aladdin-pdv-api.jicnzg.easypanel.host/exclusao-de-conta`, tipos de dados operacionais/suporte/ID de dispositivo) e **Categoria e Dados de contato** (`Empresa`, `contato@prumo.services`).
+  - **Página "Detalhes do app" padrão (observada em `final_step_175.png`):** campos de texto preenchidos (`Prisma PDV`, descrições curta e completa); painel de envio do **Ícone do aplicativo** aberto.
+- **Alteração documental local:**
+  - `docs/play-console-teste-fechado.md`: explicitada a resposta **Sim** no item IARC de artigos digitais pela presença de Play Billing (`com.android.vending.BILLING` / `prisma_pro_mensal`).
+- **Validações e verificações:**
+  - Fatos observados pelo host para o subagente de navegador: `visited_origins: https://play.google.com`, `blocked_origins: none`; captura final `final_step_175.png` inspecionada confirmando a aba `Página "Detalhes do app" padrão` (`pt-BR`) com o painel de envio de recurso aberto.
+  - Motivo da pausa: tentativa de `setInputFiles` para `icon-play-512.png` bloqueada pela sandbox do navegador (`File upload is blocked on protected authentication pages`).
+  - `git diff --check`: **PASS** (conferido ao registrar os docs deste checkpoint).
+- **Limitações / pendências:**
+  - A ficha principal da loja ainda não foi salva (faltam os uploads de `icon-play-512.png`, `feature-graphic-1024x500.png`, `captura-01-inicio.png` e `captura-02-vender.png` diretamente pelo usuário no painel do navegador, e clique em **Salvar**).
+  - Na faixa **Teste fechado**: faltam selecionar país **Brasil**, enviar `builds/pdv-producao-0.1.22-aab.aab` (`0.1.22 (23)`), configurar Play App Signing (aceitar padrão gerenciado pelo Google na primeira remessa, se solicitado), adicionar lista com 12+ e-mails de testadores diretamente no Console, enviar alterações para revisão e registrar a data de aceite do 12º testador (início dos 14 dias).
+- **Próximo passo:** o usuário envia diretamente na aba aberta do navegador os 4 arquivos de `builds/play-store/` e salva a ficha da loja; em seguida seleciona **Brasil** em **Teste fechado**, envia `builds/pdv-producao-0.1.22-aab.aab` (`0.1.22 (23)`), informa os 12+ testadores e envia para revisão.
+
+<a id="cp-177-prints-simulados-play-store-1080x1920-21112026"></a>
+
+## CP 177 — 8 prints simulados (`1080×1920` RGB) gerados para Recursos para telefone da Play Store (21/11/2026)
+
+- **Data e etapa:** 21/11/2026, 18h12 (America/Sao_Paulo). R7 / Fase 1 — Preparação dos recursos visuais da **Ficha principal da loja** (`Recursos para telefone`) no Google Play Console (`6759171071905571011`), continua o [CP 176](#cp-176-play-console-declaracoes-salvas-e-upload-manual-pendente-21112026).
+- **Estado:** 8 capturas simuladas em `1080×1920` px (`RGB` 24-bit sem transparência, proporção `9:16 = 1,778:1`) **construídas e validadas localmente** por script reprodutível, verificação PIL e inspeção visual direta de todas as imagens. Nenhum arquivo de runtime (`apps/mobile`, `apps/api`, `packages/shared`), ativo de app (`apps/mobile/assets/`) ou captura histórica (`docs/capturas/`) foi alterado; o AAB `0.1.22` (`versionCode 23`) segue preservado. Upload manual no Console continua pendente.
+- **Construído:**
+  - `scripts/gerar-prints-play-store.mjs`: gerador HTML/Chromium headless (`--force-device-scale-factor=1`) + pós-processamento Python PIL (`RGB`) com fontes locais embarcadas (`Bricolage Grotesque` 700/800 e `Inter` 400/500/600/700 de `node_modules/@expo-google-fonts`), tokens da **Direção B · Solar Balcão**, ícones SVG do app, ilustração 3D `check` de `docs/prototipo-v2/ilustracoes.js` e QR Code demonstrativo não pagável via pacote `qrcode`, com dados simulados coerentes (`Mercadinho Bom Preço`, operadora `Ana`, `Balcão 1`, resumo `R$ 1.284,50`, venda `R$ 41,68`, gaveta `R$ 462,30`), sem `"Modo de testes"` ou `"Sem câmera por aqui"`.
+  - `scripts/gerar-assets-solar-balcao.mjs`: atualizado para chamar `gerarPrintsPlayStore({ navegador, playDir: PLAY_DIR })` em vez de copiar as 2 capturas antigas de `docs/capturas/`.
+  - `builds/play-store/` (ignorado pelo git):
+    - `captura-01-inicio.png` (`1080×1920`, RGB, `176,5 KB`) — Painel inicial (`Olá, Ana`, vendas do dia, turno em operação, atalhos, última venda e barra inferior);
+    - `captura-02-vender.png` (`1080×1920`, RGB, `382,7 KB`) — Visor com leitor ativo/EAN/laser e sacola de 4 itens (`R$ 41,68`);
+    - `captura-03-cobrar.png` (`1080×1920`, RGB, `152,7 KB`) — Tela de cobrança com itens expandidos e 4 meios de pagamento;
+    - `captura-04-pix.png` (`1080×1920`, RGB, `107,3 KB`) — Cobrança Pix Mercado Pago com QR Code demonstrativo e consulta automática;
+    - `captura-05-dinheiro-troco.png` (`1080×1920`, RGB, `101,3 KB`) — Recebimento em dinheiro (`R$ 50,00`), cálculo de troco (`R$ 8,32`) e teclado numérico;
+    - `captura-06-caixa.png` (`1080×1920`, RGB, `175,8 KB`) — Resumo do caixa, conferência da gaveta (`R$ 462,30`), fechamento e suprimento/sangria/retirada;
+    - `captura-07-produtos.png` (`1080×1920`, RGB, `208,0 KB`) — Catálogo de produtos (`148 de 500`), filtros, atalhos e alerta de estoque baixo;
+    - `captura-08-sincronizacao.png` (`1080×1920`, RGB, `229,8 KB`) — Sincronização confirmada no servidor com ilustração 3D e contadores zerados;
+    - Preservados/regenerados: `icon-play-512.png` (`512×512`, RGB, `92,3 KB`) e `feature-graphic-1024x500.png` (`1024×500`, RGB, `271,9 KB`).
+  - Documentação: `docs/play-console-teste-fechado.md` e `docs/roadmap-app-completo.md` atualizados com os 8 arquivos.
+- **Validações executadas após a edição final do gerador:**
+  - `node scripts/gerar-assets-solar-balcao.mjs --apenas-play-store`: **PASS** (saída 0; limpeza de temporários executada).
+  - Inspeção programática Python PIL em todos os 10 PNGs de `builds/play-store/`: **PASS** (`1080×1920`, `mode=RGB`, `ratio=1.778 <= 2.0`, tamanhos `101,3 KB`–`382,7 KB < 8 MB` para os 8 prints; `512×512` RGB e `1024×500` RGB íntegros).
+  - Inspeção visual direta de todas as 8 imagens via `read_file`: **PASS** (fontes Bricolage Grotesque e Inter carregadas, somas financeiras exatas, barra inferior/gesto sem cortes nem sobreposição após ajuste fino da `captura-01-inicio.png`).
+  - `git diff --check`: **PASS** (verificado ao concluir as edições documentais).
+- **Limitações / pendências:**
+  - Os 8 arquivos são renderizações simuladas fiéis ao design da `0.1.22` para a ficha da Play Store; não equivalem a capturas extraídas de aparelho Android físico nem substituem o teste em aparelho real.
+  - Falta o usuário enviar manualmente na aba aberta do Play Console (`icon-play-512.png`, `feature-graphic-1024x500.png` e as 8 capturas `captura-01`..`08`), clicar em **Salvar**, concluir o envio do AAB `0.1.22 (23)` em **Teste fechado** e cadastrar os 12+ testadores.
+- **Próximo passo:** enviar as 8 capturas junto com o ícone e o banner gráfico na página aberta do Play Console, salvar a ficha e prosseguir para a faixa **Teste fechado** com `builds/pdv-producao-0.1.22-aab.aab`.
+
+<a id="cp-178-play-console-ficha-salva-brasil-e-rascunho-teste-fechado-21112026"></a>
+
+## CP 178 — Ficha da loja salva pelo usuário, Brasil configurado e rascunho do Teste Fechado aberto (`0.1.22 (23)`) (21/11/2026)
+
+- **Data e etapa:** 21/11/2026, 18h25 (America/Sao_Paulo). R7 / Fase 1 — Preparação da faixa **Teste fechado** no Google Play Console (`6759171071905571011`), continua o [CP 176](#cp-176-play-console-declaracoes-salvas-e-upload-manual-pendente-21112026) após os prints de [CP 177](#cp-177-prints-simulados-play-store-1080x1920-21112026).
+- **Estado:** progresso **externo parcial no Play Console**. A ficha principal da loja foi salva pelo usuário (com ícone visível no Console e lista *Termine de configurar seu app* concluída segundo navegação do agente), **Brasil** foi salvo em **Países / regiões** de **Teste fechado - Alpha** e o rascunho da versão (`Nome da versão: 0.1.22 (23)` e notas `pt-BR`) foi aberto na tela **Criar versão de teste fechado**, pausando exatamente na caixa de upload do `.aab`. Ainda pendentes: envio do `builds/pdv-producao-0.1.22-aab.aab` pelo usuário, Play App Signing (se exibido), lista de 12+ testadores, envio para revisão e contagem dos 14 dias.
+- **Registrado no Google Play Console (`https://play.google.com`, `Prisma PDV` / `br.com.pdv.mobile`):**
+  - **Ficha e pré-requisitos concluídos:** imagens da loja salvas pelo usuário; barra lateral exibe o ícone do `Prisma PDV`; checklist *Termine de configurar seu app* liberou **Teste fechado** (observado pelo subagente `60ae3800-d443-4349-83d6-2ff2b20896a4`).
+  - **Teste fechado (`Teste fechado - Alpha`, Países / regiões):** selecionado e salvo **Brasil** (`Segmentados (1)`); tarefa *Selecionar países* marcada como concluída (`1 de 4`, relato do subagente).
+  - **Rascunho de versão (`.../tracks/4699275632427036422/releases/1/prepare`):** preenchidos `Nome da versão: 0.1.22 (23)` e notas da versão em `<pt-BR>` (`Versão inicial de teste fechado do Prisma PDV: cadastro, vendas offline, leitor por câmera, caixa por operador e estoque.`); área `Fazer upload de pacotes de apps` deixada aberta para o usuário anexar o AAB sem tentativa de `setInputFiles` e sem envio para revisão.
+- **Validações e verificações:**
+  - `BROWSER_HOST_FACTS` (`60ae3800-d443-4349-83d6-2ff2b20896a4`): `visited_origins: https://play.google.com`, `blocked_origins: none`.
+  - Captura `final_step_206.png` inspecionada confirmando: ícone do `Prisma PDV` ativo na barra lateral do app, tela `Criar versão de teste fechado`, passo `1 Criar versão` com `Fazer upload de pacotes de apps` (`Enviar`) e seção `Detalhes da versão`.
+  - `git diff --check`: validado ao concluir a entrega documental.
+- **Limitações / pendências:**
+  - Ainda falta o usuário arrastar/enviar `builds/pdv-producao-0.1.22-aab.aab`, salvar/avançar o rascunho (aceitando chave gerenciada pelo Google em *Play App Signing* se aparecer), cadastrar a lista com **12+ e-mails Google** na aba **Testadores** (fora do repositório), enviar alterações para revisão no Console, distribuir o link opt-in e registrar a data do 12º testador ativo para contar os 14 dias.
+- **Próximo passo:** o usuário anexa `builds/pdv-producao-0.1.22-aab.aab` na tela aberta **Criar versão de teste fechado**, salva/avança a versão, adiciona os 12+ testadores e envia para revisão do Google Play.
+
+<a id="cp-179-upgrade-play-billing-830-e-versao-0123-21112026"></a>
+
+## CP 179 — Upgrade da Play Billing Library para `8.3.0` e preparação da versão `0.1.23` (`versionCode 24`) (21/11/2026)
+
+- **Data e etapa:** 21/11/2026, 18h46 (America/Sao_Paulo). R7 / Fase 1 — Correção do bloqueio de política do Google Play Console (`versionCode 23` recusado por usar `Play Billing 7.1.1 < 8.0.0`), continua o [CP 178](#cp-178-play-console-ficha-salva-brasil-e-rascunho-teste-fechado-21112026) (referenciando também o [CP 173](#cp-173-aab-producao-0122-gerado-e-verificado-21112026)).
+- **Estado:** atualização para `com.android.billingclient:billing:8.3.0` e elevação do app para `0.1.23` (`versionCode 24`) **construídas e validadas localmente** (suítes TypeScript/mobile + build Android Gradle/Kotlin/R8 de homologação e manifesto compilado). A geração do AAB assinado de produção `0.1.23` (`versionCode 24`) e o reenvio ao Play Console dependem do usuário digitar a senha do keystore externo. API de produção (`pdv-api` / `f689089`) preservada sem alteração necessária.
+- **Construído:**
+  - `apps/mobile/config/withPdvPlayBilling.js`:
+    - `BILLING_DEPENDENCY` atualizada de `com.android.billingclient:billing:7.1.1` para `com.android.billingclient:billing:8.3.0`;
+    - Adaptadas as duas chamadas a `cliente.queryProductDetailsAsync(params)` em `PDV_PLAY_BILLING_MODULE_KT` (`consultarOfertaAssinatura` e `comprarAssinatura`) para a assinatura da Play Billing Library 8.x (`{ billingResult, queryProductDetailsResult -> val productDetailsList = queryProductDetailsResult.productDetailsList ... }`).
+  - `apps/mobile/app.json`: versão elevada para `"0.1.23"` (`versionCode: 24`).
+  - `apps/mobile/test/playBillingNativoPlugin.test.ts`: asserções atualizadas para `billing:8.3.0`, `queryProductDetailsResult.productDetailsList` e versão `0.1.23 (24)`.
+  - `docs/play-console-teste-fechado.md`: guia atualizado para `0.1.23 (24)` e `billing:8.3.0`.
+- **Validações executadas após a última edição de código (locais, sem AAB de produção nem Play Console reenviado ainda):**
+  - `npm run typecheck --workspaces`: **PASS** nos 3 workspaces (`@pdv/api`, `@pdv/mobile`, `@pdv/shared`).
+  - `npm test --workspace=@pdv/mobile -- --maxWorkers=1`: **PASS**, **84/84 arquivos, 680/680 testes** (incluindo `playBillingNativoPlugin.test.ts` 7/7 PASS).
+  - `pwsh scripts/build-android.ps1 -Perfil homologacao`: **BUILD SUCCESSFUL in 6m 34s** (`compileReleaseKotlin` + `minifyReleaseWithR8` sem avisos em `PdvPlayBillingModule.kt`, APK `builds/pdv-homologacao-0.1.23.apk` SHA256 `c8004de816d7e31d1058218c59424c563de3f43fd86eafd92c04b7763dc1dc65`, `versionCode='24'`, `versionName='0.1.23'`, `sdkVersion:'24'`, `targetSdkVersion:'36'`, R8 mapping preservando `PdvPlayBillingModule`/`comprarAssinatura`).
+  - `aapt dump xmltree builds/pdv-homologacao-0.1.23.apk AndroidManifest.xml`: confirmado `com.google.android.play.billingclient.version="8.3.0"`, `<uses-permission com.android.vending.BILLING/>` e `ProxyBillingActivity` / `ProxyBillingActivityV2`.
+  - `scripts/verificar-release-mobile.mjs`: **PASS** (`4379392` bytes, `1899` fontes, host `aladdin-pdv-api-homologacao.jicnzg.easypanel.host`, SHA256 `.hbc` `9bfce802d39bdc4bb41eb40d9d2d1b01d9f1cd1baa1aefb594b277dda6cbd6f8`).
+  - `git diff --check`: conferido ao concluir as edições documentais.
+- **Limitações / pendências:**
+  - Compilação local de homologação não substitui o AAB de produção assinado com a chave de upload (`C:\Users\sutil\pdv-chaves\pdv-upload.jks`), nem comprova execução física na Play Store real.
+  - No Play Console (`Avaliação das versões`, `versionCode 23`), falta remover o bundle `23` (ou descartar o rascunho atual) para enviar `builds/pdv-producao-0.1.23-aab.aab` (`0.1.23 (24)`), adicionar 12+ testadores e enviar para revisão.
+- **Próximo passo:** o usuário gera `builds/pdv-producao-0.1.23-aab.aab` (`versionCode 24`) no terminal (`pwsh scripts/build-android.ps1 -Perfil producao -Aab -Keystore "C:\Users\sutil\pdv-chaves\pdv-upload.jks" -Alias <alias>`), substitui o bundle `23` pelo `24` no Play Console, adiciona os 12+ testadores e envia para revisão.
+
+<a id="cp-180-aab-producao-0123-billing-830-gerado-e-verificado-21112026"></a>
+
+## CP 180 — AAB de produção `0.1.23` (`versionCode 24`, Play Billing `8.3.0`) gerado e verificado com chave de upload (21/11/2026)
+
+- **Data e etapa:** 21/11/2026, 19h17 (America/Sao_Paulo). R7 / Fase 1 — Geração e verificação do AAB de produção corrigido após recusa do `versionCode 23` por `Play Billing 7.1.1 < 8.0.0`, continua o [CP 179](#cp-179-upgrade-play-billing-830-e-versao-0123-21112026).
+- **Estado:** AAB de produção `0.1.23` (`versionCode 24`) com **`com.google.android.play.billingclient.version="8.3.0"`** gerado pelo usuário com a chave de upload e verificado localmente; rascunho anterior (`releases/1` com `versionCode 23`) descartado no Console e novo rascunho limpo aberto em `releases/2/prepare` (`0.1.23 (24)`), restando upload manual do `.aab` pelo usuário, adição de 12+ testadores, envio para revisão e teste em Android físico. API de produção (`pdv-api` / `f689089`) preservada sem alteração necessária.
+- **Construído / gerado pelo usuário (`scripts/build-android.ps1 -Perfil producao -Aab`):**
+  - Artefato único para Play Console (em `builds/`, ignorado pelo git): `builds/pdv-producao-0.1.23-aab.aab` (SHA256 `5c6fbfe42794cd48c8551c4854ae6955070eb6a7e38bf59de16d7fc6d7db1a93`).
+  - Manifesto e conferências: `builds/pdv-producao-0.1.23-aab-manifesto.json`, `builds/pdv-producao-0.1.23-aab-metadados.txt`, `builds/pdv-producao-0.1.23-aab-verificacao.json`, `builds/pdv-producao-0.1.23-aab.aab.sha256`.
+  - APK universal derivado para teste local (assinatura debug; **não** enviar à Play): `builds/pdv-producao-0.1.23-aab-universal.apk` (SHA256 `7ab5bc52aabc5a35a6b3a911421db15ad74b7987f749b9c9829c314807fba2b0`).
+- **Validações conferidas nos metadados/verificação do artefato (`0.1.23` / `24`):**
+  - Pacote `br.com.pdv.mobile`, `versionName: 0.1.23`, `versionCode: 24`, `minSdkVersion: 24`, `targetSdkVersion: 36`, `arm64-v8a,armeabi-v7a`, API `https://aladdin-pdv-api.jicnzg.easypanel.host` (`rotaSuportePresente: true`).
+  - Assinatura verificada: `jarsigner=jar verified`, `certificadoSha256: 8B:86:81:63:74:3A:17:7F:7B:4D:10:86:18:7F:0C:FF:23:DF:01:B5:B1:4C:DD:86:CD:AB:E1:A3:E5:E7:D9:40` (nenhuma senha ou chave registrada).
+  - Play Billing no manifesto do AAB: `<uses-permission android:name="com.android.vending.BILLING"/>`, **`com.google.android.play.billingclient.version="8.3.0"`**, `ProxyBillingActivity` e `ProxyBillingActivityV2`.
+  - `scripts/verificar-release-mobile.mjs`: **PASS** (`4362316` bytes, `1896` fontes, host `aladdin-pdv-api.jicnzg.easypanel.host`, SHA256 `.hbc` `ea85247e242d7143e08bb74838be5de91ee84c725ccb0baccee92226c5de3950`).
+  - Console (`60ae3800-d443-4349-83d6-2ff2b20896a4`, `BROWSER_HOST_FACTS`: `visited_origins: https://play.google.com`, `blocked_origins: none`, `final_step_226.png`): confirmado descarte do rascunho anterior (`releases/1`) e abertura de novo rascunho limpo em `.../tracks/4699275632427036422/releases/2/prepare` com caixa de upload vazia e `Nome da versão: 0.1.23 (24)` / notas `pt-BR`.
+  - `git diff --check`: validado ao concluir a entrega documental.
+- **Limitações / pendências:**
+  - Inspeção estática do AAB não substitui upload/validação do Google Play Console nem teste em Android físico / Play Billing real.
+  - Faltam no Console: enviar `builds/pdv-producao-0.1.23-aab.aab` (`0.1.23 (24)`), avançar/salvar, adicionar a lista de 12+ testadores em **Testadores**, enviar alterações para revisão e registrar a data do 12º testador ativo.
+- **Próximo passo:** na tela aberta **Criar versão de teste fechado** (`releases/2/prepare`), enviar `builds/pdv-producao-0.1.23-aab.aab`, clicar **Avançar** → **Salvar**, adicionar os 12+ testadores na aba **Testadores** e enviar para revisão.
+
+<a id="cp-181-teste-fechado-0123-enviado-para-revisao-21112026"></a>
+
+## CP 181 — Teste fechado `0.1.23` (`versionCode 24`) enviado para revisão no Google Play Console (`Alterações em análise`) (21/11/2026)
+
+- **Data e etapa:** 21/11/2026, 19h43 (America/Sao_Paulo). R7 / Fase 1 — Envio da versão inicial de Teste Fechado `0.1.23 (24)` para análise do Google Play (`6759171071905571011`), continua o [CP 180](#cp-180-aab-producao-0123-billing-830-gerado-e-verificado-21112026).
+- **Estado:** **`Alterações em análise`** no Google Play Console (`14 mudanças enviadas para revisão`, confirmadas em `final_step_259.png`), incluindo release **`0.1.23 (24)`** em **`Teste fechado - Alpha`**, **`Brasil`**, lista **`Teste fechado MVP`** (3 e-mails iniciais inseridos diretamente no Console, **nenhum** gravado no repositório) e canal de feedback `contato@prumo.services`. Ainda pendentes: completar a lista para **12+ testadores**, aguardar aprovação da revisão do Google, coletar a participação (*opt-in*) do **12º testador** e cumprir os **14 dias contínuos**.
+- **Registrado / executado externamente no Google Play Console (`https://play.google.com`, `Prisma PDV` / `br.com.pdv.mobile`):**
+  - Usuário concluiu o envio de `builds/pdv-producao-0.1.23-aab.aab` (`0.1.23 (24)`, Billing `8.3.0`) sem erros bloqueantes de Play Billing.
+  - Subagente de navegador (`60ae3800-d443-4349-83d6-2ff2b20896a4`):
+    - Criou a lista **`Teste fechado MVP`** com os **3** e-mails iniciais informados pelo usuário (fora do repositório), vinculou-a à faixa **Teste fechado - Alpha** e definiu o canal de feedback `contato@prumo.services` (`Salvar`);
+    - Em **Visão geral da publicação**, confirmou que o único alerta era `android.hardware.screen.portrait` para `0.1.23 (24)`, avançou com **Continuar mesmo assim** / **Ignorar problema** e enviou **14 mudanças para revisão**.
+- **Validações e verificações:**
+  - `BROWSER_HOST_FACTS` (`60ae3800-d443-4349-83d6-2ff2b20896a4`): `visited_origins: https://play.google.com`, `blocked_origins: none`.
+  - Captura `final_step_259.png` inspecionada confirmando: página **Visão geral da publicação**, título **`Alterações em análise`**, toast **`14 mudanças enviadas para revisão`**, e tabela listando `Teste fechado - Alpha`, `0.1.23 (24)` (`Iniciar o lançamento completo`), `Países / regiões: Brasil`, `Testadores: Teste fechado MVP` e feedback `contato@prumo.services`.
+  - Conferido que nenhum e-mail pessoal de testador nem segredo/PIN foi gravado neste arquivo ou no repositório.
+  - `git diff --check`: validado ao concluir a entrega documental.
+- **Limitações / pendências:**
+  - Envio para análise (`Alterações em análise`) não equivale à aprovação pelo Google Play nem inicia os 14 dias antes do *opt-in* de **12+ testadores**.
+  - Faltam adicionar pelo menos mais **9** e-mails Google na lista `Teste fechado MVP` (para totalizar **12+**), aguardar a liberação da faixa pelo Google, enviar o link de participação (*opt-in*) e registrar a data do 12º testador participante (além de testar Play Billing real e pagamentos R\$ 1,00 em aparelho físico).
+- **Próximo passo:** enviar os demais e-mails Google dos testadores (até atingir **12+**) para adicionar à lista `Teste fechado MVP` no Console, acompanhar a aprovação de **Teste fechado - Alpha** pelo Google Play, copiar o link *opt-in* em **Testadores** e registrar a data em que o 12º testador aceitar.
+
+<a id="cp-182-teste-fechado-4-testadores-na-lista-21112026"></a>
+
+## CP 182 — Lista `Teste fechado MVP` atualizada para `4` testadores no Console sem interromper análise da `0.1.23 (24)` (21/11/2026)
+
+- **Data e etapa:** 21/11/2026, 20h10 (America/Sao_Paulo). R7 / Fase 1 — Ampliação da lista de testadores do Teste Fechado (`Teste fechado - Alpha`), continua o [CP 181](#cp-181-teste-fechado-0123-enviado-para-revisao-21112026).
+- **Estado:** progresso **externo parcial no Play Console**. A lista **`Teste fechado MVP`** vinculada à faixa **Teste fechado - Alpha** passou de `3` para **`4` usuários** diretamente no Console (nenhum e-mail pessoal gravado no repositório), mantendo intacto o status **`Versão 0.1.23 (24) em análise`**. Faltam pelo menos **8** testadores na lista (total `12+`), aprovação pelo Google Play e registro da data do 12º *opt-in*.
+- **Executado externamente no Google Play Console (`https://play.google.com`, `Teste fechado - Alpha > Testadores`):**
+  - Adicionado o 4º endereço informado pelo usuário à lista **`Teste fechado MVP`** (fora do repositório), preservando os 3 anteriores e mantendo a lista marcada sob **Listas de e-mails**.
+- **Validações e verificações:**
+  - `BROWSER_HOST_FACTS` (`60ae3800-d443-4349-83d6-2ff2b20896a4`): `visited_origins: https://play.google.com`, `blocked_origins: none`.
+  - Captura `final_step_271.png` inspecionada confirmando: `Ativo · Versão 0.1.23 (24) em análise · 1 país / região`, aba `Testadores`, lista marcada `Teste fechado MVP` com **`Usuários: 4`** (botão `Salvar` da faixa desabilitado porque a alteração da lista já foi salva diretamente sem alterar o vínculo da faixa).
+  - Conferido que nenhum e-mail pessoal foi gravado em arquivos do repositório; `git diff --check` validado ao concluir.
+- **Limitações / pendências:**
+  - Faltam ainda **8+** testadores válidos na lista (observando que endereços fora do domínio `@gmail.com` só funcionam no *opt-in* se estiverem vinculados como Conta Google na Play Store do aparelho) e o cumprimento dos **14 dias contínuos** após aceitação do **12º testador** e liberação pelo Google.
+- **Próximo passo:** informar os próximos **8+** e-mails de testadores (com Conta Google ativa na Play Store) para completar os **12+**, acompanhar a aprovação de **Teste fechado - Alpha** e registrar o link/data de entrada do 12º testador.

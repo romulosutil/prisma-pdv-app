@@ -65,7 +65,7 @@ afterEach(() => {
 });
 
 describe('Config plugin e ponte nativa PdvPlayBilling', () => {
-  it('injeta com.android.billingclient:billing:7.1.1 no build.gradle de forma idempotente', () => {
+  it('injeta com.android.billingclient:billing:8.3.0 no build.gradle de forma idempotente', () => {
     const umaVez = plugin.adicionarDependenciaGradle(BUILD_GRADLE_FIXTURE);
     expect(umaVez).toContain(plugin.BILLING_DEPENDENCY);
     const duasVezes = plugin.adicionarDependenciaGradle(umaVez);
@@ -127,14 +127,15 @@ describe('Config plugin e ponte nativa PdvPlayBilling', () => {
     expect(modSrc).toContain('private fun selecionarOferta(');
     expect(modSrc).toContain('ProductDetails.RecurrenceMode.INFINITE_RECURRING');
     expect(modSrc).toContain('PendingPurchasesParams.newBuilder()');
+    expect(modSrc).toContain('queryProductDetailsResult.productDetailsList');
     expect(modSrc).toContain('BillingClient.ProductType.SUBS');
     expect(modSrc).toContain('setObfuscatedAccountId');
   });
 
-  it('app.json declara o plugin, regras ProGuard da Play Billing e versão 0.1.22 (23)', () => {
+  it('app.json declara o plugin, regras ProGuard da Play Billing e versão 0.1.23 (24)', () => {
     expect(typeof plugin).toBe('function');
-    expect(appJson.expo.version).toBe('0.1.22');
-    expect(appJson.expo.android.versionCode).toBe(23);
+    expect(appJson.expo.version).toBe('0.1.23');
+    expect(appJson.expo.android.versionCode).toBe(24);
     expect(appJson.expo.plugins).toContain('./config/withPdvPlayBilling');
 
     const buildProps = appJson.expo.plugins.find(

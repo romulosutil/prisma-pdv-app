@@ -3,7 +3,7 @@
     "name": "Prisma PDV",
     "slug": "pdv-mobile",
     "scheme": "pdv",
-    "version": "0.1.22",
+    "version": "0.1.23",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "br.com.pdv.mobile",
-      "versionCode": 23,
+      "versionCode": 24,
       "adaptiveIcon": {
         "backgroundColor": "#FFC933",
         "foregroundImage": "./assets/android-icon-foreground.png",

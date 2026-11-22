@@ -4,27 +4,35 @@ Referência: [CP 167](checkpoints-roadmap.md#cp-167-etapa-0-ativos-da-play-store
 
 > **Regra de segurança:** nenhum segredo, senha do keystore, código de acesso ou e-mail dos testadores entra neste repositório.
 
-## 1. Gerar o AAB `0.1.22` (`versionCode 23`) no seu terminal
+## 1. Gerar o AAB `0.1.23` (`versionCode 24`) no seu terminal
 
-O código da `0.1.22` passou nas validações locais, no CI e nos smoke tests externos. Execute no seu terminal PowerShell na raiz do repositório (onde você digita a senha do keystore diretamente, sem gravar em lugar nenhum):
+O código da `0.1.23` (com `com.android.billingclient:billing:8.3.0`) passou nas validações locais, no CI da API e nos smoke tests externos. Execute no seu terminal PowerShell na raiz do repositório (onde você digita a senha do keystore diretamente, sem gravar em lugar nenhum):
 
 ```powershell
 pwsh scripts/build-android.ps1 -Perfil producao -Aab -Keystore <caminho-fora-do-repo>\pdv-upload.jks -Alias <seu-alias>
 ```
 
 Ao final, confira os arquivos gerados em `builds/`:
-- `builds/pdv-producao-0.1.22-aab.aab` (arquivo único para enviar ao Play Console)
-- `builds/pdv-producao-0.1.22-aab.aab.sha256`
-- `builds/pdv-producao-0.1.22-aab-manifesto.json` (confira `certificadoSha256`, `pacote: br.com.pdv.mobile`, `versionCode: 23`, `targetSdk: 36`)
+- `builds/pdv-producao-0.1.23-aab.aab` (arquivo único para enviar ao Play Console)
+- `builds/pdv-producao-0.1.23-aab.aab.sha256`
+- `builds/pdv-producao-0.1.23-aab-manifesto.json` (confira `certificadoSha256`, `pacote: br.com.pdv.mobile`, `versionCode: 24`, `targetSdk: 36`)
 
 ---
 
 ## 2. Ativos visuais prontos da Direção B · Solar Balcão
 
-Gerados em `builds/play-store/` por `scripts/gerar-assets-solar-balcao.mjs --apenas-play-store`:
+Gerados em `builds/play-store/` por `scripts/gerar-assets-solar-balcao.mjs --apenas-play-store` (prints simulados gerados por `scripts/gerar-prints-play-store.mjs`):
 - **Ícone da Play Store (`512×512` RGB, sem transparência):** `builds/play-store/icon-play-512.png`
 - **Imagem de destaque / Feature Graphic (`1024×500` RGB):** `builds/play-store/feature-graphic-1024x500.png`
-- **Capturas de telefone (`780×1688` RGB):** `builds/play-store/captura-01-inicio.png` e `builds/play-store/captura-02-vender.png`
+- **8 capturas de tela de telefone (`1080×1920` RGB, proporção 9:16 = `1,778:1`, sem transparência):**
+  - `builds/play-store/captura-01-inicio.png` — Painel inicial com resumo de vendas do dia, turno em operação e atalhos
+  - `builds/play-store/captura-02-vender.png` — Visor de código de barras e sacola de venda (`R$ 41,68`)
+  - `builds/play-store/captura-03-cobrar.png` — Tela de cobrança com itens e meios de pagamento
+  - `builds/play-store/captura-04-pix.png` — QR Code Pix demonstrativo integrado (Mercado Pago)
+  - `builds/play-store/captura-05-dinheiro-troco.png` — Recebimento em dinheiro com cálculo de troco e teclado numérico
+  - `builds/play-store/captura-06-caixa.png` — Resumo do caixa e conferência detalhada da gaveta
+  - `builds/play-store/captura-07-produtos.png` — Catálogo de produtos com estoque e alertas
+  - `builds/play-store/captura-08-sincronizacao.png` — Estado de sincronização confirmada com o servidor
 
 ---
 
@@ -52,7 +60,7 @@ Preencha antes de publicar o teste fechado:
     `"Tap 'Já tenho conta', enter the reviewer email above, tap 'Enviar código', then enter the reusable 6-digit PIN above in the 'Código' field (do not wait for an email) and tap 'Entrar' to access 'Loja Demo Prisma PDV' with full Pro features."`
   - Marcar a declaração de acesso completo a todos os recursos e conteúdos (inclusive pagos/Pro). *(Nunca registrar e-mail nem PIN reais neste repositório.)*
 - **Anúncios:** *Não, meu app não contém anúncios.*
-- **Classificação de conteúdo:** questionário na categoria *Utilitário, produtividade, comunicação ou outro*; responder **Não** para violência, conteúdo sexual, linguagem imprópria, drogas, jogos de azar e interação livre entre usuários.
+- **Classificação de conteúdo:** questionário na categoria *Utilitário, produtividade, comunicação ou outro*; responder **Não** para violência, conteúdo sexual, linguagem imprópria, drogas, jogos de azar e interação livre entre usuários; marcar **Sim** em compra de artigos digitais (assinatura Pro pela Play Billing) e **Não** para itens aleatórios pagos.
 - **Público-alvo:** `18 anos ou mais`.
 - **Recursos financeiros:** marcar que o app **não** oferece serviços financeiros, crédito, carteira, empréstimos ou intermediação bancária (apenas registro comercial de PDV; pagamentos integrados posteriores usam credenciais próprias do lojista diretamente para a conta dele).
 - **Apps governamentais / Notícias / Saúde:** *Não*.
@@ -76,14 +84,14 @@ Preencha antes de publicar o teste fechado:
   `Prisma PDV é o frente de caixa feito para o balcão do pequeno comércio. Registre vendas pela câmera do celular, controle dinheiro, troco, Pix e cartão, separe turnos de caixa por operador e acompanhe o estoque mesmo sem internet. Quando voltar a conexão, tudo sincroniza com segurança para a sua loja.`
 - **Ícone do app:** enviar `builds/play-store/icon-play-512.png`
 - **Imagem de destaque:** enviar `builds/play-store/feature-graphic-1024x500.png`
-- **Capturas de tela de telefone:** enviar `builds/play-store/captura-01-inicio.png` e `builds/play-store/captura-02-vender.png`
+- **Capturas de tela de telefone:** enviar as 8 imagens `builds/play-store/captura-01-inicio.png` até `builds/play-store/captura-08-sincronizacao.png` (`1080×1920` RGB)
 - **Categoria:** `Empresa`
 - **E-mail de contato:** `contato@prumo.services`
 
 ### D. Enviar AAB e montar a faixa de Teste Fechado (*Testar e lançar > Testes > Teste fechado*)
 1. Em **Teste fechado**, crie/edite a faixa (**Países/regiões:** selecionar **Brasil**).
-2. Clique em **Criar nova versão**, envie `builds/pdv-producao-0.1.22-aab.aab`:
-   - **Nome da versão:** `0.1.22 (23)`
+2. Clique em **Criar nova versão**, envie `builds/pdv-producao-0.1.23-aab.aab`:
+   - **Nome da versão:** `0.1.23 (24)`
    - **Notas da versão:** `Versão inicial de teste fechado do Prisma PDV: cadastro, vendas offline, leitor por câmera, caixa por operador e estoque.`
 3. Na aba **Testadores**, crie uma lista de e-mails (ex.: `Teste fechado MVP`), digite manualmente os **e-mails Google (mínimo 12 pessoas)** direto no Console (fora do repositório), salve e marque a lista.
 4. Envie as alterações da faixa para revisão/publicação e, assim que o link aparecer na aba **Testadores**, copie o **link de participação (opt-in)** na Web ou Google Play.

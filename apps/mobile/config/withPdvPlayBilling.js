@@ -9,7 +9,7 @@ const {
   withMainApplication,
 } = require('@expo/config-plugins');
 
-const BILLING_DEPENDENCY = 'implementation("com.android.billingclient:billing:7.1.1")';
+const BILLING_DEPENDENCY = 'implementation("com.android.billingclient:billing:8.3.0")';
 const BILLING_PERMISSION = 'com.android.vending.BILLING';
 const PACKAGE_CALL = 'add(br.com.pdv.mobile.billing.PdvPlayBillingPackage())';
 
@@ -188,7 +188,7 @@ class PdvPlayBillingModule(
         val params = QueryProductDetailsParams.newBuilder()
           .setProductList(listOf(produto))
           .build()
-        cliente.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
+        cliente.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
           if (billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
             val msg = billingResult.debugMessage.ifBlank {
               "Não foi possível consultar o plano na Google Play (código \${billingResult.responseCode})."
@@ -196,6 +196,7 @@ class PdvPlayBillingModule(
             promise.reject("E_BILLING_ERROR", msg)
             return@queryProductDetailsAsync
           }
+          val productDetailsList = queryProductDetailsResult.productDetailsList
           val detalhes = productDetailsList.firstOrNull { it.productId == skuLimpo }
             ?: productDetailsList.firstOrNull()
           val oferta = selecionarOferta(detalhes?.subscriptionOfferDetails)
@@ -276,7 +277,7 @@ class PdvPlayBillingModule(
         val params = QueryProductDetailsParams.newBuilder()
           .setProductList(listOf(produto))
           .build()
-        cliente.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
+        cliente.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
           if (billingResult.responseCode != BillingClient.BillingResponseCode.OK) {
             val msg = billingResult.debugMessage.ifBlank {
               "Não foi possível consultar o plano na Google Play (código \${billingResult.responseCode})."
@@ -284,6 +285,7 @@ class PdvPlayBillingModule(
             limparCompraERejeitar("E_BILLING_ERROR", msg)
             return@queryProductDetailsAsync
           }
+          val productDetailsList = queryProductDetailsResult.productDetailsList
           val detalhes = productDetailsList.firstOrNull { it.productId == skuLimpo }
             ?: productDetailsList.firstOrNull()
           if (detalhes == null) {

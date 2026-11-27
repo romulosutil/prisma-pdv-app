@@ -152,11 +152,19 @@ export function falhaCredencialOAuthDeTeste(
   credencial: Pick<Conexao, 'liveMode' | 'contaProvedorId'>,
 ) {
   if (!oauth.testToken) return null;
-  if (credencial.liveMode === true) return 'credencial_produtiva' as const;
+  if (credencial.liveMode === true && !oauth.credencialOrdersVendedorTeste) return 'credencial_produtiva' as const;
   if (!credencial.contaProvedorId) return 'vendedor_nao_identificado' as const;
-  if (oauth.vendedorTesteId && credencial.contaProvedorId !== oauth.vendedorTesteId) return 'vendedor_de_teste_divergente' as const;
+  if ((oauth.vendedorTesteId || oauth.credencialOrdersVendedorTeste) && credencial.contaProvedorId !== oauth.vendedorTesteId) return 'vendedor_de_teste_divergente' as const;
   if (credencial.liveMode !== false && !oauth.vendedorTesteId) return 'ambiente_teste_ausente' as const;
   return null;
+}
+
+/** Confirma que o token no formato exigido pela Orders pertence ao vendedor fictício antes de gravá-lo. */
+export async function confirmarIdentidadeOrdersDeTeste(amb: AmbienteConexao, accessToken: string): Promise<boolean> {
+  if (!amb.oauth?.credencialOrdersVendedorTeste) return true;
+  if (!amb.oauth.vendedorTesteId || !accessToken.startsWith('APP_USR-')) return false;
+  const identidade = await (amb.provedorOAuthTeste ?? amb.provedor).validarCredencial(accessToken);
+  return identidade.contaProvedorId === amb.oauth.vendedorTesteId;
 }
 
 function garantirConexaoOAuthDeTeste(amb: AmbienteConexao, conexao: Conexao): void {
@@ -213,8 +221,10 @@ export async function renovarConexao(amb: AmbienteConexao, lida: Conexao): Promi
   if (!travada.refreshTokenEnvelope) throw await marcarReautorizacao();
   const refresh = amb.cifrador.decifrar(travada.refreshTokenEnvelope, { ...contexto, campo: 'refresh_token' });
   let tokens;
+  let identidadeConfirmada;
   try {
     tokens = await (amb.provedorOAuthTeste ?? amb.provedor).renovarToken(amb.oauth, refresh);
+    identidadeConfirmada = await confirmarIdentidadeOrdersDeTeste(amb, tokens.accessToken);
   } catch (erro) {
     if (erro instanceof ErroProvedorMp && erro.tipo === 'concessao_invalida') throw await marcarReautorizacao();
     // Sem resposta confiável: o Mercado Pago pode ter girado o refresh. Fica registrado para diagnóstico.
@@ -224,6 +234,7 @@ export async function renovarConexao(amb: AmbienteConexao, lida: Conexao): Promi
       .where(eq(conexoesPagamento.id, travada.id));
     throw erro;
   }
+  if (!identidadeConfirmada) throw await marcarReautorizacao();
   if (amb.oauth.testToken && (falhaCredencialOAuthDeTeste(amb.oauth, tokens) || tokens.contaProvedorId !== travada.contaProvedorId)) throw await marcarReautorizacao();
   const fim = amb.relogio.agora();
   const [salva] = await amb.db.update(conexoesPagamento).set({
@@ -261,6 +272,7 @@ export async function comTokenDaLoja<T>(amb: AmbienteConexao, lojaId: string, us
   const token = vencido
     ? await renovarConexao(amb, conexao)
     : amb.cifrador.decifrar(conexao.tokenEnvelope, { lojaId: conexao.lojaId, conexaoId: conexao.id, campo: 'token' });
+  if (conexao.modo === 'oauth' && amb.oauth?.credencialOrdersVendedorTeste && !token.startsWith('APP_USR-')) throw reautorizar();
   try {
     return await usar(token, conexao.contaProvedorId, provedor);
   } catch (erro) {

@@ -90,6 +90,8 @@ export interface ConfiguracaoOAuthMercadoPago {
   testToken: boolean;
   /** Vendedor fictício identificado no painel Teste. Permite reconhecer retornos sem `live_mode`. */
   vendedorTesteId?: string;
+  /** A Orders API exige credencial no formato de produção do próprio usuário fictício. */
+  credencialOrdersVendedorTeste?: boolean;
 }
 
 /**
@@ -110,9 +112,10 @@ export function lerConfiguracaoOAuthMercadoPago(env: NodeJS.ProcessEnv): Configu
   const redirectUri = env.PDV_MP_REDIRECT_URI?.trim() || undefined;
   const webhookSegredo = env.PDV_MP_WEBHOOK_SECRET?.trim() || null;
   const vendedorTesteId = env.PDV_MP_OAUTH_TEST_SELLER_ID?.trim() || undefined;
+  const credencialOrdersVendedorTeste = booleano(env.PDV_MP_OAUTH_ORDERS_TEST_SELLER, 'PDV_MP_OAUTH_ORDERS_TEST_SELLER', false);
   if (!clientId && !clientSecret && !redirectUri) {
     if (webhookSegredo) throw new Error('PDV_MP_WEBHOOK_SECRET exige PDV_MP_CLIENT_ID, PDV_MP_CLIENT_SECRET e PDV_MP_REDIRECT_URI.');
-    if (vendedorTesteId) throw new Error('PDV_MP_OAUTH_TEST_SELLER_ID exige configuração OAuth de teste.');
+    if (vendedorTesteId || credencialOrdersVendedorTeste) throw new Error('A conta vendedora de teste exige configuração OAuth.');
     return null;
   }
   if (!clientId || !clientSecret || !redirectUri) throw new Error('PDV_MP_CLIENT_ID, PDV_MP_CLIENT_SECRET e PDV_MP_REDIRECT_URI devem ser definidas juntas.');
@@ -127,13 +130,20 @@ export function lerConfiguracaoOAuthMercadoPago(env: NodeJS.ProcessEnv): Configu
   if (vendedorTesteId && (!testToken || !/^\d{1,32}$/.test(vendedorTesteId))) {
     throw new Error('PDV_MP_OAUTH_TEST_SELLER_ID deve ser numérico e exige PDV_MP_OAUTH_TEST_TOKEN=true.');
   }
-  if (testToken && (env.NODE_ENV ?? 'development') === 'production') {
+  if (credencialOrdersVendedorTeste && (!testToken || !vendedorTesteId)) {
+    throw new Error('PDV_MP_OAUTH_ORDERS_TEST_SELLER exige o modo de teste e o vendedor fictício identificado.');
+  }
+  if (credencialOrdersVendedorTeste || (testToken && (env.NODE_ENV ?? 'development') === 'production')) {
     const origem = lerUrlPublicaApi(env);
     if (!lerConfiguracaoPagamentos(env).sandboxTokenSha256 || redirectUri !== `${origem}/pagamentos/mercadopago/oauth/retorno`) {
       throw new Error('PDV_MP_OAUTH_TEST_TOKEN exige o sandbox e o callback de homologação.');
     }
   }
-  return { clientId, clientSecret, redirectUri, webhookSegredo, pkce, testToken, ...(vendedorTesteId ? { vendedorTesteId } : {}) };
+  return {
+    clientId, clientSecret, redirectUri, webhookSegredo, pkce, testToken,
+    ...(vendedorTesteId ? { vendedorTesteId } : {}),
+    ...(credencialOrdersVendedorTeste ? { credencialOrdersVendedorTeste } : {}),
+  };
 }
 
 export function lerUrlPublicaApi(env: NodeJS.ProcessEnv): string | null {

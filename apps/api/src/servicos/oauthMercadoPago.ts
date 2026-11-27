@@ -6,7 +6,7 @@ import { sha256 } from '../auth';
 import { estadosOauthPagamento, operadores } from '../db/schema';
 import { ErroApi } from '../erros';
 import { ErroProvedorMp, urlAutorizacao } from '../pagamentos/mercadoPago';
-import { falhaCredencialOAuthDeTeste, salvarConexao, VALIDADE_PADRAO_TOKEN_MS, type AmbienteConexao } from './conexoesMercadoPago';
+import { confirmarIdentidadeOrdersDeTeste, falhaCredencialOAuthDeTeste, salvarConexao, VALIDADE_PADRAO_TOKEN_MS, type AmbienteConexao } from './conexoesMercadoPago';
 import type { ConfiguracaoOAuthMercadoPago } from '../configuracao';
 
 /**
@@ -46,7 +46,7 @@ export async function iniciarOAuth(amb: AmbienteOAuth, sessao: SessaoAutenticada
 
 export type ResultadoOAuth =
   | 'conectado' | 'estado_invalido' | 'estado_expirado' | 'nao_autorizado' | 'sem_codigo' | 'troca_falhou'
-  | 'concessao_recusada' | 'troca_recusada' | NonNullable<ReturnType<typeof falhaCredencialOAuthDeTeste>>;
+  | 'concessao_recusada' | 'troca_recusada' | 'identidade_orders_nao_confirmada' | NonNullable<ReturnType<typeof falhaCredencialOAuthDeTeste>>;
 
 /**
  * Retorno do Mercado Pago. O `state` é consumido (marcado como usado) antes de qualquer outra verificação, mesmo
@@ -83,7 +83,8 @@ export async function concluirOAuth(amb: AmbienteOAuth, consulta: { code?: strin
   }
   let tokens;
   try {
-    tokens = await (amb.provedorOAuthTeste ?? amb.provedor).trocarCodigo(amb.oauth, codigo, verificador);
+    const aplicacao = amb.oauth.credencialOrdersVendedorTeste ? { ...amb.oauth, testToken: false } : amb.oauth;
+    tokens = await (amb.provedorOAuthTeste ?? amb.provedor).trocarCodigo(aplicacao, codigo, verificador);
   } catch (erro) {
     if (amb.oauth.testToken && erro instanceof ErroProvedorMp && erro.status !== null && erro.status >= 400 && erro.status < 500) {
       return encerrar(erro.tipo === 'concessao_invalida' ? 'concessao_recusada' : 'troca_recusada');
@@ -92,6 +93,11 @@ export async function concluirOAuth(amb: AmbienteOAuth, consulta: { code?: strin
   }
   const falhaTeste = falhaCredencialOAuthDeTeste(amb.oauth, tokens);
   if (falhaTeste) return encerrar(falhaTeste);
+  try {
+    if (!(await confirmarIdentidadeOrdersDeTeste(amb, tokens.accessToken))) return encerrar('identidade_orders_nao_confirmada');
+  } catch {
+    return encerrar('identidade_orders_nao_confirmada');
+  }
   const fim = amb.relogio.agora();
   await salvarConexao(amb, { contaId: registro.contaId, lojaId: registro.lojaId, operadorId: registro.operadorId }, {
     modo: 'oauth',

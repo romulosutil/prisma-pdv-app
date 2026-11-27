@@ -114,6 +114,10 @@ describe('configuração do OAuth', () => {
     expect(() => lerConfiguracaoOAuthMercadoPago({ ...env, PDV_MP_REDIRECT_URI: OAUTH.redirectUri })).toThrow();
     expect(() => lerConfiguracaoOAuthMercadoPago({ ...env, PDV_MP_OAUTH_TEST_TOKEN: 'false' })).toThrow(/PDV_MP_OAUTH_TEST_SELLER_ID/);
     expect(() => lerConfiguracaoOAuthMercadoPago({ ...env, PDV_MP_OAUTH_TEST_SELLER_ID: 'inválido' })).toThrow(/PDV_MP_OAUTH_TEST_SELLER_ID/);
+    const orders = { ...env, PDV_MP_OAUTH_ORDERS_TEST_SELLER: 'true' };
+    expect(lerConfiguracaoOAuthMercadoPago(orders)).toMatchObject({ testToken: true, credencialOrdersVendedorTeste: true });
+    expect(() => lerConfiguracaoOAuthMercadoPago({ ...orders, PDV_MP_OAUTH_TEST_SELLER_ID: undefined })).toThrow(/vendedor fictício/);
+    expect(() => lerConfiguracaoOAuthMercadoPago({ ...orders, NODE_ENV: 'development', PDV_API_PUBLIC_URL: 'https://api.exemplo.invalid' })).toThrow(/homologação/);
   });
 
   it('é opcional, vai em conjunto, exige https e recusa token de teste em produção, sem citar valores', () => {
@@ -138,6 +142,29 @@ describe('configuração do OAuth', () => {
 });
 
 describe('início e retorno do OAuth', () => {
+  it.each(['987654321', '123456789'])('só grava o token Orders quando a API confirma o vendedor fictício (%s)', async (idConfirmado) => {
+    const vendedorTesteId = '987654321';
+    config.oauth = { ...OAUTH, testToken: true, vendedorTesteId, credencialOrdersVendedorTeste: true };
+    const dono = await contaEmTeste(amb);
+    const trocar = sim.trocarCodigo.bind(sim);
+    vi.spyOn(sim, 'trocarCodigo').mockImplementationOnce(async (...args) => ({
+      ...await trocar(...args), accessToken: 'APP_USR-SIMULADO-ORDERS', liveMode: true,
+    }));
+    const conferir = vi.spyOn(sim, 'validarCredencial').mockResolvedValueOnce({ contaProvedorId: idConfirmado });
+    const inicio = await iniciar(dono);
+    const resposta = await retorno(sim.autorizar(inicio.corpo.url, vendedorTesteId));
+    expect(sim.trocas[0]).toMatchObject({ testToken: false });
+    expect(conferir).toHaveBeenCalledWith('APP_USR-SIMULADO-ORDERS');
+    if (idConfirmado === vendedorTesteId) {
+      expect(resposta.status).toBe(200);
+      expect(await conexaoDe(dono.lojaId)).toMatchObject({ contaProvedorId: vendedorTesteId, liveMode: true });
+    } else {
+      expect(resposta.status).toBe(400);
+      expect(resposta.html).toContain('identidade_orders_nao_confirmada');
+      expect(await conexaoAtiva(amb.db, dono.lojaId)).toBeUndefined();
+    }
+  });
+
   it.each([true, false])('expõe o código da cobrança da própria loja apenas no sandbox OAuth (%s)', async (testToken) => {
     config.oauth = { ...OAUTH, testToken };
     const dono = await contaEmTeste(amb);

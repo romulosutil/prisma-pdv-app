@@ -172,6 +172,8 @@ describe('início e retorno do OAuth', () => {
     vi.spyOn(sim, 'trocarCodigo').mockImplementationOnce(async (...args) => ({ ...await trocar(...args), liveMode }));
     const resposta = await retorno(sim.autorizar(inicio.corpo.url));
     expect(resposta.status).toBe(400);
+    expect(resposta.html).toContain(liveMode ? 'credencial_produtiva' : 'ambiente_teste_ausente');
+    expect(resposta.html).not.toMatch(/TG-SIMULADO|TESTE-SIMULADO/);
     expect(await conexaoAtiva(amb.db, dono.lojaId)).toBeUndefined();
   });
 
@@ -188,6 +190,7 @@ describe('início e retorno do OAuth', () => {
       const pagina = await semOAuth.app.inject({ method: 'GET', url: '/pagamentos/mercadopago/oauth/retorno?code=x&state=y' });
       expect(pagina.statusCode).toBe(400);
       expect(pagina.body).toContain('Não foi possível conectar o Mercado Pago.');
+      expect(pagina.body).not.toContain('Código de homologação');
       const aviso = await semOAuth.app.inject({ method: 'POST', url: '/webhooks/pdv-mercadopago?data.id=ORD1&type=order', payload: {} });
       expect(aviso.statusCode).toBe(503);
       // O modo token continua disponível sem o OAuth.

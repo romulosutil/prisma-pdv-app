@@ -5,7 +5,7 @@ import type { SessaoAutenticada } from '../auth';
 import { sha256 } from '../auth';
 import { estadosOauthPagamento, operadores } from '../db/schema';
 import { ErroApi } from '../erros';
-import { urlAutorizacao } from '../pagamentos/mercadoPago';
+import { ErroProvedorMp, urlAutorizacao } from '../pagamentos/mercadoPago';
 import { salvarConexao, VALIDADE_PADRAO_TOKEN_MS, type AmbienteConexao } from './conexoesMercadoPago';
 import type { ConfiguracaoOAuthMercadoPago } from '../configuracao';
 
@@ -44,7 +44,9 @@ export async function iniciarOAuth(amb: AmbienteOAuth, sessao: SessaoAutenticada
   return { url: urlAutorizacao(amb.oauth, estado, verificador) };
 }
 
-export type ResultadoOAuth = 'conectado' | 'estado_invalido' | 'estado_expirado' | 'nao_autorizado' | 'sem_codigo' | 'troca_falhou';
+export type ResultadoOAuth =
+  | 'conectado' | 'estado_invalido' | 'estado_expirado' | 'nao_autorizado' | 'sem_codigo' | 'troca_falhou'
+  | 'concessao_recusada' | 'troca_recusada' | 'ambiente_teste_ausente' | 'credencial_produtiva' | 'vendedor_nao_identificado';
 
 /**
  * Retorno do Mercado Pago. O `state` é consumido (marcado como usado) antes de qualquer outra verificação, mesmo
@@ -82,10 +84,17 @@ export async function concluirOAuth(amb: AmbienteOAuth, consulta: { code?: strin
   let tokens;
   try {
     tokens = await (amb.provedorOAuthTeste ?? amb.provedor).trocarCodigo(amb.oauth, codigo, verificador);
-  } catch {
+  } catch (erro) {
+    if (amb.oauth.testToken && erro instanceof ErroProvedorMp && erro.status !== null && erro.status >= 400 && erro.status < 500) {
+      return encerrar(erro.tipo === 'concessao_invalida' ? 'concessao_recusada' : 'troca_recusada');
+    }
     return encerrar('troca_falhou');
   }
-  if (amb.oauth.testToken && (tokens.liveMode !== false || !tokens.contaProvedorId)) return encerrar('troca_falhou');
+  if (amb.oauth.testToken) {
+    if (tokens.liveMode === null) return encerrar('ambiente_teste_ausente');
+    if (tokens.liveMode !== false) return encerrar('credencial_produtiva');
+    if (!tokens.contaProvedorId) return encerrar('vendedor_nao_identificado');
+  }
   const fim = amb.relogio.agora();
   await salvarConexao(amb, { contaId: registro.contaId, lojaId: registro.lojaId, operadorId: registro.operadorId }, {
     modo: 'oauth',
@@ -99,8 +108,9 @@ export async function concluirOAuth(amb: AmbienteOAuth, consulta: { code?: strin
 }
 
 /** Página mínima do retorno: sem recursos externos, sem token, `state`, `code` nem ids; nada da query é refletido. */
-export function paginaRetornoOAuth(ok: boolean): string {
+export function paginaRetornoOAuth(ok: boolean, diagnosticoTeste?: ResultadoOAuth): string {
   const titulo = ok ? 'Mercado Pago conectado' : 'Não foi possível conectar';
   const texto = ok ? 'Mercado Pago conectado. Volte ao app.' : 'Não foi possível conectar o Mercado Pago. Volte ao app e tente de novo.';
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>${titulo}</title><style>body{font-family:system-ui,sans-serif;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f6f7f9;color:#1d2433}main{max-width:22rem;padding:1.5rem;text-align:center}p{font-size:1.125rem;line-height:1.5}</style></head><body><main><p>${texto}</p></main></body></html>`;
+  const detalhe = !ok && diagnosticoTeste ? `<p>Código de homologação: ${diagnosticoTeste}</p>` : '';
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>${titulo}</title><style>body{font-family:system-ui,sans-serif;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f6f7f9;color:#1d2433}main{max-width:22rem;padding:1.5rem;text-align:center}p{font-size:1.125rem;line-height:1.5}</style></head><body><main><p>${texto}</p>${detalhe}</main></body></html>`;
 }

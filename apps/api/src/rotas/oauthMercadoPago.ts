@@ -5,7 +5,7 @@ import { exigirDono } from '../auth';
 import type { Deps } from '../deps';
 import { ErroApi } from '../erros';
 import { ambientePix, receberAvisoPlataforma } from '../servicos/cobrancasPix';
-import { concluirOAuth, exigirOAuth, iniciarOAuth, paginaRetornoOAuth } from '../servicos/oauthMercadoPago';
+import { concluirOAuth, exigirOAuth, iniciarOAuth, paginaRetornoOAuth, type ResultadoOAuth } from '../servicos/oauthMercadoPago';
 
 /** Início do OAuth: só o dono, na loja da sessão. */
 export function rotasOAuthMercadoPago(app: FastifyInstance, deps: Deps): void {
@@ -32,16 +32,18 @@ export function rotasOAuthMercadoPagoPublicas(app: FastifyInstance, deps: Deps):
       .header('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
       .type('text/html; charset=utf-8');
     let ok = false;
+    let diagnosticoTeste: ResultadoOAuth | undefined;
     try {
       const amb = exigirOAuth(ambientePix(deps));
       const consulta = RetornoQuerySchema.safeParse(r.query);
       const resultado = consulta.success ? await concluirOAuth(amb, consulta.data) : 'estado_invalido';
       ok = resultado === 'conectado';
+      if (!ok && amb.oauth.testToken) diagnosticoTeste = resultado;
       if (!ok) r.log.warn({ resultado }, 'Retorno do OAuth do Mercado Pago recusado.');
     } catch (erro) {
       r.log.warn({ codigo: erro instanceof ErroApi ? erro.codigo : 'erro_interno' }, 'Falha no retorno do OAuth do Mercado Pago.');
     }
-    return reply.status(ok ? 200 : 400).send(paginaRetornoOAuth(ok));
+    return reply.status(ok ? 200 : 400).send(paginaRetornoOAuth(ok, diagnosticoTeste));
   });
 
   app.post('/webhooks/pdv-mercadopago', async (r, reply) => {

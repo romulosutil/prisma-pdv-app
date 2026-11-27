@@ -96,7 +96,7 @@ export function rotasPagamentos(app: FastifyInstance, deps: Deps): void {
     return reply.status(criada ? 201 : 200).send(CobrancaPixSchema.parse(cobranca));
   });
 
-  app.get('/pagamentos/cobrancas/:id', vender, async (r) => {
+  app.get('/pagamentos/cobrancas/:id', vender, async (r, reply) => {
     const ambPix = ambientePix(deps);
     const { id } = IdParamsSchema.parse(r.params);
     const [c] = await ambPix.db.select().from(cobrancasPagamento)
@@ -104,6 +104,9 @@ export function rotasPagamentos(app: FastifyInstance, deps: Deps): void {
     if (!c) throw new ErroApi(404, 'cobranca_nao_encontrada', 'Cobrança não encontrada.');
     if (c.provedor === 'infinitepay') {
       return CobrancaPixSchema.parse(await acompanharCobrancaInfinitePay(ambienteInfinitePay(deps), c));
+    }
+    if (ambPix.oauth?.testToken && c.estado === 'erro_provedor' && c.ultimoErro && /^[a-z_]{1,40}(?::[a-z][a-z0-9_]{0,63})?$/.test(c.ultimoErro)) {
+      reply.header('Cache-Control', 'no-store').header('X-Pdv-Sandbox-Mp-Erro', c.ultimoErro);
     }
     return CobrancaPixSchema.parse(await acompanharCobrancaPix(ambPix, r.sessao.lojaId, id));
   });

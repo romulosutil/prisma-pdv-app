@@ -138,6 +138,23 @@ describe('configuração do OAuth', () => {
 });
 
 describe('início e retorno do OAuth', () => {
+  it.each([true, false])('expõe o código da cobrança da própria loja apenas no sandbox OAuth (%s)', async (testToken) => {
+    config.oauth = { ...OAUTH, testToken };
+    const dono = await contaEmTeste(amb);
+    await conectarOAuth(dono);
+    sim.falharProxima('criar', new ErroProvedorMp('acesso_negado', 403, 'invalid_user'));
+    const cobranca = await cobrar(dono);
+    expect(cobranca.corpo.estado).toBe('erro_provedor');
+    const url = `/pagamentos/cobrancas/${cobranca.corpo.id}`;
+    const consulta = await amb.app.inject({ method: 'GET', url, headers: { authorization: `Bearer ${dono.token}` } });
+    expect(consulta.statusCode).toBe(200);
+    expect(consulta.headers['x-pdv-sandbox-mp-erro']).toBe(testToken ? 'acesso_negado:invalid_user' : undefined);
+    const outro = await contaEmTeste(amb, 'negocio', NUMEROS.outroAprova);
+    const alheia = await amb.app.inject({ method: 'GET', url, headers: { authorization: `Bearer ${outro.token}` } });
+    expect(alheia.statusCode).toBe(404);
+    expect(alheia.headers['x-pdv-sandbox-mp-erro']).toBeUndefined();
+  });
+
   it('encaminha Pix e renovação OAuth de teste pelo provedor do vendedor na homologação', async () => {
     const provedorOAuth = new ProvedorMercadoPagoSimulado();
     config.oauth = { ...OAUTH, testToken: true };

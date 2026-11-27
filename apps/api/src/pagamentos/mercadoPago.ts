@@ -100,6 +100,7 @@ export interface ProvedorMercadoPago {
   criarPedidoPoint(token: string, chaveIdempotencia: string, pedido: PedidoPointEntrada): Promise<PedidoMercadoPago>;
   listarTerminaisPoint(token: string): Promise<{ id: string }[]>;
   consultarPedido(token: string, pedidoId: string): Promise<PedidoMercadoPago>;
+  diagnosticarPedidoPorReferencia?(token: string, referencia: string, inicio: Date, fim: Date): Promise<string>;
   cancelarPedido(token: string, pedidoId: string, chaveIdempotencia: string, noTerminal?: boolean): Promise<PedidoMercadoPago>;
 }
 
@@ -322,6 +323,22 @@ export function criarProvedorMercadoPago(opcoes: { buscar?: Buscar; baseUrl?: st
     },
     async consultarPedido(token, pedidoId) {
       return lerPedido(await chamar('GET', caminhoPedido(pedidoId), token));
+    },
+    async diagnosticarPedidoPorReferencia(token, referencia, inicio, fim) {
+      const filtros = new URLSearchParams({
+        begin_date: inicio.toISOString(), end_date: fim.toISOString(), external_reference: referencia,
+        type: 'online', page_size: '2',
+      });
+      const resposta = await chamar('GET', `/v1/orders?${filtros}`, token) as {
+        data?: { external_reference?: unknown; status?: unknown; status_detail?: unknown;
+          transactions?: { payments?: { status_detail?: unknown }[] } }[];
+      } | null;
+      if (!Array.isArray(resposta?.data)) throw new ErroProvedorMp('resposta_invalida');
+      const correspondentes = resposta.data.filter((pedido) => pedido.external_reference === referencia);
+      if (correspondentes.length !== 1) return correspondentes.length === 0 ? 'nao_encontrada' : 'multiplas';
+      const [pedido] = correspondentes;
+      return [pedido!.status, pedido!.status_detail, pedido!.transactions?.payments?.[0]?.status_detail]
+        .map((codigo) => typeof codigo === 'string' && /^[a-z][a-z0-9_]{0,63}$/.test(codigo) ? codigo : 'ausente').join(':');
     },
     async cancelarPedido(token, pedidoId, chave, cancelarNoTerminal) {
       return lerPedido(await chamar('POST', `${caminhoPedido(pedidoId)}/cancel`, token, { chave, cancelarNoTerminal }));

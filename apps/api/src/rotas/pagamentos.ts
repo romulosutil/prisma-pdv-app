@@ -31,6 +31,7 @@ import {
   acompanharCobrancaPix, ambientePix, cancelarCobrancaPix, conectarMercadoPago, criarCobrancaPix, desconectarMercadoPago, estadoConexao,
   listarCobrancasPix, listarTerminaisPoint, receberAvisoMercadoPago,
 } from '../servicos/cobrancasPix';
+import { comTokenDaLoja } from '../servicos/conexoesMercadoPago';
 
 const IdParamsSchema = z.object({ id: z.uuid() });
 const ListaQuerySchema = z.object({ estado: EstadoCobrancaPixSchema.optional() });
@@ -96,7 +97,7 @@ export function rotasPagamentos(app: FastifyInstance, deps: Deps): void {
     return reply.status(criada ? 201 : 200).send(CobrancaPixSchema.parse(cobranca));
   });
 
-  app.get('/pagamentos/cobrancas/:id', vender, async (r, reply) => {
+  app.get<{ Querystring: { diagnostico?: string } }>('/pagamentos/cobrancas/:id', vender, async (r, reply) => {
     const ambPix = ambientePix(deps);
     const { id } = IdParamsSchema.parse(r.params);
     const [c] = await ambPix.db.select().from(cobrancasPagamento)
@@ -107,6 +108,14 @@ export function rotasPagamentos(app: FastifyInstance, deps: Deps): void {
     }
     if (ambPix.oauth?.testToken && c.estado === 'erro_provedor' && c.ultimoErro && /^[a-z_]{1,40}(?::[a-z][a-z0-9_]{0,63})?$/.test(c.ultimoErro)) {
       reply.header('Cache-Control', 'no-store').header('X-Pdv-Sandbox-Mp-Erro', c.ultimoErro);
+    }
+    if (ambPix.oauth?.credencialOrdersVendedorTeste && c.meio === 'pix' && c.ultimoErro === 'rejeitado:failed' && r.query.diagnostico === 'orders') {
+      const inicio = new Date(c.criadoEm.getTime() - 60_000);
+      const fim = new Date(Math.min(relogio.agora().getTime(), c.criadoEm.getTime() + 60 * 60_000));
+      const diagnostico = await comTokenDaLoja(ambPix, c.lojaId, async (token, _conta, provedor) =>
+        provedor.diagnosticarPedidoPorReferencia?.(token, c.id, inicio, fim) ?? 'indisponivel',
+      ).catch(() => 'consulta_recusada');
+      reply.header('X-Pdv-Sandbox-Mp-Order', diagnostico);
     }
     return CobrancaPixSchema.parse(await acompanharCobrancaPix(ambPix, r.sessao.lojaId, id));
   });

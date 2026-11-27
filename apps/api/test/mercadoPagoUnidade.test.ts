@@ -4,6 +4,24 @@ import { lerConfiguracaoPagamentos } from '../src/configuracao';
 import { assinarManifesto, assinaturaValida, lerCabecalhoAssinatura, manifestoAssinatura } from '../src/pagamentos/assinaturaWebhook';
 import { chavePagamentosValida, criarCifradorPagamentos } from '../src/pagamentos/cifrador';
 import { centavosParaValor, corpoPedidoPix, criarProvedorMercadoPago, desafioPkce, ErroProvedorMp, lerPedido, urlAutorizacao, valorParaCentavos } from '../src/pagamentos/mercadoPago';
+
+it('diagnostica somente a order com a referência da cobrança e retorna os estados', async () => {
+  const buscar: typeof fetch = async (entrada, init) => {
+    const url = new URL(String(entrada));
+    expect(url.pathname).toBe('/v1/orders');
+    expect(url.searchParams.get('external_reference')).toBe('pix-referencia');
+    expect(init?.method).toBe('GET');
+    return Response.json({ data: [
+      { external_reference: 'outra-referencia', status: 'processed' },
+      { external_reference: 'pix-referencia', status: 'failed', status_detail: 'failed', transactions: { payments: [{ status_detail: 'transaction_error' }] } },
+    ] });
+  };
+  const provedor = criarProvedorMercadoPago({ buscar });
+  const inicio = new Date('2026-11-27T23:53:00Z');
+  const fim = new Date('2026-11-27T23:54:00Z');
+  await expect(provedor.diagnosticarPedidoPorReferencia!('APP_USR-SIMULADO', 'pix-referencia', inicio, fim))
+    .resolves.toBe('failed:failed:transaction_error');
+});
 import { decidirTransicao } from '../src/servicos/cobrancasPix';
 
 const SEGREDO = 'segredo-simulado-webhook';

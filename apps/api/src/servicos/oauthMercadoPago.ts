@@ -6,7 +6,7 @@ import { sha256 } from '../auth';
 import { estadosOauthPagamento, operadores } from '../db/schema';
 import { ErroApi } from '../erros';
 import { ErroProvedorMp, urlAutorizacao } from '../pagamentos/mercadoPago';
-import { salvarConexao, VALIDADE_PADRAO_TOKEN_MS, type AmbienteConexao } from './conexoesMercadoPago';
+import { falhaCredencialOAuthDeTeste, salvarConexao, VALIDADE_PADRAO_TOKEN_MS, type AmbienteConexao } from './conexoesMercadoPago';
 import type { ConfiguracaoOAuthMercadoPago } from '../configuracao';
 
 /**
@@ -46,7 +46,7 @@ export async function iniciarOAuth(amb: AmbienteOAuth, sessao: SessaoAutenticada
 
 export type ResultadoOAuth =
   | 'conectado' | 'estado_invalido' | 'estado_expirado' | 'nao_autorizado' | 'sem_codigo' | 'troca_falhou'
-  | 'concessao_recusada' | 'troca_recusada' | 'ambiente_teste_ausente' | 'credencial_produtiva' | 'vendedor_nao_identificado';
+  | 'concessao_recusada' | 'troca_recusada' | NonNullable<ReturnType<typeof falhaCredencialOAuthDeTeste>>;
 
 /**
  * Retorno do Mercado Pago. O `state` é consumido (marcado como usado) antes de qualquer outra verificação, mesmo
@@ -90,11 +90,8 @@ export async function concluirOAuth(amb: AmbienteOAuth, consulta: { code?: strin
     }
     return encerrar('troca_falhou');
   }
-  if (amb.oauth.testToken) {
-    if (tokens.liveMode === null) return encerrar('ambiente_teste_ausente');
-    if (tokens.liveMode !== false) return encerrar('credencial_produtiva');
-    if (!tokens.contaProvedorId) return encerrar('vendedor_nao_identificado');
-  }
+  const falhaTeste = falhaCredencialOAuthDeTeste(amb.oauth, tokens);
+  if (falhaTeste) return encerrar(falhaTeste);
   const fim = amb.relogio.agora();
   await salvarConexao(amb, { contaId: registro.contaId, lojaId: registro.lojaId, operadorId: registro.operadorId }, {
     modo: 'oauth',

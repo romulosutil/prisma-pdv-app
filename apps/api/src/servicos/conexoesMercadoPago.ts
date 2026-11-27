@@ -147,8 +147,20 @@ export async function desconectar(amb: Pick<AmbienteConexao, 'db' | 'relogio'>, 
 const naoConectado = () => new ErroApi(409, 'mercadopago_nao_conectado', 'Conecte o Mercado Pago da loja para cobrar por Pix.');
 export const reautorizar = () => new ErroApi(409, 'mercadopago_reautorizar', 'O Mercado Pago pediu uma nova autorização. O dono precisa conectar a conta de novo.');
 
+export function falhaCredencialOAuthDeTeste(
+  oauth: ConfiguracaoOAuthMercadoPago,
+  credencial: Pick<Conexao, 'liveMode' | 'contaProvedorId'>,
+) {
+  if (!oauth.testToken) return null;
+  if (credencial.liveMode === true) return 'credencial_produtiva' as const;
+  if (!credencial.contaProvedorId) return 'vendedor_nao_identificado' as const;
+  if (oauth.vendedorTesteId && credencial.contaProvedorId !== oauth.vendedorTesteId) return 'vendedor_de_teste_divergente' as const;
+  if (credencial.liveMode !== false && !oauth.vendedorTesteId) return 'ambiente_teste_ausente' as const;
+  return null;
+}
+
 function garantirConexaoOAuthDeTeste(amb: AmbienteConexao, conexao: Conexao): void {
-  if (amb.oauth?.testToken && (conexao.modo !== 'oauth' || conexao.liveMode !== false || !conexao.contaProvedorId)) throw reautorizar();
+  if (amb.oauth?.testToken && (conexao.modo !== 'oauth' || falhaCredencialOAuthDeTeste(amb.oauth, conexao))) throw reautorizar();
 }
 
 const esperar = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
@@ -212,7 +224,7 @@ export async function renovarConexao(amb: AmbienteConexao, lida: Conexao): Promi
       .where(eq(conexoesPagamento.id, travada.id));
     throw erro;
   }
-  if (amb.oauth.testToken && (tokens.liveMode !== false || tokens.contaProvedorId !== travada.contaProvedorId)) throw await marcarReautorizacao();
+  if (amb.oauth.testToken && (falhaCredencialOAuthDeTeste(amb.oauth, tokens) || tokens.contaProvedorId !== travada.contaProvedorId)) throw await marcarReautorizacao();
   const fim = amb.relogio.agora();
   const [salva] = await amb.db.update(conexoesPagamento).set({
     tokenEnvelope: amb.cifrador.cifrar(tokens.accessToken, { ...contexto, campo: 'token' }),

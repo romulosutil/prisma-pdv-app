@@ -107,10 +107,13 @@ describe('configuração do OAuth', () => {
       PDV_MP_CLIENT_SECRET: OAUTH.clientSecret,
       PDV_MP_REDIRECT_URI: `${origem}/pagamentos/mercadopago/oauth/retorno`,
       PDV_MP_OAUTH_TEST_TOKEN: 'true',
+      PDV_MP_OAUTH_TEST_SELLER_ID: '987654321',
     };
-    expect(lerConfiguracaoOAuthMercadoPago(env)).toMatchObject({ testToken: true });
+    expect(lerConfiguracaoOAuthMercadoPago(env)).toMatchObject({ testToken: true, vendedorTesteId: '987654321' });
     expect(() => lerConfiguracaoOAuthMercadoPago({ ...env, PDV_MP_SANDBOX_TOKEN_SHA256: undefined })).toThrow();
     expect(() => lerConfiguracaoOAuthMercadoPago({ ...env, PDV_MP_REDIRECT_URI: OAUTH.redirectUri })).toThrow();
+    expect(() => lerConfiguracaoOAuthMercadoPago({ ...env, PDV_MP_OAUTH_TEST_TOKEN: 'false' })).toThrow(/PDV_MP_OAUTH_TEST_SELLER_ID/);
+    expect(() => lerConfiguracaoOAuthMercadoPago({ ...env, PDV_MP_OAUTH_TEST_SELLER_ID: 'inválido' })).toThrow(/PDV_MP_OAUTH_TEST_SELLER_ID/);
   });
 
   it('é opcional, vai em conjunto, exige https e recusa token de teste em produção, sem citar valores', () => {
@@ -175,6 +178,34 @@ describe('início e retorno do OAuth', () => {
     expect(resposta.html).toContain(liveMode ? 'credencial_produtiva' : 'ambiente_teste_ausente');
     expect(resposta.html).not.toMatch(/TG-SIMULADO|TESTE-SIMULADO/);
     expect(await conexaoAtiva(amb.db, dono.lojaId)).toBeUndefined();
+  });
+
+  it('aceita ausência de live_mode só para o vendedor fictício configurado e mantém a verificação ao renovar', async () => {
+    const vendedorTesteId = '987654321';
+    config.oauth = { ...OAUTH, testToken: true, vendedorTesteId };
+    const dono = await contaEmTeste(amb);
+    const outroInicio = await iniciar(dono);
+    const outro = await retorno(sim.autorizar(outroInicio.corpo.url, '123456789'));
+    expect(outro.status).toBe(400);
+    expect(outro.html).toContain('vendedor_de_teste_divergente');
+    expect(await conexaoAtiva(amb.db, dono.lojaId)).toBeUndefined();
+
+    const inicio = await iniciar(dono);
+    const trocar = sim.trocarCodigo.bind(sim);
+    const renovar = sim.renovarToken.bind(sim);
+    vi.spyOn(sim, 'trocarCodigo').mockImplementationOnce(async (...args) => ({ ...await trocar(...args), liveMode: null }));
+    vi.spyOn(sim, 'renovarToken').mockImplementationOnce(async (...args) => ({ ...await renovar(...args), liveMode: null }));
+    expect((await retorno(sim.autorizar(inicio.corpo.url, vendedorTesteId))).status).toBe(200);
+    expect(await conexaoDe(dono.lojaId)).toMatchObject({ modo: 'oauth', contaProvedorId: vendedorTesteId, liveMode: null });
+    const cobranca = await cobrar(dono);
+    expect(cobranca.corpo.pix?.qrCode).toBeTruthy();
+    const acesso = await acessoAtual(dono.lojaId);
+    sim.revogarAcesso(acesso);
+    avancarMs(6 * 60_000);
+    const consulta = await chamar<CobrancaPix>(amb, 'GET', `/pagamentos/cobrancas/${cobranca.corpo.id}`, { token: dono.token });
+    expect(consulta.corpo.estado).toBe('aguardando');
+    expect(sim.renovacoes).toHaveLength(1);
+    expect(await acessoAtual(dono.lojaId)).not.toBe(acesso);
   });
 
   it('só o dono inicia; sem configuração da plataforma responde 503 e a página de retorno é genérica', async () => {

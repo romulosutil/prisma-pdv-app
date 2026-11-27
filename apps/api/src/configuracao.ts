@@ -86,7 +86,7 @@ export interface ConfiguracaoOAuthMercadoPago {
   webhookSegredo: string | null;
   /** `PDV_MP_OAUTH_PKCE` (padrão ligado): precisa bater com a opção PKCE do painel da aplicação. */
   pkce: boolean;
-  /** `PDV_MP_OAUTH_TEST_TOKEN=true`: credenciais de teste; recusado em produção. */
+  /** `PDV_MP_OAUTH_TEST_TOKEN=true`: credenciais de teste. No deploy hospedado, exige o sandbox de homologação. */
   testToken: boolean;
 }
 
@@ -120,7 +120,12 @@ export function lerConfiguracaoOAuthMercadoPago(env: NodeJS.ProcessEnv): Configu
   if (url.protocol !== 'https:' || url.search || url.hash) throw new Error('PDV_MP_REDIRECT_URI deve ser uma URL https, sem query nem fragmento.');
   const pkce = booleano(env.PDV_MP_OAUTH_PKCE, 'PDV_MP_OAUTH_PKCE', true);
   const testToken = booleano(env.PDV_MP_OAUTH_TEST_TOKEN, 'PDV_MP_OAUTH_TEST_TOKEN', false);
-  if (testToken && (env.NODE_ENV ?? 'development') === 'production') throw new Error('PDV_MP_OAUTH_TEST_TOKEN não é permitido em produção.');
+  if (testToken && (env.NODE_ENV ?? 'development') === 'production') {
+    const origem = lerUrlPublicaApi(env);
+    if (!lerConfiguracaoPagamentos(env).sandboxTokenSha256 || redirectUri !== `${origem}/pagamentos/mercadopago/oauth/retorno`) {
+      throw new Error('PDV_MP_OAUTH_TEST_TOKEN exige o sandbox e o callback de homologação.');
+    }
+  }
   return { clientId, clientSecret, redirectUri, webhookSegredo, pkce, testToken };
 }
 

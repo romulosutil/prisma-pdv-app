@@ -25,6 +25,7 @@ import {
   desconectarInfinitePay,
   estadoConexaoInfinitePay,
   receberAvisoInfinitePay,
+  serializarConexaoInfinitePay,
 } from '../servicos/cobrancasInfinitePay';
 import {
   acompanharCobrancaPix, ambientePix, cancelarCobrancaPix, conectarMercadoPago, criarCobrancaPix, desconectarMercadoPago, estadoConexao,
@@ -58,8 +59,12 @@ export function rotasPagamentos(app: FastifyInstance, deps: Deps): void {
   app.get('/pagamentos/mercadopago/point/terminais', vender, async (r) =>
     TerminaisPointSchema.parse(await listarTerminaisPoint(ambientePix(deps), r.sessao.lojaId)));
 
-  app.get('/pagamentos/infinitepay/conexao', dono, async (r) =>
-    ConexaoInfinitePaySchema.parse(await estadoConexaoInfinitePay(ambienteInfinitePay(deps), r.sessao.lojaId)));
+  app.get('/pagamentos/infinitepay/conexao', dono, async (r) => {
+    const conexao = deps.pagamentos?.infinitePay === null
+      ? serializarConexaoInfinitePay(undefined)
+      : await estadoConexaoInfinitePay(ambienteInfinitePay(deps), r.sessao.lojaId);
+    return ConexaoInfinitePaySchema.parse(conexao);
+  });
 
   app.put('/pagamentos/infinitepay/conexao', dono, async (r, reply) => {
     const amb = ambienteInfinitePay(deps);

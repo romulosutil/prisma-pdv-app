@@ -75,6 +75,17 @@ beforeEach(async () => {
 afterEach(async () => { await amb.fechar(); });
 
 describe('InfinitePay Checkout Integrado e payment_check', () => {
+  it('exibe conexão vazia e bloqueia conexão nova quando o provedor está desativado', async () => {
+    config.infinitePay = null;
+    const conta = await contaEmTeste(amb, 'pro');
+    const rota = '/pagamentos/infinitepay/conexao';
+    const consulta = await chamar(amb, 'GET', rota, { token: conta.token });
+    expect(consulta.status).toBe(200);
+    expect(consulta.corpo).toMatchObject({ conectada: false, webhookPath: null });
+    const tentativa = await chamar(amb, 'PUT', rota, { token: conta.token, corpo: { handle: 'loja-da-maria' } });
+    expect(tentativa.status).toBe(503);
+  });
+
   it('conecta e desconecta handle + apiKey opcional sem devolver segredo', async () => {
     const conta = await contaEmTeste(amb, 'pro');
 

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHash, randomBytes } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { gerarId, type CobrancaPix, type Sessao } from '@pdv/shared';
@@ -96,6 +96,23 @@ async function convidarOperador(dono: Conta): Promise<Sessao> {
 }
 
 describe('configuração do OAuth', () => {
+  it('autoriza credenciais de teste no deploy hospedado apenas com o sandbox e o callback exato de homologação', () => {
+    const origem = 'https://aladdin-pdv-api-homologacao.jicnzg.easypanel.host';
+    const env = {
+      NODE_ENV: 'production',
+      PDV_API_PUBLIC_URL: origem,
+      PDV_PAGAMENTOS_CHAVE: CHAVE,
+      PDV_MP_SANDBOX_TOKEN_SHA256: 'a'.repeat(64),
+      PDV_MP_CLIENT_ID: OAUTH.clientId,
+      PDV_MP_CLIENT_SECRET: OAUTH.clientSecret,
+      PDV_MP_REDIRECT_URI: `${origem}/pagamentos/mercadopago/oauth/retorno`,
+      PDV_MP_OAUTH_TEST_TOKEN: 'true',
+    };
+    expect(lerConfiguracaoOAuthMercadoPago(env)).toMatchObject({ testToken: true });
+    expect(() => lerConfiguracaoOAuthMercadoPago({ ...env, PDV_MP_SANDBOX_TOKEN_SHA256: undefined })).toThrow();
+    expect(() => lerConfiguracaoOAuthMercadoPago({ ...env, PDV_MP_REDIRECT_URI: OAUTH.redirectUri })).toThrow();
+  });
+
   it('é opcional, vai em conjunto, exige https e recusa token de teste em produção, sem citar valores', () => {
     expect(lerConfiguracaoOAuthMercadoPago({})).toBeNull();
     const base = { PDV_MP_CLIENT_ID: '1234567890', PDV_MP_CLIENT_SECRET: 'segredo-x', PDV_MP_REDIRECT_URI: 'https://api.exemplo.invalid/pagamentos/mercadopago/oauth/retorno' };
@@ -118,6 +135,46 @@ describe('configuração do OAuth', () => {
 });
 
 describe('início e retorno do OAuth', () => {
+  it('encaminha Pix e renovação OAuth de teste pelo provedor do vendedor na homologação', async () => {
+    const provedorOAuth = new ProvedorMercadoPagoSimulado();
+    config.oauth = { ...OAUTH, testToken: true };
+    config.mercadoPagoOAuthTeste = provedorOAuth;
+    const dono = await contaEmTeste(amb);
+    const inicio = await iniciar(dono);
+    expect(inicio.status).toBe(201);
+    const autorizacao = provedorOAuth.autorizar(inicio.corpo.url, '987654321');
+    expect((await retorno(autorizacao)).status).toBe(200);
+    expect(provedorOAuth.trocas[0]).toMatchObject({ testToken: true });
+    expect(await conexaoDe(dono.lojaId)).toMatchObject({ modo: 'oauth', contaProvedorId: '987654321', liveMode: false });
+
+    const cobranca = await cobrar(dono);
+    expect(cobranca.status).toBe(201);
+    expect(cobranca.corpo.pix?.qrCode).toBeTruthy();
+    expect(provedorOAuth.orders.size).toBe(1);
+    expect(sim.chamadas).toHaveLength(0);
+
+    const renovar = provedorOAuth.renovarToken.bind(provedorOAuth);
+    vi.spyOn(provedorOAuth, 'renovarToken').mockImplementationOnce(async (...args) => ({ ...await renovar(...args), liveMode: true }));
+    provedorOAuth.revogarAcesso(await acessoAtual(dono.lojaId));
+    avancarMs(6 * 60_000);
+    const consulta = await chamar<CobrancaPix>(amb, 'GET', `/pagamentos/cobrancas/${cobranca.corpo.id}`, { token: dono.token });
+    expect(consulta.corpo.estado).toBe('aguardando');
+    expect((await cobrar(dono)).status).toBe(409);
+    expect((await conexaoDe(dono.lojaId)).reautorizarDesde).toBeInstanceOf(Date);
+    expect(provedorOAuth.orders.size).toBe(1);
+  });
+
+  it.each([true, null])('rejeita credenciais de teste sem confirmação explícita de sandbox (%s)', async (liveMode) => {
+    config.oauth = { ...OAUTH, testToken: true };
+    const dono = await contaEmTeste(amb);
+    const inicio = await iniciar(dono);
+    const trocar = sim.trocarCodigo.bind(sim);
+    vi.spyOn(sim, 'trocarCodigo').mockImplementationOnce(async (...args) => ({ ...await trocar(...args), liveMode }));
+    const resposta = await retorno(sim.autorizar(inicio.corpo.url));
+    expect(resposta.status).toBe(400);
+    expect(await conexaoAtiva(amb.db, dono.lojaId)).toBeUndefined();
+  });
+
   it('só o dono inicia; sem configuração da plataforma responde 503 e a página de retorno é genérica', async () => {
     const dono = await contaEmTeste(amb, 'pro');
     const gerente = await convidarOperador(dono);

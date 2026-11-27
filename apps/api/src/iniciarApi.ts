@@ -37,18 +37,21 @@ export async function iniciarApi(): Promise<{ app: FastifyInstance; parar: () =>
   // Sem PDV_PAGAMENTOS_CHAVE a API sobe normalmente e as rotas de pagamento respondem 503.
   const configPagamentos = lerConfiguracaoPagamentos(process.env);
   const { sandboxTokenSha256 } = configPagamentos;
+  const configOAuth = lerConfiguracaoOAuthMercadoPago(process.env);
+  const oauth = !sandboxTokenSha256 || configOAuth?.testToken ? configOAuth : null;
   const configGooglePlay = lerConfiguracaoGooglePlay(process.env);
   const revisorPlay = lerConfiguracaoRevisorPlay(process.env);
   const pagamentos: ConfigPagamentos = {
     cifrador: configPagamentos.chave ? criarCifradorPagamentos(configPagamentos.chave) : null,
     mercadoPago: criarProvedorMercadoPago({ sandboxTokenSha256 }),
+    mercadoPagoOAuthTeste: sandboxTokenSha256 && oauth?.testToken ? criarProvedorMercadoPago() : undefined,
     infinitePay: sandboxTokenSha256 ? null : criarProvedorInfinitePay(),
     urlPublicaApi: lerUrlPublicaApi(process.env),
     pagadorEmail: configPagamentos.pagadorEmail ?? null,
     pagadorPrimeiroNome: sandboxTokenSha256 ? 'APRO' : null,
     pointHabilitado: Boolean(sandboxTokenSha256),
     // Sem PDV_MP_CLIENT_ID/SECRET/REDIRECT_URI, as rotas de OAuth respondem 503 e o modo token continua.
-    oauth: sandboxTokenSha256 ? null : lerConfiguracaoOAuthMercadoPago(process.env),
+    oauth,
   };
   const relogio: Relogio = configuracao.ambiente === 'production' ? relogioSistema : new RelogioDeDesenvolvimento();
   const emissao: EmissaoCodigo = entrega.modo === 'smtp'

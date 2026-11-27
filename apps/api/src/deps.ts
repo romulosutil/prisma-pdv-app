@@ -12,6 +12,7 @@ import type { VerificadorGooglePlay } from './pagamentos/googlePlayBilling';
 export interface ConfigPagamentos {
   cifrador: CifradorPagamentos | null;
   mercadoPago: ProvedorMercadoPago;
+  mercadoPagoOAuthTeste?: ProvedorMercadoPago;
   /** Provedor InfinitePay (Checkout Integrado + payment_check). `null` desativa as chamadas ao provedor. */
   infinitePay?: ProvedorInfinitePay | null;
   /** URL pública base da API, usada ao montar `webhook_url` no Checkout da InfinitePay. */

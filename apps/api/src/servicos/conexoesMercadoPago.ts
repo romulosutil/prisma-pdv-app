@@ -22,6 +22,7 @@ export interface AmbienteConexao {
   relogio: Relogio;
   cifrador: CifradorPagamentos;
   provedor: ProvedorMercadoPago;
+  provedorOAuthTeste?: ProvedorMercadoPago;
   oauth: ConfiguracaoOAuthMercadoPago | null;
 }
 
@@ -146,6 +147,10 @@ export async function desconectar(amb: Pick<AmbienteConexao, 'db' | 'relogio'>, 
 const naoConectado = () => new ErroApi(409, 'mercadopago_nao_conectado', 'Conecte o Mercado Pago da loja para cobrar por Pix.');
 export const reautorizar = () => new ErroApi(409, 'mercadopago_reautorizar', 'O Mercado Pago pediu uma nova autorização. O dono precisa conectar a conta de novo.');
 
+function garantirConexaoOAuthDeTeste(amb: AmbienteConexao, conexao: Conexao): void {
+  if (amb.oauth?.testToken && (conexao.modo !== 'oauth' || conexao.liveMode !== false || !conexao.contaProvedorId)) throw reautorizar();
+}
+
 const esperar = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 /** Um 401 até 5 min depois de uma renovação gravada não renova de novo (evita girar o refresh em laço). */
 export const RENOVACAO_RECENTE_MS = 5 * 60_000;
@@ -163,6 +168,7 @@ const mesmaVersao = (c: Pick<Conexao, 'id' | 'versaoToken'>) =>
  */
 export async function renovarConexao(amb: AmbienteConexao, lida: Conexao): Promise<string> {
   if (!amb.oauth) throw naoConectado();
+  garantirConexaoOAuthDeTeste(amb, lida);
   const agora = amb.relogio.agora();
   const [travada] = await amb.db.update(conexoesPagamento).set({
     renovandoAte: new Date(agora.getTime() + TRAVA_RENOVACAO_MS),
@@ -176,7 +182,11 @@ export async function renovarConexao(amb: AmbienteConexao, lida: Conexao): Promi
       const [atual] = await amb.db.select().from(conexoesPagamento).where(eq(conexoesPagamento.id, lida.id));
       if (!atual?.ativa || !atual.tokenEnvelope) throw naoConectado();
       if (atual.reautorizarDesde) throw reautorizar();
-      if (atual.versaoToken !== lida.versaoToken) return amb.cifrador.decifrar(atual.tokenEnvelope, { lojaId: atual.lojaId, conexaoId: atual.id, campo: 'token' });
+      if (atual.versaoToken !== lida.versaoToken) {
+        garantirConexaoOAuthDeTeste(amb, atual);
+        if (amb.oauth.testToken && atual.contaProvedorId !== lida.contaProvedorId) throw reautorizar();
+        return amb.cifrador.decifrar(atual.tokenEnvelope, { lojaId: atual.lojaId, conexaoId: atual.id, campo: 'token' });
+      }
       await esperar(ESPERA_RENOVACAO_MS);
     }
     throw new ErroProvedorMp('indisponivel');
@@ -192,7 +202,7 @@ export async function renovarConexao(amb: AmbienteConexao, lida: Conexao): Promi
   const refresh = amb.cifrador.decifrar(travada.refreshTokenEnvelope, { ...contexto, campo: 'refresh_token' });
   let tokens;
   try {
-    tokens = await amb.provedor.renovarToken(amb.oauth, refresh);
+    tokens = await (amb.provedorOAuthTeste ?? amb.provedor).renovarToken(amb.oauth, refresh);
   } catch (erro) {
     if (erro instanceof ErroProvedorMp && erro.tipo === 'concessao_invalida') throw await marcarReautorizacao();
     // Sem resposta confiável: o Mercado Pago pode ter girado o refresh. Fica registrado para diagnóstico.
@@ -202,6 +212,7 @@ export async function renovarConexao(amb: AmbienteConexao, lida: Conexao): Promi
       .where(eq(conexoesPagamento.id, travada.id));
     throw erro;
   }
+  if (amb.oauth.testToken && (tokens.liveMode !== false || tokens.contaProvedorId !== travada.contaProvedorId)) throw await marcarReautorizacao();
   const fim = amb.relogio.agora();
   const [salva] = await amb.db.update(conexoesPagamento).set({
     tokenEnvelope: amb.cifrador.cifrar(tokens.accessToken, { ...contexto, campo: 'token' }),
@@ -227,21 +238,23 @@ export async function renovarConexao(amb: AmbienteConexao, lida: Conexao): Promi
  * provedor, renova uma vez e tenta de novo uma vez, a menos que o token tenha sido renovado há menos de 5 min.
  * 403 (`acesso_negado`) nunca renova: segue o recuo normal de falha. Modo token: nenhuma renovação.
  */
-export async function comTokenDaLoja<T>(amb: AmbienteConexao, lojaId: string, usar: (token: string, contaProvedorId: string | null) => Promise<T>): Promise<T> {
+export async function comTokenDaLoja<T>(amb: AmbienteConexao, lojaId: string, usar: (token: string, contaProvedorId: string | null, provedor: ProvedorMercadoPago) => Promise<T>): Promise<T> {
   const conexao = await conexaoAtiva(amb.db, lojaId);
   if (!conexao?.tokenEnvelope) throw naoConectado();
   if (conexao.reautorizarDesde) throw reautorizar();
+  if (conexao.modo === 'oauth') garantirConexaoOAuthDeTeste(amb, conexao);
+  const provedor = conexao.modo === 'oauth' ? amb.provedorOAuthTeste ?? amb.provedor : amb.provedor;
   const agora = amb.relogio.agora();
   const vencido = conexao.modo === 'oauth' && conexao.tokenExpiraEm !== null && conexao.tokenExpiraEm <= agora;
   const token = vencido
     ? await renovarConexao(amb, conexao)
     : amb.cifrador.decifrar(conexao.tokenEnvelope, { lojaId: conexao.lojaId, conexaoId: conexao.id, campo: 'token' });
   try {
-    return await usar(token, conexao.contaProvedorId);
+    return await usar(token, conexao.contaProvedorId, provedor);
   } catch (erro) {
     const recente = conexao.tokenRenovadoEm !== null && agora.getTime() - conexao.tokenRenovadoEm.getTime() < RENOVACAO_RECENTE_MS;
     if (conexao.modo !== 'oauth' || vencido || recente || !(erro instanceof ErroProvedorMp && erro.tipo === 'credencial_invalida')) throw erro;
-    return usar(await renovarConexao(amb, conexao), conexao.contaProvedorId);
+    return usar(await renovarConexao(amb, conexao), conexao.contaProvedorId, provedor);
   }
 }
 
@@ -283,7 +296,7 @@ export async function renovarTokensOAuth(amb: AmbienteConexao, opcoes: { devePar
     try {
       if (revisao) {
         // Só 401 (com renovação), indisponibilidade ou 429 contam como falha; outra resposta não diz nada sobre o vínculo.
-        await comTokenDaLoja(amb, c.lojaId, (token) => amb.provedor.validarCredencial(token)).catch((e: unknown) => {
+        await comTokenDaLoja(amb, c.lojaId, (token, _conta, provedor) => provedor.validarCredencial(token)).catch((e: unknown) => {
           if (e instanceof ErroProvedorMp && !['credencial_invalida', 'indisponivel', 'limite'].includes(e.tipo)) return null;
           throw e;
         });

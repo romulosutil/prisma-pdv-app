@@ -66,6 +66,7 @@ export function ambientePix(deps: Pick<Deps, 'db' | 'relogio' | 'pagamentos'>): 
     relogio: deps.relogio,
     cifrador: p.cifrador,
     provedor: p.mercadoPago,
+    provedorOAuthTeste: p.mercadoPagoOAuthTeste,
     pagadorEmail: p.pagadorEmail,
     pagadorPrimeiroNome: p.pagadorPrimeiroNome ?? null,
     pointHabilitado: p.pointHabilitado === true,
@@ -167,7 +168,7 @@ export async function estadoConexao(amb: AmbientePix, lojaId: string): Promise<C
 export async function listarTerminaisPoint(amb: AmbientePix, lojaId: string): Promise<{ id: string }[]> {
   if (!amb.pointHabilitado) throw new ErroApi(503, 'point_indisponivel', 'A cobrança automática pelo Point está indisponível.');
   try {
-    return await comTokenDaLoja(amb, lojaId, (token) => amb.provedor.listarTerminaisPoint(token));
+    return await comTokenDaLoja(amb, lojaId, (token, _conta, provedor) => provedor.listarTerminaisPoint(token));
   } catch (erro) {
     if (erro instanceof ErroApi) throw erro;
     throw new ErroApi(502, 'provedor_indisponivel', 'Não foi possível consultar as maquininhas Point.');
@@ -293,7 +294,7 @@ export async function consultarNoProvedor(amb: AmbientePix, c: Cobranca, origem:
   if (!c.pedidoProvedorId) return { cobranca: c, falha: null };
   try {
     const pedidoId = c.pedidoProvedorId;
-    const pedido = await comTokenDaLoja(amb, c.lojaId, (token) => amb.provedor.consultarPedido(token, pedidoId));
+    const pedido = await comTokenDaLoja(amb, c.lojaId, (token, _conta, provedor) => provedor.consultarPedido(token, pedidoId));
     return { cobranca: await aplicarPedido(amb, c, pedido, origem), falha: null };
   } catch (erro) {
     if (erro instanceof ErroApi && erro.status === 409 && erro.codigo === 'conflito_cobranca') throw erro;
@@ -329,11 +330,11 @@ async function criarNoProvedor(amb: AmbientePix, c: Cobranca): Promise<Cobranca>
   // Outra requisição está criando agora: devolve o estado atual (`criando`); o app acompanha pela consulta.
   if (!travada) return lerCobranca(amb.db, c.id);
   try {
-    const pedido = await comTokenDaLoja(amb, travada.lojaId, (token, contaProvedorId) => {
+    const pedido = await comTokenDaLoja(amb, travada.lojaId, (token, contaProvedorId, provedor) => {
       const point = travada.pedido.point;
-      if (!point) return amb.provedor.criarPedidoPix(token, travada.chaveIdempotencia, travada.pedido);
+      if (!point) return provedor.criarPedidoPix(token, travada.chaveIdempotencia, travada.pedido);
       if (point.contaProvedorId !== contaProvedorId) throw new ErroProvedorMp('acesso_negado');
-      return amb.provedor.criarPedidoPoint(token, travada.chaveIdempotencia, { ...travada.pedido, terminalId: point.terminalId, tipo: point.tipo });
+      return provedor.criarPedidoPoint(token, travada.chaveIdempotencia, { ...travada.pedido, terminalId: point.terminalId, tipo: point.tipo });
     });
     const fim = amb.relogio.agora();
     const [salva] = await amb.db.update(cobrancasPagamento).set({
@@ -458,7 +459,7 @@ export async function cancelarCobrancaPix(amb: AmbientePix, lojaId: string, id: 
   }
   const pedidoId = c.pedidoProvedorId!;
   try {
-    const pedido = await comTokenDaLoja(amb, c.lojaId, (token) => amb.provedor.cancelarPedido(token, pedidoId, `pdv-cancelar-${c.id}`, Boolean(c.pedido.point)));
+    const pedido = await comTokenDaLoja(amb, c.lojaId, (token, _conta, provedor) => provedor.cancelarPedido(token, pedidoId, `pdv-cancelar-${c.id}`, Boolean(c.pedido.point)));
     return serializarCobranca(await aplicarPedido(amb, c, pedido, 'cancelamento'));
   } catch (erro) {
     if (erro instanceof ErroApi) throw erro;
@@ -467,7 +468,7 @@ export async function cancelarCobrancaPix(amb: AmbientePix, lojaId: string, id: 
     // Recusa do cancelamento: o estado verdadeiro vem da consulta (pode estar paga).
     if (['nao_cancelavel', 'ja_cancelado', 'idempotencia_conflito'].includes(falha.tipo)) {
       try {
-        const pedido = await comTokenDaLoja(amb, c.lojaId, (token) => amb.provedor.consultarPedido(token, pedidoId));
+        const pedido = await comTokenDaLoja(amb, c.lojaId, (token, _conta, provedor) => provedor.consultarPedido(token, pedidoId));
         return serializarCobranca(await aplicarPedido(amb, await lerCobranca(amb.db, c.id), pedido, 'cancelamento'));
       } catch { /* cai no 502 abaixo */ }
     }

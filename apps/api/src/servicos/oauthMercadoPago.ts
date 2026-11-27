@@ -81,10 +81,11 @@ export async function concluirOAuth(amb: AmbienteOAuth, consulta: { code?: strin
   }
   let tokens;
   try {
-    tokens = await amb.provedor.trocarCodigo(amb.oauth, codigo, verificador);
+    tokens = await (amb.provedorOAuthTeste ?? amb.provedor).trocarCodigo(amb.oauth, codigo, verificador);
   } catch {
     return encerrar('troca_falhou');
   }
+  if (amb.oauth.testToken && (tokens.liveMode !== false || !tokens.contaProvedorId)) return encerrar('troca_falhou');
   const fim = amb.relogio.agora();
   await salvarConexao(amb, { contaId: registro.contaId, lojaId: registro.lojaId, operadorId: registro.operadorId }, {
     modo: 'oauth',

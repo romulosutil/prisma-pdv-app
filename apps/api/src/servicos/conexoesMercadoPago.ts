@@ -227,7 +227,7 @@ export async function renovarConexao(amb: AmbienteConexao, lida: Conexao): Promi
  * provedor, renova uma vez e tenta de novo uma vez, a menos que o token tenha sido renovado há menos de 5 min.
  * 403 (`acesso_negado`) nunca renova: segue o recuo normal de falha. Modo token: nenhuma renovação.
  */
-export async function comTokenDaLoja<T>(amb: AmbienteConexao, lojaId: string, usar: (token: string) => Promise<T>): Promise<T> {
+export async function comTokenDaLoja<T>(amb: AmbienteConexao, lojaId: string, usar: (token: string, contaProvedorId: string | null) => Promise<T>): Promise<T> {
   const conexao = await conexaoAtiva(amb.db, lojaId);
   if (!conexao?.tokenEnvelope) throw naoConectado();
   if (conexao.reautorizarDesde) throw reautorizar();
@@ -237,11 +237,11 @@ export async function comTokenDaLoja<T>(amb: AmbienteConexao, lojaId: string, us
     ? await renovarConexao(amb, conexao)
     : amb.cifrador.decifrar(conexao.tokenEnvelope, { lojaId: conexao.lojaId, conexaoId: conexao.id, campo: 'token' });
   try {
-    return await usar(token);
+    return await usar(token, conexao.contaProvedorId);
   } catch (erro) {
     const recente = conexao.tokenRenovadoEm !== null && agora.getTime() - conexao.tokenRenovadoEm.getTime() < RENOVACAO_RECENTE_MS;
     if (conexao.modo !== 'oauth' || vencido || recente || !(erro instanceof ErroProvedorMp && erro.tipo === 'credencial_invalida')) throw erro;
-    return usar(await renovarConexao(amb, conexao));
+    return usar(await renovarConexao(amb, conexao), conexao.contaProvedorId);
   }
 }
 

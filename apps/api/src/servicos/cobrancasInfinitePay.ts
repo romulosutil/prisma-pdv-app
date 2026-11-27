@@ -44,7 +44,7 @@ export interface AmbienteInfinitePay {
 
 export function ambienteInfinitePay(deps: Pick<Deps, 'db' | 'relogio' | 'pagamentos'>): AmbienteInfinitePay {
   const p = deps.pagamentos;
-  if (!p?.cifrador) {
+  if (!p?.cifrador || p.infinitePay === null) {
     throw new ErroApi(503, 'pagamentos_indisponiveis', 'Pagamentos integrados indisponíveis neste servidor. Use a confirmação manual.');
   }
   return {

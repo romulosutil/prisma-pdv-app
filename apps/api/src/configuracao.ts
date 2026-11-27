@@ -53,6 +53,7 @@ export interface ConfiguracaoPagamentos {
   chave: string | undefined;
   /** `PDV_MP_PAYER_EMAIL`: e-mail enviado como `payer.email` (o PDV não coleta e-mail do cliente). */
   pagadorEmail: string | undefined;
+  sandboxTokenSha256?: string;
 }
 
 /** Separada de `validarConfiguracao` para não mudar o formato já conferido; mensagens nunca citam valores. */
@@ -66,7 +67,15 @@ export function lerConfiguracaoPagamentos(env: NodeJS.ProcessEnv): ConfiguracaoP
   if (pagadorEmail !== undefined && (pagadorEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pagadorEmail))) {
     throw new Error('PDV_MP_PAYER_EMAIL deve ser um e-mail válido.');
   }
-  return { chave, pagadorEmail };
+  const sandboxTokenSha256 = env.PDV_MP_SANDBOX_TOKEN_SHA256?.trim().toLowerCase();
+  if (!sandboxTokenSha256) return { chave, pagadorEmail };
+  if (!/^[a-f0-9]{64}$/.test(sandboxTokenSha256)) {
+    throw new Error('PDV_MP_SANDBOX_TOKEN_SHA256 deve ser um SHA256 hexadecimal.');
+  }
+  if (!chave || lerUrlPublicaApi(env) !== 'https://aladdin-pdv-api-homologacao.jicnzg.easypanel.host') {
+    throw new Error('O sandbox do Mercado Pago exige a chave de pagamentos e a URL pública de homologação.');
+  }
+  return { chave, pagadorEmail: 'test_payer@example.com', sandboxTokenSha256 };
 }
 
 export interface ConfiguracaoOAuthMercadoPago {

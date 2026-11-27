@@ -10,6 +10,7 @@ import {
   ConexaoMercadoPagoSchema,
   CriarCobrancaPixReqSchema,
   EstadoCobrancaPixSchema,
+  TerminaisPointSchema,
 } from '@pdv/shared';
 import { exigirDono, exigirPermissao } from '../auth';
 import { cobrancasPagamento } from '../db/schema';
@@ -27,7 +28,7 @@ import {
 } from '../servicos/cobrancasInfinitePay';
 import {
   acompanharCobrancaPix, ambientePix, cancelarCobrancaPix, conectarMercadoPago, criarCobrancaPix, desconectarMercadoPago, estadoConexao,
-  listarCobrancasPix, receberAvisoMercadoPago,
+  listarCobrancasPix, listarTerminaisPoint, receberAvisoMercadoPago,
 } from '../servicos/cobrancasPix';
 
 const IdParamsSchema = z.object({ id: z.uuid() });
@@ -53,6 +54,9 @@ export function rotasPagamentos(app: FastifyInstance, deps: Deps): void {
     await desconectarMercadoPago(ambientePix(deps), r.sessao.lojaId);
     return reply.status(204).send();
   });
+
+  app.get('/pagamentos/mercadopago/point/terminais', vender, async (r) =>
+    TerminaisPointSchema.parse(await listarTerminaisPoint(ambientePix(deps), r.sessao.lojaId)));
 
   app.get('/pagamentos/infinitepay/conexao', dono, async (r) =>
     ConexaoInfinitePaySchema.parse(await estadoConexaoInfinitePay(ambienteInfinitePay(deps), r.sessao.lojaId)));
@@ -82,9 +86,6 @@ export function rotasPagamentos(app: FastifyInstance, deps: Deps): void {
       const amb = ambienteInfinitePay(deps);
       const { cobranca, criada } = await criarCobrancaInfinitePay(amb, r.sessao, req);
       return reply.status(criada ? 201 : 200).send(CobrancaPixSchema.parse(cobranca));
-    }
-    if (req.meio && req.meio !== 'pix') {
-      throw new ErroApi(400, 'meio_nao_suportado', 'Use Pix no Mercado Pago ou InfinitePay para cobrança automática.');
     }
     const { cobranca, criada } = await criarCobrancaPix(ambPix, r.sessao, req);
     return reply.status(criada ? 201 : 200).send(CobrancaPixSchema.parse(cobranca));

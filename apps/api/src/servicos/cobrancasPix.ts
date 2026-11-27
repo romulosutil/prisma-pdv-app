@@ -47,13 +47,14 @@ const TRAVA_CONSULTA_MS = 60_000;
 const FINAIS: readonly EstadoCobrancaPix[] = ['paga', 'paga_tardia', 'divergente'];
 const ENCERRADAS: readonly EstadoCobrancaPix[] = ['expirada', 'cancelada'];
 const SEM_PEDIDO: readonly EstadoCobrancaPix[] = ['criando', 'erro_provedor'];
-const STATUS_EM_ANDAMENTO = new Set(['created', 'processing', 'action_required']);
+const STATUS_EM_ANDAMENTO = new Set(['created', 'processing', 'action_required', 'at_terminal']);
 
 export interface AmbientePix extends AmbienteConexao {
   pagadorEmail: string | null;
   pagadorPrimeiroNome: string | null;
+  pointHabilitado: boolean;
   consultaMinimaMs: number;
-  infinitePay?: ProvedorInfinitePay;
+  infinitePay?: ProvedorInfinitePay | null;
   urlPublicaApi?: string | null;
 }
 
@@ -67,6 +68,7 @@ export function ambientePix(deps: Pick<Deps, 'db' | 'relogio' | 'pagamentos'>): 
     provedor: p.mercadoPago,
     pagadorEmail: p.pagadorEmail,
     pagadorPrimeiroNome: p.pagadorPrimeiroNome ?? null,
+    pointHabilitado: p.pointHabilitado === true,
     consultaMinimaMs: p.consultaMinimaMs ?? CONSULTA_MINIMA_MS,
     oauth: p.oauth ?? null,
     infinitePay: p.infinitePay,
@@ -90,6 +92,7 @@ export function serializarCobranca(c: Cobranca): CobrancaPix {
     alerta: c.alerta,
     criadaEm: c.criadoEm.toISOString(),
     atualizadaEm: c.atualizadoEm.toISOString(),
+    ...(c.meio !== 'pix' ? { provedor: 'mercadopago', meio: c.meio } : {}),
   };
 }
 
@@ -161,6 +164,16 @@ export async function estadoConexao(amb: AmbientePix, lojaId: string): Promise<C
   return serializarConexao(await conexaoAtiva(amb.db, lojaId));
 }
 
+export async function listarTerminaisPoint(amb: AmbientePix, lojaId: string): Promise<{ id: string }[]> {
+  if (!amb.pointHabilitado) throw new ErroApi(503, 'point_indisponivel', 'A cobrança automática pelo Point está indisponível.');
+  try {
+    return await comTokenDaLoja(amb, lojaId, (token) => amb.provedor.listarTerminaisPoint(token));
+  } catch (erro) {
+    if (erro instanceof ErroApi) throw erro;
+    throw new ErroApi(502, 'provedor_indisponivel', 'Não foi possível consultar as maquininhas Point.');
+  }
+}
+
 /** Modo token (avançado): o dono cola o Access Token da própria aplicação. A URL do webhook é mantida na troca. */
 export async function conectarMercadoPago(amb: AmbientePix, sessao: SessaoAutenticada, req: ConectarMercadoPagoReq): Promise<{ conexao: ConexaoMercadoPago; criada: boolean }> {
   let contaProvedorId: string | null = null;
@@ -197,7 +210,7 @@ export interface Decisao {
  * criando/erro_provedor/aguardando → paga | divergente | expirada | cancelada;
  * expirada/cancelada → paga_tardia | divergente; paga/paga_tardia/divergente são finais.
  */
-export function decidirTransicao(c: Pick<Cobranca, 'id' | 'estado' | 'alerta' | 'valorCentavos' | 'valorPagoCentavos' | 'pedidoProvedorId'>, p: PedidoMercadoPago): Decisao {
+export function decidirTransicao(c: Pick<Cobranca, 'id' | 'estado' | 'alerta' | 'valorCentavos' | 'valorPagoCentavos' | 'pedidoProvedorId'> & Partial<Pick<Cobranca, 'pedido'>>, p: PedidoMercadoPago): Decisao {
   const manter = (motivo: string | null = null, alerta = c.alerta): Decisao => ({ estado: c.estado, alerta, valorPagoCentavos: c.valorPagoCentavos, motivo });
   const posPagamento = p.status === 'refunded' || p.status === 'charged_back' || (p.status === 'processed' && p.statusDetail === 'partially_refunded');
   const alertaNovo = posPagamento ? `${p.status}/${p.statusDetail ?? ''}` : c.alerta;
@@ -208,6 +221,11 @@ export function decidirTransicao(c: Pick<Cobranca, 'id' | 'estado' | 'alerta' | 
   if (p.status === 'processed' && p.statusDetail === 'accredited') {
     const mesmaOrder = c.pedidoProvedorId !== null && p.id.toLowerCase() === c.pedidoProvedorId.toLowerCase();
     if (!mesmaOrder || p.referenciaExterna !== c.id) return { estado: 'divergente', alerta: c.alerta, valorPagoCentavos: p.totalPagoCentavos, motivo: 'referencia_divergente' };
+    const point = c.pedido?.point;
+    if (point && (!p.point?.tipo || !p.point.terminalId)) return manter('dados_point_ausentes');
+    if (point && (p.point?.tipo !== point.tipo || p.point?.terminalId !== point.terminalId)) {
+      return { estado: 'divergente', alerta: c.alerta, valorPagoCentavos: p.totalPagoCentavos, motivo: 'terminal_ou_meio_divergente' };
+    }
     if (p.totalPagoCentavos === null) return manter('valor_pago_ausente');
     if (p.totalPagoCentavos !== c.valorCentavos || (p.totalCentavos !== null && p.totalCentavos !== c.valorCentavos)) {
       return { estado: 'divergente', alerta: c.alerta, valorPagoCentavos: p.totalPagoCentavos, motivo: 'valor_divergente' };
@@ -311,7 +329,12 @@ async function criarNoProvedor(amb: AmbientePix, c: Cobranca): Promise<Cobranca>
   // Outra requisição está criando agora: devolve o estado atual (`criando`); o app acompanha pela consulta.
   if (!travada) return lerCobranca(amb.db, c.id);
   try {
-    const pedido = await comTokenDaLoja(amb, travada.lojaId, (token) => amb.provedor.criarPedidoPix(token, travada.chaveIdempotencia, travada.pedido));
+    const pedido = await comTokenDaLoja(amb, travada.lojaId, (token, contaProvedorId) => {
+      const point = travada.pedido.point;
+      if (!point) return amb.provedor.criarPedidoPix(token, travada.chaveIdempotencia, travada.pedido);
+      if (point.contaProvedorId !== contaProvedorId) throw new ErroProvedorMp('acesso_negado');
+      return amb.provedor.criarPedidoPoint(token, travada.chaveIdempotencia, { ...travada.pedido, terminalId: point.terminalId, tipo: point.tipo });
+    });
     const fim = amb.relogio.agora();
     const [salva] = await amb.db.update(cobrancasPagamento).set({
       estado: 'aguardando',
@@ -344,11 +367,22 @@ async function criarNoProvedor(amb: AmbientePix, c: Cobranca): Promise<Cobranca>
   }
 }
 
-export async function criarCobrancaPix(amb: AmbientePix, sessao: SessaoAutenticada, req: { vendaId: string; pagamentoId: string; valorCentavos: number }): Promise<{ cobranca: CobrancaPix; criada: boolean }> {
+export async function criarCobrancaPix(amb: AmbientePix, sessao: SessaoAutenticada, req: {
+  vendaId: string; pagamentoId: string; valorCentavos: number; meio?: 'pix' | 'cartao_credito' | 'cartao_debito'; terminalPointId?: string;
+}): Promise<{ cobranca: CobrancaPix; criada: boolean }> {
+  const meio = req.meio ?? 'pix';
+  const cartao = meio !== 'pix';
+  if (cartao && !amb.pointHabilitado) throw new ErroApi(503, 'point_indisponivel', 'A cobrança automática pelo Point está indisponível.');
   const conexao = await conexaoAtiva(amb.db, sessao.lojaId);
-  if (!conexao?.tokenEnvelope) throw new ErroApi(409, 'mercadopago_nao_conectado', 'Conecte o Mercado Pago da loja para cobrar por Pix.');
+  if (!conexao?.tokenEnvelope) throw new ErroApi(409, 'mercadopago_nao_conectado', 'Conecte o Mercado Pago da loja antes de cobrar.');
   if (conexao.reautorizarDesde) throw reautorizar();
-  if (!amb.pagadorEmail) throw new ErroApi(503, 'pagador_nao_configurado', 'O e-mail do pagador do Pix não está configurado neste servidor. Use a confirmação manual.');
+  if (!cartao && !amb.pagadorEmail) throw new ErroApi(503, 'pagador_nao_configurado', 'O e-mail do pagador do Pix não está configurado neste servidor. Use a confirmação manual.');
+  const point = cartao && req.terminalPointId && conexao.contaProvedorId ? {
+    terminalId: req.terminalPointId,
+    tipo: meio === 'cartao_debito' ? 'debit_card' as const : 'credit_card' as const,
+    contaProvedorId: conexao.contaProvedorId,
+  } : undefined;
+  if (cartao && !point) throw new ErroApi(409, 'point_nao_configurado', 'Selecione uma maquininha e confira a conexão da loja com o Mercado Pago.');
   const agora = amb.relogio.agora();
   const inseridas = await amb.db.insert(cobrancasPagamento).values({
     id: req.pagamentoId,
@@ -359,18 +393,27 @@ export async function criarCobrancaPix(amb: AmbientePix, sessao: SessaoAutentica
     operadorId: sessao.operadorId,
     aparelhoId: sessao.aparelhoId,
     provedor: 'mercadopago',
-    meio: 'pix',
+    meio,
     valorCentavos: req.valorCentavos,
     estado: 'criando',
     // Determinística: o reenvio do mesmo pagamento nunca cria uma segunda order no provedor.
-    chaveIdempotencia: `pdv-pix-${req.pagamentoId}`,
-    pedido: { valorCentavos: req.valorCentavos, referenciaExterna: req.pagamentoId, expiracao: EXPIRACAO_PIX, pagadorEmail: amb.pagadorEmail, pagadorPrimeiroNome: amb.pagadorPrimeiroNome },
+    chaveIdempotencia: `pdv-${cartao ? 'point' : 'pix'}-${req.pagamentoId}`,
+    pedido: {
+      valorCentavos: req.valorCentavos,
+      referenciaExterna: req.pagamentoId,
+      expiracao: EXPIRACAO_PIX,
+      pagadorEmail: cartao ? '' : amb.pagadorEmail!,
+      pagadorPrimeiroNome: cartao ? null : amb.pagadorPrimeiroNome,
+      ...(point ? { point } : {}),
+    },
     criadoEm: agora,
     atualizadoEm: agora,
   }).onConflictDoNothing().returning();
   const criada = inseridas.length === 1;
   const [atual] = await amb.db.select().from(cobrancasPagamento).where(eq(cobrancasPagamento.id, req.pagamentoId));
-  if (!atual || atual.lojaId !== sessao.lojaId || atual.vendaId !== req.vendaId || atual.valorCentavos !== req.valorCentavos) {
+  if (!atual || atual.lojaId !== sessao.lojaId || atual.vendaId !== req.vendaId || atual.valorCentavos !== req.valorCentavos ||
+      atual.provedor !== 'mercadopago' || atual.meio !== meio || atual.pedido.point?.terminalId !== point?.terminalId ||
+      atual.pedido.point?.contaProvedorId !== point?.contaProvedorId) {
     throw new ErroApi(409, 'cobranca_conflitante', 'Este pagamento já tem uma cobrança com outros dados.');
   }
   if (criada) await registrarEvento(amb.db, atual, 'criada', { valorCentavos: atual.valorCentavos }, agora);
@@ -403,6 +446,7 @@ export async function cancelarCobrancaPix(amb: AmbientePix, lojaId: string, id: 
   if (FINAIS.includes(c.estado) || ENCERRADAS.includes(c.estado)) return serializarCobranca(c);
   const agora = amb.relogio.agora();
   if (SEM_PEDIDO.includes(c.estado)) {
+    if (c.pedido.point) throw new ErroApi(409, 'cobranca_em_criacao', 'Confira o envio da cobrança ao Point antes de solicitar o cancelamento.');
     if (c.leaseAte && c.leaseAte > agora) throw new ErroApi(409, 'cobranca_em_criacao', 'A cobrança ainda está sendo criada. Tente de novo em instantes.');
     const [salva] = await amb.db.update(cobrancasPagamento).set({ estado: 'cancelada', atualizadoEm: agora })
       .where(and(eq(cobrancasPagamento.id, c.id), inArray(cobrancasPagamento.estado, [...SEM_PEDIDO]),
@@ -414,7 +458,7 @@ export async function cancelarCobrancaPix(amb: AmbientePix, lojaId: string, id: 
   }
   const pedidoId = c.pedidoProvedorId!;
   try {
-    const pedido = await comTokenDaLoja(amb, c.lojaId, (token) => amb.provedor.cancelarPedido(token, pedidoId, `pdv-cancelar-${c.id}`));
+    const pedido = await comTokenDaLoja(amb, c.lojaId, (token) => amb.provedor.cancelarPedido(token, pedidoId, `pdv-cancelar-${c.id}`, Boolean(c.pedido.point)));
     return serializarCobranca(await aplicarPedido(amb, c, pedido, 'cancelamento'));
   } catch (erro) {
     if (erro instanceof ErroApi) throw erro;
@@ -531,7 +575,12 @@ export async function conciliarCobrancasPix(amb: AmbientePix, opcoes: { devePara
     proxima: cp.proximaConsultaEm,
     ordem: sql<number>`row_number() over (partition by ${cp.lojaId} order by ${cp.proximaConsultaEm} asc, ${cp.id} asc)`.as('ordem'),
   }).from(cp)
-    .where(and(inArray(cp.estado, ['aguardando', ...ENCERRADAS]), isNotNull(cp.pedidoProvedorId), lte(cp.proximaConsultaEm, agora)))
+    .where(and(
+      inArray(cp.estado, ['aguardando', ...ENCERRADAS]),
+      isNotNull(cp.pedidoProvedorId),
+      lte(cp.proximaConsultaEm, agora),
+      amb.infinitePay === null ? eq(cp.provedor, 'mercadopago') : undefined,
+    ))
     .as('candidatas');
   const fila = await amb.db.select({ id: candidatas.id }).from(candidatas)
     .where(lte(candidatas.ordem, POR_LOJA_CONCILIACAO)).orderBy(asc(candidatas.proxima), asc(candidatas.id)).limit(LOTE_CONCILIACAO);
@@ -593,16 +642,16 @@ export async function conciliarCobrancasPix(amb: AmbientePix, opcoes: { devePara
 // ---------- Sincronização da venda ----------
 
 /**
- * Pix do Mercado Pago na venda: só com cobrança desta loja, `paga`, da mesma venda, do mesmo valor, sem troco e
+ * Pix ou Point do Mercado Pago na venda: só com cobrança desta loja, `paga`, da mesma venda, meio e valor, sem troco e
  * ainda não usada, sem alerta de estorno/contestação. Sem cobrança nesta loja → `pagamento_indisponivel` (nada se revela de outras lojas).
  * Chamada dentro da transação do push; trava a linha até o vínculo.
  */
 export async function validarPagamentoMercadoPago(tx: Db, lojaId: string, vendaId: string, p: PagamentoVenda): Promise<string | null> {
   const [c] = await tx.select().from(cobrancasPagamento)
     .where(and(eq(cobrancasPagamento.id, p.id), eq(cobrancasPagamento.lojaId, lojaId))).for('update');
-  if (!c) return 'pagamento_indisponivel';
+  if (!c || c.meio !== p.meio) return 'pagamento_indisponivel';
   if (c.estado !== 'paga' || c.vendaId !== vendaId || c.valorCentavos !== p.valorCentavos || p.trocoCentavos !== 0 ||
-      c.vinculadaEm !== null || c.alerta !== null || c.provedor !== 'mercadopago' || c.meio !== 'pix') return 'pagamento_nao_confirmado';
+      c.vinculadaEm !== null || c.alerta !== null || c.provedor !== 'mercadopago') return 'pagamento_nao_confirmado';
   return null;
 }
 

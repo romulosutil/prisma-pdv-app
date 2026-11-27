@@ -573,6 +573,39 @@ describe('isolamento entre lojas', () => {
   });
 });
 
+describe('cartão pelo Mercado Pago Point', () => {
+  it.each([['cartao_debito', 'debit_card'], ['cartao_credito', 'credit_card']] as const)('cobre %s no terminal da loja e vincula após a consulta', async (meio, tipo) => {
+    config.pointHabilitado = true;
+    const dono = await contaEmTeste(amb);
+    const outraLoja = await contaEmTeste(amb, 'pro', NUMEROS.outroAprova);
+    await conectar(dono);
+    await conectar(outraLoja, TOKEN_B);
+    const terminalPointId = 'NEWLAND_N950__SIMULADO1';
+    sim.terminaisPoint.set(TOKEN_A, [terminalPointId]);
+    const terminais = (conta: Conta) => chamar(amb, 'GET', '/pagamentos/mercadopago/point/terminais', { token: conta.token });
+    expect((await terminais(dono)).corpo).toEqual([{ id: terminalPointId }]);
+    expect((await terminais(outraLoja)).corpo).toEqual([]);
+    const corpo = { vendaId: gerarId(), pagamentoId: gerarId(), valorCentavos: 700, provedor: 'mercadopago', meio, terminalPointId };
+    const criar = (body = corpo) => chamar(amb, 'POST', '/pagamentos/cobrancas', { token: dono.token, corpo: body });
+    expect(await criar()).toMatchObject({ status: 201, corpo: { estado: 'aguardando', meio, pix: null } });
+    expect(await criar()).toMatchObject({ status: 200, corpo: { id: corpo.pagamentoId } });
+    expect((await criar({ ...corpo, terminalPointId: 'OUTRO_TERMINAL' })).status).toBe(409);
+    const order = sim.idDaChave(`pdv-point-${corpo.pagamentoId}`);
+    expect(sim.orders.get(order)?.entrada).toMatchObject({ terminalId: terminalPointId, tipo });
+    sim.definir(order, 'at_terminal', 'at_terminal');
+    expect((await cancelar(dono, corpo.pagamentoId)).corpo.estado).toBe('aguardando');
+    const dados = venda(dono, { id: corpo.vendaId, pagamentos: [{ id: corpo.pagamentoId, meio, provedor: 'mercadopago', valorCentavos: 700, trocoCentavos: 0, confirmacao: 'integrado' }] });
+    expect((await enviar(amb, dono, [mutacao('venda', dados)])).corpo.rejeitadas[0].motivo).toBe('pagamento_nao_confirmado');
+    sim.aprovar(order);
+    avancarMs(3000);
+    expect((await consultar(dono, corpo.pagamentoId)).corpo.estado).toBe('paga');
+    const m = mutacao('venda', dados);
+    expect((await enviar(amb, dono, [m])).corpo).toMatchObject({ aceitas: [m.id], rejeitadas: [] });
+    expect((await linha(corpo.pagamentoId)).vinculadaEm).not.toBeNull();
+    expect((await chamar(amb, 'GET', '/sync/pull?desde=0', { token: dono.token })).corpo.mudancas).toContainEqual(expect.objectContaining({ entidade: 'venda', dados: expect.objectContaining({ pagamentos: dados.pagamentos }) }));
+  });
+});
+
 describe('venda paga pelo Pix do Mercado Pago', () => {
   async function cobrancaPaga(conta: Conta, valorCentavos = 700) {
     const publico = await conectar(conta);

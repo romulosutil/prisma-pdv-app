@@ -31,6 +31,7 @@ As migrações em `drizzle/` são aplicadas na inicialização.
 | `PDV_MP_WEBHOOK_SECRET` | Assinatura secreta do webhook da aplicação da plataforma (`POST /webhooks/pdv-mercadopago`). |
 | `PDV_MP_OAUTH_PKCE`, `PDV_MP_OAUTH_TEST_TOKEN` | PKCE (padrão `true`, igual ao painel) e credenciais de teste na troca (só fora de produção). |
 | `PDV_MP_PAYER_EMAIL` | E-mail enviado como `payer.email` nas orders Pix (o PDV não coleta e-mail do cliente). Ausente: a cobrança responde 503 `pagador_nao_configurado`. |
+| `PDV_MP_SANDBOX_TOKEN_SHA256` | SHA256 do Access Token obtido em **Credenciais de teste**. Exige a URL pública de homologação e `PDV_PAGAMENTOS_CHAVE`. Nesse modo, somente o token correspondente é aceito, o pedido usa o pagador de teste documentado e as chamadas de OAuth e InfinitePay ficam desativadas. |
 | `PDV_PLAY_PACKAGE_NAME`, `PDV_PLAY_SKU_PRO` | Pacote Android (padrão `br.com.pdv.mobile`) e SKU do plano Pro (padrão `prisma_pro_mensal`) na Google Play. |
 | `PDV_PLAY_WEBHOOK_TOKEN` | Token compartilhado para autenticar notificações Pub/Sub RTDN em `POST /webhooks/pdv-google-play` (query `token` ou `Authorization: Bearer`). Obrigatório em produção (responde `503 webhook_nao_configurado` se ausente). |
 | `PDV_PLAY_SERVICE_ACCOUNT_JSON` | JSON da conta de serviço Google Play Developer API (`client_email` e `private_key`). Alternativamente, informar `PDV_PLAY_SERVICE_ACCOUNT_EMAIL` e `PDV_PLAY_PRIVATE_KEY` separados. |
@@ -76,8 +77,9 @@ Erros: `{ "erro": "codigo_estavel", "mensagem": "Texto em português" }`. Rotas 
 | `GET /pagamentos/mercadopago/oauth/retorno` | Público: conclui o OAuth e devolve uma página mínima, sem segredos. |
 | `POST /webhooks/pdv-mercadopago` | Público, assinado com `PDV_MP_WEBHOOK_SECRET`: avisos das conexões OAuth; confirma pela consulta com o token da loja dona da cobrança. |
 | `GET/PUT/DELETE /pagamentos/mercadopago/conexao` (auth, dono) | Estado, conexão/troca (`{ accessToken, segredoWebhook? }`, cifrados; nunca devolvidos) e desligamento (apaga a credencial, mantém o histórico). Devolve o `webhookPath`. |
+| `GET /pagamentos/mercadopago/point/terminais` (auth, `vender`) | Lista terminais em modo PDV da conta Mercado Pago conectada à loja da sessão. Disponível no modo de sandbox. |
 | `GET/PUT/DELETE /pagamentos/infinitepay/conexao` (auth, dono) | Estado, conexão/troca (`{ handle }`) e desligamento da InfinitePay Checkout Integrado da loja. Devolve o `webhookPath`. |
-| `POST /pagamentos/cobrancas` (auth, `vender`) | `{ vendaId, pagamentoId, valorCentavos, provedor?, meio? }`: cria cobrança Pix (Mercado Pago) ou link de Checkout Integrado (InfinitePay), idempotente pelo `pagamentoId`. |
+| `POST /pagamentos/cobrancas` (auth, `vender`) | `{ vendaId, pagamentoId, valorCentavos, provedor?, meio?, terminalPointId? }`. Cria Pix Mercado Pago, Checkout InfinitePay ou envia débito/crédito a um terminal Point no sandbox. O Point exige `terminalPointId`. Repetir `pagamentoId` com os mesmos dados é idempotente. |
 | `GET /pagamentos/cobrancas/:id` (auth, `vender`) | Estado e QR/link; consulta o provedor no máximo a cada 3 s. |
 | `POST /pagamentos/cobrancas/:id/cancelar` (auth, `vender`) | Venda abandonada: cancela a cobrança; se já foi paga, devolve `paga`. |
 | `GET /pagamentos/cobrancas?estado=` (auth, dono) | Lista para o dono (ex.: `divergente`, `paga_tardia`). |

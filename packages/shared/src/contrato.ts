@@ -407,6 +407,10 @@ export type ConexaoMercadoPago = z.infer<typeof ConexaoMercadoPagoSchema>;
 export const InicioOAuthMercadoPagoSchema = z.object({ url: z.url({ protocol: /^https$/ }) }).strict();
 export type InicioOAuthMercadoPago = z.infer<typeof InicioOAuthMercadoPagoSchema>;
 
+const TerminalPointIdSchema = z.string().min(1).max(128).regex(/^[A-Za-z0-9_-]+$/);
+export const TerminaisPointSchema = z.array(z.object({ id: TerminalPointIdSchema }).strict());
+export type TerminaisPoint = z.infer<typeof TerminaisPointSchema>;
+
 /** `pagamentoId` é o id do pagamento da venda gerado no aparelho; repetir o mesmo pedido devolve a mesma cobrança. */
 export const CriarCobrancaPixReqSchema = z.object({
   vendaId: IdSchema,
@@ -415,7 +419,10 @@ export const CriarCobrancaPixReqSchema = z.object({
   provedor: z.enum(['mercadopago', 'infinitepay']).optional(),
   meio: z.enum(['pix', 'cartao_credito', 'cartao_debito']).optional(),
   descricao: z.string().trim().min(1).max(120).optional(),
-}).strict();
+  terminalPointId: TerminalPointIdSchema.optional(),
+}).strict().refine(({ provedor, meio, terminalPointId }) =>
+  Boolean(terminalPointId) === (provedor !== 'infinitepay' && (meio === 'cartao_credito' || meio === 'cartao_debito')),
+  { path: ['terminalPointId'], message: 'Selecione uma maquininha Point para cobrar cartão pelo Mercado Pago.' });
 export type CriarCobrancaPixReq = z.infer<typeof CriarCobrancaPixReqSchema>;
 
 export const CobrancaPixSchema = z.object({

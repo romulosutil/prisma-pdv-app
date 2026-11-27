@@ -212,7 +212,7 @@ async function upsertVenda(c: Contexto, v: Venda): Promise<Resultado> {
       continue;
     }
 
-    if (p.provedor === 'mercadopago' && p.meio === 'pix') {
+    if (p.provedor === 'mercadopago' && (p.meio === 'pix' || p.meio === 'cartao_credito' || p.meio === 'cartao_debito')) {
       if (cobrancasIntegras.includes(p.id)) return 'pagamento_nao_confirmado';
       const motivo = await validarPagamentoMercadoPago(c.tx, v.lojaId, v.id, p);
       if (motivo) return motivo;

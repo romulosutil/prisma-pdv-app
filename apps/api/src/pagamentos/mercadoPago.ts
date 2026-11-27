@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 
 /**
  * Cliente da Orders API do Mercado Pago (Pix), atrás de uma interface para os testes usarem o provedor simulado.
@@ -23,6 +23,11 @@ export interface PedidoPixEntrada {
   pagadorPrimeiroNome: string | null;
 }
 
+export interface PedidoPointEntrada extends Pick<PedidoPixEntrada, 'valorCentavos' | 'referenciaExterna' | 'expiracao'> {
+  terminalId: string;
+  tipo: 'credit_card' | 'debit_card';
+}
+
 /** O que importa de uma order. Valores em centavos; `null` quando o provedor não informou ou veio ilegível. */
 export interface PedidoMercadoPago {
   id: string;
@@ -33,6 +38,7 @@ export interface PedidoMercadoPago {
   totalPagoCentavos: number | null;
   pix: { qrCode: string; qrCodeBase64: string | null; ticketUrl: string | null } | null;
   expiraEm: Date | null;
+  point?: { terminalId: string | null; tipo: string | null };
 }
 
 export type FalhaProvedor =
@@ -91,8 +97,10 @@ export interface ProvedorMercadoPago {
   /** Consulta barata e autenticada para conferir o token ao conectar. */
   validarCredencial(token: string): Promise<{ contaProvedorId: string | null }>;
   criarPedidoPix(token: string, chaveIdempotencia: string, pedido: PedidoPixEntrada): Promise<PedidoMercadoPago>;
+  criarPedidoPoint(token: string, chaveIdempotencia: string, pedido: PedidoPointEntrada): Promise<PedidoMercadoPago>;
+  listarTerminaisPoint(token: string): Promise<{ id: string }[]>;
   consultarPedido(token: string, pedidoId: string): Promise<PedidoMercadoPago>;
-  cancelarPedido(token: string, pedidoId: string, chaveIdempotencia: string): Promise<PedidoMercadoPago>;
+  cancelarPedido(token: string, pedidoId: string, chaveIdempotencia: string, noTerminal?: boolean): Promise<PedidoMercadoPago>;
 }
 
 export function centavosParaValor(centavos: number): string {
@@ -128,8 +136,10 @@ export function lerPedido(corpo: unknown): PedidoMercadoPago {
   const id = textoOuNull(o.id);
   const status = textoOuNull(o.status);
   if (!id || !status || id.length > 64) throw new ErroProvedorMp('resposta_invalida');
-  const pagamento = Array.isArray(o.transactions?.payments) ? o.transactions.payments[0] : undefined;
+  const pagamentos = Array.isArray(o.transactions?.payments) ? o.transactions.payments : [];
+  const pagamento = pagamentos[0];
   const metodo = pagamento?.payment_method ?? {};
+  const point = o.type === 'point';
   const qrCode = textoOuNull(metodo.qr_code);
   const expiracao = textoOuNull(pagamento?.date_of_expiration);
   const expiraEm = expiracao ? new Date(expiracao) : null;
@@ -138,10 +148,11 @@ export function lerPedido(corpo: unknown): PedidoMercadoPago {
     status,
     statusDetail: textoOuNull(o.status_detail),
     referenciaExterna: textoOuNull(o.external_reference),
-    totalCentavos: valorParaCentavos(o.total_amount),
-    totalPagoCentavos: o.total_paid_amount === undefined || o.total_paid_amount === null ? null : valorParaCentavos(o.total_paid_amount),
+    totalCentavos: valorParaCentavos(o.total_amount ?? (point ? pagamento?.amount : null)),
+    totalPagoCentavos: valorParaCentavos(point && pagamentos.length !== 1 ? null : o.total_paid_amount ?? (point ? pagamento?.paid_amount : null)),
     pix: qrCode ? { qrCode, qrCodeBase64: textoOuNull(metodo.qr_code_base64), ticketUrl: textoOuNull(metodo.ticket_url) } : null,
     expiraEm: expiraEm && !Number.isNaN(expiraEm.getTime()) ? expiraEm : null,
+    ...(point ? { point: { terminalId: textoOuNull(o.config?.point?.terminal_id), tipo: textoOuNull(metodo.type) } } : {}),
   };
 }
 
@@ -205,12 +216,16 @@ export function urlAutorizacao(app: Pick<AplicacaoOAuth, 'clientId' | 'redirectU
 
 type Buscar = typeof fetch;
 
-export function criarProvedorMercadoPago(opcoes: { buscar?: Buscar; baseUrl?: string; timeoutMs?: number } = {}): ProvedorMercadoPago {
+export function criarProvedorMercadoPago(opcoes: { buscar?: Buscar; baseUrl?: string; timeoutMs?: number; sandboxTokenSha256?: string } = {}): ProvedorMercadoPago {
   const buscar = opcoes.buscar ?? fetch;
   const base = opcoes.baseUrl ?? MERCADO_PAGO_BASE_URL;
   const timeoutMs = opcoes.timeoutMs ?? 10_000;
+  const sandboxToken = opcoes.sandboxTokenSha256 ? Buffer.from(opcoes.sandboxTokenSha256, 'hex') : null;
 
-  async function chamar(metodo: 'GET' | 'POST', caminho: string, token: string, extras: { corpo?: unknown; chave?: string } = {}): Promise<unknown> {
+  async function chamar(metodo: 'GET' | 'POST', caminho: string, token: string, extras: { corpo?: unknown; chave?: string; cancelarNoTerminal?: boolean } = {}): Promise<unknown> {
+    if (sandboxToken && (sandboxToken.length !== 32 || !timingSafeEqual(sandboxToken, createHash('sha256').update(token).digest()))) {
+      throw new ErroProvedorMp('credencial_invalida');
+    }
     let res: Response;
     try {
       res = await buscar(`${base}${caminho}`, {
@@ -221,6 +236,7 @@ export function criarProvedorMercadoPago(opcoes: { buscar?: Buscar; baseUrl?: st
           Accept: 'application/json',
           ...(extras.corpo === undefined ? {} : { 'Content-Type': 'application/json' }),
           ...(extras.chave ? { 'X-Idempotency-Key': extras.chave } : {}),
+          ...(extras.cancelarNoTerminal ? { 'X-Allow-Cancelable-Status': 'at_terminal' } : {}),
         },
         ...(extras.corpo === undefined ? {} : { body: JSON.stringify(extras.corpo) }),
       });
@@ -240,6 +256,7 @@ export function criarProvedorMercadoPago(opcoes: { buscar?: Buscar; baseUrl?: st
 
   /** `/oauth/token` não usa Bearer: as credenciais da aplicação vão no corpo. */
   async function pedirToken(corpo: Record<string, string>): Promise<TokensOAuth> {
+    if (sandboxToken) throw new ErroProvedorMp('acesso_negado');
     let res: Response;
     try {
       res = await buscar(`${base}/oauth/token`, {
@@ -276,11 +293,38 @@ export function criarProvedorMercadoPago(opcoes: { buscar?: Buscar; baseUrl?: st
     async criarPedidoPix(token, chave, pedido) {
       return lerPedido(await chamar('POST', '/v1/orders', token, { corpo: corpoPedidoPix(pedido), chave }));
     },
+    async criarPedidoPoint(token, chave, pedido) {
+      return lerPedido(await chamar('POST', '/v1/orders', token, { chave, corpo: {
+        type: 'point', external_reference: pedido.referenciaExterna, expiration_time: pedido.expiracao,
+        transactions: { payments: [{ amount: centavosParaValor(pedido.valorCentavos) }] },
+        config: { point: { terminal_id: pedido.terminalId }, payment_method: { default_type: pedido.tipo } },
+      } }));
+    },
+    async listarTerminaisPoint(token) {
+      const terminais = new Set<string>();
+      const limite = 50;
+      let offset = 0;
+      let total: number;
+      do {
+        const pagina = await chamar('GET', `/terminals/v1/list?limit=${limite}&offset=${offset}`, token) as {
+          data?: { terminals?: { id?: unknown; operating_mode?: unknown }[] }; paging?: { total?: number };
+        } | null;
+        const itens = pagina?.data?.terminals;
+        if (!Array.isArray(itens)) throw new ErroProvedorMp('resposta_invalida');
+        for (const item of itens) {
+          if (item?.operating_mode === 'PDV' && typeof item.id === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(item.id)) terminais.add(item.id);
+        }
+        offset += itens.length;
+        total = pagina?.paging?.total ?? offset;
+        if (itens.length === 0) break;
+      } while (offset < total);
+      return [...terminais].map((id) => ({ id }));
+    },
     async consultarPedido(token, pedidoId) {
       return lerPedido(await chamar('GET', caminhoPedido(pedidoId), token));
     },
-    async cancelarPedido(token, pedidoId, chave) {
-      return lerPedido(await chamar('POST', `${caminhoPedido(pedidoId)}/cancel`, token, { chave }));
+    async cancelarPedido(token, pedidoId, chave, cancelarNoTerminal) {
+      return lerPedido(await chamar('POST', `${caminhoPedido(pedidoId)}/cancel`, token, { chave, cancelarNoTerminal }));
     },
   };
 }

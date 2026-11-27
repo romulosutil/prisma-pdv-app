@@ -12,14 +12,15 @@ import type { VerificadorGooglePlay } from './pagamentos/googlePlayBilling';
 export interface ConfigPagamentos {
   cifrador: CifradorPagamentos | null;
   mercadoPago: ProvedorMercadoPago;
-  /** Provedor InfinitePay (Checkout Integrado + payment_check). */
-  infinitePay?: ProvedorInfinitePay;
+  /** Provedor InfinitePay (Checkout Integrado + payment_check). `null` desativa as chamadas ao provedor. */
+  infinitePay?: ProvedorInfinitePay | null;
   /** URL pública base da API, usada ao montar `webhook_url` no Checkout da InfinitePay. */
   urlPublicaApi?: string | null;
   /** `payer.email` da order; sem ele a cobrança não é criada (503 `pagador_nao_configurado`). */
   pagadorEmail: string | null;
   /** Só em homologação com a conta de teste (`APRO`). Nunca configurado em produção. */
   pagadorPrimeiroNome?: string | null;
+  pointHabilitado?: boolean;
   /** Intervalo mínimo entre consultas ao provedor pela rota de acompanhamento; o padrão é 3 s. */
   consultaMinimaMs?: number;
   /** Aplicação da plataforma para o OAuth; `null`/ausente = rotas OAuth respondem 503 `oauth_indisponivel`. */

@@ -510,6 +510,7 @@ export interface PedidoPixGravado {
   pagadorEmail: string;
   pagadorPrimeiroNome: string | null;
   descricao?: string;
+  point?: { terminalId: string; tipo: 'credit_card' | 'debit_card'; contaProvedorId: string };
 }
 
 /** Credencial do próprio lojista no provedor, por loja. Desligar apaga a credencial e mantém o histórico. */

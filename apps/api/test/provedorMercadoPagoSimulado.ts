@@ -1,5 +1,5 @@
 import {
-  centavosParaValor, ErroProvedorMp, lerPedido, lerTokens, type AplicacaoOAuth, type PedidoMercadoPago, type PedidoPixEntrada, type ProvedorMercadoPago,
+  centavosParaValor, ErroProvedorMp, lerPedido, lerTokens, type AplicacaoOAuth, type PedidoMercadoPago, type PedidoPixEntrada, type PedidoPointEntrada, type ProvedorMercadoPago,
 } from '../src/pagamentos/mercadoPago';
 
 /**
@@ -14,7 +14,7 @@ interface OrderSimulada {
   corpo: Record<string, any>;
   token: string;
   chave: string;
-  entrada: PedidoPixEntrada;
+  entrada: PedidoPixEntrada | PedidoPointEntrada;
 }
 
 export class ProvedorMercadoPagoSimulado implements ProvedorMercadoPago {
@@ -22,6 +22,7 @@ export class ProvedorMercadoPagoSimulado implements ProvedorMercadoPago {
   readonly chaves = new Map<string, string>();
   readonly chamadas: { operacao: Operacao; pedidoId?: string; chave?: string }[] = [];
   readonly tokensValidos = new Set<string>();
+  readonly terminaisPoint = new Map<string, string[]>();
   private readonly falhas: { operacao: Operacao; erro: Error; criarAntes?: boolean }[] = [];
   private contador = 0;
 
@@ -120,6 +121,20 @@ export class ProvedorMercadoPagoSimulado implements ProvedorMercadoPago {
   }
 
   async criarPedidoPix(token: string, chave: string, entrada: PedidoPixEntrada) {
+    return this.criarPedido(token, chave, entrada);
+  }
+
+  async listarTerminaisPoint(token: string) {
+    this.exigirToken(token);
+    return (this.terminaisPoint.get(token) ?? []).map((id) => ({ id }));
+  }
+
+  async criarPedidoPoint(token: string, chave: string, entrada: PedidoPointEntrada) {
+    if (!(this.terminaisPoint.get(token) ?? []).includes(entrada.terminalId)) throw new ErroProvedorMp('acesso_negado', 403);
+    return this.criarPedido(token, chave, entrada);
+  }
+
+  private criarPedido(token: string, chave: string, entrada: PedidoPixEntrada | PedidoPointEntrada) {
     this.chamadas.push({ operacao: 'criar', chave });
     const f = this.falha('criar');
     if (f && !f.criarAntes) throw f.erro;
@@ -134,12 +149,14 @@ export class ProvedorMercadoPagoSimulado implements ProvedorMercadoPago {
     this.contador += 1;
     const id = `ORD01SIMULADO${String(this.contador).padStart(6, '0')}`;
     const valor = centavosParaValor(entrada.valorCentavos);
+    const point = 'terminalId' in entrada ? entrada : null;
     const corpo = {
-      id, type: 'online', processing_mode: 'automatic', external_reference: entrada.referenciaExterna,
-      total_amount: valor, status: 'action_required', status_detail: 'waiting_transfer',
+      id, type: point ? 'point' : 'online', processing_mode: 'automatic', external_reference: entrada.referenciaExterna,
+      total_amount: valor, status: point ? 'created' : 'action_required', status_detail: point ? 'created' : 'waiting_transfer',
+      ...(point ? { config: { point: { terminal_id: point.terminalId } } } : {}),
       transactions: { payments: [{ id: `PAY01SIMULADO${this.contador}`, amount: valor, status: 'action_required', status_detail: 'waiting_transfer',
         date_of_expiration: '2026-03-10T12:30:00.000Z',
-        payment_method: { id: 'pix', type: 'bank_transfer', qr_code: `00020126SIMULADO${this.contador}`, qr_code_base64: 'iVBORw0KGgoSIMULADO', ticket_url: `https://exemplo.invalid/pix/${this.contador}` } }] },
+        payment_method: point ? { type: point.tipo } : { id: 'pix', type: 'bank_transfer', qr_code: `00020126SIMULADO${this.contador}`, qr_code_base64: 'iVBORw0KGgoSIMULADO', ticket_url: `https://exemplo.invalid/pix/${this.contador}` } }] },
     };
     const o = { corpo, token, chave, entrada };
     this.orders.set(id, o);
@@ -156,12 +173,16 @@ export class ProvedorMercadoPagoSimulado implements ProvedorMercadoPago {
     return this.copia(this.order(token, id));
   }
 
-  async cancelarPedido(token: string, id: string, chave: string) {
+  async cancelarPedido(token: string, id: string, chave: string, noTerminal?: boolean) {
     this.chamadas.push({ operacao: 'cancelar', pedidoId: id, chave });
     const f = this.falha('cancelar');
     if (f) throw f.erro;
     this.exigirToken(token);
     const o = this.order(token, id);
+    if (noTerminal && o.corpo.status === 'at_terminal') {
+      o.corpo.transactions.payments[0].status_detail = 'cancellation_requested';
+      return this.copia(o);
+    }
     if (o.corpo.status === 'canceled') throw new ErroProvedorMp('ja_cancelado', 409, 'order_already_canceled');
     if (o.corpo.status !== 'created' && o.corpo.status !== 'action_required') throw new ErroProvedorMp('nao_cancelavel', 409, 'cannot_cancel_order');
     this.definir(id, 'canceled', 'canceled_transaction');

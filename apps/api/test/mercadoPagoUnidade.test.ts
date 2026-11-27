@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createHmac, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { lerConfiguracaoPagamentos } from '../src/configuracao';
 import { assinarManifesto, assinaturaValida, lerCabecalhoAssinatura, manifestoAssinatura } from '../src/pagamentos/assinaturaWebhook';
 import { chavePagamentosValida, criarCifradorPagamentos } from '../src/pagamentos/cifrador';
@@ -69,9 +69,64 @@ describe('cifrador da credencial', () => {
       try { lerConfiguracaoPagamentos(env); } catch (erro) { expect((erro as Error).message).not.toContain('segredo'); }
     }
   });
+
+  it('limita o sandbox à URL de homologação e usa o e-mail de teste do provedor', () => {
+    const chave = randomBytes(32).toString('base64');
+    const sandboxTokenSha256 = 'a'.repeat(64);
+    const env = {
+      NODE_ENV: 'production',
+      PDV_PAGAMENTOS_CHAVE: chave,
+      PDV_API_PUBLIC_URL: 'https://aladdin-pdv-api-homologacao.jicnzg.easypanel.host',
+      PDV_MP_PAYER_EMAIL: 'pix@exemplo.com.br',
+      PDV_MP_SANDBOX_TOKEN_SHA256: sandboxTokenSha256,
+    };
+    expect(lerConfiguracaoPagamentos(env)).toEqual({ chave, sandboxTokenSha256, pagadorEmail: 'test_payer@example.com' });
+    expect(() => lerConfiguracaoPagamentos({ ...env, PDV_API_PUBLIC_URL: 'https://aladdin-pdv-api.jicnzg.easypanel.host' })).toThrow('URL pública de homologação');
+    expect(() => lerConfiguracaoPagamentos({ ...env, PDV_PAGAMENTOS_CHAVE: undefined })).toThrow('chave de pagamentos');
+    expect(() => lerConfiguracaoPagamentos({ ...env, PDV_MP_SANDBOX_TOKEN_SHA256: 'segredo-invalido' })).toThrow('SHA256 hexadecimal');
+  });
 });
 
 describe('cliente da Orders API', () => {
+  it('lista terminais em modo PDV e envia uma cobrança Point sem dados de cartão', async () => {
+    const terminalId = 'NEWLAND_N950__SIMULADO1';
+    const buscar: typeof fetch = async (url, init) => {
+      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer TOKEN-FICTICIO-DO-LOJISTA');
+      if (String(url).endsWith('/terminals/v1/list?limit=50&offset=0')) {
+        return Response.json({ data: { terminals: [{ id: terminalId, operating_mode: 'PDV' }, { id: 'OUTRO', operating_mode: 'STANDALONE' }] }, paging: { total: 2 } });
+      }
+      expect(String(url)).toMatch(/\/v1\/orders$/);
+      expect(JSON.parse(String(init?.body))).toEqual({
+        type: 'point', external_reference: 'ref', expiration_time: 'PT30M',
+        transactions: { payments: [{ amount: '7.00' }] },
+        config: { point: { terminal_id: terminalId }, payment_method: { default_type: 'debit_card' } },
+      });
+      return Response.json({ id: 'ORD1', type: 'point', status: 'processed', status_detail: 'accredited', config: { point: { terminal_id: terminalId } },
+        transactions: { payments: [{ amount: '7.00', paid_amount: '7.00', payment_method: { type: 'debit_card' } }] } });
+    };
+    const mp = criarProvedorMercadoPago({ buscar });
+    expect(await mp.listarTerminaisPoint('TOKEN-FICTICIO-DO-LOJISTA')).toEqual([{ id: terminalId }]);
+    const p = await mp.criarPedidoPoint('TOKEN-FICTICIO-DO-LOJISTA', 'chave', { valorCentavos: 700, referenciaExterna: 'ref', expiracao: 'PT30M', terminalId, tipo: 'debit_card' });
+    expect(p).toMatchObject({ status: 'processed', totalPagoCentavos: 700, pix: null, point: { terminalId, tipo: 'debit_card' } });
+  });
+
+  it('só permite chamadas externas com a credencial selecionada para o sandbox', async () => {
+    const token = 'TOKEN-FICTICIO-DO-SANDBOX';
+    const sandboxTokenSha256 = createHash('sha256').update(token).digest('hex');
+    const solicitacoes: string[] = [];
+    const buscar: typeof fetch = async (_url, init) => {
+      solicitacoes.push(new Headers(init?.headers).get('Authorization') ?? '');
+      return Response.json({ id: 'ORD1', status: 'action_required' });
+    };
+    const mp = criarProvedorMercadoPago({ buscar, sandboxTokenSha256 });
+    await expect(mp.validarCredencial('TOKEN-FICTICIO-DE-OUTRO-AMBIENTE')).rejects.toMatchObject({ tipo: 'credencial_invalida' });
+    await expect(mp.consultarPedido('TOKEN-FICTICIO-DE-OUTRO-AMBIENTE', 'ORD1')).rejects.toMatchObject({ tipo: 'credencial_invalida' });
+    await expect(mp.renovarToken({ clientId: 'id', clientSecret: 'secreto', redirectUri: 'https://exemplo.invalid', pkce: true, testToken: true }, 'refresh')).rejects.toMatchObject({ tipo: 'acesso_negado' });
+    expect(solicitacoes).toEqual([]);
+    await expect(mp.consultarPedido(token, 'ORD1')).resolves.toMatchObject({ id: 'ORD1' });
+    expect(solicitacoes).toEqual([`Bearer ${token}`]);
+  });
+
   it('converte valores em centavos exatos, sem arredondar', () => {
     expect(centavosParaValor(5000)).toBe('50.00');
     expect(centavosParaValor(1)).toBe('0.01');

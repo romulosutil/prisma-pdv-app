@@ -92,6 +92,8 @@ export interface ConfiguracaoOAuthMercadoPago {
   vendedorTesteId?: string;
   /** A Orders API exige credencial no formato de produção do próprio usuário fictício. */
   credencialOrdersVendedorTeste?: boolean;
+  /** E-mail da conta compradora fictícia, conferida na aba Comprador do painel. */
+  compradorTesteEmail?: string;
 }
 
 /**
@@ -113,9 +115,10 @@ export function lerConfiguracaoOAuthMercadoPago(env: NodeJS.ProcessEnv): Configu
   const webhookSegredo = env.PDV_MP_WEBHOOK_SECRET?.trim() || null;
   const vendedorTesteId = env.PDV_MP_OAUTH_TEST_SELLER_ID?.trim() || undefined;
   const credencialOrdersVendedorTeste = booleano(env.PDV_MP_OAUTH_ORDERS_TEST_SELLER, 'PDV_MP_OAUTH_ORDERS_TEST_SELLER', false);
+  const compradorTesteEmail = env.PDV_MP_OAUTH_ORDERS_TEST_BUYER_EMAIL?.trim() || undefined;
   if (!clientId && !clientSecret && !redirectUri) {
     if (webhookSegredo) throw new Error('PDV_MP_WEBHOOK_SECRET exige PDV_MP_CLIENT_ID, PDV_MP_CLIENT_SECRET e PDV_MP_REDIRECT_URI.');
-    if (vendedorTesteId || credencialOrdersVendedorTeste) throw new Error('A conta vendedora de teste exige configuração OAuth.');
+    if (vendedorTesteId || credencialOrdersVendedorTeste || compradorTesteEmail) throw new Error('As contas de teste exigem configuração OAuth.');
     return null;
   }
   if (!clientId || !clientSecret || !redirectUri) throw new Error('PDV_MP_CLIENT_ID, PDV_MP_CLIENT_SECRET e PDV_MP_REDIRECT_URI devem ser definidas juntas.');
@@ -133,6 +136,9 @@ export function lerConfiguracaoOAuthMercadoPago(env: NodeJS.ProcessEnv): Configu
   if (credencialOrdersVendedorTeste && (!testToken || !vendedorTesteId)) {
     throw new Error('PDV_MP_OAUTH_ORDERS_TEST_SELLER exige o modo de teste e o vendedor fictício identificado.');
   }
+  if (compradorTesteEmail && (!credencialOrdersVendedorTeste || !/^test_user_\d{1,32}@testuser\.com$/.test(compradorTesteEmail))) {
+    throw new Error('PDV_MP_OAUTH_ORDERS_TEST_BUYER_EMAIL exige um comprador fictício do painel e o modo OAuth Orders de teste.');
+  }
   if (credencialOrdersVendedorTeste || (testToken && (env.NODE_ENV ?? 'development') === 'production')) {
     const origem = lerUrlPublicaApi(env);
     if (!lerConfiguracaoPagamentos(env).sandboxTokenSha256 || redirectUri !== `${origem}/pagamentos/mercadopago/oauth/retorno`) {
@@ -143,6 +149,7 @@ export function lerConfiguracaoOAuthMercadoPago(env: NodeJS.ProcessEnv): Configu
     clientId, clientSecret, redirectUri, webhookSegredo, pkce, testToken,
     ...(vendedorTesteId ? { vendedorTesteId } : {}),
     ...(credencialOrdersVendedorTeste ? { credencialOrdersVendedorTeste } : {}),
+    ...(compradorTesteEmail ? { compradorTesteEmail } : {}),
   };
 }
 

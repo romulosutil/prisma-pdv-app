@@ -116,6 +116,10 @@ describe('configuração do OAuth', () => {
     expect(() => lerConfiguracaoOAuthMercadoPago({ ...env, PDV_MP_OAUTH_TEST_SELLER_ID: 'inválido' })).toThrow(/PDV_MP_OAUTH_TEST_SELLER_ID/);
     const orders = { ...env, PDV_MP_OAUTH_ORDERS_TEST_SELLER: 'true' };
     expect(lerConfiguracaoOAuthMercadoPago(orders)).toMatchObject({ testToken: true, credencialOrdersVendedorTeste: true });
+    const comprador = { PDV_MP_OAUTH_ORDERS_TEST_BUYER_EMAIL: 'test_user_123456@testuser.com' };
+    expect(lerConfiguracaoOAuthMercadoPago({ ...orders, ...comprador })?.compradorTesteEmail).toBe(comprador.PDV_MP_OAUTH_ORDERS_TEST_BUYER_EMAIL);
+    expect(() => lerConfiguracaoOAuthMercadoPago({ ...env, ...comprador })).toThrow(/modo OAuth Orders de teste/);
+    expect(() => lerConfiguracaoOAuthMercadoPago({ ...orders, PDV_MP_OAUTH_ORDERS_TEST_BUYER_EMAIL: 'comprador@exemplo.com' })).toThrow(/comprador fictício/);
     expect(() => lerConfiguracaoOAuthMercadoPago({ ...orders, PDV_MP_OAUTH_TEST_SELLER_ID: undefined })).toThrow(/vendedor fictício/);
     expect(() => lerConfiguracaoOAuthMercadoPago({ ...orders, NODE_ENV: 'development', PDV_API_PUBLIC_URL: 'https://api.exemplo.invalid' })).toThrow(/homologação/);
   });
@@ -144,7 +148,8 @@ describe('configuração do OAuth', () => {
 describe('início e retorno do OAuth', () => {
   it.each(['987654321', '123456789'])('só grava o token Orders quando a API confirma o vendedor fictício (%s)', async (idConfirmado) => {
     const vendedorTesteId = '987654321';
-    config.oauth = { ...OAUTH, testToken: true, vendedorTesteId, credencialOrdersVendedorTeste: true };
+    const compradorTesteEmail = 'test_user_123456@testuser.com';
+    config.oauth = { ...OAUTH, testToken: true, vendedorTesteId, credencialOrdersVendedorTeste: true, compradorTesteEmail };
     const dono = await contaEmTeste(amb);
     const trocar = sim.trocarCodigo.bind(sim);
     vi.spyOn(sim, 'trocarCodigo').mockImplementationOnce(async (...args) => ({
@@ -158,6 +163,10 @@ describe('início e retorno do OAuth', () => {
     if (idConfirmado === vendedorTesteId) {
       expect(resposta.status).toBe(200);
       expect(await conexaoDe(dono.lojaId)).toMatchObject({ contaProvedorId: vendedorTesteId, liveMode: true });
+      const criar = vi.spyOn(sim, 'criarPedidoPix');
+      const cobranca = await cobrar(dono);
+      expect(cobranca.status).toBe(201);
+      expect(criar).toHaveBeenCalledWith('APP_USR-SIMULADO-ORDERS', expect.any(String), expect.objectContaining({ pagadorEmail: compradorTesteEmail }));
     } else {
       expect(resposta.status).toBe(400);
       expect(resposta.html).toContain('identidade_orders_nao_confirmada');

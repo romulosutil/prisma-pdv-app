@@ -377,7 +377,10 @@ export async function criarCobrancaPix(amb: AmbientePix, sessao: SessaoAutentica
   const conexao = await conexaoAtiva(amb.db, sessao.lojaId);
   if (!conexao?.tokenEnvelope) throw new ErroApi(409, 'mercadopago_nao_conectado', 'Conecte o Mercado Pago da loja antes de cobrar.');
   if (conexao.reautorizarDesde) throw reautorizar();
-  if (!cartao && !amb.pagadorEmail) throw new ErroApi(503, 'pagador_nao_configurado', 'O e-mail do pagador do Pix não está configurado neste servidor. Use a confirmação manual.');
+  const pagadorEmail = conexao.modo === 'oauth' && amb.oauth?.credencialOrdersVendedorTeste
+    ? amb.oauth.compradorTesteEmail
+    : amb.pagadorEmail;
+  if (!cartao && !pagadorEmail) throw new ErroApi(503, 'pagador_nao_configurado', 'O e-mail do pagador do Pix não está configurado neste servidor. Use a confirmação manual.');
   const point = cartao && req.terminalPointId && conexao.contaProvedorId ? {
     terminalId: req.terminalPointId,
     tipo: meio === 'cartao_debito' ? 'debit_card' as const : 'credit_card' as const,
@@ -403,7 +406,7 @@ export async function criarCobrancaPix(amb: AmbientePix, sessao: SessaoAutentica
       valorCentavos: req.valorCentavos,
       referenciaExterna: req.pagamentoId,
       expiracao: EXPIRACAO_PIX,
-      pagadorEmail: cartao ? '' : amb.pagadorEmail!,
+      pagadorEmail: cartao ? '' : pagadorEmail!,
       pagadorPrimeiroNome: cartao ? null : amb.pagadorPrimeiroNome,
       ...(point ? { point } : {}),
     },

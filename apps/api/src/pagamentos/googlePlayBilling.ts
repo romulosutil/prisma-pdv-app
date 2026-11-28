@@ -53,7 +53,9 @@ export function decodificarRtdnPubSub(corpo: unknown): NotificacaoPlayRtdn | nul
 
   let payload: Record<string, unknown>;
   try {
-    payload = JSON.parse(Buffer.from(dataBase64, 'base64').toString('utf8')) as Record<string, unknown>;
+    const decoded: unknown = JSON.parse(Buffer.from(dataBase64, 'base64').toString('utf8'));
+    if (!decoded || typeof decoded !== 'object') return null;
+    payload = decoded as Record<string, unknown>;
   } catch {
     return null;
   }
@@ -69,13 +71,13 @@ export function decodificarRtdnPubSub(corpo: unknown): NotificacaoPlayRtdn | nul
   const sub = payload.subscriptionNotification && typeof payload.subscriptionNotification === 'object'
     ? (payload.subscriptionNotification as Record<string, unknown>)
     : null;
-  if (!sub || typeof sub.purchaseToken !== 'string' || typeof sub.subscriptionId !== 'string') return null;
+  if (!sub || typeof sub.purchaseToken !== 'string' || !sub.purchaseToken) return null;
 
   return {
     packageName,
     eventTimeMillis,
     purchaseToken: sub.purchaseToken,
-    subscriptionId: sub.subscriptionId,
+    subscriptionId: typeof sub.subscriptionId === 'string' ? sub.subscriptionId : null,
     notificationType: typeof sub.notificationType === 'number' ? sub.notificationType : null,
     isTest: false,
   };

@@ -235,7 +235,7 @@ describe('Google Play Billing e modo gratuito', () => {
     expect(rGrace.status).toBe(200);
     expect(rGrace.corpo.estado).toBe('inadimplente');
 
-    // RTDN de renovação bem-sucedida.
+    // A Play envia renovações sem subscriptionId no formato atual da RTDN.
     verificador.compras.set(`br.com.pdv.mobile:${tokenPro}`, {
       subscriptionState: 'SUBSCRIPTION_STATE_ACTIVE',
       acknowledgementState: 'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED',
@@ -249,8 +249,8 @@ describe('Google Play Billing e modo gratuito', () => {
     const rRenov = await injetar('POST', '/webhooks/pdv-google-play?token=segredo-rtdn-play', {
       corpo: envelopeRtdn({
         packageName: 'br.com.pdv.mobile',
-        eventTimeMillis: 2000,
-        subscriptionNotification: { subscriptionId: 'prisma_pro_mensal', purchaseToken: tokenPro, notificationType: 2 },
+        eventTimeMillis: '2000',
+        subscriptionNotification: { version: '1.0', purchaseToken: tokenPro, notificationType: 2 },
       }),
     });
     expect(rRenov.corpo.estado).toBe('ativa');
